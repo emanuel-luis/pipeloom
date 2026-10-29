@@ -684,7 +684,7 @@ Catalog, state-store and sink contract suites follow the same pattern.
 
 ## 16. Roadmap
 
-- **0.0.1:** reserve the name; skeleton (section 18); CI, release, governance; this document and the ADRs.
+- **0.0.2:** reserve the name; skeleton (section 18); CI, release, governance; this document and the ADRs.
 - **0.1:** config models, loader with line marks, L0-L6, graph, selectors (`name`, `+name`, `name+`, `tag:`, `path:`, `materialized:`), plan, manifest, schema export, event bus with console and jsonl sinks. CLI: `validate`, `compile`, `ls`, `graph`, `schema`, `plugins`. A `MemoryEngine` for tests.
 - **0.2:** scheduler, thread and process executors, `pipeloom-polars` and `pipeloom-pandas`, table/view/ephemeral, append and overwrite, sqlite and json state, run_results, the contract suite.
 - **0.3:** incremental, merge, replace_partitions, schema-change policy, expectations and quarantine, retries, timeouts, cancellation.
@@ -725,7 +725,7 @@ Each ADR is Context, Options, Choice, Consequences, as written in the sections a
   - Separate `pipeloom-<plugin>` distributions in one uv workspace.
 - Choice: the uv workspace. The core is distribution `pipeloom` at the repo root; plugins live in `plugins/pipeloom-<name>/` with import package `pipeloom_<name>` (no namespace packages).
 - Convenience extras on `pipeloom` (for example `pipeloom[polars]`) just depend on the plugin distribution.
-- PyPI now: publish `pipeloom` 0.0.1 only. Plugin names get published with their first functional release, which avoids PEP 541 placeholder squatting.
+- PyPI now: publish `pipeloom` 0.0.2 only. Plugin names get published with their first functional release, which avoids PEP 541 placeholder squatting.
 - Pending trusted publishers may be registered for the plugin names. Assumption: a pending publisher does not reserve a name; verify.
 - `[tool.uv.workspace]` is added in 0.2 with the first plugin (whether uv accepts an empty members glob is unverified).
 
@@ -784,7 +784,7 @@ pipeloom/
 ├── CODE_OF_CONDUCT.md              # Contributor Covenant 2.1
 ├── SECURITY.md                     # GitHub private vulnerability reporting, supported versions
 ├── GOVERNANCE.md                   # single-maintainer model, path to maintainers
-└── CHANGELOG.md                    # Keep a Changelog; [0.0.1] entry
+└── CHANGELOG.md                    # Keep a Changelog; [0.0.2] entry
 ```
 
 The core sits at the repo root so `README` and `LICENSE` ship in the distribution without copies.
@@ -792,7 +792,7 @@ The core sits at the repo root so `README` and `LICENSE` ship in the distributio
 **`pyproject.toml` essentials:**
 - `[build-system] requires = ["hatchling"]`
 - `[project]`:
-  - `name = "pipeloom"`, `version = "0.0.1"`, `requires-python = ">=3.11"`
+  - `name = "pipeloom"`, `version = "0.0.2"`, `requires-python = ">=3.11"`
   - `license = "Apache-2.0"`, `license-files = ["LICENSE", "NOTICE"]`, `readme = "README.pypi.md"`
   - `dependencies = ["click>=8.1"]`
   - `[project.scripts] pipeloom = "pipeloom.cli:main"`
@@ -808,7 +808,7 @@ The core sits at the repo root so `README` and `LICENSE` ship in the distributio
 - `uv sync && uv run pytest -q && uv run mypy --strict src && uv run ruff check`
 - `uv build`, then install the wheel into a clean venv and run `pipeloom --version` and `python -m pipeloom --version`.
 - `mkdocs build --strict`, and `d2` compile of all diagrams.
-- The first tag, `v0.0.1`, is the real release: there is no TestPyPI dry run.
+- The first tag, `v0.0.2`, is the real release: there is no TestPyPI dry run.
 
 ## Risks
 

@@ -18,7 +18,7 @@ The uv workspace.
 
 - The core is distribution `pipeloom` at the repo root. Plugins live in `plugins/pipeloom-<name>/` with import package `pipeloom_<name>` (no namespace packages).
 - Convenience extras on `pipeloom` (for example `pipeloom[polars]`) just depend on the plugin distribution.
-- PyPI now: publish `pipeloom` 0.0.1 only. Plugin names are published with their first functional release, which avoids PEP 541 placeholder squatting.
+- PyPI now: publish `pipeloom` 0.0.2 only. Plugin names are published with their first functional release, which avoids PEP 541 placeholder squatting.
 - Pending trusted publishers may be registered for the plugin names. Assumption: a pending publisher does not reserve a name (unverified).
 - `[tool.uv.workspace]` is added in 0.2 with the first plugin. Whether uv accepts an empty members glob is unverified.
 
