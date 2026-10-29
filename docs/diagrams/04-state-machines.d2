@@ -1,0 +1,57 @@
+# Unit and run state machines, with retry, timeout, skip and cancel transitions.
+# Illustrates section 8 (execution and scheduler) in docs/architecture.md.
+...@_style
+
+title: "State machines: unit and run" {
+  shape: text
+  near: top-center
+  style: {font-size: 24; bold: true}
+}
+
+direction: down
+
+unit: "Unit" {
+  class: group
+  pending: pending {class: process}
+  queued: queued {class: process}
+  running: running {class: process}
+  retrying: retrying {class: process}
+  succeeded: succeeded {class: store}
+  failed: failed {class: process}
+  timed_out: timed_out {class: process}
+  cancelled: cancelled {class: process}
+  skipped: skipped {class: process}
+  pending -> queued: "all parents\nsucceeded"
+  queued -> running: "worker free"
+  running -> succeeded
+  running -> retrying: "transient error,\nretries left"
+  retrying -> running: "after retry_delay"
+  running -> failed: "permanent error or\nretries used"
+  running -> timed_out: "timeout"
+  running -> cancelled: "run cancelled"
+  pending -> skipped: "an upstream failed,\ntimed_out or skipped"
+  pending -> cancelled: "run cancelled"
+}
+
+run: "Run" {
+  class: group
+  created: created {class: process}
+  compiled: compiled {class: process}
+  rrunning: running {class: process}
+  rsucceeded: succeeded {class: store}
+  rfailed: failed {class: process}
+  rcancelled: cancelled {class: process}
+  created -> compiled
+  compiled -> rrunning
+  rrunning -> rsucceeded: "no failed unit;\nwarnings allowed"
+  rrunning -> rfailed: "a unit failed"
+  rrunning -> rcancelled: "SIGINT or SIGTERM,\nexit 130"
+}
+
+legend: Legend {
+  class: legend
+  grid-columns: 3
+  process: state {class: [process; legend-item]}
+  store: success {class: [store; legend-store]}
+  edges: "terminal unit states: succeeded, failed, timed_out,\ncancelled, skipped" {shape: text; style.font-size: 13}
+}

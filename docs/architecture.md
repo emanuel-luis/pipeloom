@@ -1,0 +1,828 @@
+# pipeloom architecture
+
+> **Status:** Design (pre-0.1). Nothing described here is implemented yet.
+> Decisions are recorded as ADRs in [adr/](adr/README.md). Diagrams are D2 sources in [diagrams/](diagrams/) with committed SVGs.
+
+## 1. Vision, goals, non-goals, principles
+
+**Vision.** A small, typed framework. Pipelines are declared in YAML and compiled into an immutable plan. That plan runs the same way on pandas, polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG. Every run produces a single event stream and artifacts you can query.
+
+**Goals:** declarative YAML with layered validation and editor completion; an engine-agnostic core with one plugin per tool; end-to-end events and styled logs; persisted metadata for each run and each model; a Databricks one-job renderer; a cosmos-style Airflow integration; open-source hygiene.
+
+**Non-goals (through 1.0):** streaming; a scheduler service or UI; a portable SQL dialect; Jinja templating; running user code at compile time; Airflow 2 support.
+
+**Principles. Each answers a lesson (L) from the concept spec.**
+1. One event stream. Logs, metrics, artifacts and lineage subscribe to it (L1).
+2. Dependencies are declared, never traced. Tracing is an opt-in static check that warns (L2).
+3. No module-level registries. A `Project` object owns plugins and config (L3).
+4. Docs, the CLI reference, the JSON Schema and the error catalog are all generated from code. Every CLI flag has a test (L4).
+5. No session-global mutation. Every engine setting lives in a context manager with guaranteed cleanup. Metrics never depend on global commit tags (L5, L10).
+6. Ready-queue scheduling with no level barriers (L6).
+7. Execution units never share in-memory state. Ephemeral models are inlined; intermediates are persisted (L7).
+8. Maintenance operations (compaction, clustering) run only when declared (L8).
+9. Each declared write option is either applied by every strategy or rejected at validation (L9).
+10. Platform behavior is injected: clock, identity, catalog, secrets (L11).
+11. Incremental logic is a declared key plus a lookback, with a watermark store (L12).
+12. Retries, timeouts, data quality, persisted metadata, selectors, schema-change policy, SCD2 and deletes are all first-class (L13).
+13. YAML first, with JSON Schema (L14).
+
+## 2. Glossary
+
+- **Project:** a directory with `pipeloom.yml` and model files.
+- **Model:** a named dataset built from declared inputs by a Python callable or a SQL body.
+- **Source:** an external dataset declared in YAML.
+- **Target:** a named runtime environment (engine, catalog, naming, state store).
+- **Materialization:** `table`, `incremental`, `view`, `ephemeral` or `intermediate`.
+- **Write strategy:** `append`, `overwrite`, `replace_partitions`, `merge` or `scd2`.
+- **Plan:** an immutable compiled graph of resolved models.
+- **Execution unit:** one schedulable node of the plan. It holds one persisted model plus any ephemeral models inlined into it.
+- **Boundary:** `process` (all units in one process) or `task` (each unit in its own process or orchestrator task).
+- **Manifest:** the serialized plan (`manifest.json`).
+- **Run:** one execution of a plan, identified by `run_id`.
+- **Invocation:** one process taking part in a run.
+- **Attempt:** one try of a unit.
+- **Watermark:** the high-water value of an incremental key.
+- **Expectation:** a data-quality rule with `warn`, `drop` or `fail`.
+- **Sink:** an event subscriber.
+- **Renderer:** turns a plan into an orchestrator artifact.
+- **Executor:** runs units.
+- **Plugin API version:** the version of the protocol contract between the core and plugins.
+
+## 3. Architecture overview
+
+![pipeloom in context: a pipeline author writes a YAML project, the core compiles and runs it on engine plugins, writes artifacts and events, and renders jobs for Databricks and Airflow.](diagrams/01-context.svg)
+
+Source: [01-context.d2](diagrams/01-context.d2).
+
+**Layers.** Arrows point toward dependencies. The core never imports a plugin, and an import-linter contract enforces this in CI.
+
+```
+CLI / Python API (pipeloom.api.Project)
+  ├─ config     YAML loader with line marks, pydantic models, schema export
+  ├─ validate   layers L0-L7, error catalog
+  ├─ graph      DAG, selectors, topological order, cycle paths
+  ├─ plan       Plan, ExecutionUnit, Manifest, plan_hash
+  ├─ runtime    Scheduler, Executor(thread|process), ModelRunner, ModelContext
+  ├─ engine     protocols, logical types, capabilities, portable helpers (Narwhals)
+  ├─ incremental / quality / state
+  ├─ events     Event models, EventBus, console/jsonl/file sinks
+  ├─ artifacts  manifest.json, run_results.json writers
+  ├─ secrets    env provider, interpolation, redaction
+  ├─ plugins    entry-point discovery, API-version gate
+  └─ testing    contract suites, RecordingSink, FakeClock, MemoryEngine
+Plugins: pipeloom-pandas | -polars | -spark | -databricks | -airflow | -openlineage
+```
+
+![Distributions and core modules, with the import direction and the entry-point groups each plugin fills. The core never imports a plugin.](diagrams/02-packages.svg)
+
+Source: [02-packages.d2](diagrams/02-packages.d2).
+
+**Lifecycle.** Each stage is a pure function from the previous stage's output. Every stage emits events.
+
+1. **Load:** discover YAML files, then parse them while recording file, line and column for every node.
+2. **Validate schema:** pydantic models (L0-L1).
+3. **Resolve graph:** bind refs and sources, apply defaults and precedence, apply naming strategies to get physical names, apply selectors (L2-L3).
+4. **Validate plan:** semantics, plugin capabilities and static code checks (L4-L6).
+5. **Compile:** fuse ephemeral models into units for the chosen boundary, then freeze. Output is `Plan` plus `manifest.json` with a `plan_hash` (sha256 of the canonical JSON, excluding timestamps).
+6. **Execute:** the scheduler runs units through an executor. Orchestrated tasks run `pipeloom run --manifest ... --select unit:<id> --expect-plan-hash <h>`.
+7. **Finalize:** merge per-invocation results, write `run_results.json`, commit run state, flush and close sinks.
+
+![The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize.](diagrams/03-lifecycle.svg)
+
+Source: [03-lifecycle.d2](diagrams/03-lifecycle.d2).
+
+## 4. Configuration
+
+**Project file.**
+
+```yaml
+# yaml-language-server: $schema=https://<docs-site>/schema/v1/project.json
+config_version: 1
+name: shop
+model_paths: [models]
+python_paths: [src]            # added to sys.path at execution only
+vars: {country: BR}
+defaults:
+  models: {materialized: table, retries: 1, timeout: 30m}
+targets:
+  dev:
+    engine: {kind: polars}
+    catalog: {kind: filesystem, root: ./warehouse}
+    naming: {strategy: per_user}
+    state: {kind: sqlite, path: .pipeloom/state.db}
+    workers: 4
+  prod:
+    engine: {kind: spark}
+    catalog: {kind: unity, catalog: main}
+    naming: {strategy: prefix, schema_prefix: prod_}
+    state: {kind: table, table: ops._pipeloom_state}
+    artifacts: {root: /Volumes/main/ops/pipeloom}
+events:
+  sinks:
+    - {kind: console}
+    - {kind: jsonl, path: target/events.jsonl, failure_budget: 5}
+```
+
+**Model files.** Any `*.yml` under `model_paths`.
+
+```yaml
+sources:
+  - {name: raw_orders, format: parquet, location: data/raw/orders/}
+models:
+  - name: stg_orders
+    sql: |
+      select order_id, customer_id, amount, updated_at from raw_orders
+    inputs: {raw_orders: {source: raw_orders}}
+  - name: fct_orders
+    python: shop.marts.orders:build          # module:function
+    inputs:
+      orders: {ref: stg_orders}
+      customers: {ref: dim_customers}
+    materialized: incremental
+    incremental: {input: orders, column: updated_at, lookback: 2d}
+    write: {strategy: merge, unique_key: [order_id], on_schema_change: append_new_columns}
+    partition_by: [order_date]
+    expectations:
+      - {name: amount_non_negative, check: {range: {column: amount, min: 0}}, on_violation: drop}
+    tags: [finance, daily]
+```
+
+`models/<dir>/_defaults.yml` can set folder-level defaults.
+
+**ADR-0003: Model authoring.**
+- Context: L2 and L14 require declared dependencies and YAML validation. Users still need a real transformation language.
+- Options: YAML-only (too weak for transformations), YAML plus Python, YAML plus SQL, or YAML plus both.
+- Choice: YAML declares every model. The body is either a Python callable or a SQL body. The `inputs` map binds local aliases to `ref` or `source`.
+  - A Python callable is called as `build(ctx, **inputs)`. Each alias becomes a keyword argument holding a relation.
+  - SQL refers to aliases as table names. The engine registers them as named relations for that query only.
+  - At compile time pipeloom imports nothing from the project. L6 parses the callable's file with `ast` to check that the function exists and that its parameters equal `ctx` plus the input aliases.
+  - Opt-in SQL table-reference checking via the sqlglot extra warns on mismatch.
+- Consequences: graphs are cheap to build, so Airflow can parse DAG files safely. No Jinja. Reads of undeclared tables through `ctx.engine.native` are a documented escape hatch outside lineage.
+
+**JSON Schema.** `pipeloom schema export --out schemas/` writes `project.json` and `models.json` (draft 2020-12, assumed from pydantic v2; verify) from the pydantic models.
+- Plugin option models (engine, catalog, sink, state) are composed as discriminated unions on `kind`, using the plugins that are installed.
+- The docs site publishes per-version schemas built with all first-party plugins.
+- The modeline above enables completion in editors that use yaml-language-server.
+
+**Precedence.**
+- Runtime settings (highest first): CLI flags; `PIPELOOM_*` environment variables (for example `PIPELOOM_TARGET`, `PIPELOOM_WORKERS`); an optional git-ignored user file `~/.pipeloom/profiles.yml` with per-target overrides; the `targets.<t>` block; then top-level project keys.
+- Model config: the model entry; the nearest `_defaults.yml`; then `defaults.models`.
+- Targets may change runtime keys only (engine options, catalog, naming, state, workers, artifacts). They may not change model semantics, so plans differ across targets only in physical names and runtime settings.
+- Interpolation: `${env:NAME}`, `${env:NAME:-default}` and `${var:name}` resolve at compile time and are recorded in the manifest. `${secret:provider/path}` resolves only at runtime (section 14).
+
+## 5. Core protocols
+
+```python
+from typing import Any, Protocol, Mapping, Sequence, Iterator, ContextManager
+from dataclasses import dataclass
+from datetime import datetime
+
+@dataclass(frozen=True)
+class Column: name: str; dtype: str; nullable: bool = True   # logical type: int64, decimal(18,2), timestamp[UTC]...
+Schema = tuple[Column, ...]
+
+@dataclass(frozen=True)
+class Relation:                      # opaque handle; never inspected by core
+    native: Any                      # pandas/polars frame, Spark DataFrame...
+    engine: str
+    lazy: bool
+
+@dataclass(frozen=True)
+class EngineCapabilities:
+    formats: frozenset[str]; strategies: frozenset[str]
+    sql_models: bool; views: bool; idempotent_writes: bool
+    cancel: bool; bytes_metrics: bool; portable: bool   # Narwhals-compatible frames
+
+class Engine(Protocol):
+    name: str
+    capabilities: EngineCapabilities
+    def session(self, ctx: "RuntimeContext") -> ContextManager["EngineSession"]: ...  # cleanup guaranteed (L10)
+
+class EngineSession(Protocol):
+    native: Any                                        # escape hatch
+    def reader(self, fmt: str) -> "Reader": ...
+    def materializer(self, strategy: str) -> "Materializer": ...
+    def sql(self, query: str, inputs: Mapping[str, Relation]) -> Relation: ...
+    def schema(self, rel: Relation) -> Schema: ...
+    def count(self, rel: Relation) -> int: ...
+    def filter_since(self, rel: Relation, column: str, lower: Any) -> Relation: ...
+    def max_value(self, rel: Relation, column: str) -> Any: ...
+    def evaluate(self, rel: Relation, checks: Sequence["ExpectationSpec"]) -> "QualityOutcome": ...
+    def cancel(self, unit_id: str) -> None: ...        # cooperative; no-op if not capable
+
+class Reader(Protocol):
+    def read(self, spec: "ReadSpec") -> Relation: ...            # source or upstream target
+class Writer(Protocol):                                           # format-level primitive
+    def write(self, rel: Relation, target: "TargetRef", mode: str, opts: "WriteOptions") -> None: ...
+
+class Materializer(Protocol):                                     # one per strategy
+    strategy: str
+    def materialize(self, rel: Relation, target: "TargetRef", cfg: "WriteConfig",
+                    token: str) -> "WriteResult": ...             # token = idempotency key
+
+class Catalog(Protocol):
+    def exists(self, target: "TargetRef") -> bool: ...
+    def ensure_namespace(self, ns: "Namespace") -> None: ...      # idempotent, cached per invocation
+    def table_schema(self, target: "TargetRef") -> Schema | None: ...
+    def apply_grants(self, target: "TargetRef", grants: Sequence["Grant"]) -> None: ...
+    def maintain(self, target: "TargetRef", ops: Sequence["MaintenanceOp"]) -> None: ...  # explicit (L8)
+
+class MetricsProvider(Protocol):
+    def before_write(self, target: "TargetRef") -> "MetricsToken": ...
+    def after_write(self, target: "TargetRef", token: "MetricsToken", result: "WriteResult") -> "WriteMetrics": ...
+
+class StateStore(Protocol):
+    def get_watermark(self, key: "StateKey") -> "Watermark | None": ...
+    def cas_watermark(self, key: "StateKey", expected: "Watermark | None", new: "Watermark") -> bool: ...
+    def record_unit(self, run_id: str, result: "UnitResult") -> None: ...
+    def get_run(self, run_id: str) -> "RunRecord | None": ...
+    def lock(self, scope: str, run_id: str) -> ContextManager[None]: ...
+
+class EventSink(Protocol):
+    name: str
+    def handle(self, event: "Event") -> None: ...
+    def flush(self) -> None: ...
+    def close(self) -> None: ...
+
+class Renderer(Protocol):
+    name: str
+    def render(self, plan: "Plan", options: Mapping[str, Any]) -> Mapping[str, bytes]: ...  # path -> content
+
+class Executor(Protocol):
+    boundary: str                                    # "process" | "task"
+    def submit(self, unit: "ExecutionUnit", ctx: "RuntimeContext") -> "UnitHandle": ...
+    def cancel(self, handle: "UnitHandle") -> None: ...
+
+class Clock(Protocol):
+    def now(self) -> datetime: ...                   # timezone-aware UTC
+    def monotonic(self) -> float: ...
+
+class IdentityProvider(Protocol):
+    def current(self) -> "Identity": ...             # user, host, orchestrator, orchestrator ids
+
+class SecretProvider(Protocol):
+    def resolve(self, path: str) -> str: ...
+```
+
+**ADR-0002: Engine abstraction.**
+- Context: the spec (section 4) lists coupling in the return type, reads, schema, temporary views, writes, merge, metrics and catalog SQL.
+- Options:
+  - (a) A hand-written protocol per plugin: full control, more code per engine.
+  - (b) Narwhals as the core abstraction: it has no write, SQL or catalog API, and only lazy PySpark.
+  - (c) Ibis: heavy, its write support is unverified, and it pushes users into an expression API.
+  - (d) A hybrid.
+- Choice: (d).
+  - The core contract is the hand-written protocols above. Plugins own IO, writes, merge, catalogs, metrics and cancellation.
+  - The core depends on Narwhals (it has no dependencies of its own) only for `pipeloom.engine.portable`. That module gives default `count`, `filter_since`, `max_value`, `schema` and `evaluate` that pandas, polars and PySpark plugins may reuse, through `narwhals.stable.v2`.
+  - Model bodies receive native frames by default. `frame_api: narwhals` on a model passes Narwhals frames, so portable models work on any engine with `capabilities.portable`.
+- Consequences: no lowest-common-denominator API for Spark users. Engines can override portable defaults for speed. Narwhals stays a replaceable implementation detail.
+
+## 6. Plugin system and plugin API version
+
+**ADR-0004: Discovery.**
+- Options: entry points (stdlib `importlib.metadata`, the pytest model), pluggy (1:N hook fan-out), or a dbt-style namespace import.
+- Choice: entry points. pipeloom picks one implementation per role by `kind`, which is 1-of-N selection, not hook fan-out, so pluggy adds a dependency without a matching need.
+
+**Groups:**
+- `pipeloom.engines`
+- `pipeloom.catalogs`
+- `pipeloom.state_stores`
+- `pipeloom.sinks`
+- `pipeloom.secret_providers`
+- `pipeloom.executors`
+- `pipeloom.renderers`
+- `pipeloom.naming`
+
+Each entry point resolves to a `PluginSpec(name, kind, api_version: tuple[int, int], factory, config_model, compatible_engines)`.
+
+**Rules:**
+- Discovery reads metadata only. A plugin is imported only when a config names its `kind`.
+- `pipeloom plugins list` imports nothing.
+- `PIPELOOM_DISABLE_PLUGIN_AUTOLOAD=1` restricts loading to `--plugin module:spec`.
+- Duplicate `kind` names within a group are error PLU002.
+
+**Plugin API version.** `pipeloom.plugins.API_VERSION = (MAJOR, MINOR)`, independent of the package version.
+- MINOR covers additive changes: new optional protocol methods with defaults, new capabilities.
+- MAJOR covers breaking protocol changes.
+- The core accepts plugins with the same MAJOR and MINOR ≤ its own. Otherwise it raises PLU001 naming the installed and required versions.
+- Before 1.0 the API is `0.x` and any minor may break. Plugin API 1.0 ships with pipeloom 1.0.
+
+## 7. Validation layers and error catalog
+
+Each finding is a `Diagnostic(code, severity, message, hint, location{file,line,col,json_pointer}, context)`. Diagnostics serialize to JSON. The catalog lives in code (`pipeloom.validate.codes`) and generates the docs page. Codes are never reused.
+
+| Layer | Prefix | Examples |
+|---|---|---|
+| L0 parse | PLY | PLY001 YAML syntax; PLY002 duplicate key; PLY003 unknown file encoding |
+| L1 schema | PLS | PLS101 unknown field (with "did you mean"); PLS102 type mismatch; PLS103 unsupported `config_version`; PLS104 literal value in a secret-like field |
+| L2 references | PLR | PLR201 unknown ref (fuzzy suggestion); PLR202 duplicate model name; PLR203 unknown source; PLR204 unknown target or plugin kind |
+| L3 graph | PLG | PLG301 cycle (prints the path); PLG302 self-reference; PLG303 selector matched nothing; PLG304 unknown selector method |
+| L4 plan semantics | PLP | PLP401 merge or scd2 without `unique_key`; PLP402 incremental without `column`; PLP403 aggregate expectation with `drop`; PLP404 `incremental.input` not in `inputs`; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning) |
+| L5 capability | PLC | PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 `boundary: task` with a non-shared state store; PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries > 0 |
+| L6 static code | PLK | PLK601 callable file or function not found; PLK602 parameters do not match inputs; PLK603 SQL references undeclared table (warning, opt-in) |
+| L7 preflight (opt-in, connects) | PLF | PLF701 engine unreachable; PLF702 source missing; PLF703 target schema drift detected |
+| Runtime | PLX, PLM, PLQ, PLE, PLU | PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict; PLQ301 expectation failed; PLE401 sink disabled; PLU001 plugin API mismatch |
+| Renderers | PLD, PLA | PLD001 task limit exceeded; PLD002 submit above 100 tasks; PLA001 unsupported execution mode |
+
+**Commands:**
+- `pipeloom validate` runs L0-L6.
+- `--preflight` adds L7.
+- Exit codes: 0 means OK, 1 means errors, 2 means usage error, 130 means interrupted.
+
+## 8. Execution and scheduler
+
+**ADR-0006: Scheduler.** A ready-queue scheduler with no level barrier (L6).
+- When a unit reaches a terminal state, each child's count of pending parents goes down by one. A child whose count reaches zero is enqueued.
+- Ready units are ordered by descending count of downstream units, then by name, which is deterministic.
+- `workers` caps concurrency. `pool` tags (a later milestone) cap per-resource concurrency.
+
+**Unit state machine.**
+
+```
+pending → queued → running → succeeded | failed | timed_out | cancelled
+                    running → retrying → running
+pending → skipped   (an upstream is failed, timed_out or skipped)
+pending → cancelled (run cancelled)
+```
+
+**Run state machine:** `created → compiled → running → succeeded | failed | cancelled`. A run with warnings is still `succeeded`.
+
+![The unit and run state machines, including the retry, timeout, skip and cancel transitions.](diagrams/04-state-machines.svg)
+
+Source: [04-state-machines.d2](diagrams/04-state-machines.d2).
+
+**Policies:**
+- **Retries:** `retries` (default 0) and `retry_delay` (exponential with jitter, capped). Errors classify as `transient` (IO, connection, engine-declared) or `permanent` (user code, validation, quality fail). Only transient errors retry unless `retry_on: any`.
+- **Retry ownership:** with `boundary: task`, the orchestrator owns retries. `pipeloom run --select unit:...` then runs with internal retries off and reads the attempt number from orchestrator context.
+- **Timeouts:** per-unit `timeout`.
+  - The thread executor cannot kill threads. On timeout it marks the unit `timed_out`, calls `EngineSession.cancel(unit_id)` (for example a Spark job-group or Spark Connect interrupt tag) and discards any late result.
+  - The process executor kills the child process.
+- **Cancellation:** SIGINT or SIGTERM stops dequeuing, cancels running units, waits `cancel_grace` (default 30 s), then marks the rest `cancelled`. Exit code 130.
+- **Failure isolation:** skip-downstream is the default. Independent branches continue. `--fail-fast` stops dequeuing after the first failure.
+- **Concurrency guard:** `StateStore.lock("<project>/<target>")` blocks a second concurrent run on the same target. `--no-lock` is the escape hatch.
+
+**ADR-0007: Data handoff.**
+- Context: L7. With `boundary: task`, no in-memory or temporary-view handoff is possible.
+- Options: persisted intermediates everywhere (simple, costs IO); inlining (free IO, recomputes); a hybrid.
+- Choice: the hybrid, decided at compile time.
+  - `ephemeral` models are inlined. Their bodies run inside each consuming unit. Under `boundary: process` the result is memoized per run, so it is computed once.
+  - `intermediate` models are persisted to `<artifacts.root>/runs/<run_id>/intermediate/<model>` (or a scratch schema the catalog provides). Finalize deletes them after `intermediate_ttl`.
+  - `view` creates a catalog view where the engine supports it, never a session view.
+- Consequences: the same plan runs in one process or many. PLP406 warns when an ephemeral model fans out to more than `ephemeral_fanout_warn` (default 3) units and suggests `intermediate`.
+
+## 9. Incremental processing, write strategies, schema change
+
+**ADR-0008: Incremental and state.** A declared key plus a lookback (L12), with watermarks in a `StateStore`.
+
+**Incremental config:**
+
+```yaml
+incremental: {input: orders, column: updated_at, lookback: 2d, watermark_source: state}  # or: target
+```
+
+**Algorithm per unit:**
+1. `is_incremental` is true when the materialization is `incremental`, the target exists, the run is not a full refresh, and a watermark exists.
+2. Read `w = state.get_watermark(project, target, model)`. With `watermark_source: target`, read `max(column)` of the target instead.
+3. The input relation becomes `filter_since(input, column, w - lookback)`. The body sees `ctx.is_incremental`, `ctx.watermark` and `ctx.lower_bound`.
+4. Write, then `cas_watermark(expected=w, new=max_value(filtered input))`. A CAS failure is PLM203.
+
+The watermark is committed after the write. A crash between the two reprocesses at most the lookback window plus the batch. That is safe for merge, overwrite and replace_partitions, and for append only when the engine has idempotent writes (otherwise PLC505 forbids retries).
+
+**State stores:**
+- `sqlite`: core, local, single host.
+- `json`: core, a directory; atomic rename for local and volume paths.
+- `table`: a spark-plugin table in the catalog. `boundary: task` requires `table` or `json` on a shared path.
+
+**Write strategies.** All return `WriteResult(rows_inserted, rows_updated, rows_deleted, rows_written, bytes_written, target_version)`, with fields `None` when unknown.
+
+| Strategy | Semantics | Full refresh |
+|---|---|---|
+| append | insert all rows | overwrite |
+| overwrite | replace data and schema | same |
+| replace_partitions | replace partitions present in the batch (`partition_by` required) | overwrite |
+| merge | `unique_key` equality; optional `update_condition`; `deletes: {column, value, mode: hard|soft}` | overwrite |
+| scd2 | `unique_key`, `tracked_columns` (default all), columns `valid_from`, `valid_to`, `is_current`, row hash; deletes close the current row | rebuild |
+
+**Idempotency:** each write receives `token = "<run_id>:<model>"`. Engines with transactional idempotency use it (for Delta, an app id per model and a monotonic version from the run start epoch). Engines without it declare `idempotent_writes=False`.
+
+**Schema-change policy (`on_schema_change`):**
+- `fail` (default): any column added, removed or changed in type raises PLM202.
+- `ignore`: write the target's columns only.
+- `append_new_columns`: add new nullable columns.
+- `sync_all_columns`: add and drop columns, and widen types where the engine can.
+
+Every detected change emits `schema.changed` with a diff.
+
+Table properties, `partition_by`, clustering and grants are applied by every strategy or rejected (PLP405). Maintenance (`optimize`, `vacuum`, clustering changes) runs only from `maintenance:` blocks with an explicit schedule (`every_n_runs`), never by default (L8).
+
+## 10. Data quality
+
+**ADR-0009: Expectations.** DLT-style actions plus quarantine, evaluated after the transformation and before the write.
+
+```yaml
+expectations:
+  - {name: id_not_null, check: {not_null: [order_id]}, on_violation: fail}
+  - {name: status_known, check: {accepted_values: {column: status, values: [new, paid, shipped]}}, on_violation: drop}
+  - {name: amount_ok, expr: "amount >= 0 and amount < 1e6", on_violation: warn}   # engine-dialect, non-portable
+  - {name: unique_id, check: {unique: [order_id]}, on_violation: fail}            # aggregate
+quality: {quarantine: true, max_drop_ratio: 0.05}
+```
+
+- **Row-level checks:** `not_null`, `accepted_values`, `range`, `regex`, `expr`. Allowed actions: warn, drop, fail.
+- **Aggregate checks:** `unique`, `row_count {min,max}`, `freshness {column, max_age}`. Allowed actions: warn, fail; `drop` is PLP403.
+- **Evaluation:** `EngineSession.evaluate` computes every row-level predicate in one aggregate pass and returns per-expectation `passed` and `failed` counts. Unlike DLT, counts are kept on `fail` too.
+- **Drop:** filters rows that fail any `drop` predicate. If `max_drop_ratio` is exceeded, the unit fails with PLQ301.
+- **Quarantine:** dropped rows go to `<target>__quarantine` with `_pipeloom_run_id`, `_pipeloom_failed` (array of expectation names) and `_pipeloom_ts`.
+- Lazy engines may cache the relation before the counting pass. The engine decides; Spark can persist it, and the decision is recorded in the metadata.
+
+## 11. Events, logs and run metadata
+
+**ADR-0010: Events.** One typed stream (L1) and a synchronous in-process bus.
+
+**Envelope (`pipeloom.event/1`):**
+- `id` (uuid4 hex), `run_id`, `invocation_id`, `seq` (monotonic per invocation, assigned under the bus lock), `ts` (RFC 3339 UTC, microseconds), `type`, `level`, `unit_id`, `model`, `attempt`, `data` (typed payload), `context` (orchestrator ids).
+- Cross-invocation ordering is by (`ts`, `invocation_id`, `seq`).
+
+**Event types:**
+- Run: `run.started`, `run.compiled` (plan summary), `run.cancel_requested`, `run.completed`.
+- Unit: `unit.queued`, `unit.started`, `unit.retrying`, `unit.succeeded`, `unit.failed`, `unit.timed_out`, `unit.cancelled`, `unit.skipped`.
+- Model: `model.input_read`, `model.quality_evaluated`, `model.schema_changed`, `model.written`, `model.log` (user `ctx.log`).
+- State: `state.watermark_committed`.
+- Other: `sink.disabled`, `artifact.written`, `diagnostic` (validation warnings).
+
+**Bus and sinks:**
+- The bus fans out to sinks in the order they are configured.
+- Each sink has a `failure_budget` (default 5 consecutive errors). When exhausted, the sink is disabled and `sink.disabled` goes to the remaining sinks.
+- `buffered: true` wraps a sink in a bounded queue and worker thread for slow transports, with drop-oldest and a count of drops.
+- A redaction filter masks registered secret values before any sink sees an event.
+- Built-in sinks: `console`, `jsonl` (stdout or file), `file` (per-invocation event files under artifacts), `artifacts` (always on; builds the result files).
+- `pipeloom-openlineage` maps units to OpenLineage jobs: `<project>.<model>`, with a parent run facet for the pipeline run, the error facet, and input and output datasets from the manifest. The output-statistics facet is used if available (unverified).
+- `RecordingSink` in `pipeloom.testing` asserts ordered events.
+
+![The event bus fans out to sinks through a redaction filter. Each sink has a failure budget, slow sinks can be buffered, and the artifacts sink writes the result files.](diagrams/05-events.svg)
+
+Source: [05-events.d2](diagrams/05-events.d2).
+
+**Console library: rich.** It provides styled tables, colors and live progress in one dependency. structlog would still need a renderer for those. JSON lines need only the stdlib.
+
+**Sample console output (`--log-format text`):**
+
+```
+14:02:11 pipeloom 0.5.0 | project shop | target dev | engine polars | run 20261029T140211Z-7f3a9c
+14:02:11 plan: 6 units (3 table, 2 incremental, 1 view; 1 ephemeral inlined) | workers 4
+14:02:12 1/6 OK    stg_customers ......... table          1,204 rows    88 KB   0.41s
+14:02:12 2/6 OK    stg_orders ............ table          9,812 rows   412 KB   0.77s
+14:02:13 3/6 WARN  fct_orders ............ merge  +311 ~42 -0  1 expectation warned  1.12s
+14:02:13 4/6 FAIL  fct_payments .......... append  PLX101 KeyError: 'amount'        0.20s
+14:02:13 5/6 SKIP  rpt_revenue ........... upstream fct_payments failed
+14:02:14 6/6 OK    dim_customers ......... table          1,204 rows            0.35s
+14:02:14 finished in 2.9s | OK 3 | WARN 1 | FAIL 1 | SKIP 1 | rows written 12,573
+         fct_payments  PLX101 model raised KeyError: 'amount'
+                       hint: column missing in input 'payments' (ref stg_payments)
+                       at src/shop/marts/payments.py:14 in build
+14:02:14 artifacts: target/run_results.json, target/manifest.json, target/events.jsonl
+```
+
+Long engine (JVM) traces are trimmed to the first user frame and the root cause. The full trace goes to JSON events only.
+
+**Per-model metadata (`run_results.results[]`):**
+- Identity: `unique_id` (`model.<project>.<name>`), `unit_id`, `materialization`, `strategy`, `relation_name`.
+- Status: `status`, `attempt`, `retries_used`.
+- Timing: `started_at`, `ended_at`, `duration_ms`, `queue_wait_ms`.
+- Rows: `rows_read{input: n|null}`, `rows_written`, `rows_inserted`, `rows_updated`, `rows_deleted`, `rows_dropped`, `rows_quarantined`.
+- Bytes and version: `bytes_written`, `bytes_read` (null unless the engine reports it), `target_version`.
+- Incremental: `watermark_before`, `watermark_after`, `is_incremental`, `full_refresh`.
+- Schema: `schema_hash`, `schema_changes[]`.
+- Quality: `expectations[]{name, kind, action, passed, failed}`, `warnings[]`.
+- Error: `{code, category, message, hint, exception_type, trace_excerpt}`.
+- Runtime: `engine`, `engine_version`, `executor`, `orchestrator_ids` (Databricks job, run and task run ids; Airflow dag, run, task and try), `idempotency_token`.
+
+**Per-run metadata (`run_results.run`):**
+- `run_id`, `parent_run_id`, `invocation_ids[]`, `project`, `target`, `plan_hash`, `selector`, `args`, `full_refresh`.
+- `status`, `started_at`, `ended_at`, `duration_ms`, `counts{status: n}`, `totals{rows_written, bytes_written}`.
+- `identity{user, host, orchestrator}`, `pipeloom_version`, `plugins{name: version}`, `python_version`, `git_sha` (if available), `exit_code`.
+
+**Metrics capture (L5):**
+- `MetricsProvider.before_write` records the target version.
+- `after_write` reads commit history for versions in (before, after] and sums operation metrics. One model writes one target per run, so no global tag is needed.
+- Engines without history count rows instead: `count` on eager frames, or the writer's return value.
+
+**Artifacts.** Layout: `<artifacts.root>/runs/<run_id>/{manifest.json, run_results.json, events/<invocation_id>.jsonl, units/<unit_id>/attempt-<n>.json}`. Local runs also copy the latest into `target/`.
+- `manifest.json` (`pipeloom.manifest/1`): `metadata{pipeloom_version, plugins, config_version, plan_hash, project, target, boundary}`, `nodes{unique_id: resolved config, inputs, checksum}`, `sources`, `units{unit_id: [unique_ids]}`, `parent_map`, `child_map`, `selectors`.
+- `run_results.json` (`pipeloom.run_results/1`): `metadata`, `args`, `run`, `results[]`.
+- Finalize merges unit files and picks the latest attempt per unit. Run records also go to the state store for history.
+
+## 12. The Databricks plugin
+
+**`pipeloom-databricks`** depends on `pipeloom-spark` and `databricks-sdk`. It provides the `unity` catalog, a `databricks` secret provider, the `databricks-job` renderer, the `databricks` executor (deploy and run from the CLI), and task-value publishing.
+
+![A plan is rendered to Databricks job settings or bundle YAML. Model tasks write unit files to the volume, a finalize task writes run_results.json, and task values carry a summary.](diagrams/06-databricks.svg)
+
+Source: [06-databricks.d2](diagrams/06-databricks.d2).
+
+**ADR-0011: Rendering.**
+
+**Task type:** each unit becomes one `python_wheel_task`:
+
+```json
+{"task_key": "fct_orders", "depends_on": [{"task_key": "stg_orders"}],
+ "python_wheel_task": {"package_name": "pipeloom", "entry_point": "pipeloom",
+   "parameters": ["run", "--project-dir", "<synced path>", "--manifest", "<path>/manifest.json",
+     "--target", "prod", "--select", "unit:fct_orders", "--expect-plan-hash", "<h>",
+     "--run-id", "{{job.parameters.pipeloom_run_id}}", "--orchestrator-run-id", "{{job.run_id}}",
+     "--full-refresh", "{{job.parameters.full_refresh}}"]},
+ "environment_key": "pipeloom", "max_retries": 1, "min_retry_interval_millis": 60000,
+ "timeout_seconds": 1800}
+```
+
+- Task keys are sanitized model names: `[A-Za-z0-9_-]`, truncated with a short hash suffix (assumed 100-character limit; verify).
+- The project is synced as workspace files by the bundle. `python_paths` are prepended at execution.
+
+**Compute:**
+- Default: serverless, with one `environments[]` entry whose `spec.dependencies` pins `pipeloom`, `pipeloom-spark` and `pipeloom-databricks` at the running version (`environment_version` is an assumed field; verify).
+- Alternative: `compute: job_cluster` emits a shared `job_clusters[]` entry plus wheel `libraries`.
+- Per-model `databricks.compute: <key>` overrides.
+- On Databricks the engine uses the active session and never builds one.
+
+**Job lifecycle:**
+- The default is a saved job: `jobs/create`, or `reset` when it already exists, found by tag `pipeloom_job=<project>.<pipeline>.<target>`, then `run-now`. Saved jobs give run history, repair, `only`-subset runs and up to 1,000 tasks.
+- `runs/submit` is used only with `pipeloom databricks run --ephemeral` (dev). It is limited to 100 tasks (PLD002).
+- Job settings: `max_concurrent_runs: 1`, queueing enabled, `parameters` `pipeloom_run_id` (default empty) and `full_refresh` (default `false`), tags carrying `plan_hash`.
+
+**Bundles:**
+- `pipeloom databricks bundle --target prod --out resources/` writes `resources/pipeloom_<project>.job.yml`, which is deterministic and diff-friendly. `databricks bundle deploy` remains the user's step.
+- The same `render(plan) -> JobSettings` dict also feeds `pipeloom databricks deploy` (direct SDK) for users without bundles.
+- A `load_resources` hook for Python bundle resources is on the roadmap.
+
+**Run identity and metadata:**
+- An empty `pipeloom_run_id` resolves to `dbx-<job.run_id>`. Repairs keep the same job run id, so the pipeloom `run_id` is stable and the attempt number increments.
+- Each task writes its unit file to `artifacts.root` (a UC Volume path); this is the source of truth.
+- Each task also calls `taskValues.set("pipeloom", {...})` with status, rows written, duration, target version, warnings and error code, capped well under 48 KiB, for UI visibility and `{{tasks.<k>.values.pipeloom}}` conditions.
+- A final task `pipeloom__finalize` (`pipeloom finalize --run-id ...`) depends on all leaves with `run_if: ALL_DONE`. It writes `run_results.json` and closes the run.
+- Model tasks keep `run_if: ALL_SUCCESS`, which maps skip-downstream onto Databricks "upstream failed".
+
+**Task limit:**
+- `jobs/create` allows up to 1,000 tasks including finalize.
+- Above the limit the plan fails with PLD001, with the hint to set `databricks.task_grouping: by_tag | by_folder`. That fuses models into multi-model units run with `--select unit:<group>`, which the in-process scheduler runs as a sub-plan. Alternatively, split into separate pipelines by selector.
+- No automatic job chaining before 1.0.
+
+**Subset and reruns:**
+- `pipeloom databricks run --select tag:x` resolves to task keys plus finalize and calls `run-now` with `only`.
+- `pipeloom databricks repair --run-id` calls the repair API with all failed tasks and their dependents.
+
+## 13. The Airflow plugin
+
+**`pipeloom-airflow`** supports Airflow ≥ 3.0 only. It imports `from airflow.sdk import DAG, TaskGroup, BaseOperator, BaseSensorOperator, Asset`. Triggers come from the Airflow 3 trigger base (verify the module path per minor version).
+
+```python
+from pipeloom_airflow import PipeloomDag, ProjectConfig, RenderConfig, ExecutionConfig, ExecutionMode, LoadMode
+
+shop_daily = PipeloomDag(
+    dag_id="shop_daily", schedule="@daily", start_date=datetime(2026, 1, 1),
+    project_config=ProjectConfig(project_dir="/opt/pipelines/shop", manifest_path="/opt/pipelines/shop/target/manifest.json"),
+    target="prod",
+    render_config=RenderConfig(load_method=LoadMode.MANIFEST, select=["tag:daily"], group_by="folder", emit_assets=True),
+    execution_config=ExecutionConfig(mode=ExecutionMode.DATABRICKS, databricks_conn_id="databricks_default"),
+)
+```
+
+`PipeloomTaskGroup` takes the same configs inside an existing DAG.
+
+**ADR-0012: Airflow rendering.**
+
+**Load methods (parse time):**
+- `MANIFEST` (recommended): reads a precompiled `manifest.json`.
+- `PROJECT`: compiles YAML. This is safe because no user code runs (ADR-0003), and it is cached by a hash of the inputs.
+- Neither imports engines or connects to anything.
+
+**Execution modes:**
+- `LOCAL`: `PipeloomRunOperator` per unit runs `pipeloom run --manifest ... --select unit:<id> --run-id <rid>` in a subprocess.
+- `VIRTUALENV`: the same, using a prebuilt venv path.
+- `KUBERNETES`: wraps `KubernetesPodOperator` from the cncf provider extra with a user image.
+- `DATABRICKS`: described below.
+- `DOCKER`: later.
+
+**Shared behavior:**
+- One Airflow task per unit. Airflow retries own the retry count.
+- Trigger rule `all_success`, so skip-downstream maps to `upstream_failed`.
+- A `pipeloom_finalize` task runs with `all_done`.
+- `rid` is `af-` plus 16 hex characters of sha256(dag_id + Airflow run_id), stable across task retries. A clear-and-rerun of failed tasks therefore continues the same pipeloom run.
+- With `emit_assets`, each model task declares `Asset(uri=<target URI>)` outlets.
+
+![PipeloomDag in LOCAL or KUBERNETES mode has one task per unit. DATABRICKS mode has a launch task, one mirror sensor per model and a finalize task, with repair handled in Databricks.](diagrams/07-airflow-modes.svg)
+
+Source: [07-airflow-modes.d2](diagrams/07-airflow-modes.d2).
+
+**Databricks mode.**
+- Options: (a) `DatabricksWorkflowTaskGroup` with `DatabricksTaskOperator` children; (b) one `run-now` of the bundle-deployed job, with per-model status mirroring.
+- Option (a) builds the job spec from Airflow operators at parse time. That duplicates the pipeloom renderer, forces job name `<dag_id>.<group_id>`, fixes `max_concurrent_runs=1`, and disables "Repair All Failed Tasks" on Airflow 3.
+- Choice: (b).
+  - A deferrable `launch` task (`PipeloomDatabricksRunOperator`) finds the job by tag, or creates it from the manifest at run time with `ensure_job=True`. It calls `run-now` with `job_parameters {pipeloom_run_id: rid}` and pushes the Databricks run id to XCom.
+  - If a terminal Databricks run already exists for `rid` and has failures (for example after a cleared `launch`), it calls repair with all failed tasks instead.
+  - Each model gets a deferrable `PipeloomDatabricksTaskSensor` that mirrors the task state of its `task_key`: success, failed (error excerpt from the unit artifact), or skipped (`AirflowSkipException` for upstream-failed or excluded tasks).
+  - The sensors keep the plan's dependencies, so the Airflow graph is the pipeline graph.
+- Consequences: one job definition whether the run is triggered by Airflow, the Databricks UI or the CLI, and repair stays in Databricks. Airflow task retries of a sensor only re-poll; reruns go through `launch`. Polling load is about one call per sensor per interval, with a configurable interval and an optional shared poll cache in `launch`'s XCom.
+
+## 14. Security and secrets
+
+- Secrets never appear as literals in YAML. Fields whose names match secret patterns accept only `${secret:...}` or `${env:...}` (PLS104).
+- `${secret:<provider>/<path>}` resolves at runtime inside the executing process through the `pipeloom.secret_providers` group. Providers: `env` (core), `file` (core, mode-checked), `databricks` (secret scopes), `airflow` (connections and variables).
+- The manifest, events and artifacts store only the references. Resolved values are registered with the redaction filter.
+- Discovery never imports plugins until a config names them. `PIPELOOM_DISABLE_PLUGIN_AUTOLOAD` exists for locked-down hosts.
+- Supply chain:
+  - Trusted publishing (OIDC) with PEP 740 attestations.
+  - Actions pinned by commit SHA, with Dependabot updates.
+  - No `pull_request_target` workflows.
+  - Integration secrets only in protected environments, never for fork PRs.
+  - Private vulnerability reporting through `SECURITY.md`.
+- Grants are declared in YAML and applied by the catalog. pipeloom never escalates privileges.
+
+## 15. Testing, CI, release, docs
+
+**Tests:**
+- Unit tests per package.
+- Property tests (hypothesis) for the scheduler: random DAGs, injected failures and timeouts. Invariants: a unit starts only after all parents succeed; every unit reaches exactly one terminal state; no level barrier, checked with timed fakes.
+- Golden tests for the manifest and diagnostics.
+- CLI tests for every flag via `click.testing.CliRunner` (L4).
+- A synthetic, deterministic "shop" dataset (customers, orders, payments) generated in `pipeloom.testing.data`.
+
+**Engine contract suite (`pipeloom.testing.contract.EngineContract`).** Every engine plugin subclasses it with a factory fixture, and each test is skipped unless the matching capability is declared. It covers:
+- read for each declared format;
+- logical-type round trip;
+- `sql` alias binding;
+- each strategy, including merge deletes, SCD2 history and replace_partitions;
+- the idempotent retry of each strategy with the same token;
+- the schema-change policy matrix;
+- incremental `filter_since` and `max_value`;
+- `evaluate` counts against a reference;
+- metrics fields that are non-null where declared;
+- `cancel` stops long work;
+- session cleanup restores settings (L10).
+
+Catalog, state-store and sink contract suites follow the same pattern.
+
+**Renderer tests:**
+- Databricks: snapshot JSON and YAML, the limits, and task-key sanitizing.
+- Airflow: DAG-bag parse with no network access, with a parse-time budget, and per-mode task graphs.
+- Live Databricks and Airflow tests run only in a manually dispatched workflow.
+
+**CI:**
+- ruff check and format; mypy `--strict`; pytest with coverage.
+- Matrix while the repo is private: Python 3.11-3.14 on Ubuntu, plus one Windows and one macOS job on 3.12. The full 3-OS matrix returns when the repo is public. Spark tests on Ubuntu with Java 17.
+- `uv build` plus installing the wheel into a clean venv plus `pipeloom --version`.
+- Docs build with `--strict` and D2 compile.
+
+**Release (ADR-0016):**
+- SemVer per distribution, with lockstep versions for first-party distributions during 0.x and one tag `vX.Y.Z`.
+- The tag workflow checks that the tag equals the version, builds, then publishes to PyPI by trusted publishing through the protected `pypi` environment, then creates the GitHub release with notes from `CHANGELOG.md` (Keep a Changelog).
+- `config_version`, the manifest and event schema versions, and the plugin API version are versioned separately.
+
+**Docs:**
+- mkdocs-material with mkdocstrings (API), mkdocs-click (CLI), generated error-code and JSON Schema pages, and D2-rendered SVGs.
+- Versioned with mike on GitHub Pages.
+- ADRs in `docs/adr/`.
+
+## 16. Roadmap
+
+- **0.0.1:** reserve the name; skeleton (section 18); CI, release, governance; this document and the ADRs.
+- **0.1:** config models, loader with line marks, L0-L6, graph, selectors (`name`, `+name`, `name+`, `tag:`, `path:`, `materialized:`), plan, manifest, schema export, event bus with console and jsonl sinks. CLI: `validate`, `compile`, `ls`, `graph`, `schema`, `plugins`. A `MemoryEngine` for tests.
+- **0.2:** scheduler, thread and process executors, `pipeloom-polars` and `pipeloom-pandas`, table/view/ephemeral, append and overwrite, sqlite and json state, run_results, the contract suite.
+- **0.3:** incremental, merge, replace_partitions, schema-change policy, expectations and quarantine, retries, timeouts, cancellation.
+- **0.4:** `pipeloom-spark` (Delta and Spark Connect), metrics from commit history, intermediates, idempotent writes, the `table` state store.
+- **0.5:** `pipeloom-databricks`: renderer, bundle YAML, deploy, run, repair, finalize, task values, task grouping.
+- **0.6:** `pipeloom-airflow`: LOCAL, VIRTUALENV and KUBERNETES modes, then DATABRICKS mode.
+- **0.7:** `pipeloom-openlineage`, SCD2, deletes, `pipeloom retry` (`result:fail+`), `state:modified`.
+- **0.8-0.9:** hardening, performance, docs completeness, API freeze candidates, the deprecation policy.
+- **1.0:** `config_version: 1`, plugin API 1.0, manifest, event and run_results schemas v1 all declared stable.
+
+## 17. ADR list and diagrams
+
+Each ADR is Context, Options, Choice, Consequences, as written in the sections above.
+
+| ADR | Topic | Where |
+|---|---|---|
+| 0001 | Record architecture decisions | `docs/adr/` |
+| 0002 | Engine abstraction: protocols plus Narwhals helpers | §5 |
+| 0003 | Model authoring: YAML plus Python or SQL, declared inputs | §4 |
+| 0004 | Plugin discovery via entry points; eight groups | §6 |
+| 0005 | Packaging (see below) | §17 |
+| 0006 | Ready-queue scheduler | §8 |
+| 0007 | Data handoff: execution units, inlining, intermediates | §8 |
+| 0008 | Incremental key, watermark state, strategies | §9 |
+| 0009 | Expectations and quarantine | §10 |
+| 0010 | Events, sinks, artifacts; rich for the console | §11 |
+| 0011 | Databricks job rendering | §12 |
+| 0012 | Airflow rendering and modes | §13 |
+| 0013 | Run identity, idempotency, reruns (see below) | §17 |
+| 0014 | Secrets by reference | §14 |
+| 0015 | Python ≥ 3.11; click CLI; pydantic v2; hatchling; mypy strict | §17 |
+| 0016 | Versioning, release, plugin API version | §15 |
+
+**ADR-0005: Packaging.**
+- Options:
+  - One distribution with extras. Its entry points are registered even when the extra's dependencies are missing, which leads to import errors at load. It also couples dependency bounds.
+  - Separate distributions in separate repos: high overhead.
+  - Separate `pipeloom-<plugin>` distributions in one uv workspace.
+- Choice: the uv workspace. The core is distribution `pipeloom` at the repo root; plugins live in `plugins/pipeloom-<name>/` with import package `pipeloom_<name>` (no namespace packages).
+- Convenience extras on `pipeloom` (for example `pipeloom[polars]`) just depend on the plugin distribution.
+- PyPI now: publish `pipeloom` 0.0.1 only. Plugin names get published with their first functional release, which avoids PEP 541 placeholder squatting.
+- Pending trusted publishers may be registered for the plugin names. Assumption: a pending publisher does not reserve a name; verify.
+- `[tool.uv.workspace]` is added in 0.2 with the first plugin (whether uv accepts an empty members glob is unverified).
+
+**ADR-0013: Run identity.**
+- `run_id` is either caller-supplied or generated as `YYYYMMDDTHHMMSSZ-<6 hex>`, matching `[A-Za-z0-9._-]{1,64}`.
+- Orchestrators derive it deterministically: `dbx-<job_run_id>` or `af-<hash>`.
+- Orchestrator retries and repairs keep the `run_id` and increment the `attempt`.
+- Local `pipeloom retry --from <run_id>` creates a new run with `parent_run_id`, selecting `result:fail+` (failed units plus their skipped descendants).
+- Writes are idempotent through the token `<run_id>:<model>`.
+
+**ADR-0015: Python version.** Python 3.10 reaches end of life in October 2026, so the floor is 3.11.
+
+**D2 diagrams (`docs/diagrams/`):**
+1. `01-context.d2`: users, YAML project, CLI and API, engines, catalogs, orchestrators, event consumers.
+2. `02-packages.d2`: distributions, core modules, import direction, the entry-point groups each plugin fills.
+3. `03-lifecycle.d2`: load → validate → resolve → validate plan → compile → execute → finalize, with the artifacts and error prefixes of each stage.
+4. `04-state-machines.d2`: unit and run state machines, including retry, timeout, skip and cancel transitions.
+5. `05-events.d2`: event bus fan-out to sinks, redaction, failure budget, buffered sinks, the artifact writer.
+6. `06-databricks.d2`: plan → job settings or bundle YAML; tasks, finalize, run-id propagation, artifacts on the volume, task values.
+7. `07-airflow-modes.d2`: PipeloomDag in LOCAL/KUBERNETES mode (one task per unit) versus DATABRICKS mode (launch, mirror sensors, repair path).
+
+## 18. Package skeleton for now
+
+```
+pipeloom/
+├── .github/
+│   ├── workflows/ci.yml            # ruff, mypy --strict, pytest matrix (Ubuntu 3.11-3.14, Windows and macOS 3.12), uv build + wheel smoke, docs --strict, d2 compile
+│   ├── workflows/release.yml       # on tag v*: verify tag==version, uv build, PyPI (env pypi, id-token: write), GitHub release
+│   ├── workflows/docs.yml          # mkdocs + mike deploy on main and tags
+│   ├── dependabot.yml              # ecosystems: uv, github-actions; weekly; grouped
+│   ├── CODEOWNERS
+│   ├── pull_request_template.md
+│   └── ISSUE_TEMPLATE/{bug_report.yml, feature_request.yml, config.yml}
+├── docs/
+│   ├── index.md
+│   ├── architecture.md
+│   ├── adr/README.md               # index + status table
+│   ├── adr/0000-template.md
+│   ├── adr/0001-record-architecture-decisions.md … 0016-versioning-and-plugin-api.md
+│   └── diagrams/01-context.d2 … 07-airflow-modes.d2
+├── src/pipeloom/
+│   ├── __init__.py                 # __version__ = importlib.metadata.version("pipeloom")
+│   ├── __main__.py                 # from pipeloom.cli import main; main()
+│   ├── cli.py                      # @click.group() + @click.version_option(package_name="pipeloom", prog_name="pipeloom")
+│   └── py.typed
+├── tests/
+│   ├── test_version.py             # __version__ equals installed metadata
+│   └── test_cli.py                 # CliRunner: `--version` exit 0, output "pipeloom, version X"; `python -m pipeloom --version`
+├── pyproject.toml                  # see below
+├── uv.lock
+├── mkdocs.yml
+├── .pre-commit-config.yaml         # ruff, ruff-format, mypy, end-of-file, check-yaml
+├── .editorconfig  .gitignore  .python-version (3.12)
+├── README.md  LICENSE (Apache-2.0)  NOTICE
+├── CONTRIBUTING.md                 # uv setup, DCO sign-off, ADR process, tests per flag
+├── CODE_OF_CONDUCT.md              # Contributor Covenant 2.1
+├── SECURITY.md                     # GitHub private vulnerability reporting, supported versions
+├── GOVERNANCE.md                   # single-maintainer model, path to maintainers
+└── CHANGELOG.md                    # Keep a Changelog; [0.0.1] entry
+```
+
+The core sits at the repo root so `README` and `LICENSE` ship in the distribution without copies.
+
+**`pyproject.toml` essentials:**
+- `[build-system] requires = ["hatchling"]`
+- `[project]`:
+  - `name = "pipeloom"`, `version = "0.0.1"`, `requires-python = ">=3.11"`
+  - `license = "Apache-2.0"`, `license-files = ["LICENSE", "NOTICE"]`, `readme = "README.pypi.md"`
+  - `dependencies = ["click>=8.1"]`
+  - `[project.scripts] pipeloom = "pipeloom.cli:main"`
+  - classifiers including `Typing :: Typed`
+  - `authors`: to be filled by the maintainer
+- `[dependency-groups]`: `dev = ["pytest", "pytest-cov", "mypy", "ruff", "pre-commit"]`, `docs = ["mkdocs-material", "mkdocstrings[python]", "mkdocs-click", "mike"]`
+- Tool configs: `[tool.ruff]`, `[tool.mypy] strict = true`, `[tool.pytest.ini_options]`.
+
+---
+
+## Verification plan (for the skeleton commit)
+
+- `uv sync && uv run pytest -q && uv run mypy --strict src && uv run ruff check`
+- `uv build`, then install the wheel into a clean venv and run `pipeloom --version` and `python -m pipeloom --version`.
+- `mkdocs build --strict`, and `d2` compile of all diagrams.
+- The first tag, `v0.0.1`, is the real release: there is no TestPyPI dry run.
+
+## Risks
+
+- The orchestrator thread executor's timeouts are cooperative. Code that ignores cancellation keeps running until the process ends.
+- In Airflow DATABRICKS mode the sensors poll per model. Large DAGs need a longer poll interval or the shared poll cache.
+- Unverified facts are marked inline: serverless `environment_version`, the task-key length limit, whether pending publishers reserve names, pydantic's draft-2020-12 output, whether uv accepts an empty workspace, and the OpenLineage output-statistics facet. Verify each before implementing it.
+- Narwhals stable-API drift: pinning to `stable.v2` limits it.
+- Lockstep versioning means plugin-only fixes still bump every distribution during 0.x.
+
+## Resolved defaults (2026-10-29)
+
+1. Airflow 3 only (ADR-0012).
+2. Only `pipeloom` is published now. Plugin names are published with their first functional release (ADR-0005).
+3. Docs and JSON Schema URLs live at `https://emanuel-luis.github.io/pipeloom/` once the repo is public.
+4. DCO sign-off. The author and CODEOWNERS are Emanuel Luis. Security reports go through GitHub private vulnerability reporting or email.
+6. While the repo is private, CI runs Ubuntu on 3.11 to 3.14 plus one Windows and one macOS job on 3.12 (macOS minutes cost 10x). The full 3-OS matrix comes back when the repo is public.
+5. The shared artifact store for the Airflow LOCAL and KUBERNETES modes is still open, with fsspec as the leading option (decide in 0.6).

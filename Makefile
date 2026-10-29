@@ -1,0 +1,85 @@
+# Developer entry point. Needs bash + make (Linux, macOS or WSL) and uv.
+SHELL := bash
+.SHELLFLAGS := -eu -o pipefail -c
+.DEFAULT_GOAL := help
+
+.PHONY: help install lint format typecheck test build docs docs-serve \
+	d2-install diagrams diagrams-check diagrams-watch
+
+help: ## list the targets
+	@grep -hE '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*## "} {printf "  %-16s %s\n", $$1, $$2}'
+
+install: ## install every dependency group into the uv environment
+	uv sync --all-groups
+
+lint: ## ruff check and format check
+	uv run ruff check .
+	uv run ruff format --check .
+
+format: ## apply ruff fixes and formatting
+	uv run ruff check --fix .
+	uv run ruff format .
+
+typecheck: ## mypy --strict on src
+	uv run mypy --strict src
+
+test: ## pytest
+	uv run pytest -q
+
+build: ## build the sdist and wheel into dist/
+	uv build
+
+docs: ## build the docs site, failing on any warning
+	uv run --group docs mkdocs build --strict
+
+docs-serve: ## serve the docs site with live reload
+	uv run --group docs mkdocs serve
+
+# Diagrams: docs/diagrams/<name>.d2 rendered to <name>.svg (committed). One pinned D2 everywhere.
+# Layout engine, themes and padding live in docs/diagrams/_style.d2 (d2-config), so d2 runs in a
+# clean environment: D2_* and SCALE variables would override that config. --scale 1 is not a
+# d2-config key; it writes the natural width and height, so GitHub never upscales a small diagram.
+D2_VERSION := 0.9.0
+# sha256 of d2-v$(D2_VERSION)-linux-amd64.tar.gz, from the release's SHA256SUMS
+D2_SHA256 := 5669ddc46b99e942cc96078f4a4e36d5e62103348f4c05179ede27802fdd87a9
+D2_HOME ?= $(HOME)/.local/share/d2/v$(D2_VERSION)
+D2 ?= $(D2_HOME)/bin/d2
+D2_RUN = env -i PATH="$$PATH" HOME="$$HOME" "$(D2)" --scale 1
+DIAGRAMS := $(filter-out docs/diagrams/_%,$(wildcard docs/diagrams/*.d2))
+
+d2-install: ## install the pinned D2 (Linux x86_64) into D2_HOME, checksum verified
+	@if [ -x "$(D2_HOME)/bin/d2" ]; then echo "D2 v$(D2_VERSION) already in $(D2_HOME)"; exit 0; fi; \
+	[ "$$(uname -sm)" = "Linux x86_64" ] || { echo "d2-install covers Linux x86_64 only;" \
+		"install D2 v$(D2_VERSION) yourself and pass D2=/path/to/d2" >&2; exit 1; }; \
+	tmp="$$(mktemp -d)"; trap 'rm -rf "$$tmp"' EXIT; \
+	curl -fsSLo "$$tmp/d2.tar.gz" \
+		"https://github.com/terrastruct/d2/releases/download/v$(D2_VERSION)/d2-v$(D2_VERSION)-linux-amd64.tar.gz"; \
+	echo "$(D2_SHA256)  $$tmp/d2.tar.gz" | sha256sum --check --strict; \
+	tar -xzf "$$tmp/d2.tar.gz" -C "$$tmp"; \
+	mkdir -p "$(D2_HOME)/bin"; \
+	install -m 0755 "$$tmp/d2-v$(D2_VERSION)/bin/d2" "$(D2_HOME)/bin/d2"; \
+	"$(D2_HOME)/bin/d2" --version
+
+diagrams: ## render docs/diagrams/*.d2 to SVG with the pinned D2 (run make d2-install once)
+	@v="$$($(D2_RUN) --version 2>/dev/null || true)"; [ "$$v" = "v$(D2_VERSION)" ] || { \
+		echo "need D2 v$(D2_VERSION) at $(D2), found '$${v:-nothing}': run make d2-install" >&2; exit 1; }
+	@for f in $(DIAGRAMS); do $(D2_RUN) "$$f" "$${f%.d2}.svg"; done
+
+diagrams-check: ## render to a temp dir, fail if a committed SVG is stale, missing or has no source
+	@v="$$($(D2_RUN) --version 2>/dev/null || true)"; [ "$$v" = "v$(D2_VERSION)" ] || { \
+		echo "need D2 v$(D2_VERSION) at $(D2), found '$${v:-nothing}': run make d2-install" >&2; exit 1; }
+	@shopt -s nullglob; tmp="$$(mktemp -d)"; trap 'rm -rf "$$tmp"' EXIT; rc=0; \
+	for f in $(DIAGRAMS); do \
+		n="$$(basename "$${f%.d2}")"; $(D2_RUN) "$$f" "$$tmp/$$n.svg"; \
+		cmp -s "$$tmp/$$n.svg" "$${f%.d2}.svg" || { echo "$${f%.d2}.svg is stale or missing" >&2; rc=1; }; \
+	done; \
+	for s in docs/diagrams/*.svg; do \
+		[ -f "$${s%.svg}.d2" ] || { echo "$$s has no .d2 source" >&2; rc=1; }; done; \
+	[ "$$rc" = 0 ] || { echo "run make diagrams and commit the SVGs" >&2; exit 1; }
+
+diagrams-watch: ## live preview in the browser while editing: make diagrams-watch NAME=01-context
+	@# NAME only from the command line: WSL exports NAME (the hostname) into every shell.
+	@[ "$(origin NAME)" = "command line" ] && [ -f "docs/diagrams/$(NAME).d2" ] || { \
+		echo "usage: make diagrams-watch NAME=<one of: $(basename $(notdir $(DIAGRAMS)))>" >&2; exit 1; }
+	$(D2_RUN) --watch --browser "$${BROWSER:-0}" docs/diagrams/$(NAME).d2 docs/diagrams/$(NAME).svg

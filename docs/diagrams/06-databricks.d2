@@ -1,0 +1,46 @@
+# Plan to Databricks job settings or bundle YAML; tasks, finalize, run-id propagation, artifacts on
+# the volume, task values. Illustrates section 12 (ADR-0011) in docs/architecture.md.
+...@_style
+
+title: "Databricks: one plan, one job" {
+  shape: text
+  near: top-center
+  style: {font-size: 24; bold: true}
+}
+
+direction: down
+
+plan: "Plan and manifest.json" {class: process}
+renderer: "databricks-job renderer\nrender(plan) -> JobSettings" {class: process}
+bundle: "resources/pipeloom_<project>.job.yml\npipeloom databricks bundle" {class: source}
+deploy: "pipeloom databricks deploy\nSDK: create, or reset by tag\npipeloom_job=<project>.<pipeline>.<target>" {class: process}
+
+job: "Databricks saved job\nmax_concurrent_runs 1, queueing on\nparameters: pipeloom_run_id, full_refresh\nempty run id resolves to dbx-<job.run_id>" {class: external}
+
+tasks: "model tasks\none python_wheel_task per unit\npipeloom run --select unit:<id>\n--run-id and --expect-plan-hash\nrun_if ALL_SUCCESS" {class: process}
+fin: "pipeloom__finalize\npipeloom finalize\nrun_if ALL_DONE, after all leaves" {class: process}
+
+volume: "UC Volume (artifacts.root)\nunit files, intermediates,\nrun_results.json" {class: store}
+tv: "task values\ntaskValues.set(pipeloom)\nstatus, rows, duration, error code" {class: serving}
+
+plan -> renderer
+renderer -> bundle: "bundle"
+renderer -> deploy: "direct"
+bundle -> job: "bundle deploy\n(your step)" {class: meta}
+deploy -> job
+job -> tasks: "run-now"
+tasks -> fin
+tasks -> volume: "unit files"
+tasks -> tv
+fin -> volume: "run_results.json"
+
+legend: Legend {
+  class: legend
+  grid-columns: 3
+  process: pipeloom step {class: [process; legend-item]}
+  source: generated YAML {class: [source; legend-item]}
+  external: Databricks {class: [external; legend-item]}
+  store: stored data {class: [store; legend-store]}
+  serving: task values {class: [serving; legend-item]}
+  edges: "repair keeps the job run id,\nso the pipeloom run_id stays stable" {shape: text; style.font-size: 13}
+}

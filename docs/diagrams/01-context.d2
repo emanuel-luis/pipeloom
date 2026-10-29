@@ -1,0 +1,49 @@
+# The system in context: who uses pipeloom, what it reads and writes, which engines, catalogs,
+# orchestrators and event consumers sit around it. Illustrates section 3 of docs/architecture.md.
+...@_style
+
+title: "pipeloom in context" {
+  shape: text
+  near: top-center
+  style: {font-size: 24; bold: true}
+}
+
+direction: down
+
+author: Pipeline author {class: actor}
+project: "YAML project\npipeloom.yml, models/*.yml,\nPython and SQL bodies" {class: source}
+core: "pipeloom core\nCLI and Python API (Project)\nvalidate, compile, run" {class: process}
+
+engines: "Engine plugins\npandas, polars, Spark" {class: process}
+catalogs: "Catalogs and state\nfilesystem, Unity Catalog,\nsqlite, json, table" {class: store}
+data: "Source and target data\nparquet, Delta tables" {class: store}
+artifacts: "Run artifacts\nmanifest.json, run_results.json" {class: store}
+
+sinks: "Event sinks\nconsole, jsonl, file,\nOpenLineage" {class: serving}
+lineage: "OpenLineage backend" {class: external}
+
+dbx: "Databricks Jobs\none job, a task per unit,\neach runs pipeloom run" {class: external}
+af: "Airflow 3\nDAG, a task per unit,\neach runs pipeloom run" {class: external}
+
+author -> project: "writes"
+project -> core: "loads"
+core -> engines: "runs models"
+engines -> data: "read, write"
+engines -> catalogs: "namespaces, grants,\nwatermarks"
+core -> artifacts: "writes"
+core -> sinks: "one event stream"
+sinks -> lineage {class: meta}
+core -> dbx: "renders job"
+core -> af: "renders DAG"
+
+legend: Legend {
+  class: legend
+  grid-columns: 3
+  actor: actor {class: [actor; legend-actor]}
+  source: project files {class: [source; legend-item]}
+  process: pipeloom code {class: [process; legend-item]}
+  store: stored data {class: [store; legend-store]}
+  serving: event consumers {class: [serving; legend-item]}
+  external: external system {class: [external; legend-item]}
+  edges: "solid arrow: data or a call\ndashed: metadata" {shape: text; style.font-size: 13}
+}

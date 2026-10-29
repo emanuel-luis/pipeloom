@@ -1,0 +1,67 @@
+# Distributions, core modules, import direction and the entry-point groups each plugin fills.
+# Illustrates section 3 (layers), section 6 (plugin groups) and ADR-0005 in docs/architecture.md.
+...@_style
+
+title: "Packages and import direction" {
+  shape: text
+  near: top-center
+  style: {font-size: 24; bold: true}
+}
+
+direction: down
+
+pandas: "pipeloom-pandas\nengines" {class: process}
+polars: "pipeloom-polars\nengines" {class: process}
+spark: "pipeloom-spark\nengines, state_stores" {class: process}
+dbx: "pipeloom-databricks\ncatalogs, secret_providers,\nrenderers, executors" {class: process}
+af: "pipeloom-airflow\nrenderers" {class: process}
+ol: "pipeloom-openlineage\nsinks" {class: process}
+
+rule: "import-linter contract in CI:\nthe core never imports a plugin" {class: check}
+
+core: "pipeloom core" {
+  class: group
+  api: "api, CLI\nProject" {class: process}
+  plugins: "plugins\nentry-point discovery,\nAPI version gate" {class: process}
+  runtime: "runtime\nscheduler, executors,\nModelRunner" {class: process}
+  plan: "plan\nPlan, units, manifest" {class: process}
+  validate: "validate\nlayers L0 to L7" {class: process}
+  graph: "graph\nDAG, selectors" {class: process}
+  config: "config\nYAML loader, pydantic" {class: process}
+  engine: "engine\nprotocols, capabilities,\nportable helpers" {class: process}
+  state: "incremental, quality,\nstate" {class: process}
+  events: "events, artifacts\nbus and sinks" {class: process}
+  secrets: "secrets\nprovider, redaction" {class: process}
+  testing: "testing\ncontract suites, fakes" {class: process}
+}
+
+pandas -> core.plugins
+polars -> core.plugins
+spark -> core.plugins
+dbx -> core.plugins
+af -> core.plugins
+ol -> core.plugins
+dbx -> spark: "depends on" {class: meta}
+
+core.api -> core.plan
+core.api -> core.runtime
+core.api -> core.plugins
+core.plan -> core.validate
+core.plan -> core.graph
+core.validate -> core.config
+core.graph -> core.config
+core.runtime -> core.plan
+core.runtime -> core.engine
+core.runtime -> core.state
+core.runtime -> core.events
+core.events -> core.secrets
+core.testing -> core.engine {class: meta}
+rule -> core.plugins {class: layer}
+
+legend: Legend {
+  class: legend
+  grid-columns: 3
+  process: distribution or module {class: [process; legend-item]}
+  check: contract {class: [check; legend-item]}
+  edges: "solid arrow: imports or depends on\ndashed: depends on, test use\nplugin boxes list the entry-point groups they fill" {shape: text; style.font-size: 13}
+}
