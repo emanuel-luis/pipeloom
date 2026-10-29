@@ -1,0 +1,54 @@
+# The event bus: fan-out to sinks, redaction, failure budget, buffered sinks, the artifact writer.
+# Illustrates section 11 (events, logs and run metadata) in docs/architecture.md.
+...@_style
+
+title: "Event stream and sinks" {
+  shape: text
+  near: top-center
+  style: {font-size: 24; bold: true}
+}
+
+direction: down
+
+emit: "Emitters\nrun stages, scheduler,\nmodels (ctx.log)" {class: process}
+bus: "EventBus\nsynchronous, in process\nseq assigned under a lock" {class: process}
+redact: "Redaction filter\nmasks registered secret values\nbefore any sink sees an event" {class: process}
+
+console: "console sink\nrich tables and progress" {class: process}
+jsonl: "jsonl sink\nstdout or file" {class: process}
+file: "file sink\none file per invocation" {class: process}
+arts: "artifacts sink\nalways on" {class: process}
+buf: "buffered: true\nbounded queue and worker thread,\ndrop-oldest, counts drops" {class: process}
+ol: "openlineage sink\n(plugin)" {class: process}
+
+budget: "failure budget: 5 consecutive errors\ndisable the sink; sink.disabled\ngoes to the remaining sinks" {class: check}
+
+terminal: "terminal" {class: serving}
+jfile: "target/events.jsonl" {class: store}
+efiles: "runs/<run_id>/events/\n<invocation_id>.jsonl" {class: store}
+results: "manifest.json,\nrun_results.json" {class: store}
+backend: "OpenLineage backend" {class: external}
+
+emit -> bus
+bus -> redact
+redact -> console
+redact -> jsonl
+redact -> file
+redact -> arts
+redact -> buf
+buf -> ol
+console -> terminal
+jsonl -> jfile
+file -> efiles
+arts -> results
+ol -> backend
+jsonl -> budget {class: [meta; layer]}
+budget -> bus: "sink.disabled" {class: meta}
+
+legend: Legend {
+  class: legend
+  grid-columns: 3
+  process: bus, filter or sink {class: [process; legend-item]}
+  check: rule {class: [check; legend-item]}
+  edges: "solid arrow: events or files\ndashed: control" {shape: text; style.font-size: 13}
+}

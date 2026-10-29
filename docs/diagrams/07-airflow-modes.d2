@@ -1,0 +1,53 @@
+# PipeloomDag in LOCAL or KUBERNETES mode (one task per unit) versus DATABRICKS mode (launch,
+# mirror sensors, repair path). Illustrates section 13 (ADR-0012) in docs/architecture.md.
+...@_style
+
+title: "Airflow: execution modes" {
+  shape: text
+  near: top-center
+  style: {font-size: 24; bold: true}
+}
+
+direction: down
+
+manifest: "manifest.json\nparse time: no engine imports,\nno connections" {class: source}
+rid: "run id: af- plus 16 hex of\nsha256(dag_id + Airflow run_id),\nstable across task retries" {class: check}
+
+local: "LOCAL or KUBERNETES" {
+  class: group
+  label.near: top-right
+  u1: "unit task: stg_orders\nPipeloomRunOperator or pod\nairflow retries own the count" {class: process}
+  u2: "unit task: fct_orders\nsame dependencies as the plan" {class: process}
+  fin: "pipeloom_finalize\nall_done" {class: process}
+  u1 -> u2: "all_success"
+  u2 -> fin
+}
+store: "Shared artifact store\nunit files, run_results.json\n(open: fsspec leads)" {class: store}
+
+dbxmode: "DATABRICKS" {
+  class: group
+  launch: "launch (deferrable)\nfind job by tag or create it,\nrun-now with pipeloom_run_id,\nrepair if a failed run exists" {class: process}
+  s1: "sensor: stg_orders\nmirrors task state" {class: process}
+  s2: "sensor: fct_orders\nsuccess, failed or skipped" {class: process}
+  fin: "pipeloom_finalize\nall_done" {class: process}
+  launch -> s1
+  s1 -> s2: "plan dependencies"
+  s2 -> fin
+}
+job: "Databricks saved job\nrepair stays in Databricks" {class: external}
+
+manifest -> local
+manifest -> dbxmode
+rid -> manifest {class: [meta; layer]}
+local.u2 -> store: "run units write" {class: meta}
+dbxmode.launch -> job: "run-now, repair"
+dbxmode.s1 -> job: "poll" {class: meta}
+
+legend: Legend {
+  class: legend
+  grid-columns: 3
+  process: Airflow task {class: [process; legend-item]}
+  external: external system {class: [external; legend-item]}
+  store: stored data {class: [store; legend-store]}
+  edges: "one Airflow task per unit; skip-downstream maps to\nupstream_failed; with emit_assets each model task\ndeclares Asset outlets" {shape: text; style.font-size: 13}
+}
