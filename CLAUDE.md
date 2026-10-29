@@ -1,6 +1,6 @@
 # pipeloom
 
-Declarative, engine-agnostic data pipelines in YAML. Version 0.0.1 is a name-reserving placeholder.
+Declarative, engine-agnostic data pipelines in YAML. Version 0.0.2 is a name-reserving placeholder.
 
 ## Rules
 

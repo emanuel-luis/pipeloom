@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-pipeloom 0.0.1 is a placeholder with no functionality. Once 0.1 ships, only the latest minor
+pipeloom 0.0.2 is a placeholder with no functionality. Once 0.1 ships, only the latest minor
 release gets security fixes.
 
 ## Reporting a vulnerability

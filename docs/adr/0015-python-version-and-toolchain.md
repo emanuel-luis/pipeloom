@@ -9,7 +9,7 @@ A new public project started in late 2026 must pick a Python floor and a base to
 ## Options
 
 - **Python floor:** 3.10 (reaches end of life in October 2026) or 3.11.
-- **CLI:** click (the 0.0.1 skeleton depends on `click>=8.1`).
+- **CLI:** click (the 0.0.2 skeleton depends on `click>=8.1`).
 - **Config models:** pydantic v2, which also exports the JSON Schema (section 4).
 - **Build backend:** hatchling.
 - **Types:** mypy in strict mode.
@@ -21,7 +21,7 @@ Python 3.11 or newer, click for the CLI, pydantic v2 for config models, hatchlin
 ## Consequences
 
 - Code may use 3.11 features, and users on 3.10 cannot install pipeloom.
-- The package has one runtime dependency (`click`) at 0.0.1.
+- The package has one runtime dependency (`click`) at 0.0.2.
 - `pyproject.toml` and CI follow this ADR.
 
 ## Status
