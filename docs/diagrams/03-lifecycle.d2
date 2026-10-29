@@ -1,0 +1,41 @@
+# The seven lifecycle stages with the artifacts and error-code prefixes of each.
+# Illustrates section 3 (lifecycle) and section 7 (validation layers) in docs/architecture.md.
+...@_style
+
+title: "Lifecycle: from YAML to run results" {
+  shape: text
+  near: top-center
+  style: {font-size: 24; bold: true}
+}
+
+direction: down
+
+load: "1. Load\ndiscover YAML, record file, line, column\nerrors: PLY (L0)" {class: process}
+schema: "2. Validate schema\npydantic models\nerrors: PLS (L1)" {class: process}
+resolve: "3. Resolve graph\nbind refs and sources, defaults, naming, selectors\nerrors: PLR, PLG (L2, L3)" {class: process}
+vplan: "4. Validate plan\nsemantics, capabilities, static code checks\nerrors: PLP, PLC, PLK (L4 to L6); PLF with --preflight" {class: process}
+compile: "5. Compile\nfuse ephemeral models into units, freeze\nPlan with plan_hash" {class: process}
+execute: "6. Execute\nscheduler runs units through an executor\nerrors: PLX, PLM, PLQ, PLE, PLU" {class: process}
+finalize: "7. Finalize\nmerge invocation results, commit run state,\nflush and close sinks" {class: process}
+
+manifest: "manifest.json\npipeloom.manifest/1" {class: store}
+units: "unit files\nunits/<unit_id>/attempt-n.json" {class: store}
+results: "run_results.json\nrun record in the state store" {class: store}
+
+load -> schema
+schema -> resolve
+resolve -> vplan
+vplan -> compile
+compile -> execute
+execute -> finalize
+compile -> manifest: "writes"
+execute -> units: "writes"
+finalize -> results: "writes"
+
+legend: Legend {
+  class: legend
+  grid-columns: 3
+  process: stage {class: [process; legend-item]}
+  store: artifact {class: [store; legend-store]}
+  edges: "each stage is a pure function of the previous output\nand emits events to the bus" {shape: text; style.font-size: 13}
+}

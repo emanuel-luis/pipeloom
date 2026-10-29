@@ -1,0 +1,12 @@
+site_name: pipeloom
+site_description: Declarative, engine-agnostic data pipelines in YAML.
+site_url: https://emanuel-luis.github.io/pipeloom/
+repo_url: https://github.com/emanuel-luis/pipeloom
+docs_dir: docs
+exclude_docs: |
+  diagrams/*.d2
+theme:
+  name: material
+plugins:
+  - search
+  - mkdocstrings
