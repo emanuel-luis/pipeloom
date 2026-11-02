@@ -668,7 +668,7 @@ Catalog, state-store and sink contract suites follow the same pattern.
 
 **CI:**
 - ruff check and format; mypy `--strict`; pytest with coverage.
-- Matrix while the repo is private: Python 3.11-3.14 on Ubuntu, plus one Windows and one macOS job on 3.12. The full 3-OS matrix returns when the repo is public. Spark tests on Ubuntu with Java 17.
+- Matrix: Python 3.11-3.14 on Ubuntu, Windows and macOS. Spark tests on Ubuntu with Java 17.
 - `uv build` plus installing the wheel into a clean venv plus `pipeloom --version`.
 - Docs build with `--strict` and D2 compile.
 
@@ -752,7 +752,7 @@ Each ADR is Context, Options, Choice, Consequences, as written in the sections a
 ```
 pipeloom/
 ├── .github/
-│   ├── workflows/ci.yml            # ruff, mypy --strict, pytest matrix (Ubuntu 3.11-3.14, Windows and macOS 3.12), uv build + wheel smoke, docs --strict, d2 compile
+│   ├── workflows/ci.yml            # ruff, mypy --strict, pytest matrix (3.11-3.14 on Ubuntu, Windows and macOS), uv build + wheel smoke, docs --strict, d2 compile
 │   ├── workflows/release.yml       # on tag v*: verify tag==version, uv build, PyPI (env pypi, id-token: write), GitHub release
 │   ├── workflows/docs.yml          # mkdocs + mike deploy on main and tags
 │   ├── dependabot.yml              # ecosystems: uv, github-actions; weekly; grouped
@@ -822,7 +822,7 @@ The core sits at the repo root so `README` and `LICENSE` ship in the distributio
 
 1. Airflow 3 only (ADR-0012).
 2. Only `pipeloom` is published now. Plugin names are published with their first functional release (ADR-0005).
-3. Docs and JSON Schema URLs live at `https://emanuel-luis.github.io/pipeloom/` once the repo is public.
+3. Docs and JSON Schema URLs live at `https://emanuel-luis.github.io/pipeloom/`. The repo has been public since 2026-11-02.
 4. DCO sign-off. The author and CODEOWNERS are Emanuel Luis. Security reports go through GitHub private vulnerability reporting or email.
-6. While the repo is private, CI runs Ubuntu on 3.11 to 3.14 plus one Windows and one macOS job on 3.12 (macOS minutes cost 10x). The full 3-OS matrix comes back when the repo is public.
 5. The shared artifact store for the Airflow LOCAL and KUBERNETES modes is still open, with fsspec as the leading option (decide in 0.6).
+6. CI runs Python 3.11 to 3.14 on Ubuntu, Windows and macOS. While the repo was private it ran one Windows and one macOS job on 3.12 only, because macOS minutes cost 10x; the full matrix came back when the repo went public on 2026-11-02.
