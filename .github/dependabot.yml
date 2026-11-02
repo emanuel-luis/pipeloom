@@ -1,19 +1,34 @@
+# Monthly update PRs, one group per ecosystem for minor and patch: uv.lock and the SHA-pinned
+# actions. Semver-major version updates are ignored (majors move by hand) and a release waits
+# 7 days before it is proposed. Security updates skip the schedule and the cooldown.
+# .github/workflows/dependabot-auto-merge.yml merges these PRs once CI is green.
 version: 2
 updates:
   - package-ecosystem: uv
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    cooldown:
+      default-days: 7
     groups:
       python-deps:
-        update-types: [minor, patch]
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
     ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       - dependency-name: python
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    cooldown:
+      default-days: 7
     groups:
       actions:
-        update-types: [minor, patch]
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
