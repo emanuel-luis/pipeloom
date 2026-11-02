@@ -16,13 +16,14 @@ A new public project started in late 2026 must pick a Python floor and a base to
 
 ## Decision
 
-Python 3.11 or newer, click for the CLI, pydantic v2 for config models, hatchling as the build backend, and mypy `--strict` in CI. CI runs Python 3.11 to 3.14 on Ubuntu, plus one Windows and one macOS job on 3.12 while the repo is private; the full 3-OS matrix returns when it is public.
+Python 3.11 or newer, click for the CLI, pydantic v2 for config models, hatchling as the build backend, and mypy `--strict` in CI. CI runs Python 3.11 to 3.14 on Ubuntu, Windows and macOS.
 
 ## Consequences
 
 - Code may use 3.11 features, and users on 3.10 cannot install pipeloom.
 - The package has one runtime dependency (`click`) at 0.0.2.
 - `pyproject.toml` and CI follow this ADR.
+- While the repo was private, CI ran one Windows and one macOS job on 3.12 only, to save macOS minutes. The full matrix returned when the repo went public on 2026-11-02.
 
 ## Status
 
