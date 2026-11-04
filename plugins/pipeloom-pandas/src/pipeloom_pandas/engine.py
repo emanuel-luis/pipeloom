@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import replace
+from datetime import UTC
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
+import pyarrow as pa
 
 from pipeloom.builtins import fs_write
 from pipeloom.builtins.filesystem import FilesystemCatalog
@@ -81,6 +84,13 @@ class _Ops:
 
 
 _OPS = _Ops()
+
+
+def _eval_hook(frame: pd.DataFrame, expr: str) -> pd.Series:
+    result = frame.eval(expr, engine="python")
+    if not isinstance(result, pd.Series):
+        raise TypeError(f"expression '{expr}' is not a column expression")
+    return result
 
 
 class _Materializer:
@@ -175,12 +185,40 @@ class PandasSession:
         return portable.max_value(rel.native, column)
 
     def evaluate(self, rel: Relation, checks: Sequence[ExpectationSpec]) -> QualityCounts:
-        raise NotImplementedError("expectations arrive with the quality capability")
+        return portable.evaluate(rel.native, checks, dialect_hook=_eval_hook)
 
     def apply_drops(
         self, rel: Relation, checks: Sequence[ExpectationSpec], *, quarantine: QuarantineMeta | None
     ) -> DropResult:
-        raise NotImplementedError("expectations arrive with the quality capability")
+        split = portable.split_drops(rel.native, checks, dialect_hook=_eval_hook)
+        kept = _rel(split.kept.reset_index(drop=True))
+        if quarantine is None:
+            return DropResult(kept, None)
+        df: pd.DataFrame = split.dropped.reset_index(drop=True)
+        flags = [df[f].astype(bool).tolist() for f in split.flags]
+        names = [
+            [n for n, hit in zip(split.names, row, strict=True) if hit]
+            for row in zip(*flags, strict=True)
+        ]
+        if self.catalog.format == "csv":  # a csv cell cannot hold a list: JSON text instead
+            failed = pd.Series(
+                [json.dumps(n, separators=(",", ":")) for n in names],
+                index=df.index,
+                dtype=pd.ArrowDtype(pa.string()),
+            )
+        else:
+            failed = pd.Series(names, index=df.index, dtype=pd.ArrowDtype(pa.list_(pa.string())))
+        n = len(df)
+        ts = quarantine.ts.astimezone(UTC)
+        df = df.drop(columns=split.flags)
+        df["_pipeloom_run_id"] = pd.Series(
+            [quarantine.run_id] * n, index=df.index, dtype=pd.ArrowDtype(pa.string())
+        )
+        df["_pipeloom_failed"] = failed
+        df["_pipeloom_ts"] = pd.Series(
+            [ts] * n, index=df.index, dtype=pd.ArrowDtype(pa.timestamp("us", tz="UTC"))
+        )
+        return DropResult(kept, _rel(df))
 
     def applied_token(self, target: TargetRef, token: str) -> WriteResult | None:
         replay = self.catalog.table(target).applied(token)

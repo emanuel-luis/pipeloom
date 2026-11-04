@@ -1,0 +1,4 @@
+14:02:11 WARN   orders: amount_not_negative (range) dropped 1 of 7 rows
+14:02:11 WARN   orders: customer_set (not_null) failed on 1 of 7 rows
+14:02:11 WARN   orders: status_paid (accepted_values) failed on 1 of 7 rows
+14:02:11 WARN   orders: amount_small (expr) failed on 1 of 7 rows

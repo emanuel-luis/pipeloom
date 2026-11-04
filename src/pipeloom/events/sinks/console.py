@@ -48,6 +48,27 @@ def _schema_line(d: dict[str, Any]) -> str:
     return f"schema changed on {d['relation']} (policy {d['policy']}, {d['action']}): {changes}"
 
 
+def _quality_lines(stamp: str, model: str, d: dict[str, Any]) -> str:
+    """One WARN line per warn or drop expectation that found violations."""
+    lines = []
+    for r in d["results"]:
+        if r["action"] not in ("warn", "drop") or not r["failed"]:
+            continue
+        what = f"{r['name']} ({r['kind']})"
+        if r["passed"] is None:
+            seen = "" if r["value"] is None else f", value {r['value']}"
+            lines.append(f"{stamp} WARN   {model}: {what} failed{seen}")
+        elif r["action"] == "drop":
+            lines.append(
+                f"{stamp} WARN   {model}: {what} dropped {r['failed']} of {d['total_rows']} rows"
+            )
+        else:
+            lines.append(
+                f"{stamp} WARN   {model}: {what} failed on {r['failed']} of {d['total_rows']} rows"
+            )
+    return "\n".join(lines)
+
+
 _QUIET = frozenset(
     {"unit.queued", "unit.started", "model.input_read", "model.written", "run.cancel_requested"}
 )
@@ -125,6 +146,8 @@ class ConsoleSink:
             return self._run_line(event, stamp, d), style
         if event.type == "model.schema_changed":
             return f"{stamp} {event.model or 'model'}: {_schema_line(d)}", style
+        if event.type == "model.quality_evaluated":
+            return _quality_lines(stamp, event.model or "model", d), style
         if event.type == "model.log":
             return f"{stamp} {event.model or 'model'}: {d['message']}", style
         if event.type == "artifact.written" and self._in_run:

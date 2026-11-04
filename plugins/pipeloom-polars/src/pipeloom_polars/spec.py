@@ -18,6 +18,7 @@ CAPABILITIES = EngineCapabilities(
     cancel=False,
     bytes_metrics=True,
     portable=True,
+    quality=True,
 )
 
 

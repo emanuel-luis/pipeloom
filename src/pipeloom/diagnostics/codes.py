@@ -424,7 +424,38 @@ _ACTIVE_03: Final = (
         "Write key invalid",
         "A unique_key or partition_by column is missing from the batch, or a merge batch repeats a unique_key.",
     ),
+    (
+        "PLQ301",
+        E,
+        "Expectation failed",
+        "An expectation with on_violation: fail found violating rows, or the share of dropped rows exceeded quality.max_drop_ratio. The unit fails before writing; the counts are still recorded in run_results.",
+    ),
+    (
+        "PLQ302",
+        E,
+        "Expectation references an unknown column",
+        "An expectation names a column the model output lacks, or its expr cannot be evaluated by the engine.",
+    ),
+    (
+        "PLP411",
+        E,
+        "Expectations on a view or ephemeral model",
+        "A view or an ephemeral model writes no rows of its own, so it cannot carry expectations. Put them on a table that reads it.",
+    ),
+    (
+        "PLP412",
+        E,
+        "Quarantine relation collides with a model",
+        "A model's quarantine table is named <model>__quarantine, and another model already has that name in the same schema.",
+    ),
+    (
+        "PLC510",
+        E,
+        "Expectations on an engine without quality",
+        "The selected engine does not declare the quality capability, so it cannot evaluate expectations.",
+    ),
 )
+
 
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
@@ -432,15 +463,10 @@ _RESERVED: Final = (
     ("PLF702", E, "Source missing", "0.2"),
     ("PLF703", E, "Target schema drift detected", "0.2"),
     ("PLM205", E, "Incremental watermark unusable", "0.3"),
-    ("PLQ302", E, "Expectation references an unknown column", "0.3"),
     ("PLP410", W, "append with lookback reloads rows", "0.3"),
-    ("PLP411", E, "Expectations on a view or ephemeral model", "0.3"),
-    ("PLP412", E, "Quarantine relation collides with a model", "0.3"),
-    ("PLC510", E, "Expectations on an engine without quality", "0.3"),
     ("PLX102", E, "Timeout", "0.3"),
     ("PLX104", E, "Cancelled", "0.3"),
     ("PLM203", E, "Watermark CAS conflict", "0.3"),
-    ("PLQ301", E, "Expectation failed", "0.3"),
     ("PLD001", E, "Task limit exceeded", "0.4"),
     ("PLD002", E, "Submit above 100 tasks", "0.4"),
     ("PLA001", E, "Unsupported execution mode", "0.4"),

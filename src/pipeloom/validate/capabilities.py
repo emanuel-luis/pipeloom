@@ -60,6 +60,13 @@ def _check_model(
             "materialized",
             f"supported: {', '.join(sorted(caps.materializations)) or 'none'}",
         )
+    if c.expectations and c.materialized not in ("view", "ephemeral") and not caps.quality:
+        err(
+            "PLC510",
+            f"engine '{engine.kind}' cannot evaluate expectations (model '{m.name}')",
+            "expectations",
+            "remove the expectations or use an engine with the quality capability",
+        )
     if m.entry.python is not None and c.frame_api == "narwhals" and not caps.portable:
         err(
             "PLC508",

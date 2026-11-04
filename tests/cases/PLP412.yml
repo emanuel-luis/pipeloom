@@ -1,0 +1,17 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    targets:
+      dev:
+        engine: {kind: memory}
+  models/m.yml: |
+    models:
+      - name: a
+        sql: select 1 as x
+        quality: {quarantine: true}
+        expectations:
+          - {name: x_set, check: {not_null: [x]}, on_violation: drop}
+      - name: a__quarantine
+        sql: select 1 as x

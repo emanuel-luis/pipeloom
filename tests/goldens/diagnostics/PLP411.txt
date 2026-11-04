@@ -1,0 +1,2 @@
+error PLP411 models/m.yml:6:7 view model 'a' cannot have expectations
+      hint: move the expectations to a table that reads it

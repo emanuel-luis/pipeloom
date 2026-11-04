@@ -1,0 +1,2 @@
+error PLQ301 models/m.yml:2 model 'a' failed expectation(s): id_set: ValueError: id_set
+      hint: fix the data, or relax on_violation or quality.max_drop_ratio

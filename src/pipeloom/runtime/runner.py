@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-from collections.abc import Awaitable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Literal, NoReturn
@@ -17,7 +17,10 @@ from pipeloom.engine import portable
 from pipeloom.engine.errors import WriteKeyError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
 from pipeloom.engine.types import (
+    ROW_CHECKS,
     DeleteSpec,
+    ExpectationSpec,
+    QuarantineMeta,
     ReadSpec,
     Relation,
     TargetRef,
@@ -28,6 +31,7 @@ from pipeloom.events.bus import EventBus
 from pipeloom.events.model import (
     ModelInputRead,
     ModelLog,
+    ModelQualityEvaluated,
     ModelSchemaChanged,
     ModelWritten,
     UnitFailed,
@@ -35,6 +39,14 @@ from pipeloom.events.model import (
     UnitSucceeded,
 )
 from pipeloom.plan.model import Plan, PlanNode, PlanSource, PythonBody, SqlBody
+from pipeloom.quality import (
+    QualityReport,
+    build_specs,
+    check_columns,
+    judge,
+    quarantine_target,
+    quarantine_token,
+)
 from pipeloom.runtime.context import ModelContext, RuntimeContext
 from pipeloom.runtime.errors import ErrorInfo, Phase, build_error, full_traceback
 from pipeloom.runtime.executors import UnitCompletion
@@ -270,7 +282,8 @@ class ModelRunner:
             local: dict[str, Relation] = {}
             rel = self._compute(node, unit_id, attempt, started, local, rows_read)
             row["rows_read"] = rows_read
-            result = self._write(node, target, strategy, rel, row)
+            rel, before_write = self._quality(node, target, unit_id, rel, row)
+            result = self._write(node, target, strategy, rel, row, before_write)
         else:  # L5 rejects the rest (PLC509) before a run starts
             raise ValueError(f"cannot run materialization '{node.materialized}'")
         row.update(
@@ -439,10 +452,148 @@ class ModelRunner:
             location = (self._rt.project_dir / location).as_posix()
         return ReadSpec(source.format or "", location=location, options=options)
 
+    # -- quality ------------------------------------------------------------------------------
+
+    def _quality(
+        self, node: PlanNode, target: TargetRef, unit_id: str, rel: Relation, row: dict[str, Any]
+    ) -> tuple[Relation, Callable[[], None] | None]:
+        """Steps 5, 6 and 8: count the output, drop rows, judge. Returns the rows to write and
+        the quarantine write to run just before the table write, if rows were dropped."""
+        specs = build_specs(node.config)
+        if not specs:
+            return rel, None
+        session, cfg = self._session, node.config.quality
+        cached = rel.lazy
+        if cached:  # a lazy plan would run once per count
+            rel = session.persist(rel)
+        problems = check_columns(specs, session.schema(rel))
+        if problems:
+            self._fail(
+                "PLQ302",
+                "write",
+                ValueError("; ".join(problems)),
+                f"model '{node.name}': {problems[0]}",
+                "check the column names in expectations against the model output",
+            )
+        rows = [s for s in specs if s.kind in ROW_CHECKS]
+        aggs = [s for s in specs if s.kind not in ROW_CHECKS]
+        quarantine = (
+            QuarantineMeta(self._rt.run_id, self._rt.clock.now()) if cfg.quarantine else None
+        )
+        pending: Relation | None = None
+        kept = rel
+        try:
+            if any(s.action == "drop" for s in rows):
+                row_counts = session.evaluate(rel, rows)
+                if row_counts.dropped:
+                    dropped = session.apply_drops(rel, rows, quarantine=quarantine)
+                    kept, pending = dropped.kept, dropped.quarantined
+                agg_counts = session.evaluate(kept, aggs) if aggs else None
+            else:  # nothing can drop: one call counts everything
+                row_counts = session.evaluate(rel, list(specs))
+                agg_counts = row_counts
+        except Exception as exc:  # noqa: BLE001 - engines raise their own errors
+            self._quality_error(node, exc, rel, specs)
+        report = judge(
+            specs,
+            row_counts,
+            agg_counts,
+            now=self._rt.clock.now(),
+            max_drop_ratio=cfg.max_drop_ratio,
+            cached=cached,
+            rows_quarantined=row_counts.dropped if pending is not None else 0,
+        )
+        row.update(
+            expectations=[r.to_json() for r in report.results],
+            rows_dropped=report.rows_dropped,
+            rows_quarantined=report.rows_quarantined,
+            warnings=[f"expectation '{r.name}' ({r.kind}) failed" for r in report.warnings],
+        )
+        self._quality_event(node, unit_id, report)
+        if report.failures:
+            self._fail(
+                "PLQ301",
+                "write",
+                ValueError(", ".join(report.failures)),
+                f"model '{node.name}' failed expectation(s): {', '.join(report.failures)}",
+                "fix the data, or relax on_violation or quality.max_drop_ratio",
+            )
+        if pending is None:
+            return kept, None
+        quarantined = pending
+
+        def write_quarantine() -> None:
+            self._write_quarantine(node, target, quarantined)
+
+        return kept, write_quarantine
+
+    def _quality_error(
+        self, node: PlanNode, exc: Exception, rel: Relation, specs: tuple[ExpectationSpec, ...]
+    ) -> NoReturn:
+        """An engine failure while counting: PLQ302 when one expr is the cause, else PLX101."""
+        for spec in specs:
+            if spec.kind != "expr":
+                continue
+            try:
+                self._session.evaluate(rel, [spec])
+            except Exception:  # noqa: BLE001 - probing which expression the engine rejects
+                self._fail(
+                    "PLQ302",
+                    "write",
+                    exc,
+                    f"expectation '{spec.name}' of model '{node.name}' cannot be evaluated",
+                    "write the expr in the dialect of the engine",
+                )
+        self._fail(
+            "PLX101",
+            "write",
+            exc,
+            f"cannot evaluate expectations of model '{node.name}'",
+            "this is probably a pipeloom or engine bug; report it with the traceback",
+        )
+
+    def _quality_event(self, node: PlanNode, unit_id: str, report: QualityReport) -> None:
+        self._bus.emit(
+            ModelQualityEvaluated(
+                total_rows=report.total_rows,
+                results=[r.to_json() for r in report.results],
+                rows_dropped=report.rows_dropped,
+                rows_quarantined=report.rows_quarantined,
+                drop_ratio=report.drop_ratio,
+                cached=report.cached,
+                failures=list(report.failures),
+            ),
+            unit_id=unit_id,
+            model=node.name,
+        )
+
+    def _write_quarantine(self, node: PlanNode, target: TargetRef, rows: Relation) -> None:
+        """Append the dropped rows to `<model>__quarantine` under its own token. Its schema
+        policy is append_new_columns, so a changed model output never blocks the quarantine."""
+        qt = quarantine_target(target)
+        columns, _, _ = resolve_columns(
+            "append_new_columns",
+            self._catalog.table_schema(qt),
+            self._session.schema(rows),
+            strategy="append",
+            full_refresh=False,
+        )
+        token = quarantine_token(f"{self._rt.run_id}:{node.name}")
+        self._catalog.ensure_namespace(qt.namespace)
+        self._session.materializer("append").materialize(
+            self._session.align(rows, columns), qt, WriteConfig("append", columns=columns), token
+        )
+
     # -- writing ------------------------------------------------------------------------------
 
     def _write(
-        self, node: PlanNode, target: TargetRef, strategy: str, rel: Relation, row: dict[str, Any]
+        self,
+        node: PlanNode,
+        target: TargetRef,
+        strategy: str,
+        rel: Relation,
+        row: dict[str, Any],
+        before_write: Callable[[], None] | None = None,
     ) -> WriteResult:
         write = node.config.write
         token = f"{self._rt.run_id}:{node.name}"
@@ -481,6 +632,8 @@ class ModelRunner:
                 columns=None if keep else columns,
                 options=dict(write.options),
             )
+            if before_write is not None:
+                before_write()  # step 8: quarantine rows, once the schema policy accepted
             result = self._session.materializer(strategy).materialize(rel, target, cfg, token)
         except SchemaRejected as exc:
             row["schema_changes"] = changes_json(exc.policy, exc.diff, "rejected")

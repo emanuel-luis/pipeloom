@@ -9,6 +9,7 @@ from pipeloom.graph.dag import ProjectGraph, inlined_ancestors
 
 PERSISTED = ("table", "incremental", "intermediate")
 _KEYED = ("merge", "scd2")
+_NO_ROWS = ("view", "ephemeral")
 _AGGREGATE_CHECKS = ("unique", "row_count", "freshness")
 
 
@@ -73,6 +74,13 @@ def _check_model(project: ResolvedProject, m: ResolvedModel, report: Report) -> 
                 "use on_violation: warn or fail",
                 f"/{i}/on_violation",
             )
+    if "expectations" in m.own_fields and c.expectations and c.materialized in _NO_ROWS:
+        err(
+            "PLP411",
+            f"{c.materialized} model '{m.name}' cannot have expectations",
+            "expectations",
+            "move the expectations to a table that reads it",
+        )
     if strategy == "replace_partitions" and not c.partition_by:
         err(
             "PLP407",
@@ -140,8 +148,22 @@ def check_semantics(pg: ProjectGraph, report: Report) -> None:
             for e in inlined_ancestors(graph, uid, ephemeral):
                 fanout[e] += 1
     limit = project.bound.loaded.config.ephemeral_fanout_warn
+    taken = {(mm.config.schema_, mm.name) for mm in project.models.values()}
     for uid, m in project.models.items():
         _check_model(project, m, report)
+        clash = f"{m.name}__quarantine"
+        if (
+            m.config.quality.quarantine
+            and m.config.expectations
+            and (m.config.schema_, clash) in taken
+        ):
+            report.add(
+                "PLP412",
+                f"the quarantine table of '{m.name}' collides with model '{clash}'",
+                location=where(project, m, "quality"),
+                hint=f"rename model '{clash}' or turn quality.quarantine off",
+                context={"model": m.name},
+            )
         if m.config.materialized == "view":
             _check_view(
                 project,
