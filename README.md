@@ -6,8 +6,18 @@ Pipelines are declared in YAML and compiled into an immutable plan. The same pla
 polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG.
 Every run produces a single event stream and artifacts you can query.
 
-**Status: design phase.** Version 0.0.2 is a placeholder that reserves the package name. It
-exposes `pipeloom --version` and nothing else. No functionality exists before 0.1.
+**Status: 0.1, alpha.** pipeloom reads a YAML project, validates it in layers (YAML, schema,
+references, graph, plan semantics, engine capabilities, Python callables), builds the dependency
+graph and compiles the execution plan into a manifest. Running the plan comes in 0.2.
+
+```console
+$ pip install pipeloom
+$ pipeloom validate
+$ pipeloom compile
+```
+
+Commands: `validate`, `compile`, `ls`, `graph`, `schema export` and `plugins list`. See the
+[quickstart](https://emanuel-luis.github.io/pipeloom/latest/quickstart/).
 
 ![Context diagram: users, the YAML project, the CLI and API, engines, catalogs, orchestrators and event consumers.](docs/diagrams/01-context.svg)
 
@@ -25,7 +35,7 @@ exposes `pipeloom --version` and nothing else. No functionality exists before 0.
 ## Planned packages
 
 Only `pipeloom` is published today. Plugin names are published with their first functional
-release.
+release; the rows below are the plan.
 
 | Distribution | Role |
 |---|---|
@@ -39,6 +49,7 @@ release.
 
 ## Documentation
 
+- [Documentation site](https://emanuel-luis.github.io/pipeloom/latest/): quickstart, command line, JSON Schema and error codes
 - [Architecture](docs/architecture.md)
 - [Architecture decision records](docs/adr/README.md)
 - [Diagrams](docs/diagrams/)
