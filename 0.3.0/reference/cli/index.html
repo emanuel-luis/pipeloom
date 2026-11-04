@@ -1,0 +1,1416 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+      
+      
+      
+        <link rel="canonical" href="https://emanuel-luis.github.io/pipeloom/0.3.0/reference/cli/">
+      
+      
+        <link rel="prev" href="../../plugins/pandas/">
+      
+      
+        <link rel="next" href="../schema/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Command line - pipeloom</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#command-line" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="pipeloom" class="md-header__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            pipeloom
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Command line
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="pipeloom" class="md-nav__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    pipeloom
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/running/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/write-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge, replace_partitions and schema changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/retries-and-cancellation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retries, timeouts and cancellation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/polars/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/pandas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pandas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pipeloom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pipeloom
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="pipeloom">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-compile-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        compile-
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-ls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plugins
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="plugins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-plugins-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        list
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        schema
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="schema">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-schema-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        export
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        validate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../errors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pipeloom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pipeloom
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="pipeloom">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-compile-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        compile-
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-ls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        plugins
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="plugins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-plugins-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        list
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        schema
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="schema">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-schema-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        export
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        validate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="command-line">Command line<a class="headerlink" href="#command-line" title="Permanent link">&para;</a></h1>
+<h3 id="pipeloom">pipeloom<a class="headerlink" href="#pipeloom" title="Permanent link">&para;</a></h3>
+<p>pipeloom: declarative, engine-agnostic data pipelines in YAML.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom [OPTIONS] COMMAND [ARGS]...
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --version  Show the version and exit.
+  --help     Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-compile-">pipeloom compile-<a class="headerlink" href="#pipeloom-compile-" title="Permanent link">&para;</a></h4>
+<p>Validate the project and write the plan to a manifest file.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom compile- [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY    Directory that holds pipeloom.yml.  [default: .]
+  --vars TEXT                Variables as a YAML or JSON mapping; they
+                             override the vars block.
+  --target TEXT              Target to bind; default_target or the only target
+                             when omitted.
+  --plugin MODULE:ATTR       A PluginSpec to load besides the installed
+                             plugins. Repeatable.
+  -s, --select SELECTOR      Models to include: name, tag:x, path:dir,
+                             materialized:x, +model, model+, N+model, model+N.
+                             Space unions, comma intersects. Repeatable, all
+                             are unioned.
+  --exclude SELECTOR         Remove the models this selector matches from the
+                             selection. Repeatable.
+  --log-format [text|json]   Diagnostics and events on stderr: readable text
+                             or one JSON object per line.  [default: text]
+  --boundary [process|task]  Where units run; default is the target's boundary
+                             (process).
+  --out PATH                 Manifest file, relative to the project dir unless
+                             absolute.  [default: target/manifest.json]
+  --warn-error               Exit 1 on warnings too.
+  --help                     Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-graph">pipeloom graph<a class="headerlink" href="#pipeloom-graph" title="Permanent link">&para;</a></h4>
+<p>Print the graph of the selected models, in dependency order.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom graph [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY         Directory that holds pipeloom.yml.
+                                  [default: .]
+  --vars TEXT                     Variables as a YAML or JSON mapping; they
+                                  override the vars block.
+  --target TEXT                   Target to bind; default_target or the only
+                                  target when omitted.
+  --plugin MODULE:ATTR            A PluginSpec to load besides the installed
+                                  plugins. Repeatable.
+  -s, --select SELECTOR           Models to include: name, tag:x, path:dir,
+                                  materialized:x, +model, model+, N+model,
+                                  model+N. Space unions, comma intersects.
+                                  Repeatable, all are unioned.
+  --exclude SELECTOR              Remove the models this selector matches from
+                                  the selection. Repeatable.
+  --log-format [text|json]        Diagnostics and events on stderr: readable
+                                  text or one JSON object per line.  [default:
+                                  text]
+  --output [text|dot|mermaid|json]
+                                  Format of the graph: text (name &lt;- parents),
+                                  Graphviz dot, Mermaid or JSON.  [default:
+                                  text]
+  --help                          Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-ls">pipeloom ls<a class="headerlink" href="#pipeloom-ls" title="Permanent link">&para;</a></h4>
+<p>List the models that --select and --exclude choose (all by default).</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom ls [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
+  --vars TEXT               Variables as a YAML or JSON mapping; they override
+                            the vars block.
+  --target TEXT             Target to bind; default_target or the only target
+                            when omitted.
+  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
+                            plugins. Repeatable.
+  -s, --select SELECTOR     Models to include: name, tag:x, path:dir,
+                            materialized:x, +model, model+, N+model, model+N.
+                            Space unions, comma intersects. Repeatable, all
+                            are unioned.
+  --exclude SELECTOR        Remove the models this selector matches from the
+                            selection. Repeatable.
+  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+                            one JSON object per line.  [default: text]
+  --output [text|json]      One model name per line, or a JSON list.
+                            [default: text]
+  --help                    Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-plugins">pipeloom plugins<a class="headerlink" href="#pipeloom-plugins" title="Permanent link">&para;</a></h4>
+<p>Inspect installed plugins.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom plugins [OPTIONS] COMMAND [ARGS]...
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --help  Show this message and exit.
+</code></pre>
+<h5 id="pipeloom-plugins-list">pipeloom plugins list<a class="headerlink" href="#pipeloom-plugins-list" title="Permanent link">&para;</a></h5>
+<p>List plugins by group and kind. Nothing is imported unless --check is given.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom plugins list [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --group [engines|catalogs|state_stores|sinks|secret_providers|executors|renderers|naming]
+                                  Only this group.
+  --output [text|json]            [default: text]
+  --check                         Import each plugin and report its API and
+                                  status.
+  --plugin MODULE:ATTR            A PluginSpec to load besides the installed
+                                  plugins. Repeatable.
+  --log-format [text|json]        Diagnostics and events on stderr: readable
+                                  text or one JSON object per line.  [default:
+                                  text]
+  --help                          Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-run">pipeloom run<a class="headerlink" href="#pipeloom-run" title="Permanent link">&para;</a></h4>
+<p>Run the selected models. Exit codes: 0 ok, 1 a unit or a check failed, 2 bad usage, 130 stopped.</p>
+<p>The first Ctrl+C or SIGTERM stops starting units and gives running ones <code>--cancel-grace</code>
+to finish; a second one kills them at once; a third raises KeyboardInterrupt.</p>
+<p><code>-s unit:NAME</code> runs one unit without a lock or run results, and never retries it; the
+process executor uses it.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom run [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY    Directory that holds pipeloom.yml.  [default: .]
+  --vars TEXT                Variables as a YAML or JSON mapping; they
+                             override the vars block.
+  --target TEXT              Target to bind; default_target or the only target
+                             when omitted.
+  --plugin MODULE:ATTR       A PluginSpec to load besides the installed
+                             plugins. Repeatable.
+  -s, --select SELECTOR      Models to include: name, tag:x, path:dir,
+                             materialized:x, +model, model+, N+model, model+N.
+                             Space unions, comma intersects. Repeatable, all
+                             are unioned.
+  --exclude SELECTOR         Remove the models this selector matches from the
+                             selection. Repeatable.
+  --log-format [text|json]   Diagnostics and events on stderr: readable text
+                             or one JSON object per line.  [default: text]
+  --manifest FILE            Run the plan of this manifest instead of
+                             compiling the project.
+  --expect-plan-hash HEX     Stop with PLX103 unless the plan hash is this
+                             sha256.
+  --run-id TEXT              Name of the run. Reusing it continues that run.
+                             Default: a timestamp and a suffix.
+  --full-refresh BOOLEAN     Rebuild append tables from scratch. Takes an
+                             optional true or false.  [default: False]
+  --fail-fast                After the first failure, start no more units.
+  --no-lock                  Do not take the run lock.
+  --workers INTEGER RANGE    Units to run at once. Default: the target's
+                             setting, else min(4, CPUs).  [x&gt;=1]
+  --boundary [process|task]  process runs units on threads here; task runs
+                             each in its own process. Default: the target's
+                             boundary.
+  --warn-error               Exit 1 on warnings too.
+  --cancel-grace DURATION    After a stop request (Ctrl+C, SIGTERM) or a
+                             timeout, how long running units may finish before
+                             they are killed, as 30s, 2m or 30. Default: the
+                             setting, else 30s.
+  --help                     Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-schema">pipeloom schema<a class="headerlink" href="#pipeloom-schema" title="Permanent link">&para;</a></h4>
+<p>JSON Schemas for the YAML files.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom schema [OPTIONS] COMMAND [ARGS]...
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --help  Show this message and exit.
+</code></pre>
+<h5 id="pipeloom-schema-export">pipeloom schema export<a class="headerlink" href="#pipeloom-schema-export" title="Permanent link">&para;</a></h5>
+<p>Write the JSON Schemas, with plugin options as oneOf branches.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom schema export [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --out DIRECTORY                Directory to write project.json, models.json
+                                 and defaults.json into.  [required]
+  --plugins [installed|builtin]  Plugins whose options appear in the schema;
+                                 installed imports every plugin.  [default:
+                                 installed]
+  --plugin MODULE:ATTR           A PluginSpec to load besides the installed
+                                 plugins. Repeatable.
+  --log-format [text|json]       Diagnostics and events on stderr: readable
+                                 text or one JSON object per line.  [default:
+                                 text]
+  --help                         Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-validate">pipeloom validate<a class="headerlink" href="#pipeloom-validate" title="Permanent link">&para;</a></h4>
+<p>Check the project: YAML, schema, secrets, target and plugin options (L0 to L6).</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom validate [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
+  --vars TEXT               Variables as a YAML or JSON mapping; they override
+                            the vars block.
+  --target TEXT             Target to bind; default_target or the only target
+                            when omitted.
+  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
+                            plugins. Repeatable.
+  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+                            one JSON object per line.  [default: text]
+  --warn-error              Exit 1 on warnings too.
+  --help                    Show this message and exit.
+</code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
