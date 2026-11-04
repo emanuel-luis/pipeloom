@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,7 @@ from pipeloom.events.model import Event
 from pipeloom.graph.selectors import Selection, SelectorError, apply
 from pipeloom.runtime.control import RunControl
 from pipeloom.runtime.run import RunOptions
+from pipeloom.state.types import RunRecord
 from pipeloom.testing.clock import FakeClock
 from tests.conftest import make_project
 from tests.plugins.fakes import FakeDist, FakeEntryPoint, install_entry_points
@@ -111,6 +113,24 @@ def run_case(
     stop = given.pop("hard_stop_on_start", False)  # a hard stop as soon as a unit starts
     if "manifest" in given:
         given["manifest"] = project_dir / given["manifest"]
+    prior_start = given.pop("prior_start", None)  # a recorded run "case" that began at this time
+    if isinstance(given.get("run_started_at"), str):
+        given["run_started_at"] = datetime.fromisoformat(given["run_started_at"])
+    if prior_start is not None:
+        seed = Project(options).bind().value
+        assert seed is not None
+        store = seed.plugins["state_stores"].create()
+        store.record_run(
+            RunRecord(
+                "case",
+                seed.loaded.config.name,
+                seed.target,
+                "0" * 64,
+                "failed",
+                datetime.fromisoformat(prior_start),
+            )
+        )
+        store.close()
     given["selection"] = Selection(tuple(given.pop("select", ())))
     run_opts = RunOptions(**{"run_id": "case", "workers": 1, **given})
     project = Project(options, clock=FakeClock(), invocation_id="inv")

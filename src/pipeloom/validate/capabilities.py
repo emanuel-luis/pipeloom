@@ -5,7 +5,7 @@ from __future__ import annotations
 from pipeloom.config.bind import BoundPlugin, BoundProject
 from pipeloom.config.resolve import ResolvedModel, ResolvedProject
 from pipeloom.diagnostics import JsonValue, Report
-from pipeloom.engine.types import EngineCapabilities, StateStoreCapabilities
+from pipeloom.engine.types import CatalogCapabilities, EngineCapabilities, StateStoreCapabilities
 from pipeloom.graph.dag import ProjectGraph
 from pipeloom.validate.semantics import effective_strategy, where
 
@@ -16,6 +16,7 @@ def _check_model(
     engine: BoundPlugin,
     caps: EngineCapabilities,
     report: Report,
+    no_views: BoundPlugin | None = None,
 ) -> None:
     c = m.config
     strategy = effective_strategy(c)
@@ -52,6 +53,13 @@ def _check_model(
             f"engine '{engine.kind}' has no catalog views (model '{m.name}')",
             "materialized",
             "use table, or an engine with views",
+        )
+    elif c.materialized == "view" and no_views is not None:
+        err(
+            "PLC507",
+            f"catalog '{no_views.kind}' has no views (model '{m.name}')",
+            "materialized",
+            "use table, or a catalog with views",
         )
     if c.materialized != "view" and c.materialized not in caps.materializations:
         err(
@@ -116,6 +124,8 @@ def check_capabilities(pg: ProjectGraph, report: Report) -> None:
     caps = engine.spec.capabilities
     if not isinstance(caps, EngineCapabilities):
         return
+    cat_caps = None if catalog is None else catalog.spec.capabilities
+    no_views = isinstance(cat_caps, CatalogCapabilities) and not cat_caps.views
     for s in project.sources.values():
         if s.config.format is not None and s.config.format not in caps.formats:
             report.add(
@@ -127,4 +137,4 @@ def check_capabilities(pg: ProjectGraph, report: Report) -> None:
                 context={"source": s.name, "format": s.config.format},
             )
     for m in project.models.values():
-        _check_model(project, m, engine, caps, report)
+        _check_model(project, m, engine, caps, report, catalog if no_views else None)

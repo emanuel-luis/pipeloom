@@ -34,6 +34,7 @@ from pipeloom.engine.types import (
     DropResult,
     EngineCapabilities,
     ExpectationSpec,
+    IntermediateRef,
     Namespace,
     QualityCounts,
     QuarantineMeta,
@@ -397,6 +398,9 @@ class MemorySession:
             with self._lock:
                 if self._cancels.get(unit_id) is event:
                     del self._cancels[unit_id]
+
+    def write_intermediate(self, rel: Relation, ref: IntermediateRef, token: str) -> WriteResult:
+        raise NotImplementedError("intermediate models arrive with the next change")
 
     def unit_scope(self, unit_id: str) -> AbstractContextManager[None]:
         return self._scope(unit_id)

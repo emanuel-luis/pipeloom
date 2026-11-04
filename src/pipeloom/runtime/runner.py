@@ -224,7 +224,10 @@ class ModelRunner:
         trace: str | None = None
         interrupted: Reason | None = None
         try:
-            self._execute(unit_id, node, strategy, attempt, started, row)
+            # One scope from the first read to the end of the write: engines that run lazily
+            # (Spark) do their work at the write, and cancel must find it.
+            with self._session.unit_scope(unit_id):
+                self._execute(unit_id, node, strategy, attempt, started, row)
         except UnitInterrupted as stop:
             interrupted = stop.reason
         except _Fail as fail:
@@ -544,12 +547,11 @@ class ModelRunner:
         ctx = self._context(node, unit_id, attempt, started, None if inc is None else inc.state)
         failed = f"model '{node.name}' raised"
         try:
-            with self._session.unit_scope(unit_id):
-                if isinstance(node.body, SqlBody):
-                    sql_out = self._session.sql(node.body.sql, inputs)
-                    self._check()
-                    return sql_out
-                out = self._call(node.body, node, ctx, inputs)
+            if isinstance(node.body, SqlBody):
+                sql_out = self._session.sql(node.body.sql, inputs)
+                self._check()
+                return sql_out
+            out = self._call(node.body, node, ctx, inputs)
         except Exception as exc:  # noqa: BLE001 - the body is user code
             self._fail("PLX101", "body", exc, failed)
         self._check()

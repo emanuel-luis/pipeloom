@@ -56,6 +56,24 @@ class StateStoreCapabilities:
 
 
 @dataclass(frozen=True)
+class CatalogCapabilities:
+    """What a catalog can do. Static data: L5 reads it without importing the catalog."""
+
+    views: bool = True
+    """The catalog can hold views (PLC507 otherwise)."""
+
+
+@dataclass(frozen=True)
+class IntermediateRef:
+    """Where a run keeps the persisted result of an `intermediate` model."""
+
+    run_id: str
+    model: str
+    location: str
+    """Absolute POSIX path or URI. `ReadSpec(format="intermediate", location=...)` reads it."""
+
+
+@dataclass(frozen=True)
 class Namespace:
     catalog: str | None
     schema: str

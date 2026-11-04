@@ -20,9 +20,9 @@ from typing import Any, Final, Generic, Literal, TypeVar, get_args
 from pydantic import BaseModel, ConfigDict
 
 from pipeloom.diagnostics import Location, Report
-from pipeloom.engine.types import EngineCapabilities, StateStoreCapabilities
+from pipeloom.engine.types import CatalogCapabilities, EngineCapabilities, StateStoreCapabilities
 
-API_VERSION: Final = (0, 3)
+API_VERSION: Final = (0, 4)
 
 Group = Literal[
     "engines",
@@ -71,7 +71,7 @@ class PluginSpec(Generic[T]):
     """The plugin's options, without `kind`."""
     compatible_engines: frozenset[str] = frozenset()
     """Engine kinds a catalog works with; empty means any."""
-    capabilities: EngineCapabilities | StateStoreCapabilities | None = None
+    capabilities: EngineCapabilities | StateStoreCapabilities | CatalogCapabilities | None = None
     """Static data for L5, readable without building the plugin."""
     description: str = ""
 

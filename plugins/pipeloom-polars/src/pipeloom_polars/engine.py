@@ -19,6 +19,7 @@ from pipeloom.engine.protocols import Catalog, EngineSession, Materializer, Read
 from pipeloom.engine.types import (
     DropResult,
     ExpectationSpec,
+    IntermediateRef,
     QualityCounts,
     QuarantineMeta,
     ReadSpec,
@@ -232,6 +233,9 @@ class PolarsSession:
     def applied_token(self, target: TargetRef, token: str) -> WriteResult | None:
         replay = self.catalog.table(target).applied(token)
         return None if replay is None else replace(replay, skipped=True)
+
+    def write_intermediate(self, rel: Relation, ref: IntermediateRef, token: str) -> WriteResult:
+        raise NotImplementedError("intermediate models arrive with the next change")
 
     def unit_scope(self, unit_id: str) -> AbstractContextManager[None]:
         return nullcontext()

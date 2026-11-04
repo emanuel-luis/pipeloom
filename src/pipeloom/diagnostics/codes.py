@@ -487,6 +487,17 @@ _ACTIVE_03: Final = (
 )
 
 
+# Active since 0.4.
+_ACTIVE_04: Final = (
+    (
+        "PLX108",
+        E,
+        "Run start time conflict",
+        "--run-started-at differs from the start the run recorded when it first ran. A reused run id keeps its recorded start. Exit code 2.",
+    ),
+)
+
+
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
@@ -500,7 +511,12 @@ _RESERVED: Final = (
 
 def _build() -> Mapping[str, CodeInfo]:
     out: dict[str, CodeInfo] = {}
-    for since, table in (("0.1", _ACTIVE), ("0.2", _ACTIVE_02), ("0.3", _ACTIVE_03)):
+    for since, table in (
+        ("0.1", _ACTIVE),
+        ("0.2", _ACTIVE_02),
+        ("0.3", _ACTIVE_03),
+        ("0.4", _ACTIVE_04),
+    ):
         for code, sev, title, expl in table:
             out[code] = CodeInfo(code, _PREFIX_LAYER[code[:3]], sev, title, expl, "active", since)
     for code, sev, title, since in _RESERVED:

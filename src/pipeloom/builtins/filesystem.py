@@ -10,7 +10,7 @@ from pydantic import Field
 from pipeloom.builtins.fs_table import FsTable
 from pipeloom.config.types import ProjectPath
 from pipeloom.engine.protocols import Catalog
-from pipeloom.engine.types import Namespace, Schema, TargetRef
+from pipeloom.engine.types import CatalogCapabilities, Namespace, Schema, TargetRef
 from pipeloom.platform import Clock, SystemClock
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
 
@@ -70,5 +70,6 @@ SPEC: PluginSpec[Catalog] = PluginSpec(
     _build,
     FilesystemOptions,
     compatible_engines=frozenset({"polars", "pandas"}),
+    capabilities=CatalogCapabilities(views=True),
     description="Tables as part files under a directory, committed atomically.",
 )
