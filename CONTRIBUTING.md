@@ -51,6 +51,6 @@ Every distribution (`pipeloom` and each plugin under `plugins/`) is released at 
 
 1. Bump the versions: `uv run python tools/versions.py bump X.Y.Z`. It rewrites each `pyproject.toml`, checks them and runs `uv lock`.
 2. Set the date of the CHANGELOG.md heading, then merge to main with CI green.
-3. For each distribution with no PyPI project yet, create a pending publisher on PyPI right before tagging (it does not reserve the name): project name as in its `pyproject.toml`, Owner `emanuel-luis`, Repository `pipeloom`, Workflow `release.yml`, Environment `pypi`.
+3. For each distribution with no PyPI project yet, create a pending publisher on PyPI right before tagging (it does not reserve the name): project name as in its `pyproject.toml`, Owner `emanuel-luis`, Repository `pipeloom`, Workflow `release.yml`, and Environment `pypi` for the core or `pypi-<plugin>` for a plugin (for example `pypi-polars`). PyPI accepts one pending publisher per owner, repository, workflow and environment, which is why every distribution has its own GitHub environment.
 4. Tag `vX.Y.Z` on main and push the tag.
-5. If a publish step fails with `invalid-pending-publisher`, fix the publisher and use "Re-run failed jobs". Steps that already published stay published, and `skip-existing` makes the rerun safe.
+5. Each distribution publishes from its own job, the core first. If one fails with `invalid-pending-publisher`, fix the publisher and use "Re-run failed jobs". Jobs that already published stay published, and `skip-existing` makes the rerun safe. A plugin job is skipped when that plugin is not in the release yet.

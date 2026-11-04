@@ -12,6 +12,12 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+    outputs:
+      polars: ${{ steps.dists.outputs.polars }}
+      pandas: ${{ steps.dists.outputs.pandas }}
+      spark: ${{ steps.dists.outputs.spark }}
+      databricks: ${{ steps.dists.outputs.databricks }}
+      airflow: ${{ steps.dists.outputs.airflow }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
@@ -21,9 +27,17 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: uv run --no-project python tools/versions.py check --tag "$TAG"
       - name: Build every distribution into dist/<name>/
+        id: dists
         run: |
-          for p in pipeloom pipeloom-polars pipeloom-pandas; do
-            uv build --package "$p" -o "dist/$p"
+          uv build --package pipeloom -o dist/pipeloom
+          for dir in plugins/pipeloom-*/; do
+            name="$(basename "$dir")"
+            uv build --package "$name" -o "dist/$name"
+          done
+          # tell the publish jobs which plugin distributions exist in this release
+          for plugin in polars pandas spark databricks airflow; do
+            if [ -d "dist/pipeloom-$plugin" ]; then built=true; else built=false; fi
+            echo "$plugin=$built" >> "$GITHUB_OUTPUT"
           done
       - name: Extract release notes from CHANGELOG.md
         env:
@@ -49,7 +63,13 @@ jobs:
           path: dist/
           if-no-files-found: error
 
-  publish:
+  # One job and one GitHub environment per distribution: PyPI accepts a single pending
+  # publisher per (owner, repository, workflow, environment), so plugins cannot share `pypi`
+  # (ADR-0016). The core goes first because every plugin pins it. A plugin job runs only when
+  # its distribution exists in this release. dist/notes.md sits outside every packages-dir.
+  # A failed publish leaves the others published: fix the publisher and re-run the failed
+  # jobs; skip-existing makes that safe.
+  publish-pipeloom:
     needs: [build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -63,31 +83,127 @@ jobs:
         with:
           name: dist
           path: dist/
-      # One step per distribution, core first; dist/notes.md is outside every packages-dir.
-      # A distribution with no PyPI project needs a pending publisher (CONTRIBUTING.md). A
-      # missing one fails only its own step and earlier steps stay published: fix it and re-run
-      # the failed jobs, skip-existing makes that safe.
-      - name: Publish pipeloom
-        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: dist/pipeloom/
           attestations: true
           skip-existing: true
-      - name: Publish pipeloom-polars
-        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+  publish-pipeloom-polars:
+    needs: [build, publish-pipeloom]
+    if: needs.build.outputs.polars == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi-polars
+      url: https://pypi.org/project/pipeloom-polars/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: dist/pipeloom-polars/
           attestations: true
           skip-existing: true
-      - name: Publish pipeloom-pandas
-        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+  publish-pipeloom-pandas:
+    needs: [build, publish-pipeloom]
+    if: needs.build.outputs.pandas == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi-pandas
+      url: https://pypi.org/project/pipeloom-pandas/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: dist/pipeloom-pandas/
           attestations: true
           skip-existing: true
 
+  publish-pipeloom-spark:
+    needs: [build, publish-pipeloom]
+    if: needs.build.outputs.spark == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi-spark
+      url: https://pypi.org/project/pipeloom-spark/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          packages-dir: dist/pipeloom-spark/
+          attestations: true
+          skip-existing: true
+
+  publish-pipeloom-databricks:
+    needs: [build, publish-pipeloom]
+    if: needs.build.outputs.databricks == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi-databricks
+      url: https://pypi.org/project/pipeloom-databricks/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          packages-dir: dist/pipeloom-databricks/
+          attestations: true
+          skip-existing: true
+
+  publish-pipeloom-airflow:
+    needs: [build, publish-pipeloom]
+    if: needs.build.outputs.airflow == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi-airflow
+      url: https://pypi.org/project/pipeloom-airflow/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          packages-dir: dist/pipeloom-airflow/
+          attestations: true
+          skip-existing: true
+
   github-release:
-    needs: [publish]
+    # after every publish job that ran; plugin jobs skipped for absent distributions do not block
+    needs:
+      - publish-pipeloom
+      - publish-pipeloom-polars
+      - publish-pipeloom-pandas
+      - publish-pipeloom-spark
+      - publish-pipeloom-databricks
+      - publish-pipeloom-airflow
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
