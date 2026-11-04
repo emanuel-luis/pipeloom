@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime
+from decimal import Decimal
 from pathlib import Path
 
 import polars as pl
@@ -75,3 +77,26 @@ def test_a_missing_table_raises(tmp_path: Path) -> None:
         pytest.raises(FileNotFoundError),
     ):
         s.reader("table").read(ReadSpec("table", table=T))
+
+
+@pytest.mark.parametrize("fmt", ["csv", "ndjson"])
+def test_text_formats_keep_types_per_column(tmp_path: Path, fmt: str) -> None:
+    df = pl.DataFrame(
+        {
+            "d": [date(2024, 1, 2), None],
+            "ts": pl.Series([datetime(2024, 1, 2, 3, 4, 5), None]).cast(pl.Datetime("us", "UTC")),
+            "n": pl.Series([Decimal("12.34"), None]).cast(pl.Decimal(18, 2)),
+            "s": ["007", None],
+            "i": [1, None],
+            "tags": [[1, 2], [3]],  # a type the csv format cannot hold and the engine cannot name
+        }
+    )
+    if fmt == "csv":
+        df = df.drop("tags")
+    catalog = FilesystemCatalog(tmp_path / "wh", format=fmt)
+    with PolarsEngine().session(ctx(tmp_path), catalog=catalog) as s:
+        catalog.ensure_namespace(T.namespace)
+        s.materializer("overwrite").materialize(s.relation(df), T, WriteConfig("overwrite"), "r:1")
+        back = s.reader("table").read(ReadSpec("table", table=T)).native.collect()
+    assert back.schema == df.schema
+    assert back.to_dicts() == df.to_dicts()

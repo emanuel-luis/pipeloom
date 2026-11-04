@@ -24,7 +24,6 @@ _SIMPLE: Final[Mapping[str, Any]] = {
     "uint16": pl.UInt16,
     "uint32": pl.UInt32,
     "uint64": pl.UInt64,
-    "uint128": pl.UInt128,
     "float32": pl.Float32,
     "float64": pl.Float64,
     "string": pl.String,
@@ -33,6 +32,8 @@ _SIMPLE: Final[Mapping[str, Any]] = {
     "time": pl.Time,
     "binary": pl.Binary,
 }
+if hasattr(pl, "UInt128"):  # polars 1.34 and later; the floor is 1.30
+    _SIMPLE = {**_SIMPLE, "uint128": pl.UInt128}
 _TIMESTAMP = re.compile(r"timestamp\[(ms|us|ns)(?:, ([^\]]+))?\]")
 _DECIMAL = re.compile(r"decimal\((\d+),(\d+)\)")
 
@@ -51,14 +52,13 @@ def polars_dtype(logical: str) -> Any | None:
     return None
 
 
-def typed_schema(columns: Schema) -> dict[str, Any] | None:
-    """A polars schema for `columns`, or None when any type is unknown (infer instead)."""
+def typed_columns(columns: Schema) -> dict[str, Any]:
+    """The polars dtype of every column this engine can name; the others are left out."""
     out: dict[str, Any] = {}
     for col in columns:
         dtype = polars_dtype(col.dtype)
-        if dtype is None:
-            return None
-        out[col.name] = dtype
+        if dtype is not None:
+            out[col.name] = dtype
     return out
 
 
@@ -76,15 +76,23 @@ def scan(fmt: str, location: str, options: Mapping[str, Any]) -> pl.LazyFrame:
 
 
 def scan_parts(fmt: str, files: Sequence[Path], schema: Schema) -> pl.LazyFrame:
-    """A lazy frame over the committed part files of a table."""
+    """A lazy frame over the committed part files of a table.
+
+    csv and ndjson lose type information, so the stored logical types are applied column by
+    column; a column this engine cannot name keeps what polars infers.
+    """
     paths = [str(f) for f in files]
     if fmt == "parquet":
         return pl.scan_parquet(paths)
-    typed = typed_schema(schema)
+    known = typed_columns(schema)
     if fmt == "csv":
-        return pl.concat([pl.scan_csv(p, schema=typed) for p in paths])
+        return pl.concat([pl.scan_csv(p, schema_overrides=known) for p in paths])
     if fmt == "ndjson":
-        return pl.concat([pl.scan_ndjson(p, schema=typed) for p in paths])
+        # A decimal is a JSON number there: read it as text and cast, or the schema fails.
+        decimals = {n: t for n, t in known.items() if isinstance(t, pl.Decimal)}
+        read = {n: pl.String if n in decimals else t for n, t in known.items()}
+        frames = [pl.scan_ndjson(p, schema_overrides=read) for p in paths]
+        return pl.concat(frames).with_columns(*(pl.col(n).cast(t) for n, t in decimals.items()))
     raise ValueError(f"cannot read a table stored as '{fmt}'")
 
 
