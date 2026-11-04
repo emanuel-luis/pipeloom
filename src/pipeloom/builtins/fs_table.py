@@ -11,7 +11,7 @@ import os
 import time
 import uuid
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, Final, Literal
 
@@ -51,6 +51,11 @@ class FsCommit:
     view: ViewDefinition | None
     tokens: tuple[TokenRecord, ...]
     committed_at: str
+
+    @property
+    def result(self) -> WriteResult:
+        """The write result this commit stored for its token (the last record)."""
+        return self.tokens[-1].result
 
 
 def _read_spec_to_json(spec: ReadSpec) -> dict[str, Any]:
@@ -175,7 +180,12 @@ class FsTable:
         result: WriteResult,
         view: ViewDefinition | None = None,
     ) -> FsCommit:
-        """Publish `files` atomically. For append, `rows` counts the rows added."""
+        """Publish `files` atomically. For append, `rows` counts the rows added.
+
+        The result stored for `token` is `result` with `target_version` set to the commit version
+        and, when unset, `bytes_written` set to the size of `files`. A replay returns that stored
+        result, and the caller gets the same one as `FsCommit.result`.
+        """
         previous = self.current()
         if (mode == "view") != (view is not None):
             raise ValueError("a view commit needs a ViewDefinition and nothing else does")
@@ -197,9 +207,13 @@ class FsTable:
             total_rows = None if rows is None or previous.rows is None else previous.rows + rows
         size = None if mode == "view" else sum((self.path / n).stat().st_size for n in names)
         now = self._clock.now().isoformat()
+        version = previous.version + 1 if previous else 1
+        if result.bytes_written is None and mode != "view":
+            result = replace(result, bytes_written=sum(f.stat().st_size for f in files))
+        result = replace(result, target_version=version)
         tokens = (*(previous.tokens if previous else ()), TokenRecord(token, result, now))
         commit = FsCommit(
-            version=previous.version + 1 if previous else 1,
+            version=version,
             kind="view" if mode == "view" else "table",
             format=fmt,
             files=names,

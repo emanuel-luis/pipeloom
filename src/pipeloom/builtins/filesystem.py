@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Literal
 
 from pydantic import Field
@@ -23,7 +23,14 @@ class FilesystemOptions(OptionsModel):
 
 
 def _segment(value: str) -> str:
-    if not value or value in (".", "..") or "/" in value or "\\" in value:
+    if (
+        not value
+        or value in (".", "..")
+        or ":" in value
+        or any(ord(c) < 32 for c in value)
+        or PurePosixPath(value).name != value
+        or PureWindowsPath(value).name != value
+    ):
         raise ValueError(f"{value!r} is not usable as a directory name")
     return value
 

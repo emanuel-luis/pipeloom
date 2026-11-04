@@ -99,3 +99,25 @@ def test_logical_dtypes_polars() -> None:
 def test_pandas_dtypes() -> None:
     got = {c.name: c.dtype for c in portable.schema(pandas_frame())}
     assert got["name"] == "string" and got["d"].startswith("timestamp[")
+
+
+def test_pandas_max_value_is_plain_and_serialisable() -> None:
+    import json
+
+    pd = pytest.importorskip("pandas")
+    from pipeloom.state.codec import encode_value
+
+    cases = [
+        (pd.DataFrame({"x": pd.Series([], dtype="datetime64[ns]")}), None),
+        (pd.DataFrame({"x": pd.Series([], dtype="Int64")}), None),
+        (pd.DataFrame({"x": pd.Series([None, None], dtype="Int64")}), None),
+        (pd.DataFrame({"x": pd.Series([], dtype="float64")}), None),
+        (pd.DataFrame({"x": [1, 2]}), 2),
+        (pd.DataFrame({"x": pd.Series([1, 2], dtype="Int64")}), 2),
+        (pd.DataFrame({"x": [1.5]}), 1.5),
+        (pd.DataFrame({"x": pd.to_datetime(["2026-01-02"])}), datetime(2026, 1, 2)),
+    ]
+    for frame, expected in cases:
+        value = portable.max_value(frame, "x")
+        assert value == expected and type(value) is type(expected)
+        json.dumps(encode_value(value))

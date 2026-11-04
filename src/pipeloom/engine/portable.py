@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from typing import Any, Literal
 
 import narwhals.stable.v2 as nw
@@ -78,16 +77,29 @@ def _collect(frame: Any) -> Any:
     return frame.collect() if isinstance(frame, nw.LazyFrame) else frame
 
 
+def _plain(value: Any) -> Any:
+    """A plain Python value, or None for a missing one (None, NaN, NaT, pandas NA)."""
+    if value is None:
+        return None
+    try:
+        if value != value:  # noqa: PLR0124 - NaN and NaT differ from themselves; pandas NA raises
+            return None
+    except TypeError:
+        return None
+    if hasattr(value, "to_pydatetime"):  # pandas Timestamp
+        return value.to_pydatetime()
+    if type(value).__module__ == "numpy":
+        return value.item()
+    return value
+
+
 def count(native: Any) -> int:
     return int(_collect(nw.from_native(native).select(nw.len())).item())
 
 
 def max_value(native: Any, column: str) -> Any:
     """The maximum of `column` as a Python value; None for an empty frame."""
-    value = _collect(nw.from_native(native).select(nw.col(column).max())).item()
-    return (
-        None if isinstance(value, float) and math.isnan(value) else value
-    )  # pandas gives NaN for an empty frame
+    return _plain(_collect(nw.from_native(native).select(nw.col(column).max())).item())
 
 
 def filter_since(native: Any, column: str, lower: Any) -> Any:

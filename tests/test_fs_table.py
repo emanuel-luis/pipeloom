@@ -74,7 +74,7 @@ def test_token_replay(tmp_path: Path) -> None:
     t = table(tmp_path)
     assert t.applied("k1") is None
     commit(t, "overwrite", [part(t, "a")], "k1", rows=5)
-    assert t.applied("k1") == WriteResult(rows_written=5)
+    assert t.applied("k1") == WriteResult(rows_written=5, bytes_written=1, target_version=1)
     assert t.applied("other") is None
 
 
@@ -161,3 +161,62 @@ def test_spec_builds_catalog(tmp_path: Path) -> None:
     assert isinstance(cat, FilesystemCatalog) and cat.format == "csv"
     assert cat.root == Path(tmp_path / ".")
     assert SPEC.compatible_engines == {"polars", "pandas"}
+
+
+def test_commit_returns_the_stored_result(tmp_path: Path) -> None:
+    t = table(tmp_path)
+    c = commit(t, "overwrite", [part(t, "abc")], "k1", rows=3)
+    assert c.result == WriteResult(rows_written=3, bytes_written=3, target_version=1)
+    assert t.applied("k1") == c.result
+    c2 = commit(t, "append", [part(t, "de")], "k2")
+    assert c2.result.target_version == 2 and c2.result.bytes_written == 2
+
+
+def test_failed_replace_keeps_previous_commit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    t = table(tmp_path)
+    a = part(t, "a")
+    commit(t, "overwrite", [a], "k1")
+
+    def boom(src: object, dst: object) -> None:
+        raise OSError("disk gone")
+
+    monkeypatch.setattr("pipeloom.builtins.fs_table.os.replace", boom)
+    with pytest.raises(OSError, match="disk gone"):
+        commit(t, "overwrite", [part(t, "b")], "k2")
+    assert t.files() == [a] and t.applied("k2") is None
+    assert not list((t.path / "_pipeloom").glob("*.tmp"))
+
+
+def test_replace_retries_on_permission_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import os
+
+    t = table(tmp_path)
+    calls: list[int] = []
+    real = os.replace
+
+    def flaky(src: Any, dst: Any) -> None:
+        calls.append(1)
+        if len(calls) < 3:
+            raise PermissionError("in use")
+        real(src, dst)
+
+    monkeypatch.setattr("pipeloom.builtins.fs_table.os.replace", flaky)
+    monkeypatch.setattr("pipeloom.builtins.fs_table.time.sleep", lambda _s: None)
+    commit(t, "overwrite", [part(t, "a")], "k1")
+    assert len(calls) == 3 and t.applied("k1") is not None
+
+
+BAD = ["C:evil", "a/b", "a" + chr(92) + "b", "..", "", "x" + chr(0) + "y", "D:", "a" + chr(8)]
+
+
+@pytest.mark.parametrize("bad", BAD)
+def test_catalog_rejects_escaping_segments(tmp_path: Path, bad: str) -> None:
+    cat = FilesystemCatalog(tmp_path, clock=FakeClock())
+    with pytest.raises(ValueError):
+        cat.table(TargetRef(None, bad, "x"))
+    with pytest.raises(ValueError):
+        cat.table(TargetRef(None, "s", bad))
