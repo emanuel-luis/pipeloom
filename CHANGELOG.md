@@ -24,7 +24,7 @@ All notable changes to this project are documented here. The format follows
 - A write stores its watermark in the token's commit metadata, and the runner checks the token before reading anything: a retry with the same run id commits the original batch's watermark even when new input arrived. Replayed writes emit `model.written` with `skipped: true`.
 - Event `state.watermark_committed`; run_results rows fill `is_incremental`, `watermark_before`, `watermark_after`, `rows_updated`, `rows_deleted` and `target_version`; `warnings[]` records `watermark_seeded: target`.
 - Diagnostics PLM203 (watermark changed while the unit ran), PLM205 (watermark unusable) and PLP410 (append with a lookback) are active, each with a case file.
-- `pipeloom.plan.model.default_strategy`; the sqlite and json state stores treat a stored value equal to `new` as a successful `cas_watermark`, and `StateStoreContract` checks it.
+- `pipeloom.plan.model.default_strategy`; the sqlite and json state stores treat a stored value equal to `new` and written by the same run as a successful `cas_watermark`, and `StateStoreContract` checks it.
 
 ### Changed
 

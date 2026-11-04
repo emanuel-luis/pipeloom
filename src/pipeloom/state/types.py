@@ -88,7 +88,8 @@ class StateStore(Protocol):
     def cas_watermark(self, key: StateKey, expected: Watermark | None, new: Watermark) -> bool:
         """Store `new` when the stored watermark equals `expected` on (value, dtype).
 
-        Also true, without a write, when the stored watermark already equals `new`."""
+        Also true, without a write, when the stored watermark already equals `new` and was
+        written by the same run (a replay). Another run's equal value is a lost race."""
         ...
 
     def record_run(self, record: RunRecord) -> None:

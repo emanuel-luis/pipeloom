@@ -155,8 +155,12 @@ class JsonDirStore:
         name = f"wm-{_seg(key.project)}-{_seg(key.target)}-{_seg(key.model)}.mutex"
         with self._mutex(name):
             current = self.get_watermark(key)
-            if current is not None and codec.value_key(current) == codec.value_key(new):
-                return True  # a replay after a crash between the swap and the attempt file
+            if (
+                current is not None
+                and current.run_id == new.run_id
+                and codec.value_key(current) == codec.value_key(new)
+            ):
+                return True  # the same run replaying after a crash between the swap and the attempt file
             if (current is None) != (expected is None):
                 return False
             if (
