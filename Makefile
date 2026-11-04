@@ -11,7 +11,7 @@ help: ## list the targets
 		awk 'BEGIN {FS = ":.*## "} {printf "  %-16s %s\n", $$1, $$2}'
 
 install: ## install every dependency group into the uv environment
-	uv sync --all-groups
+	uv sync --all-groups --all-packages
 
 lint: ## ruff check, format check and import-linter contracts
 	uv run ruff check .
@@ -22,14 +22,14 @@ format: ## apply ruff fixes and formatting
 	uv run ruff check --fix .
 	uv run ruff format .
 
-typecheck: ## mypy --strict on src
-	uv run mypy --strict src
+typecheck: ## mypy --strict on src and the plugin sources
+	uv run mypy --strict src plugins/pipeloom-polars/src
 
-test: ## pytest
+test: ## pytest, core and plugins
 	uv run pytest -q
 
-build: ## build the sdist and wheel into dist/
-	uv build
+build: ## build every distribution (core and plugins) into dist/
+	uv build --all-packages
 
 docs: ## build the docs site, failing on any warning
 	uv run --group docs mkdocs build --strict
