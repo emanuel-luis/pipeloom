@@ -212,7 +212,9 @@ class JsonDirStore:
         payload = (json.dumps(codec.lock_to_json(info), sort_keys=True) + "\n").encode()
         while True:
             try:
-                fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                # Windows answers PermissionError, not FileExistsError, while a releasing
+                # contender's unlink is still pending.
+                fd = _retry(partial(os.open, path, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
             except FileExistsError:
                 pass
             else:

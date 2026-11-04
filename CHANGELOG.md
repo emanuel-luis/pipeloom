@@ -37,6 +37,10 @@ All notable changes to this project are documented here. The format follows
 
 - The release workflow publishes each distribution from its own job and GitHub environment (`pypi` for the core, `pypi-<plugin>` for each plugin), because PyPI accepts only one pending publisher per environment. Plugin jobs run after the core and only when their distribution is in the release.
 
+### Fixed
+
+- The json state store retries a lease file whose release is still pending on Windows (`PermissionError` from `O_EXCL`) instead of failing the lock or the watermark compare-and-swap.
+
 ## [0.2.0] - 2026-11-04
 
 pipeloom 0.2 runs plans: a scheduler, thread and process executors, polars and pandas engines, a filesystem catalog, state stores and run artifacts.
