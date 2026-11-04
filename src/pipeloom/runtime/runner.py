@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-from collections.abc import Awaitable, Mapping
-from dataclasses import dataclass
+from collections.abc import Awaitable, Callable, Mapping
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Any, Literal, NoReturn
 
@@ -17,7 +17,10 @@ from pipeloom.engine import portable
 from pipeloom.engine.errors import WriteKeyError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
 from pipeloom.engine.types import (
+    ROW_CHECKS,
     DeleteSpec,
+    ExpectationSpec,
+    QuarantineMeta,
     ReadSpec,
     Relation,
     TargetRef,
@@ -28,20 +31,32 @@ from pipeloom.events.bus import EventBus
 from pipeloom.events.model import (
     ModelInputRead,
     ModelLog,
+    ModelQualityEvaluated,
     ModelSchemaChanged,
     ModelWritten,
+    StateWatermarkCommitted,
     UnitFailed,
     UnitStarted,
     UnitSucceeded,
 )
-from pipeloom.plan.model import Plan, PlanNode, PlanSource, PythonBody, SqlBody
+from pipeloom.plan.model import Plan, PlanNode, PlanSource, PythonBody, SqlBody, default_strategy
+from pipeloom.quality import (
+    QualityReport,
+    build_specs,
+    check_columns,
+    judge,
+    quarantine_target,
+    quarantine_token,
+)
+from pipeloom.runtime import incremental
 from pipeloom.runtime.context import ModelContext, RuntimeContext
 from pipeloom.runtime.errors import ErrorInfo, Phase, build_error, full_traceback
 from pipeloom.runtime.executors import UnitCompletion
+from pipeloom.runtime.incremental import IncrementalError, IncrementalState, WatermarkConflict
 from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.schema_policy import SchemaRejected, changes_json, resolve_columns
-from pipeloom.state.types import StateStore, UnitRecord
+from pipeloom.state.types import StateKey, StateStore, UnitRecord
 
 DEFAULT_SCHEMA = "main"
 
@@ -84,6 +99,30 @@ def _target_ref(dotted: str) -> TargetRef:
     if len(parts) == 2:
         return TargetRef(None, parts[0], parts[1])
     return TargetRef(parts[0], parts[1], ".".join(parts[2:]))
+
+
+@dataclass
+class _Inc:
+    """The incremental input of one attempt and what was resolved for it."""
+
+    alias: str
+    column: str
+    state: IncrementalState | None = None
+    batch: Relation | None = None
+    """The filtered input: the rows this attempt processes."""
+
+
+def _commit_meta(row: Mapping[str, Any], meta: Mapping[str, JsonValue]) -> dict[str, JsonValue]:
+    """What a write stores with its token: the watermark and the outcome a replay reports."""
+    return {
+        **meta,
+        "schema_hash": row["schema_hash"],
+        "schema_changes": row["schema_changes"],
+        "expectations": row["expectations"],
+        "rows_dropped": row["rows_dropped"],
+        "rows_quarantined": row["rows_quarantined"],
+        "warnings": list(row["warnings"]),
+    }
 
 
 async def _await(awaitable: Awaitable[Any]) -> Any:
@@ -244,10 +283,11 @@ class ModelRunner:
 
     def _strategy(self, node: PlanNode) -> str | None:
         """Read from the plan: it stores the effective strategy. Only tables use one."""
-        if node.materialized != "table":
+        if node.materialized not in ("table", "incremental") or node.relation is None:
             return None
-        strategy = node.config.write.strategy or "overwrite"
-        # A full refresh rebuilds the table instead of adding to it.
+        strategy = node.config.write.strategy or default_strategy(node.materialized)
+        # A full refresh rebuilds the table instead of adding to it. A first build keeps its
+        # strategy: into an absent table it writes the same rows, and merge still checks the keys.
         keeps = strategy in ("append", "merge", "replace_partitions")
         return "overwrite" if self._rt.full_refresh and keeps else strategy
 
@@ -264,21 +304,130 @@ class ModelRunner:
         if node.materialized == "view":
             assert target is not None and isinstance(node.body, SqlBody)
             result = self._create_view(node, target, node.body)
-        elif node.materialized == "table" and strategy is not None:
+        elif node.materialized in ("table", "incremental") and strategy is not None:
             assert target is not None
+            token = f"{self._rt.run_id}:{node.name}"
+            # Step 1: a token already applied means a finished write; skip everything but the
+            # watermark, which the write stored with the token.
+            replay = self._replayed(target, token)
+            if replay is not None:
+                self._written(node, target, strategy, replay, self._rt.clock.monotonic())
+                self._fill(row, replay)
+                self._finish_replay(node, replay, row)
+                return
             rows_read: dict[str, int | None] = {}
             local: dict[str, Relation] = {}
-            rel = self._compute(node, unit_id, attempt, started, local, rows_read)
+            cfg = node.config.incremental
+            inc = (
+                _Inc(cfg.input, cfg.column)
+                if node.materialized == "incremental" and cfg is not None and cfg.column
+                else None
+            )
+            rel = self._compute(node, unit_id, attempt, started, local, rows_read, inc)
             row["rows_read"] = rows_read
-            result = self._write(node, target, strategy, rel, row)
+            rel, before_write, finish = self._quality(node, target, unit_id, rel, row)
+            # Step 9: the batch watermark, from the rows the body was given.
+            meta: dict[str, JsonValue] = {}
+            after: Any = None
+            if inc is not None and inc.state is not None:
+                batch_max = (
+                    None if inc.batch is None else self._session.max_value(inc.batch, inc.column)
+                )
+                after = incremental.next_watermark(inc.state, batch_max)
+                meta["watermark"] = incremental.to_meta(inc.state, after, inc.column)
+                self._note_incremental(inc.state, after, row)
+            try:
+                result = self._write(node, target, strategy, rel, row, meta, before_write)
+            finally:
+                if finish is not None:
+                    finish()  # the event reports what was really quarantined
+            self._fill(row, result)
+            if inc is not None and inc.state is not None:
+                self._commit_watermark(node, inc.state, after, inc.column)
+            return
         else:  # L5 rejects the rest (PLC509) before a run starts
             raise ValueError(f"cannot run materialization '{node.materialized}'")
+        self._fill(row, result)
+
+    @staticmethod
+    def _fill(row: dict[str, Any], result: WriteResult) -> None:
         row.update(
             rows_written=result.rows_written,
             rows_inserted=result.rows_inserted,
+            rows_updated=result.rows_updated,
+            rows_deleted=result.rows_deleted,
             bytes_written=result.bytes_written,
             target_version=result.target_version,
         )
+
+    # -- idempotency token and watermark ------------------------------------------------------
+
+    def _replayed(self, target: TargetRef, token: str) -> WriteResult | None:
+        if not self._engine.capabilities.idempotent_writes:
+            return None
+        return self._session.applied_token(target, token)
+
+    def _finish_replay(self, node: PlanNode, replay: WriteResult, row: dict[str, Any]) -> None:
+        """Rebuild the result row from the stored commit metadata and commit its watermark."""
+        meta = replay.commit_meta
+        row["schema_hash"] = meta.get("schema_hash")
+        row["schema_changes"] = meta.get("schema_changes") or []
+        row["expectations"] = meta.get("expectations") or []
+        row["rows_dropped"] = meta.get("rows_dropped")
+        row["rows_quarantined"] = meta.get("rows_quarantined")
+        warnings = meta.get("warnings")  # includes watermark_seeded
+        row["warnings"] = list(warnings) if isinstance(warnings, list) else []
+        stored = meta.get("watermark")
+        if isinstance(stored, dict):
+            st, after, column = incremental.from_meta(stored)
+            self._note_incremental(st, after, row, warn=False)
+            self._commit_watermark(node, st, after, column)
+
+    def _key(self, node: PlanNode) -> StateKey:
+        return StateKey(self._rt.project, self._rt.target, node.name)
+
+    def _note_incremental(
+        self, st: IncrementalState, after: Any, row: dict[str, Any], *, warn: bool = True
+    ) -> None:
+        row.update(
+            is_incremental=st.is_incremental,
+            watermark_before=incremental.encode(st.watermark),
+            watermark_after=incremental.encode(after),
+        )
+        if st.seeded and warn:
+            row["warnings"].append("watermark_seeded: target")
+
+    def _commit_watermark(
+        self, node: PlanNode, st: IncrementalState, after: Any, column: str
+    ) -> None:
+        """Step 11: the data is committed, so this never sits behind a cancel checkpoint."""
+        rt = self._rt
+        ok = incremental.commit(
+            st, after, state=self._state, key=self._key(node), run_id=rt.run_id, clock=rt.clock
+        )
+        if not ok:
+            message = f"the watermark of model '{node.name}' changed while the unit ran"
+            self._fail(
+                "PLM203",
+                "write",
+                WatermarkConflict(message),
+                f"{message}; the data was already written",
+                "another run on the same target is the likely cause; run again, "
+                "or avoid --no-lock with concurrent runs",
+            )
+        if st.source == "state" and after is not None:
+            self._bus.emit(
+                StateWatermarkCommitted(
+                    column=column,
+                    dtype=st.dtype,
+                    before=incremental.encode(st.watermark),
+                    after=incremental.encode(after),
+                    source=st.source,
+                    seeded=st.seeded,
+                ),
+                unit_id=node.name,
+                model=node.name,
+            )
 
     # -- reading and the body -----------------------------------------------------------------
 
@@ -290,16 +439,19 @@ class ModelRunner:
         started: datetime,
         local: dict[str, Relation],
         rows_read: dict[str, int | None] | None,
+        inc: _Inc | None = None,
     ) -> Relation:
         """Read the node's inputs and run its body."""
         inputs: dict[str, Relation] = {}
         for alias, uid in node.inputs.items():
             inputs[alias] = self._input(alias, uid, node, unit_id, attempt, started, local)
+            if inc is not None and alias == inc.alias:
+                inputs[alias] = self._incremental_input(node, inputs[alias], inc)
             if rows_read is not None:
                 rows_read[alias] = (
                     None if inputs[alias].lazy else self._session.count(inputs[alias])
                 )
-        ctx = self._context(node, unit_id, attempt, started)
+        ctx = self._context(node, unit_id, attempt, started, None if inc is None else inc.state)
         failed = f"model '{node.name}' raised"
         try:
             if isinstance(node.body, SqlBody):
@@ -318,6 +470,45 @@ class ModelRunner:
                 f"return the native frame of engine '{self._engine.name}'",
             )
 
+    def _incremental_input(self, node: PlanNode, rel: Relation, inc: _Inc) -> Relation:
+        """Step 2: resolve the watermark, then keep only the rows after it."""
+        rt = self._rt
+        try:
+            st = incremental.resolve(
+                node,
+                session=self._session,
+                catalog=self._catalog,
+                state=self._state,
+                input_schema=self._session.schema(rel),
+                full_refresh=rt.full_refresh,
+                key=self._key(node),
+            )
+        except IncrementalError as exc:
+            self._fail(
+                "PLM205",
+                "read",
+                exc,
+                f"cannot use the watermark of model '{node.name}': {exc}",
+                "check incremental.column and incremental.lookback, or run with --full-refresh",
+            )
+        inc.state = st
+        if st.is_incremental:
+            try:
+                rel = self._session.filter_since(
+                    rel, inc.column, st.lower_bound, inclusive=st.inclusive
+                )
+            except Exception as exc:  # noqa: BLE001 - engines raise their own errors
+                self._fail(
+                    "PLM205",
+                    "read",
+                    exc,
+                    f"cannot filter input '{inc.alias}' of model '{node.name}' by '{inc.column}'",
+                    "check that the column has the type the stored watermark was taken from",
+                )
+        # ponytail: the batch maximum scans a lazy input twice; persist it if that ever hurts
+        inc.batch = rel
+        return rel
+
     def _fail(
         self, code: str, phase: Phase, exc: Exception, message: str, hint: str | None = None
     ) -> NoReturn:
@@ -332,7 +523,12 @@ class ModelRunner:
         return asyncio.run(_await(out)) if inspect.isawaitable(out) else out
 
     def _context(
-        self, node: PlanNode, unit_id: str, attempt: int, started: datetime
+        self,
+        node: PlanNode,
+        unit_id: str,
+        attempt: int,
+        started: datetime,
+        inc: IncrementalState | None = None,
     ) -> ModelContext:
         rt = self._rt
 
@@ -361,6 +557,9 @@ class ModelRunner:
             engine=self._session,
             frame_api=node.config.frame_api,
             started_at=started,
+            is_incremental=inc is not None and inc.is_incremental,
+            watermark=None if inc is None or not inc.is_incremental else inc.watermark,
+            lower_bound=None if inc is None or not inc.is_incremental else inc.lower_bound,
             emit_log=emit_log,
         )
 
@@ -439,10 +638,190 @@ class ModelRunner:
             location = (self._rt.project_dir / location).as_posix()
         return ReadSpec(source.format or "", location=location, options=options)
 
+    # -- quality ------------------------------------------------------------------------------
+
+    def _quality(
+        self, node: PlanNode, target: TargetRef, unit_id: str, rel: Relation, row: dict[str, Any]
+    ) -> tuple[Relation, Callable[[], None] | None, Callable[[], None] | None]:
+        """Steps 5, 6 and 8: count the output, drop rows, judge. Returns the rows to write and
+        the quarantine write to run just before the table write, if rows were dropped, and a
+        `finish` that emits the quality event once (after the quarantine commit, or on failure)."""
+        specs = build_specs(node.config)
+        if not specs:
+            return rel, None, None
+        session, cfg = self._session, node.config.quality
+        cached = rel.lazy
+        if cached:  # a lazy plan would run once per count
+            rel = session.persist(rel)
+        problems = check_columns(specs, session.schema(rel))
+        if problems:
+            self._fail(
+                "PLQ302",
+                "write",
+                ValueError("; ".join(problems)),
+                f"model '{node.name}': {problems[0]}",
+                "check the column names in expectations against the model output",
+            )
+        rows = [s for s in specs if s.kind in ROW_CHECKS]
+        aggs = [s for s in specs if s.kind not in ROW_CHECKS]
+        quarantine = (
+            QuarantineMeta(self._rt.run_id, self._rt.clock.now()) if cfg.quarantine else None
+        )
+        pending: Relation | None = None
+        kept = rel
+        try:
+            if any(s.action == "drop" for s in rows):
+                row_counts = session.evaluate(rel, rows)
+                if row_counts.dropped:
+                    dropped = session.apply_drops(rel, rows, quarantine=quarantine)
+                    kept, pending = dropped.kept, dropped.quarantined
+                agg_counts = session.evaluate(kept, aggs) if aggs else None
+            else:  # nothing can drop: one call counts everything
+                row_counts = session.evaluate(rel, list(specs))
+                agg_counts = row_counts
+        except Exception as exc:  # noqa: BLE001 - engines raise their own errors
+            self._quality_error(node, exc, rel, specs)
+        report = judge(
+            specs,
+            row_counts,
+            agg_counts,
+            now=self._rt.clock.now(),
+            max_drop_ratio=cfg.max_drop_ratio,
+            cached=cached,
+        )
+        row.update(
+            expectations=[r.to_json() for r in report.results],
+            rows_dropped=report.rows_dropped,
+            rows_quarantined=0,  # set once the quarantine write has committed
+            warnings=[
+                *row.get("warnings", []),
+                *(f"expectation '{r.name}' ({r.kind}) failed" for r in report.warnings),
+            ],
+        )
+        done = False
+
+        def finish() -> None:
+            nonlocal done
+            if not done:
+                done = True
+                self._quality_event(node, unit_id, report, row["rows_quarantined"])
+
+        if report.failures:
+            finish()
+            self._fail(
+                "PLQ301",
+                "write",
+                ValueError(", ".join(report.failures)),
+                f"model '{node.name}' failed expectation(s): {', '.join(report.failures)}",
+                "fix the data, or relax on_violation or quality.max_drop_ratio",
+            )
+        if pending is None:
+            finish()
+            return kept, None, None
+        quarantined = pending
+
+        def write_quarantine() -> None:
+            self._write_quarantine(node, target, quarantined)
+            row["rows_quarantined"] = report.rows_dropped
+
+        return kept, write_quarantine, finish
+
+    def _quality_error(
+        self, node: PlanNode, exc: Exception, rel: Relation, specs: tuple[ExpectationSpec, ...]
+    ) -> NoReturn:
+        """An engine failure while counting: PLQ302 when one expr is the cause, else PLX101."""
+        for spec in specs:
+            if spec.kind != "expr":
+                continue
+            try:
+                self._session.evaluate(rel, [spec])
+            except Exception:  # noqa: BLE001 - probing which expression the engine rejects
+                self._fail(
+                    "PLQ302",
+                    "write",
+                    exc,
+                    f"expectation '{spec.name}' of model '{node.name}' cannot be evaluated",
+                    "write the expr in the dialect of the engine",
+                )
+        self._fail(
+            "PLX101",
+            "write",
+            exc,
+            f"cannot evaluate expectations of model '{node.name}'",
+            "this is probably a pipeloom or engine bug; report it with the traceback",
+        )
+
+    def _quality_event(
+        self, node: PlanNode, unit_id: str, report: QualityReport, quarantined: int
+    ) -> None:
+        self._bus.emit(
+            ModelQualityEvaluated(
+                total_rows=report.total_rows,
+                results=[r.to_json() for r in report.results],
+                rows_dropped=report.rows_dropped,
+                rows_quarantined=quarantined,
+                drop_ratio=report.drop_ratio,
+                cached=report.cached,
+                failures=list(report.failures),
+            ),
+            unit_id=unit_id,
+            model=node.name,
+        )
+
+    def _write_quarantine(self, node: PlanNode, target: TargetRef, rows: Relation) -> None:
+        """Append the dropped rows to `<model>__quarantine` under its own token. Its schema
+        policy is append_new_columns, so a changed model output never blocks the quarantine."""
+        qt = quarantine_target(target)
+        policy = "append_new_columns"
+        try:
+            columns, diff, action = resolve_columns(
+                policy,
+                self._catalog.table_schema(qt),
+                self._session.schema(rows),
+                strategy="append",
+                full_refresh=False,
+            )
+            if not diff.empty and action != "none":
+                self._schema_changed(node, qt, policy, action, diff.to_json())
+            token = quarantine_token(f"{self._rt.run_id}:{node.name}")
+            self._catalog.ensure_namespace(qt.namespace)
+            self._session.materializer("append").materialize(
+                self._session.align(rows, columns),
+                qt,
+                WriteConfig("append", columns=columns),
+                token,
+            )
+        except SchemaRejected as exc:
+            self._schema_changed(node, qt, policy, "rejected", exc.diff.to_json())
+            self._fail(
+                "PLM202",
+                "write",
+                exc,
+                f"schema change rejected for quarantine table '{qt.relation_name}' "
+                f"of model '{node.name}'",
+                "a quarantine column changed type incompatibly; rename or drop the old "
+                "quarantine table, or keep the model output types stable",
+            )
+        except Exception as exc:  # noqa: BLE001 - engines raise their own errors
+            self._fail(
+                "PLM201",
+                "write",
+                exc,
+                f"cannot write quarantine table '{qt.relation_name}' for model '{node.name}'",
+                "check that the target can be written, then run again",
+            )
+
     # -- writing ------------------------------------------------------------------------------
 
     def _write(
-        self, node: PlanNode, target: TargetRef, strategy: str, rel: Relation, row: dict[str, Any]
+        self,
+        node: PlanNode,
+        target: TargetRef,
+        strategy: str,
+        rel: Relation,
+        row: dict[str, Any],
+        meta: Mapping[str, JsonValue],
+        before_write: Callable[[], None] | None = None,
     ) -> WriteResult:
         write = node.config.write
         token = f"{self._rt.run_id}:{node.name}"
@@ -481,7 +860,13 @@ class ModelRunner:
                 columns=None if keep else columns,
                 options=dict(write.options),
             )
+            if before_write is not None:
+                before_write()  # step 8: quarantine rows, once the schema policy accepted
+            # Stored with the token after the quarantine, so a replay reports what really ran.
+            cfg = replace(cfg, commit_meta=_commit_meta(row, meta))
             result = self._session.materializer(strategy).materialize(rel, target, cfg, token)
+        except _Fail:
+            raise
         except SchemaRejected as exc:
             row["schema_changes"] = changes_json(exc.policy, exc.diff, "rejected")
             self._schema_changed(node, target, exc.policy, "rejected", exc.diff.to_json())
@@ -567,6 +952,7 @@ class ModelRunner:
                 rows_inserted=result.rows_inserted,
                 bytes_written=result.bytes_written,
                 duration_ms=max(0, int((self._rt.clock.monotonic() - t0) * 1000)),
+                skipped=result.skipped,
             ),
             unit_id=node.name,
             model=node.name,

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import replace
+from datetime import UTC
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -78,6 +79,10 @@ class _Ops:
 
 
 _OPS = _Ops()
+
+
+def _sql_hook(frame: pl.DataFrame, expr: str) -> pl.Series:
+    return frame.select(pl.sql_expr(expr).alias("c")).to_series()
 
 
 class _Materializer:
@@ -199,12 +204,30 @@ class PolarsSession:
         return portable.max_value(rel.native, column)
 
     def evaluate(self, rel: Relation, checks: Sequence[ExpectationSpec]) -> QualityCounts:
-        raise NotImplementedError("expectations arrive with the quality capability")
+        return portable.evaluate(rel.native, checks, dialect_hook=_sql_hook)
 
     def apply_drops(
         self, rel: Relation, checks: Sequence[ExpectationSpec], *, quarantine: QuarantineMeta | None
     ) -> DropResult:
-        raise NotImplementedError("expectations arrive with the quality capability")
+        split = portable.split_drops(rel.native, checks, dialect_hook=_sql_hook)
+        kept = _rel(split.kept.lazy())
+        if quarantine is None:
+            return DropResult(kept, None)
+        failed = pl.concat_list(
+            [
+                pl.when(pl.col(f)).then(pl.lit(n))
+                for n, f in zip(split.names, split.flags, strict=True)
+            ]
+        ).list.drop_nulls()
+        if self.catalog.format == "csv":  # a csv cell cannot hold a list: JSON text instead
+            failed = pl.concat_str([pl.lit('["'), failed.list.join('","'), pl.lit('"]')])
+        ts = quarantine.ts.astimezone(UTC)
+        out = split.dropped.with_columns(
+            pl.lit(quarantine.run_id, dtype=pl.String).alias("_pipeloom_run_id"),
+            failed.alias("_pipeloom_failed"),
+            pl.lit(ts, dtype=pl.Datetime("us", "UTC")).alias("_pipeloom_ts"),
+        ).drop(split.flags)
+        return DropResult(kept, _rel(out.lazy()))
 
     def applied_token(self, target: TargetRef, token: str) -> WriteResult | None:
         replay = self.catalog.table(target).applied(token)

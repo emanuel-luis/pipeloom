@@ -90,6 +90,8 @@ def _dtype(value: Any) -> str:
         return "float64"
     if isinstance(value, bytes):
         return "binary"
+    if isinstance(value, list | tuple):
+        return f"list<{_dtype(value[0]) if value else 'string'}>"
     return "string"
 
 
@@ -147,6 +149,15 @@ def _exprs(checks: Sequence[ExpectationSpec]) -> dict[str, reference.RowPredicat
     return {c.name: _sql_predicate(str(c.params["expr"])) for c in checks if c.kind == "expr"}
 
 
+def _json_default(value: Any) -> Any:
+    """Dates and decimals are stored as text: a file-backed table reads them back as strings."""
+    if isinstance(value, datetime | date):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return str(value)
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+
 class JsonTableStore(MutableMapping[str, Rows]):
     """A table store backed by one JSON file per table under `root`."""
 
@@ -167,7 +178,9 @@ class JsonTableStore(MutableMapping[str, Rows]):
     def __setitem__(self, key: str, rows: Rows) -> None:
         path = self._path(key)
         tmp = path.with_name(f"{path.name}.{uuid.uuid4().hex}.tmp")
-        tmp.write_bytes(json.dumps(list(rows), ensure_ascii=True).encode("utf-8"))
+        tmp.write_bytes(
+            json.dumps(list(rows), ensure_ascii=True, default=_json_default).encode("utf-8")
+        )
         os.replace(tmp, path)
 
     def __delitem__(self, key: str) -> None:

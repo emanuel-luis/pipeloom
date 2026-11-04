@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import ast
+import json
+import tokenize
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import replace
+from datetime import UTC
+from io import StringIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
+import pyarrow as pa
 
 from pipeloom.builtins import fs_write
 from pipeloom.builtins.filesystem import FilesystemCatalog
@@ -55,6 +61,71 @@ class _Reader:
         return _rel(io.read(self._fmt, spec.location, spec.options))
 
 
+_ALLOWED = (
+    ast.Expression,
+    ast.BoolOp,
+    ast.And,
+    ast.Or,
+    ast.UnaryOp,
+    ast.Not,
+    ast.USub,
+    ast.UAdd,
+    ast.Invert,
+    ast.BinOp,
+    ast.Add,
+    ast.Sub,
+    ast.Mult,
+    ast.Div,
+    ast.FloorDiv,
+    ast.Mod,
+    ast.Pow,
+    ast.BitAnd,
+    ast.BitOr,
+    ast.Compare,
+    ast.Eq,
+    ast.NotEq,
+    ast.Lt,
+    ast.LtE,
+    ast.Gt,
+    ast.GtE,
+    ast.In,
+    ast.NotIn,
+    ast.Name,
+    ast.Load,
+    ast.Constant,
+    ast.Tuple,
+    ast.List,
+)
+
+
+def check_expr(expr: str) -> None:
+    """Allow only column names, literals, comparisons, boolean and arithmetic operators.
+
+    `DataFrame.eval` reaches Python locals and globals through `@name` and calls methods, so an
+    expression from a config file could run code. Reject `@`, calls and attribute access.
+    """
+    for tok in tokenize.generate_tokens(StringIO(expr).readline):
+        if tok.type == tokenize.OP and tok.string == "@":
+            raise ValueError("'@' is not allowed in an expression")
+    tree = ast.parse(expr.strip(), mode="eval")
+    for node in ast.walk(tree):
+        if not isinstance(node, _ALLOWED):
+            raise TypeError(f"{type(node).__name__} is not allowed in an expression")
+
+
+def eval_series(frame: pd.DataFrame, expr: str) -> pd.Series:
+    """Evaluate a checked expression against the columns of `frame` only."""
+    check_expr(expr)
+    result = frame.eval(expr, engine="python", local_dict={}, global_dict={}, resolvers=())
+    if not isinstance(result, pd.Series):
+        raise TypeError(f"expression '{expr}' is not a column expression")
+    return result
+
+
+def _eval_hook(frame: pd.DataFrame, expr: str) -> pd.Series:
+    return eval_series(frame, expr)
+
+
 class _Ops:
     """The pandas side of `pipeloom.builtins.fs_write.FrameOps`."""
 
@@ -74,10 +145,7 @@ class _Ops:
         io.write(native, fmt, path)
 
     def condition(self, native: pd.DataFrame, condition: str) -> Any:
-        result = native.eval(condition, engine="python")
-        if not isinstance(result, pd.Series):
-            raise TypeError(f"update_condition '{condition}' is not a column expression")
-        return result
+        return eval_series(native, condition)
 
 
 _OPS = _Ops()
@@ -175,12 +243,40 @@ class PandasSession:
         return portable.max_value(rel.native, column)
 
     def evaluate(self, rel: Relation, checks: Sequence[ExpectationSpec]) -> QualityCounts:
-        raise NotImplementedError("expectations arrive with the quality capability")
+        return portable.evaluate(rel.native, checks, dialect_hook=_eval_hook)
 
     def apply_drops(
         self, rel: Relation, checks: Sequence[ExpectationSpec], *, quarantine: QuarantineMeta | None
     ) -> DropResult:
-        raise NotImplementedError("expectations arrive with the quality capability")
+        split = portable.split_drops(rel.native, checks, dialect_hook=_eval_hook)
+        kept = _rel(split.kept.reset_index(drop=True))
+        if quarantine is None:
+            return DropResult(kept, None)
+        df: pd.DataFrame = split.dropped.reset_index(drop=True)
+        flags = [df[f].astype(bool).tolist() for f in split.flags]
+        names = [
+            [n for n, hit in zip(split.names, row, strict=True) if hit]
+            for row in zip(*flags, strict=True)
+        ]
+        if self.catalog.format == "csv":  # a csv cell cannot hold a list: JSON text instead
+            failed = pd.Series(
+                [json.dumps(n, separators=(",", ":")) for n in names],
+                index=df.index,
+                dtype=pd.ArrowDtype(pa.string()),
+            )
+        else:
+            failed = pd.Series(names, index=df.index, dtype=pd.ArrowDtype(pa.list_(pa.string())))
+        n = len(df)
+        ts = quarantine.ts.astimezone(UTC)
+        df = df.drop(columns=split.flags)
+        df["_pipeloom_run_id"] = pd.Series(
+            [quarantine.run_id] * n, index=df.index, dtype=pd.ArrowDtype(pa.string())
+        )
+        df["_pipeloom_failed"] = failed
+        df["_pipeloom_ts"] = pd.Series(
+            [ts] * n, index=df.index, dtype=pd.ArrowDtype(pa.timestamp("us", tz="UTC"))
+        )
+        return DropResult(kept, _rel(df))
 
     def applied_token(self, target: TargetRef, token: str) -> WriteResult | None:
         replay = self.catalog.table(target).applied(token)

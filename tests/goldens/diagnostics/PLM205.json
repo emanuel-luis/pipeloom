@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLM205",
+    "severity": "error",
+    "message": "cannot use the watermark of model 'a': incremental column 'updated_at' is not in input 'raw': pipeloom.runtime.incremental.IncrementalError: incremental column 'updated_at' is not in input 'raw'",
+    "hint": "check incremental.column and incremental.lookback, or run with --full-refresh",
+    "location": {
+      "file": "models/m.yml",
+      "line": 2,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {
+      "unit": "a",
+      "category": "permanent"
+    }
+  }
+]

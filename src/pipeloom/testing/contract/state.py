@@ -94,6 +94,20 @@ class StateStoreContract:
         assert not store.cas_watermark(KEY, wm(1, dtype="string"), wm(3))
         assert store.get_watermark(KEY) == wm(1)
 
+    def test_cas_succeeds_when_the_store_already_holds_new(self, store: StateStore) -> None:
+        assert store.cas_watermark(KEY, None, wm(1, run_id="a"))
+        assert store.cas_watermark(KEY, None, wm(1, run_id="a"))  # the same run replaying
+        assert store.cas_watermark(KEY, wm(1), wm(1, run_id="a"))
+        assert store.get_watermark(KEY) == wm(1, run_id="a")
+        assert not store.cas_watermark(KEY, None, wm(2, run_id="a"))
+
+    def test_cas_fails_when_another_run_stored_the_same_value(self, store: StateStore) -> None:
+        assert store.cas_watermark(KEY, None, wm(1, run_id="a"))
+        assert store.cas_watermark(KEY, wm(1), wm(5, run_id="a"))
+        # run b read 1 too, computed 5 too, and lost the race
+        assert not store.cas_watermark(KEY, wm(1), wm(5, run_id="b"))
+        assert store.get_watermark(KEY) == wm(5, run_id="a")
+
     def test_cas_ignores_run_id_and_time_of_expected(self, store: StateStore) -> None:
         assert store.cas_watermark(KEY, None, wm(1, run_id="a"))
         assert store.cas_watermark(KEY, wm(1, run_id="other"), wm(2))

@@ -12,7 +12,9 @@ All notable changes to this project are documented here. The format follows
 - `pipeloom.engine.types`: `DeleteSpec`, `ColumnChange`, `SchemaDiff`, `ExpectationSpec`, `QualityCounts`, `QuarantineMeta`, `DropResult`, `can_widen` and `diff_schemas`. `pipeloom.engine.errors`: `TransientError`, `CommitConflict` and `WriteKeyError`.
 - `pipeloom.testing.reference`: a pure-Python reference for quality counts, drops, merge, replace_partitions and align. The memory engine now implements merge, replace_partitions, quality, cancel and the `incremental` materialization on top of it.
 - `EngineContract` gains the strategy matrix, idempotent replay per strategy, `align`, `filter_since` bounds, `max_value` types, quality counts and drops against the reference, and cancel. `EngineHarness` gains `expr_cases`, `update_condition` and `slow_relation`.
-- Diagnostic PLM206 (write key invalid) is emitted by the runner; PLM205, PLQ302, PLP410, PLP411, PLP412 and PLC510 are reserved in the catalog for 0.3.
+- Diagnostic PLM206 (write key invalid) is emitted by the runner.
+- Expectations and quarantine, ADR-0028: row checks (not_null, accepted_values, range, regex, expr) warn, drop or fail; aggregate checks (unique, row_count, freshness) warn or fail on the batch. Engines count, the core judges (`pipeloom.quality`). Dropped rows go to `<model>__quarantine` with `_pipeloom_run_id`, `_pipeloom_failed` and `_pipeloom_ts`; `quality.max_drop_ratio` fails a unit that drops too much. The polars and pandas engines declare `quality`. A pandas `expr` or `update_condition` may only use column names, literals and operators: `@name`, calls and attribute access are rejected (PLQ302).
+- `model.quality_evaluated` event, `expectations[]`, `rows_dropped`, `rows_quarantined` and `warnings[]` in `run_results`, and WARN lines on the console. PLQ301, PLQ302, PLP411, PLP412 and PLC510 are active.
 - Schema-change policy, ADR-0026: `write.on_schema_change` (fail, ignore, append_new_columns, sync_all_columns) now applies to append, merge and replace_partitions on an existing target. `pipeloom.runtime.schema_policy.resolve_columns` decides the final schema, the runner aligns the batch and passes it as `WriteConfig.columns`. Overwrite and full refresh replace the schema and report the diff.
 - Event `model.schema_changed` (relation, policy, action, changes), `schema_changes[]` in run_results, a console line, and PLM202 (schema change rejected) is active with a case file.
 - `EngineContract` gains the schema-change policy matrix and `EngineHarness.schema_on_read`; engines that do not read old files through the table schema yet skip the cells that write a changed schema.
@@ -20,10 +22,19 @@ All notable changes to this project are documented here. The format follows
 - Filesystem tables v2, ADR-0025: commit files carry per-file row counts and partition values, and a commit takes a lock (30 second lease) and checks an expected version, raising the transient `CommitConflict` on a clash. /1 tables stay readable and upgrade on their next commit.
 - The polars and pandas engines declare `merge` and `replace_partitions`. With `partition_by` every strategy writes one file per partition; replace_partitions swaps files without reading the others; an empty batch still records its token. A merge rewrites the whole table in 0.3.
 - `pipeloom.engine.portable`: `merge_frames`, `replace_partition_frames`, partition value encoding and `empty_like`. `pipeloom.builtins.fs_write` holds the write logic the two engines share, and `FsTable.read_aligned` reads every part file through the commit schema.
+- Incremental models, ADR-0027: `materialized: incremental` runs on the memory, polars and pandas engines. `pipeloom.runtime.incremental` resolves the watermark (seeding it from the target when the state store has none), filters the input with `incremental.lookback` and commits the new watermark after the write with a compare-and-swap. `ctx.is_incremental`, `ctx.watermark` and `ctx.lower_bound` are set for Python models.
+- A write stores its watermark in the token's commit metadata, and the runner checks the token before reading anything: a retry with the same run id commits the original batch's watermark even when new input arrived. The replay also restores the quality outcome (`expectations`, `rows_dropped`, `rows_quarantined`, `warnings`) without evaluating or quarantining again. Replayed writes emit `model.written` with `skipped: true`.
+- Event `state.watermark_committed`; run_results rows fill `is_incremental`, `watermark_before`, `watermark_after`, `rows_updated`, `rows_deleted` and `target_version`; `warnings[]` records `watermark_seeded: target`.
+- Diagnostics PLM203 (watermark changed while the unit ran), PLM205 (watermark unusable) and PLP410 (append with a lookback) are active, each with a case file.
+- `pipeloom.plan.model.default_strategy`; the sqlite and json state stores treat a stored value equal to `new` and written by the same run as a successful `cas_watermark`, and `StateStoreContract` checks it.
 
 ### Changed
 
 - The release workflow publishes each distribution from its own job and GitHub environment (`pypi` for the core, `pypi-<plugin>` for each plugin), because PyPI accepts only one pending publisher per environment. Plugin jobs run after the core and only when their distribution is in the release.
+
+### Fixed
+
+- The json state store retries a lease file whose release is still pending on Windows (`PermissionError` from `O_EXCL`) instead of failing the lock or the watermark compare-and-swap.
 
 ## [0.2.0] - 2026-11-04
 

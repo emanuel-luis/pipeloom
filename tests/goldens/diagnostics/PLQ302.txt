@@ -1,0 +1,2 @@
+error PLQ302 models/m.yml:2 model 'a': expectation 'nope_set' names unknown column(s): nope: ValueError: expectation 'nope_set' names unknown column(s): nope
+      hint: check the column names in expectations against the model output

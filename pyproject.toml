@@ -105,6 +105,16 @@ timeout = 60
 testpaths = ["tests", "plugins/pipeloom-polars/tests", "plugins/pipeloom-pandas/tests"]
 pythonpath = ["."]
 
+[tool.coverage.run]
+# Directories, never package names: for a package name coverage imports it inside
+# `sys_modules_saved()` whenever `sys.path` changes (CallableLoader does, once per run) and then
+# deletes every module imported meanwhile, which breaks imports in flight on the worker threads.
+source = [
+  "src/pipeloom",
+  "plugins/pipeloom-polars/src/pipeloom_polars",
+  "plugins/pipeloom-pandas/src/pipeloom_pandas",
+]
+
 [tool.importlinter]
 root_package = "pipeloom"
 include_external_packages = true

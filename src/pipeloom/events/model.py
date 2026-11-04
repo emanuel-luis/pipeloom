@@ -275,6 +275,19 @@ class ModelWritten(EventPayload):
     rows_inserted: int | None
     bytes_written: int | None
     duration_ms: int
+    skipped: bool = False
+    """The write token had been applied before: nothing was written."""
+
+
+class StateWatermarkCommitted(EventPayload):
+    TYPE = "state.watermark_committed"
+
+    column: str
+    dtype: str
+    before: JsonValue
+    after: JsonValue
+    source: Literal["state", "target"]
+    seeded: bool
 
 
 class ModelSchemaChanged(EventPayload):
@@ -288,6 +301,27 @@ class ModelSchemaChanged(EventPayload):
 
     def event_level(self) -> Level:
         return Level.WARNING if self.action == "rejected" else Level.INFO
+
+
+class ModelQualityEvaluated(EventPayload):
+    TYPE = "model.quality_evaluated"
+
+    total_rows: int
+    results: list[dict[str, JsonValue]]
+    """One entry per expectation: name, kind, action, passed, failed, value."""
+    rows_dropped: int
+    rows_quarantined: int
+    drop_ratio: float
+    cached: bool
+    """The output was persisted before it was counted."""
+    failures: list[str]
+    """Expectations with action fail that failed, and `max_drop_ratio` when exceeded."""
+
+    def event_level(self) -> Level:
+        noisy = self.failures or any(
+            r["action"] in ("warn", "drop") and r["failed"] for r in self.results
+        )
+        return Level.WARNING if noisy else Level.INFO
 
 
 class ModelLog(EventPayload):

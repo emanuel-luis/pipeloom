@@ -68,9 +68,11 @@ Every row in `results` has every key. Ephemeral models have no row: they appear 
 | `engine`, `engine_version`, `executor` | What ran the unit (`thread` or `process`). |
 | `idempotency_token` | `<run_id>:<unit_id>`. |
 
-Fields that later versions fill stay null or empty in 0.2: `rows_updated`, `rows_deleted`,
-`rows_dropped`, `rows_quarantined`, `bytes_read`, `target_version`, `watermark_before`,
-`watermark_after`, `schema_changes`, `expectations`, `warnings` and `orchestrator_ids`.
+Incremental and merge models fill `rows_updated`, `rows_deleted`, `target_version`,
+`is_incremental`, `watermark_before` and `watermark_after` (ISO text for dates and timestamps),
+and `warnings` carries `watermark_seeded: target` when the state store had no watermark.
+Fields that later versions fill stay null or empty: `rows_dropped`, `rows_quarantined`,
+`bytes_read`, `schema_changes`, `expectations` and `orchestrator_ids`.
 
 There is no published JSON Schema for this file yet. It is described here and covered by golden
 tests; a schema under `schema/v1/` will follow once the field set stops moving.

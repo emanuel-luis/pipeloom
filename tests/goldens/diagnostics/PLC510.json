@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLC510",
+    "severity": "error",
+    "message": "engine 'nosql' cannot evaluate expectations (model 'a')",
+    "hint": "remove the expectations or use an engine with the quality capability",
+    "location": {
+      "file": "models/m.yml",
+      "line": 5,
+      "col": 7,
+      "json_pointer": "/models/0/expectations"
+    },
+    "context": {
+      "model": "a",
+      "engine": "nosql"
+    }
+  }
+]

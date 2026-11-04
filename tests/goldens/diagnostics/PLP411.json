@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLP411",
+    "severity": "error",
+    "message": "view model 'a' cannot have expectations",
+    "hint": "move the expectations to a table that reads it",
+    "location": {
+      "file": "models/m.yml",
+      "line": 6,
+      "col": 7,
+      "json_pointer": "/models/0/expectations"
+    },
+    "context": {
+      "model": "a"
+    }
+  }
+]
