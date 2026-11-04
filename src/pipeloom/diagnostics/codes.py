@@ -170,6 +170,15 @@ _ACTIVE: Final = (
             "or kind differs from the entry point that registered it."
         ),
     ),
+    (
+        "PLE401",
+        W,
+        "Sink disabled",
+        (
+            "An event sink failed more times in a row than its failure_budget and was disabled. "
+            "The other sinks keep receiving events and get a sink.disabled event."
+        ),
+    ),
 )
 
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
@@ -206,7 +215,6 @@ _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
     ("PLF702", E, "Source missing", "0.2"),
     ("PLF703", E, "Target schema drift detected", "0.2"),
-    ("PLE401", W, "Sink disabled", "0.1"),
     ("PLX101", E, "Model raised", "0.3"),
     ("PLX102", E, "Timeout", "0.3"),
     ("PLX103", E, "Plan hash mismatch", "0.3"),

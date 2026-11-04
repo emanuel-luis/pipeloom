@@ -111,9 +111,7 @@ def test_plr204_unknown_plugin_kind_with_suggestion(project_factory: Factory) ->
 
 
 def test_unknown_sink_kind_is_plr204(project_factory: Factory) -> None:
-    text = (
-        "config_version: 1\nname: s\ntargets:\n  dev: {}\nevents:\n  sinks:\n    - kind: console\n"
-    )
+    text = "config_version: 1\nname: s\ntargets:\n  dev: {}\nevents:\n  sinks:\n    - kind: nosuchsink\n"
     outcome = bind(project_factory({"pipeloom.yml": text}))
     d = only(outcome, "PLR204")
     assert d.location is not None and d.location.json_pointer == "/events/sinks/0/kind"
