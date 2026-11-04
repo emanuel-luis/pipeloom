@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -45,9 +46,15 @@ def test_structural_protocol_checks(engine: MemoryEngine) -> None:
 
 def test_capabilities_and_spec() -> None:
     caps = MemoryEngine().capabilities
-    assert caps.formats == {"memory"} and caps.strategies == {"append", "overwrite"}
+    assert caps.formats == {"memory"} and caps.strategies == {
+        "append",
+        "overwrite",
+        "merge",
+        "replace_partitions",
+    }
     assert caps.sql_models and caps.idempotent_writes
-    assert caps.views and not (caps.cancel or caps.bytes_metrics or caps.portable)
+    assert caps.views and caps.cancel and caps.quality and "incremental" in caps.materializations
+    assert not (caps.bytes_metrics or caps.portable)
     assert SPEC.capabilities == caps and SPEC.group == "engines"
     assert CATALOG_SPEC.compatible_engines == {"memory"}
     assert isinstance(SPEC.factory(SPEC.config_model(tables={"t": [{"a": 1}]})), MemoryEngine)
@@ -74,8 +81,8 @@ def test_materialize_append_and_overwrite(engine: MemoryEngine) -> None:
         one = s.sql("select * from x where id = 1", {"x": rel})
         res = s.materializer("overwrite").materialize(one, T, WriteConfig("overwrite"), "t3")
         assert res.rows_written == 1 and engine.store["main.out"] == one.native
-        with pytest.raises(ValueError, match="merge"):
-            s.materializer("merge")
+        with pytest.raises(ValueError, match="scd2"):
+            s.materializer("scd2")
 
 
 def test_materialize_is_idempotent_per_token(engine: MemoryEngine) -> None:
@@ -87,7 +94,9 @@ def test_materialize_is_idempotent_per_token(engine: MemoryEngine) -> None:
     with engine.session(CTX, catalog=MemoryCatalog()) as s:  # tokens outlive a session
         again = s.materializer("append").materialize(rel, T, cfg, "same")
         other = s.materializer("append").materialize(rel, other_target, cfg, "same")
-    assert again == first and first.rows_written == 3  # a replayed token returns the first result
+    assert (
+        replace(again, skipped=False) == first and again.skipped and first.rows_written == 3
+    )  # a replayed token returns the first result
     assert len(engine.store["main.out"]) == 3
     assert len(engine.store["main.o2"]) == 3 and other.rows_written == 3  # per target
 

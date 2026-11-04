@@ -1,4 +1,2 @@
 error PLP407 models/m.yml:2:11 model 'a' uses replace_partitions without partition_by
       hint: set partition_by to the partition columns
-error PLC501 models/m.yml:4:23 engine 'memory' does not support strategy 'replace_partitions' (model 'a')
-      hint: supported: append, overwrite

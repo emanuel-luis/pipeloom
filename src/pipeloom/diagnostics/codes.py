@@ -410,11 +410,27 @@ _ACTIVE_02: Final = (
     ),
 )
 
+# Active since 0.3.
+_ACTIVE_03: Final = (
+    (
+        "PLM206",
+        E,
+        "Write key invalid",
+        "A unique_key or partition_by column is missing from the batch, or a merge batch repeats a unique_key.",
+    ),
+)
+
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
     ("PLF702", E, "Source missing", "0.2"),
     ("PLF703", E, "Target schema drift detected", "0.2"),
+    ("PLM205", E, "Incremental watermark unusable", "0.3"),
+    ("PLQ302", E, "Expectation references an unknown column", "0.3"),
+    ("PLP410", W, "append with lookback reloads rows", "0.3"),
+    ("PLP411", E, "Expectations on a view or ephemeral model", "0.3"),
+    ("PLP412", E, "Quarantine relation collides with a model", "0.3"),
+    ("PLC510", E, "Expectations on an engine without quality", "0.3"),
     ("PLX102", E, "Timeout", "0.3"),
     ("PLX104", E, "Cancelled", "0.3"),
     ("PLM202", E, "Schema change rejected", "0.3"),
@@ -428,7 +444,7 @@ _RESERVED: Final = (
 
 def _build() -> Mapping[str, CodeInfo]:
     out: dict[str, CodeInfo] = {}
-    for since, table in (("0.1", _ACTIVE), ("0.2", _ACTIVE_02)):
+    for since, table in (("0.1", _ACTIVE), ("0.2", _ACTIVE_02), ("0.3", _ACTIVE_03)):
         for code, sev, title, expl in table:
             out[code] = CodeInfo(code, _PREFIX_LAYER[code[:3]], sev, title, expl, "active", since)
     for code, sev, title, since in _RESERVED:

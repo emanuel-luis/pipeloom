@@ -1,4 +1,4 @@
 warning PLR206 pipeloom.yml:1:1 model_paths entry 'models' does not exist
       hint: create the directory or remove the entry
-error PLU001 pipeloom.yml:5:20 plugin 'future' targets plugin API 0.3, but this pipeloom provides 0.2
+error PLU001 pipeloom.yml:5:20 plugin 'future' targets plugin API 0.4, but this pipeloom provides 0.3
       hint: install a version of pipeloom-future built for this pipeloom

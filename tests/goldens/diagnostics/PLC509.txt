@@ -1,2 +1,2 @@
 error PLC509 models/m.yml:2:49 engine 'memory' cannot materialize 'intermediate' (model 'a')
-      hint: supported: ephemeral, table, view
+      hint: supported: ephemeral, incremental, table, view

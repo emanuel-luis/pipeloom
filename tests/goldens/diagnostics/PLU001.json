@@ -15,7 +15,7 @@
   {
     "code": "PLU001",
     "severity": "error",
-    "message": "plugin 'future' targets plugin API 0.3, but this pipeloom provides 0.2",
+    "message": "plugin 'future' targets plugin API 0.4, but this pipeloom provides 0.3",
     "hint": "install a version of pipeloom-future built for this pipeloom",
     "location": {
       "file": "pipeloom.yml",
@@ -26,14 +26,14 @@
     "context": {
       "group": "engines",
       "kind": "future",
-      "value": "tests.plugins.fakes:API03",
+      "value": "tests.plugins.fakes:API04",
       "plugin_api": [
         0,
-        3
+        4
       ],
       "core_api": [
         0,
-        2
+        3
       ]
     }
   }

@@ -10,4 +10,4 @@ files:
     models:
       - name: a
         sql: select 1
-        write: {strategy: merge, unique_key: [id]}
+        write: {strategy: scd2, unique_key: [id]}
