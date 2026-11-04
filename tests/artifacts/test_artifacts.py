@@ -113,3 +113,25 @@ def test_finalize_prefers_scheduler_verdicts_and_copies_to_the_root(tmp_path: Pa
     assert rows["c"]["status"] == "cancelled" and rows["b"]["unique_id"] == "model.p.b"
     assert (tmp_path / "target" / "run_results.json").read_bytes() == paths.run_results.read_bytes()
     assert (tmp_path / "target" / "manifest.json").is_file()
+
+
+def test_finalize_lets_a_timed_out_verdict_win_over_a_late_result(tmp_path: Path) -> None:
+    paths = RunPaths(tmp_path / "target", "r")
+    write_json_atomic(paths.attempt("late", 1), result_row(unit_id="late", status="succeeded"))
+    write_json_atomic(paths.attempt("kept", 1), result_row(unit_id="kept", status="timed_out"))
+    error = {"code": "PLX102", "category": "permanent", "message": "timed out"}
+    done = finalize(
+        paths,
+        header(),
+        unit_nodes={"late": "model.p.late", "kept": "model.p.kept", "none": "model.p.none"},
+        skipped={},
+        cancelled=[],
+        timed_out={"late": (1, error), "kept": (1, error), "none": (1, error)},
+    )
+    rows = {r["unit_id"]: r for r in done.run_results["results"]}
+    assert rows["late"]["status"] == "timed_out"
+    assert rows["late"]["warnings"] == ["late_result: succeeded"]
+    assert rows["late"]["error"]["code"] == "PLX102"
+    assert rows["kept"]["warnings"] == [] and rows["none"]["warnings"] == []
+    assert done.run_results["run"]["counts"]["timed_out"] == 3
+    assert done.run_results["run"]["exit_code"] == 1

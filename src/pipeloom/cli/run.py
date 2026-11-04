@@ -19,11 +19,14 @@ from pipeloom.cli._options import (
     select_options,
     target_option,
 )
+from pipeloom.cli._signals import install_stop_handlers
+from pipeloom.config.types import parse_duration
 from pipeloom.diagnostics import Diagnostic, Report
 from pipeloom.events.bus import EventSink
 from pipeloom.events.sinks.runfile import RunFileSink
 from pipeloom.graph.selectors import Selection
 from pipeloom.plan.manifest import read_manifest
+from pipeloom.runtime.control import RunControl
 from pipeloom.runtime.executors.process import PARENT_ENV
 from pipeloom.runtime.run import RunOptions, artifacts_root
 
@@ -35,6 +38,18 @@ def _plan_hash(ctx: click.Context, param: click.Parameter, value: str | None) ->
     if value is not None and not _HASH.match(value):
         raise click.BadParameter("must be 64 hexadecimal characters", ctx=ctx, param=param)
     return None if value is None else value.lower()
+
+
+def _grace(ctx: click.Context, param: click.Parameter, value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        seconds = parse_duration(value)
+    except ValueError as err:
+        raise click.BadParameter(str(err), ctx=ctx, param=param) from err
+    if not isinstance(seconds, int):  # parse_duration lets other types through
+        raise click.BadParameter(f"'{value}' is not a duration", ctx=ctx, param=param)
+    return seconds
 
 
 def _run_id(ctx: click.Context, param: click.Parameter, value: str | None) -> str | None:
@@ -96,6 +111,14 @@ def _run_id(ctx: click.Context, param: click.Parameter, value: str | None) -> st
     "Default: the target's boundary.",
 )
 @click.option("--warn-error", is_flag=True, help="Exit 1 on warnings too.")
+@click.option(
+    "--cancel-grace",
+    callback=_grace,
+    default=None,
+    metavar="DURATION",
+    help="After a stop request (Ctrl+C, SIGTERM) or a timeout, how long running units may "
+    "finish before they are killed, as 30s, 2m or 30. Default: the setting, else 30s.",
+)
 def run(
     project_dir: Path,
     vars_: dict[str, Any],
@@ -113,10 +136,15 @@ def run(
     workers: int | None,
     boundary: str | None,
     warn_error: bool,
+    cancel_grace: int | None,
 ) -> None:
     """Run the selected models. Exit codes: 0 ok, 1 a unit or a check failed, 2 bad usage, 130 stopped.
 
-    `-s unit:NAME` runs one unit without a lock or run results; the process executor uses it.
+    The first Ctrl+C or SIGTERM stops starting units and gives running ones `--cancel-grace`
+    to finish; a second one kills them at once; a third raises KeyboardInterrupt.
+
+    `-s unit:NAME` runs one unit without a lock or run results, and never retries it; the
+    process executor uses it.
     """
     chosen = cast("Literal['process', 'task'] | None", boundary)
     if manifest is not None and chosen is not None:
@@ -152,7 +180,8 @@ def run(
     )
     code = 1
     diagnostics: tuple[Diagnostic, ...] = ()
-    with bus:
+    control = RunControl()
+    with bus, install_stop_handlers(control):
         inv.started(bus, bound, None, None)
         try:
             outcome = project.run(
@@ -167,8 +196,10 @@ def run(
                     workers=workers,
                     boundary=chosen,
                     warn_error=warn_error,
+                    cancel_grace=cancel_grace,
                 ),
                 bus,
+                control,
             )
             code, diagnostics = outcome.exit_code, outcome.diagnostics
         except KeyboardInterrupt:  # a second Ctrl+C, after the run was finalized

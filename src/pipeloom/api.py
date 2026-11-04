@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace
 from typing import Literal
 
 from pipeloom.config.bind import BoundProject, bind_project
@@ -16,6 +17,7 @@ from pipeloom.plan.compile import compile_plan
 from pipeloom.plan.model import Plan
 from pipeloom.platform import Clock, Identity, IdentityProvider, LocalIdentity, SystemClock
 from pipeloom.plugins import PluginRegistry
+from pipeloom.runtime.control import RunControl
 from pipeloom.runtime.run import RunOptions, RunOutcome, execute_run
 from pipeloom.validate import validate_project
 from pipeloom.validate.references import check_references
@@ -136,12 +138,23 @@ class Project:
                 self._plans[key] = Outcome(plan, report.sorted())
         return self._plans[key]
 
-    def run(self, opts: RunOptions | None = None, bus: EventBus | None = None) -> RunOutcome:
-        """Validate, plan and run the selected units. Events go to `bus`; without one they are dropped."""
+    def run(
+        self,
+        opts: RunOptions | None = None,
+        bus: EventBus | None = None,
+        control: RunControl | None = None,
+    ) -> RunOutcome:
+        """Validate, plan and run the selected units. Events go to `bus`; without one they are dropped.
+
+        `control.request_stop()` stops the run gracefully from any thread; `hard=True` skips the
+        grace period. The outcome is then `cancelled` with exit code 130."""
+        opts = opts or RunOptions()
+        if control is not None:
+            opts = replace(opts, control=control)
         own = bus is None
         events = bus or EventBus([], clock=self.clock, invocation_id=self.invocation_id)
         try:
-            return execute_run(self, opts or RunOptions(), events)
+            return execute_run(self, opts, events)
         finally:
             if own:
                 events.close()

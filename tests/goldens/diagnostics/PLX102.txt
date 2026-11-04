@@ -1,0 +1,2 @@
+error PLX102 unit 'a' timed out after 1s (attempt 1)
+      hint: raise the model's timeout, or make the work smaller; timed-out units are not retried

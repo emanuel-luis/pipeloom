@@ -7,16 +7,18 @@ from pathlib import Path
 from typing import Literal
 
 from pipeloom.diagnostics import Diagnostic, Location, Severity
+from pipeloom.engine.protocols import EngineSession
 from pipeloom.events.model import ErrorInfo
-
-Phase = Literal["read", "body", "write"]
+from pipeloom.runtime import retry
+from pipeloom.runtime.retry import PERMANENT_CODES, Phase
 
 __all__ = ["ErrorInfo", "Phase", "build_error", "classify", "to_diagnostic"]
 
 
-def classify(exc: BaseException, phase: Phase) -> Literal["transient", "permanent"]:
-    """An `OSError` while reading or writing may pass on its own; everything else will not."""
-    return "transient" if phase in ("read", "write") and isinstance(exc, OSError) else "permanent"
+def classify(
+    exc: BaseException, phase: Phase, session: EngineSession | None = None
+) -> Literal["transient", "permanent"]:
+    return retry.classify(exc, phase=phase, session=session)
 
 
 def _scrub(text: str, project_dir: Path) -> str:
@@ -60,6 +62,7 @@ def build_error(
     hint: str | None,
     project_dir: Path,
     fallback: Location | None,
+    session: EngineSession | None = None,
 ) -> ErrorInfo:
     """`message` states what the unit was doing; the exception text is appended to it.
 
@@ -78,7 +81,7 @@ def build_error(
     detail = _scrub(f"{_type_name(exc)}: {exc}", project_dir)
     return ErrorInfo(
         code=code,
-        category=classify(exc, phase),
+        category="permanent" if code in PERMANENT_CODES else classify(exc, phase, session),
         message=f"{message}: {detail}",
         hint=hint,
         exception_type=_type_name(exc),

@@ -13,7 +13,10 @@ from click.testing import CliRunner
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.cli import main
 from pipeloom.diagnostics import Report, format_diagnostic
+from pipeloom.events.bus import EventBus
+from pipeloom.events.model import Event
 from pipeloom.graph.selectors import Selection, SelectorError, apply
+from pipeloom.runtime.control import RunControl
 from pipeloom.runtime.run import RunOptions
 from pipeloom.testing.clock import FakeClock
 from tests.conftest import make_project
@@ -70,6 +73,25 @@ def test_case(
     golden(f"diagnostics/{code}.json", as_json + "\n")
 
 
+class StopSink:
+    """Requests a hard stop when the first unit starts."""
+
+    name = "stop"
+
+    def __init__(self, control: RunControl) -> None:
+        self._control = control
+
+    def emit(self, event: Event) -> None:
+        if event.type == "unit.started":
+            self._control.request_stop(hard=True)
+
+    def flush(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
 VOLATILE = ("id", "ts", "invocation_id")
 _TIME = re.compile(r"\d{4}-\d\d-\d\dT[\d:.]+Z")
 _OWNER = re.compile(r"[^\s'\"]+:\d+:[0-9a-f]{8}")
@@ -86,6 +108,7 @@ def run_case(
     project dir) and `hold_lock`, which takes the run lock first so the run finds it held."""
     given: dict[str, Any] = dict(spec["run"]) if isinstance(spec["run"], dict) else {}
     hold = bool(given.pop("hold_lock", False))
+    stop = given.pop("hard_stop_on_start", False)  # a hard stop as soon as a unit starts
     if "manifest" in given:
         given["manifest"] = project_dir / given["manifest"]
     given["selection"] = Selection(tuple(given.pop("select", ())))
@@ -99,7 +122,13 @@ def run_case(
         lock = held.lock("shop/dev", "other")
         lock.__enter__()
     try:
-        outcome = project.run(run_opts)
+        if stop:
+            control = RunControl()
+            sink = StopSink(control)
+            with EventBus([(sink, 5)], clock=project.clock, invocation_id="inv") as bus:
+                outcome = project.run(run_opts, bus, control)
+        else:
+            outcome = project.run(run_opts)
     finally:
         if held is not None:
             lock.__exit__(None, None, None)

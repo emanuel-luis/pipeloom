@@ -56,11 +56,11 @@ def test_ctrl_c_stops_dequeuing_and_keeps_finished_units(
     real = ThreadExecutor.wait_any
     calls: list[int] = []
 
-    def wait_any(self: ThreadExecutor) -> Any:
+    def wait_any(self: ThreadExecutor, timeout: float | None) -> Any:
         calls.append(1)
         if len(calls) == 1:
             raise KeyboardInterrupt
-        return real(self)
+        return real(self, timeout)
 
     monkeypatch.setattr(ThreadExecutor, "wait_any", wait_any)
     outcome, sink = run_project(chain(tmp_path))
@@ -72,7 +72,7 @@ def test_ctrl_c_stops_dequeuing_and_keeps_finished_units(
 def test_a_second_ctrl_c_propagates_after_finalizing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def wait_any(self: ThreadExecutor) -> Any:
+    def wait_any(self: ThreadExecutor, timeout: float | None) -> Any:
         raise KeyboardInterrupt
 
     monkeypatch.setattr(ThreadExecutor, "wait_any", wait_any)
@@ -99,10 +99,10 @@ def test_an_unexpected_error_ends_the_unit_as_failed(
 def test_a_unit_whose_attempt_cannot_be_saved_still_gets_a_row(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def no_write(path: Path, data: Any) -> int:
+    def no_write(path: Path, data: Any) -> bool:
         raise OSError("read-only")
 
-    monkeypatch.setattr(runner, "write_json_atomic", no_write)
+    monkeypatch.setattr(runner, "write_json_once", no_write)
     with pytest.raises(OSError, match="read-only"):
         run_project(chain(tmp_path))
     rows = {r["unit_id"]: r for r in results(tmp_path)["results"]}
