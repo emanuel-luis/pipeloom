@@ -2988,14 +2988,14 @@
 <p>View is not a plain SQL model. Severity: error. Status: active. Since: 0.2.</p>
 <p>A view must be a SQL model that reads no ephemeral model, because its query is stored in the catalog as written.</p>
 <h3 id="plp410">PLP410<a class="headerlink" href="#plp410" title="Permanent link">&para;</a></h3>
-<p>append with lookback reloads rows. Severity: warning. Status: reserved. Since: 0.3.</p>
-<p>Reserved: not emitted yet.</p>
+<p>append with lookback reloads rows. Severity: warning. Status: active. Since: 0.3.</p>
+<p>An incremental model appends with a lookback above zero, so rows inside the window are written again. Use merge with a unique_key.</p>
 <h3 id="plp411">PLP411<a class="headerlink" href="#plp411" title="Permanent link">&para;</a></h3>
-<p>Expectations on a view or ephemeral model. Severity: error. Status: reserved. Since: 0.3.</p>
-<p>Reserved: not emitted yet.</p>
+<p>Expectations on a view or ephemeral model. Severity: error. Status: active. Since: 0.3.</p>
+<p>A view or an ephemeral model writes no rows of its own, so it cannot carry expectations. Put them on a table that reads it.</p>
 <h3 id="plp412">PLP412<a class="headerlink" href="#plp412" title="Permanent link">&para;</a></h3>
-<p>Quarantine relation collides with a model. Severity: error. Status: reserved. Since: 0.3.</p>
-<p>Reserved: not emitted yet.</p>
+<p>Quarantine relation collides with a model. Severity: error. Status: active. Since: 0.3.</p>
+<p>A model's quarantine table is named <model>__quarantine, and another model already has that name in the same schema.</p>
 <h2 id="l5-capability">L5 capability<a class="headerlink" href="#l5-capability" title="Permanent link">&para;</a></h2>
 <h3 id="plc501">PLC501<a class="headerlink" href="#plc501" title="Permanent link">&para;</a></h3>
 <p>Strategy unsupported by engine. Severity: error. Status: active. Since: 0.1.</p>
@@ -3023,10 +3023,10 @@
 <p>A Python model asks for Narwhals frames on an engine whose frames are not portable.</p>
 <h3 id="plc509">PLC509<a class="headerlink" href="#plc509" title="Permanent link">&para;</a></h3>
 <p>Materialization unsupported by engine. Severity: error. Status: active. Since: 0.2.</p>
-<p>The materialization is not in the selected engine's capabilities. 0.2 engines do not offer incremental or intermediate.</p>
+<p>The materialization is not in the selected engine's capabilities. No engine offers intermediate yet.</p>
 <h3 id="plc510">PLC510<a class="headerlink" href="#plc510" title="Permanent link">&para;</a></h3>
-<p>Expectations on an engine without quality. Severity: error. Status: reserved. Since: 0.3.</p>
-<p>Reserved: not emitted yet.</p>
+<p>Expectations on an engine without quality. Severity: error. Status: active. Since: 0.3.</p>
+<p>The selected engine does not declare the quality capability, so it cannot evaluate expectations.</p>
 <h2 id="l6-static-code">L6 static code<a class="headerlink" href="#l6-static-code" title="Permanent link">&para;</a></h2>
 <h3 id="plk601">PLK601<a class="headerlink" href="#plk601" title="Permanent link">&para;</a></h3>
 <p>Callable file or function not found. Severity: error. Status: active. Since: 0.1.</p>
@@ -3075,23 +3075,23 @@
 <p>Schema change rejected. Severity: error. Status: active. Since: 0.3.</p>
 <p>The batch schema differs from the existing target and the model's on_schema_change policy does not allow it.</p>
 <h3 id="plm203">PLM203<a class="headerlink" href="#plm203" title="Permanent link">&para;</a></h3>
-<p>Watermark CAS conflict. Severity: error. Status: reserved. Since: 0.3.</p>
-<p>Reserved: not emitted yet.</p>
+<p>Watermark CAS conflict. Severity: error. Status: active. Since: 0.3.</p>
+<p>The stored watermark changed while the unit ran, so the new one was not saved. The data was already written. Another run on the same target is the usual cause.</p>
 <h3 id="plm204">PLM204<a class="headerlink" href="#plm204" title="Permanent link">&para;</a></h3>
 <p>Input read failed. Severity: error. Status: active. Since: 0.2.</p>
 <p>An input of a model could not be read from its source or from the catalog.</p>
 <h3 id="plm205">PLM205<a class="headerlink" href="#plm205" title="Permanent link">&para;</a></h3>
-<p>Incremental watermark unusable. Severity: error. Status: reserved. Since: 0.3.</p>
-<p>Reserved: not emitted yet.</p>
+<p>Incremental watermark unusable. Severity: error. Status: active. Since: 0.3.</p>
+<p>The incremental column is missing from the input, its type differs from the stored watermark, or a lookback is set on a column that is not a timestamp or date.</p>
 <h3 id="plm206">PLM206<a class="headerlink" href="#plm206" title="Permanent link">&para;</a></h3>
 <p>Write key invalid. Severity: error. Status: active. Since: 0.3.</p>
 <p>A unique_key or partition_by column is missing from the batch, or a merge batch repeats a unique_key.</p>
 <h3 id="plq301">PLQ301<a class="headerlink" href="#plq301" title="Permanent link">&para;</a></h3>
-<p>Expectation failed. Severity: error. Status: reserved. Since: 0.3.</p>
-<p>Reserved: not emitted yet.</p>
+<p>Expectation failed. Severity: error. Status: active. Since: 0.3.</p>
+<p>An expectation with on_violation: fail found violating rows, or the share of dropped rows exceeded quality.max_drop_ratio. The unit fails before writing; the counts are still recorded in run_results.</p>
 <h3 id="plq302">PLQ302<a class="headerlink" href="#plq302" title="Permanent link">&para;</a></h3>
-<p>Expectation references an unknown column. Severity: error. Status: reserved. Since: 0.3.</p>
-<p>Reserved: not emitted yet.</p>
+<p>Expectation references an unknown column. Severity: error. Status: active. Since: 0.3.</p>
+<p>An expectation names a column the model output lacks, or its expr cannot be evaluated by the engine.</p>
 <h3 id="plx101">PLX101<a class="headerlink" href="#plx101" title="Permanent link">&para;</a></h3>
 <p>Model raised. Severity: error. Status: active. Since: 0.2.</p>
 <p>A model's body raised, or returned a value its engine cannot use as a relation.</p>
