@@ -805,7 +805,8 @@
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
 <ul>
 <li>SemVer per distribution, with lockstep versions for first-party distributions during 0.x and one tag <code>vX.Y.Z</code>.</li>
-<li>The tag workflow checks that the tag equals the version, builds, then publishes to PyPI by trusted publishing through the protected <code>pypi</code> environment, then creates the GitHub release with notes from <code>CHANGELOG.md</code> (Keep a Changelog).</li>
+<li>The tag workflow checks that the tag equals the version, builds, then publishes to PyPI by trusted publishing, then creates the GitHub release with notes from <code>CHANGELOG.md</code> (Keep a Changelog).</li>
+<li>Each distribution publishes from its own job and its own GitHub environment: <code>pypi</code> for the core and <code>pypi-&lt;plugin&gt;</code> for each plugin (<code>pypi-polars</code>, <code>pypi-pandas</code>, <code>pypi-spark</code>, <code>pypi-databricks</code>, <code>pypi-airflow</code>). PyPI accepts only one pending trusted publisher per owner, repository, workflow and environment, so new plugin projects cannot share one environment. Amended on 2026-11-04 after PyPI rejected a second pending publisher for <code>pypi</code>; ADR-0023 has the job layout.</li>
 <li><code>config_version</code>, the manifest and event schema versions, and the plugin API version are versioned separately.</li>
 <li><code>pipeloom.plugins.API_VERSION = (MAJOR, MINOR)</code>, independent of the package version. MINOR covers additive changes. MAJOR covers breaking protocol changes. The core accepts plugins with the same MAJOR and MINOR not above its own, otherwise it raises PLU001.</li>
 <li>Before 1.0 the plugin API is <code>0.x</code> and any minor may break. Plugin API 1.0 ships with pipeloom 1.0.</li>
