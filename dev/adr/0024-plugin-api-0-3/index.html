@@ -344,6 +344,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/write-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge, replace_partitions and schema changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/retries-and-cancellation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retries, timeouts and cancellation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -817,7 +929,7 @@
 <p><code>WriteConfig</code> gains <code>partition_by</code>, <code>update_condition</code> (engine dialect, <code>source.</code> and <code>target.</code> qualifiers, a bare name means source), <code>deletes</code> (<code>DeleteSpec</code>), <code>columns</code> (the final schema chosen by the core) and <code>commit_meta</code>. <code>WriteResult</code> gains <code>skipped</code> and <code>commit_meta</code>; its other fields already carried the architecture names. <code>commit_meta</code> is stored with the token and echoed on replay, so a replayed write returns the watermark and quality summary of the original attempt.</p>
 <p>New types: <code>ColumnChange</code>, <code>SchemaDiff</code>, <code>ExpectationSpec</code>, <code>QualityCounts</code>, <code>QuarantineMeta</code>, <code>DropResult</code>, plus <code>can_widen</code> and <code>diff_schemas</code>. Errors live in <code>pipeloom.engine.errors</code>: <code>TransientError</code> (raise it to force a retryable failure), <code>CommitConflict</code> (a transient error for table commit races) and <code>WriteKeyError</code> (a missing key column or a duplicate merge key, reported as PLM206).</p>
 <p>Row-check semantics are fixed for all engines: a check passes on null input except <code>not_null</code>; NaN counts as null; <code>range</code> bounds are inclusive; <code>regex</code> is an unanchored search; <code>accepted_values</code> compares exactly; <code>expr</code> true passes, false fails, null passes. Aggregates see only the relation passed in. <code>pipeloom.testing.reference</code> implements all of it over plain rows, and the contract suite compares each engine with it.</p>
-<p>The memory engine implements the whole contract (merge, replace_partitions, quality, cancel, <code>incremental</code> materialization). The polars and pandas engines move to (0, 3) and implement <code>align</code>, <code>applied_token</code>, <code>unit_scope</code>, <code>is_transient</code> and the new <code>filter_since</code>. They declare no <code>quality</code>, <code>merge</code> or <code>replace_partitions</code> yet, so their contract tests for those skip; the filesystem merge and quality work follows in later changes.</p>
+<p>The memory engine implements the whole contract (merge, replace_partitions, quality, cancel, <code>incremental</code> materialization). The polars and pandas engines move to (0, 3) and implement the whole contract except <code>cancel</code>: <code>align</code>, <code>applied_token</code>, <code>unit_scope</code>, <code>is_transient</code>, <code>filter_since</code>, <code>evaluate</code> and <code>apply_drops</code>. They declare <code>quality</code>, <code>merge</code>, <code>replace_partitions</code> and the <code>incremental</code> materialization. Their <code>cancel</code> stays a no-op (<code>cancel=False</code>).</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Plugins built for (0, 2) fail with PLU001 until they are updated.</li>

@@ -348,6 +348,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/write-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge, replace_partitions and schema changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/retries-and-cancellation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retries, timeouts and cancellation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -874,11 +986,15 @@ rejected when the session opens.</p>
 </tr>
 <tr>
 <td>Write strategies</td>
-<td><code>append</code>, <code>overwrite</code></td>
+<td><code>append</code>, <code>overwrite</code>, <code>merge</code>, <code>replace_partitions</code></td>
 </tr>
 <tr>
 <td>Materializations</td>
-<td><code>table</code>, <code>ephemeral</code></td>
+<td><code>table</code>, <code>incremental</code>, <code>ephemeral</code></td>
+</tr>
+<tr>
+<td>Expectations and quarantine</td>
+<td>yes (<code>expr</code> limited to column names, literals and operators)</td>
 </tr>
 <tr>
 <td>SQL models and views</td>

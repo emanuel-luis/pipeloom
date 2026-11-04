@@ -356,6 +356,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guide/incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guide/write-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge, replace_partitions and schema changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guide/quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guide/retries-and-cancellation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retries, timeouts and cancellation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -733,11 +845,14 @@
 
 <h1 id="pipeloom">pipeloom<a class="headerlink" href="#pipeloom" title="Permanent link">&para;</a></h1>
 <p>Declarative, engine-agnostic data pipelines in YAML.</p>
-<p>pipeloom 0.2 reads a YAML project, checks it in layers, builds the dependency graph, writes the
-execution plan as a manifest and runs it on polars or pandas.</p>
+<p>pipeloom 0.3 reads a YAML project, checks it in layers, builds the dependency graph, writes the
+execution plan as a manifest and runs it on polars or pandas, with incremental models, merge and
+partition writes, data-quality expectations, retries, timeouts and cancellation.</p>
 <ul>
 <li><a href="quickstart/">Quickstart</a></li>
-<li><a href="guide/running/">Running a pipeline</a></li>
+<li>Guides: <a href="guide/running/">running a pipeline</a>, <a href="guide/incremental/">incremental models</a>,
+  <a href="guide/write-strategies/">write strategies</a>, <a href="guide/quality/">data quality</a>,
+  <a href="guide/retries-and-cancellation/">retries and cancellation</a></li>
 <li>Reference: <a href="reference/cli/">command line</a>, <a href="reference/schema/">JSON Schema</a>, <a href="reference/artifacts/">run artifacts</a>, <a href="reference/errors/">error codes</a></li>
 <li><a href="architecture/">Architecture</a></li>
 <li><a href="adr/">Architecture decision records</a></li>

@@ -344,6 +344,118 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/write-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge, replace_partitions and schema changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/retries-and-cancellation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retries, timeouts and cancellation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -816,13 +928,12 @@
 <p>Widening follows <code>can_widen</code>: integer to a wider integer or to float64, float32 to float64, decimals that keep every digit, finer timestamp units with the same zone, and the null type to anything.</p>
 <p>No policy may drop a key or fill it with nulls: a row-keeping write whose batch lacks a <code>unique_key</code> or <code>partition_by</code> column is a write key error (PLM206) before any alignment. A full refresh turns append, merge and replace_partitions into overwrite.</p>
 <p>Every non-empty diff emits <code>model.schema_changed</code> with <code>relation</code>, <code>policy</code>, <code>action</code> and <code>changes</code>, and is copied to <code>schema_changes[]</code> of the unit's <code>run_results</code> row (each change carries its action). A rejected change is emitted at warning level before the unit fails. The console prints one line per event. Architecture section 9 named the event <code>schema.changed</code>; section 11 and the code use <code>model.schema_changed</code>.</p>
-<p>Tables with files, such as the filesystem catalog, read every committed file through the table's current schema, so append and widening never rewrite old files. An engine that cannot do that yet leaves <code>EngineHarness.schema_on_read</code> false and the contract matrix skips the cells that write a changed schema.</p>
+<p>Tables with files, such as the filesystem catalog, read every committed file through the table's current schema, so append and widening never rewrite old files. An engine that cannot do that leaves <code>EngineHarness.schema_on_read</code> false and the contract matrix skips the cells that write a changed schema. The memory, polars and pandas engines all set it to true.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
 <li>One matrix in <code>EngineContract</code> (4 policies, 4 kinds of change, 3 strategies) checks the final schema and rows of every engine against the reference.</li>
 <li>A narrower batch type never fails a run; it is widened silently to the target.</li>
 <li>Dropping a column with <code>sync_all_columns</code> also drops its old values on strategies that rewrite rows (merge, replace_partitions); on files it only hides them from readers.</li>
-<li>Removing the need for <code>schema_on_read=False</code> is the work of the filesystem merge and replace_partitions change.</li>
 </ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
 <p>Accepted</p>

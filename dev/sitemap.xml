@@ -137,7 +137,23 @@
          <lastmod>2026-11-04</lastmod>
     </url>
     <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/incremental/</loc>
+         <lastmod>2026-11-04</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/quality/</loc>
+         <lastmod>2026-11-04</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/retries-and-cancellation/</loc>
+         <lastmod>2026-11-04</lastmod>
+    </url>
+    <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/running/</loc>
+         <lastmod>2026-11-04</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/write-strategies/</loc>
          <lastmod>2026-11-04</lastmod>
     </url>
     <url>
