@@ -9,6 +9,10 @@
          <lastmod>2026-11-04</lastmod>
     </url>
     <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/quickstart/</loc>
+         <lastmod>2026-11-04</lastmod>
+    </url>
+    <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/</loc>
          <lastmod>2026-11-04</lastmod>
     </url>
@@ -90,6 +94,18 @@
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0019-yaml-dialect/</loc>
+         <lastmod>2026-11-04</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/reference/cli/</loc>
+         <lastmod>2026-11-04</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/reference/schema/</loc>
+         <lastmod>2026-11-04</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/reference/errors/</loc>
          <lastmod>2026-11-04</lastmod>
     </url>
 </urlset>
