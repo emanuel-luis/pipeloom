@@ -298,7 +298,7 @@
   <span class="md-ellipsis">
     
   
-    Plugins
+    Guide
   
 
     
@@ -311,6 +311,88 @@
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/running/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -398,10 +480,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -419,8 +501,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -473,6 +555,34 @@
     
   
     JSON Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run artifacts
   
 
     
@@ -1132,7 +1242,7 @@
 
 <h1 id="pipeloom-architecture">pipeloom architecture<a class="headerlink" href="#pipeloom-architecture" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p><strong>Status:</strong> 0.1 implements configuration, validation (L0-L6), the graph, selectors, the plan and manifest, the event bus and the CLI commands <code>validate</code>, <code>compile</code>, <code>ls</code>, <code>graph</code>, <code>schema</code> and <code>plugins</code>. Running a plan, the engines other than the in-memory one and the orchestrator integrations are designed here and arrive in later versions (section 16).
+<p><strong>Status:</strong> 0.2 implements everything in 0.1 plus <code>pipeloom run</code>: the ready-queue scheduler, the thread and process executors, the polars and pandas engines, the filesystem catalog, the sqlite and json state stores, run artifacts and the contract suites. Incremental writes, expectations, retries, timeouts, Spark and the orchestrator integrations are designed here and arrive in later versions (section 16).
 Decisions are recorded as ADRs in <a href="../adr/">adr/</a>. Diagrams are D2 sources in <a href="diagrams/">diagrams/</a> with committed SVGs.</p>
 </blockquote>
 <h2 id="1-vision-goals-non-goals-principles">1. Vision, goals, non-goals, principles<a class="headerlink" href="#1-vision-goals-non-goals-principles" title="Permanent link">&para;</a></h2>
@@ -1299,11 +1409,16 @@ class EngineCapabilities:
     formats: frozenset[str]; strategies: frozenset[str]
     sql_models: bool; views: bool; idempotent_writes: bool
     cancel: bool; bytes_metrics: bool; portable: bool   # Narwhals-compatible frames
+    materializations: frozenset[str]                    # table, view, ephemeral (0.2)
+
+@dataclass(frozen=True)
+class StateStoreCapabilities: shared: bool              # visible to every process and task of a run
 
 class Engine(Protocol):
     name: str
+    version: str                                       # recorded as engine_version in run_results
     capabilities: EngineCapabilities
-    def session(self, ctx: &quot;RuntimeContext&quot;) -&gt; ContextManager[&quot;EngineSession&quot;]: ...  # cleanup guaranteed (L10)
+    def session(self, ctx: &quot;RuntimeContext&quot;, *, catalog: &quot;Catalog&quot;) -&gt; ContextManager[&quot;EngineSession&quot;]: ...  # one per invocation, thread-safe, cleanup guaranteed (L10)
 
 class EngineSession(Protocol):
     native: Any                                        # escape hatch
@@ -1313,6 +1428,9 @@ class EngineSession(Protocol):
     def schema(self, rel: Relation) -&gt; Schema: ...
     def count(self, rel: Relation) -&gt; int: ...
     def filter_since(self, rel: Relation, column: str, lower: Any) -&gt; Relation: ...
+    def relation(self, native: Any) -&gt; Relation: ...   # check a model's return value and wrap it; TypeError for a foreign type
+    def persist(self, rel: Relation) -&gt; Relation: ...  # in-memory copy for results shared by several units
+    def create_view(self, target: &quot;TargetRef&quot;, query: str, inputs: Mapping[str, &quot;ReadSpec&quot;]) -&gt; &quot;WriteResult&quot;: ...  # catalog view, never a session view
     def max_value(self, rel: Relation, column: str) -&gt; Any: ...
     def evaluate(self, rel: Relation, checks: Sequence[&quot;ExpectationSpec&quot;]) -&gt; &quot;QualityOutcome&quot;: ...
     def cancel(self, unit_id: str) -&gt; None: ...        # cooperative; no-op if not capable
@@ -1341,9 +1459,12 @@ class MetricsProvider(Protocol):
 class StateStore(Protocol):
     def get_watermark(self, key: &quot;StateKey&quot;) -&gt; &quot;Watermark | None&quot;: ...
     def cas_watermark(self, key: &quot;StateKey&quot;, expected: &quot;Watermark | None&quot;, new: &quot;Watermark&quot;) -&gt; bool: ...
-    def record_unit(self, run_id: str, result: &quot;UnitResult&quot;) -&gt; None: ...
+    def record_run(self, record: &quot;RunRecord&quot;) -&gt; None: ...           # insert or replace
     def get_run(self, run_id: str) -&gt; &quot;RunRecord | None&quot;: ...
-    def lock(self, scope: str, run_id: str) -&gt; ContextManager[None]: ...
+    def record_unit(self, record: &quot;UnitRecord&quot;) -&gt; None: ...         # keyed by (run_id, unit_id, attempt)
+    def list_units(self, run_id: str) -&gt; tuple[&quot;UnitRecord&quot;, ...]: ...  # sorted by (unit_id, attempt)
+    def lock(self, scope: str, run_id: str) -&gt; ContextManager[&quot;LockInfo&quot;]: ...  # non-blocking; raises LockHeld; 60 s lease renewed every 20 s
+    def close(self) -&gt; None: ...
 
 class EventSink(Protocol):
     name: str
@@ -1356,9 +1477,12 @@ class Renderer(Protocol):
     def render(self, plan: &quot;Plan&quot;, options: Mapping[str, Any]) -&gt; Mapping[str, bytes]: ...  # path -&gt; content
 
 class Executor(Protocol):
+    name: str
     boundary: str                                    # &quot;process&quot; | &quot;task&quot;
-    def submit(self, unit: &quot;ExecutionUnit&quot;, ctx: &quot;RuntimeContext&quot;) -&gt; &quot;UnitHandle&quot;: ...
-    def cancel(self, handle: &quot;UnitHandle&quot;) -&gt; None: ...
+    def submit(self, unit_id: str, *, queued_at: float) -&gt; &quot;UnitHandle&quot;: ...
+    def wait_any(self) -&gt; &quot;UnitCompletion&quot;: ...     # blocks on the completion queue
+    def cancel(self, handle: &quot;UnitHandle&quot;) -&gt; bool: ...   # not called before 0.3
+    def shutdown(self, *, wait: bool) -&gt; None: ...
 
 class Clock(Protocol):
     def now(self) -&gt; datetime: ...                   # timezone-aware UTC
@@ -1370,6 +1494,7 @@ class IdentityProvider(Protocol):
 class SecretProvider(Protocol):
     def resolve(self, path: str) -&gt; str: ...
 </code></pre>
+<p>In 0.2 the engine protocols above omit <code>evaluate</code>, <code>Writer</code>, <code>MetricsProvider</code>, <code>Catalog.apply_grants</code> and <code>Catalog.maintain</code>; they arrive with the versions that need them (section 16). <code>ReadSpec.format</code> accepts <code>"table"</code> to read a catalog table through <code>ReadSpec.table</code>. The 0.2 plugin API is (0, 2): <a href="../adr/0021-plugin-api-0-2/">ADR-0021</a>.</p>
 <p><strong>ADR-0002: Engine abstraction.</strong>
 - Context: the spec (section 4) lists coupling in the return type, reads, schema, temporary views, writes, merge, metrics and catalog SQL.
 - Options:
@@ -1435,22 +1560,22 @@ class SecretProvider(Protocol):
 <tr>
 <td>L3 graph</td>
 <td>PLG</td>
-<td>PLG301 cycle (prints the path); PLG302 self-reference; PLG303 selector matched nothing; PLG304 unknown selector method; PLG305 malformed selector</td>
+<td>PLG301 cycle (prints the path); PLG302 self-reference; PLG303 selector matched nothing; PLG304 unknown selector method; PLG305 malformed selector; PLG306 <code>unit:</code> selector names an unknown unit (0.2)</td>
 </tr>
 <tr>
 <td>L4 plan semantics</td>
 <td>PLP</td>
-<td>PLP401 merge or scd2 without <code>unique_key</code>; PLP402 incremental without <code>column</code>; PLP403 aggregate expectation with <code>drop</code>; PLP404 <code>incremental.input</code> not in <code>inputs</code>; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 <code>replace_partitions</code> without <code>partition_by</code>; PLP408 ephemeral model with no consumer (warning)</td>
+<td>PLP401 merge or scd2 without <code>unique_key</code>; PLP402 incremental without <code>column</code>; PLP403 aggregate expectation with <code>drop</code>; PLP404 <code>incremental.input</code> not in <code>inputs</code>; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 <code>replace_partitions</code> without <code>partition_by</code>; PLP408 ephemeral model with no consumer (warning); PLP409 a view needs a SQL model with no inlined ephemerals (0.2)</td>
 </tr>
 <tr>
 <td>L5 capability</td>
 <td>PLC</td>
-<td>PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 <code>boundary: task</code> with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries &gt; 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 <code>frame_api: narwhals</code> without a portable engine</td>
+<td>PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 <code>boundary: task</code> with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries &gt; 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 <code>frame_api: narwhals</code> without a portable engine; PLC509 materialization unsupported by the engine (0.2 rejects <code>incremental</code> and <code>intermediate</code>)</td>
 </tr>
 <tr>
 <td>L6 static code</td>
 <td>PLK</td>
-<td>PLK601 callable file or function not found; PLK602 parameters do not match inputs; PLK603 SQL references undeclared table (warning, opt-in, 0.2); PLK604 callable name bound by something other than a def (warning)</td>
+<td>PLK601 callable file or function not found; PLK602 parameters do not match inputs; PLK603 SQL references undeclared table (warning, active when the <code>sqlglot</code> extra is installed, 0.2); PLK604 callable name bound by something other than a def (warning); PLK605 SQL not parseable for that check (warning, 0.2)</td>
 </tr>
 <tr>
 <td>L7 preflight (opt-in, connects)</td>
@@ -1460,7 +1585,7 @@ class SecretProvider(Protocol):
 <tr>
 <td>Runtime</td>
 <td>PLX, PLM, PLQ, PLE, PLU</td>
-<td>PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict; PLQ301 expectation failed; PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX107 manifest invalid (0.2)</td>
+<td>PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict; PLQ301 expectation failed; PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX105 run lock held (0.2); PLX106 unit process exited without a result (0.2); PLX107 manifest invalid (0.2); PLM204 input read failed (0.2)</td>
 </tr>
 <tr>
 <td>Renderers</td>
@@ -1482,8 +1607,11 @@ class SecretProvider(Protocol):
 <pre><code>pending → queued → running → succeeded | failed | timed_out | cancelled
                     running → retrying → running
 pending → skipped   (an upstream is failed, timed_out or skipped)
+queued  → skipped   (fail_fast stopped the run)
 pending → cancelled (run cancelled)
+queued  → cancelled (run cancelled)
 </code></pre>
+<p>The transition table is checked in code (<code>pipeloom.runtime.states</code>). A skipped unit carries a reason: <code>upstream_failed</code> (with the failed upstream) or <code>fail_fast</code>. In 0.2 <code>retrying</code>, <code>timed_out</code> and <code>running → cancelled</code> are not reachable yet; they arrive in 0.3.</p>
 <p><strong>Run state machine:</strong> <code>created → compiled → running → succeeded | failed | cancelled</code>. A run with warnings is still <code>succeeded</code>.</p>
 <p><img alt="The unit and run state machines, including the retry, timeout, skip and cancel transitions." src="../diagrams/04-state-machines.svg" /></p>
 <p>Source: <a href="../diagrams/04-state-machines.d2">04-state-machines.d2</a>.</p>
@@ -1495,7 +1623,7 @@ pending → cancelled (run cancelled)
   - The process executor kills the child process.
 - <strong>Cancellation:</strong> SIGINT or SIGTERM stops dequeuing, cancels running units, waits <code>cancel_grace</code> (default 30 s), then marks the rest <code>cancelled</code>. Exit code 130.
 - <strong>Failure isolation:</strong> skip-downstream is the default. Independent branches continue. <code>--fail-fast</code> stops dequeuing after the first failure.
-- <strong>Concurrency guard:</strong> <code>StateStore.lock("&lt;project&gt;/&lt;target&gt;")</code> blocks a second concurrent run on the same target. <code>--no-lock</code> is the escape hatch.</p>
+- <strong>Concurrency guard:</strong> <code>StateStore.lock("&lt;project&gt;/&lt;target&gt;", run_id)</code> blocks a second concurrent run on the same target (PLX105). The lock is a 60 s lease that a heartbeat thread renews every 20 s, so a crashed run frees it within a minute. <code>--no-lock</code> is the escape hatch. Unit mode (<code>--select unit:&lt;id&gt;</code>) takes no lock and does not finalize: the owning invocation does (<a href="../adr/0020-execution-model-0-2/">ADR-0020</a>).</p>
 <p><strong>ADR-0007: Data handoff.</strong>
 - Context: L7. With <code>boundary: task</code>, no in-memory or temporary-view handoff is possible.
 - Options: persisted intermediates everywhere (simple, costs IO); inlining (free IO, recomputes); a hybrid.
@@ -1591,7 +1719,8 @@ quality: {quarantine: true, max_drop_ratio: 0.05}
 - Unit: <code>unit.queued</code>, <code>unit.started</code>, <code>unit.retrying</code>, <code>unit.succeeded</code>, <code>unit.failed</code>, <code>unit.timed_out</code>, <code>unit.cancelled</code>, <code>unit.skipped</code>.
 - Model: <code>model.input_read</code>, <code>model.quality_evaluated</code>, <code>model.schema_changed</code>, <code>model.written</code>, <code>model.log</code> (user <code>ctx.log</code>).
 - State: <code>state.watermark_committed</code>.
-- Other: <code>sink.disabled</code>, <code>artifact.written</code>, <code>diagnostic</code> (validation warnings).</p>
+- Other: <code>sink.disabled</code>, <code>artifact.written</code>, <code>diagnostic</code> (validation warnings).
+- <code>run.completed</code> carries the status, exit code, counts, totals, <code>failures[]</code> (one entry per failed unit with its diagnostic) and <code>artifacts[]</code> (POSIX paths of the files the run wrote), so the console prints the failure block and the artifacts line from it.</p>
 <p><strong>Bus and sinks:</strong>
 - The bus fans out to sinks in the order they are configured.
 - Each sink has a <code>failure_budget</code> (default 5 consecutive errors). When exhausted, the sink is disabled and <code>sink.disabled</code> goes to the remaining sinks.
@@ -1638,7 +1767,8 @@ quality: {quarantine: true, max_drop_ratio: 0.05}
 - <code>MetricsProvider.before_write</code> records the target version.
 - <code>after_write</code> reads commit history for versions in (before, after] and sums operation metrics. One model writes one target per run, so no global tag is needed.
 - Engines without history count rows instead: <code>count</code> on eager frames, or the writer's return value.</p>
-<p><strong>Artifacts.</strong> Layout: <code>&lt;artifacts.root&gt;/runs/&lt;run_id&gt;/{manifest.json, run_results.json, events/&lt;invocation_id&gt;.jsonl, units/&lt;unit_id&gt;/attempt-&lt;n&gt;.json}</code>. Local runs also copy the latest into <code>target/</code>.
+<p><strong>Artifacts.</strong> Layout: <code>&lt;artifacts.root&gt;/runs/&lt;run_id&gt;/{manifest.json, run_results.json, events/&lt;invocation_id&gt;.jsonl, units/&lt;unit_id&gt;/attempt-&lt;n&gt;.json, logs/&lt;unit_id&gt;-attempt-&lt;n&gt;.log}</code>. <code>artifacts.root</code> defaults to <code>target</code>. Finalize copies the run's <code>manifest.json</code> and <code>run_results.json</code> to the root.
+- <code>results[]</code> has one row per persisted model, sorted by unit id; an ephemeral model appears in <code>ephemeral_inlined</code> of the units that inline it. Every row has every key, and fields 0.2 does not fill are null or empty.
 - <code>manifest.json</code> (<code>pipeloom.manifest/1</code>): <code>metadata{pipeloom_version, plugins, config_version, plan_hash, project, target, boundary, python_paths, vars, env_vars, generated_at, invocation_id}</code>, <code>nodes{unique_id: resolved config, body, inputs, relation, unit_ids, checksum}</code>, <code>sources</code>, <code>units{unit_id: [unique_ids]}</code>, <code>unit_parent_map{unit_id: [unit_ids]}</code>, <code>parent_map</code>, <code>child_map</code>, <code>selectors{select, exclude, selected}</code>.
   - <code>plan_hash</code> is the sha256 of the canonical JSON (sorted keys, no spaces) of <code>nodes</code>, <code>sources</code>, <code>units</code>, <code>unit_parent_map</code>, <code>parent_map</code>, <code>child_map</code> and <code>metadata</code> reduced to <code>project</code>, <code>target</code>, <code>boundary</code> and <code>config_version</code>. Selection, versions, timestamps and ids do not change it. A <code>per_user</code> naming strategy puts the user into the relations, so use <code>none</code> where the hash must match across machines.
   - A node <code>checksum</code> is the sha256 of its canonical config plus its body (the SQL text, or the callable and its file bytes), with CRLF read as LF.
@@ -1785,7 +1915,7 @@ shop_daily = PipeloomDag(
 <ul>
 <li><strong>0.0.2:</strong> reserve the name; skeleton (section 18); CI, release, governance; this document and the ADRs.</li>
 <li><strong>0.1:</strong> config models, loader with line marks, L0-L6, graph, selectors (<code>name</code>, <code>+name</code>, <code>name+</code>, <code>tag:</code>, <code>path:</code>, <code>materialized:</code>), plan, manifest, schema export, event bus with console and jsonl sinks. CLI: <code>validate</code>, <code>compile</code>, <code>ls</code>, <code>graph</code>, <code>schema</code>, <code>plugins</code>. A <code>MemoryEngine</code> for tests. Deferred to 0.2: PLC503 and PLK603, the <code>~/.pipeloom/profiles.yml</code> file, <code>PIPELOOM_*</code> variables beyond <code>PIPELOOM_TARGET</code>, <code>PIPELOOM_PROJECT_DIR</code> and <code>PIPELOOM_LOG_FORMAT</code>, and Narwhals support.</li>
-<li><strong>0.2:</strong> scheduler, thread and process executors, <code>pipeloom-polars</code> and <code>pipeloom-pandas</code>, table/view/ephemeral, append and overwrite, sqlite and json state, run_results, the contract suite.</li>
+<li><strong>0.2:</strong> scheduler, thread and process executors, <code>pipeloom-polars</code> and <code>pipeloom-pandas</code>, table/view/ephemeral, append and overwrite, sqlite and json state, run_results, the contract suite. pandas has no SQL models or views yet (PLC502, PLC507), so SQL on pandas is deferred. <code>incremental</code> and <code>intermediate</code> are rejected with PLC509 until their versions. PLK603 and PLK605 need the <code>sqlglot</code> extra.</li>
 <li><strong>0.3:</strong> incremental, merge, replace_partitions, schema-change policy, expectations and quarantine, retries, timeouts, cancellation.</li>
 <li><strong>0.4:</strong> <code>pipeloom-spark</code> (Delta and Spark Connect), metrics from commit history, intermediates, idempotent writes, the <code>table</code> state store.</li>
 <li><strong>0.5:</strong> <code>pipeloom-databricks</code>: renderer, bundle YAML, deploy, run, repair, finalize, task values, task grouping.</li>

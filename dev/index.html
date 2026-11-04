@@ -306,7 +306,7 @@
   <span class="md-ellipsis">
     
   
-    Plugins
+    Guide
   
 
     
@@ -319,6 +319,88 @@
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guide/running/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -406,10 +488,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -427,8 +509,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -481,6 +563,34 @@
     
   
     JSON Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="reference/artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run artifacts
   
 
     
@@ -623,11 +733,12 @@
 
 <h1 id="pipeloom">pipeloom<a class="headerlink" href="#pipeloom" title="Permanent link">&para;</a></h1>
 <p>Declarative, engine-agnostic data pipelines in YAML.</p>
-<p>pipeloom 0.1 reads a YAML project, checks it in layers, builds the dependency graph and writes
-the execution plan as a manifest. Running the plan comes in 0.2.</p>
+<p>pipeloom 0.2 reads a YAML project, checks it in layers, builds the dependency graph, writes the
+execution plan as a manifest and runs it on polars or pandas.</p>
 <ul>
 <li><a href="quickstart/">Quickstart</a></li>
-<li>Reference: <a href="reference/cli/">command line</a>, <a href="reference/schema/">JSON Schema</a>, <a href="reference/errors/">error codes</a></li>
+<li><a href="guide/running/">Running a pipeline</a></li>
+<li>Reference: <a href="reference/cli/">command line</a>, <a href="reference/schema/">JSON Schema</a>, <a href="reference/artifacts/">run artifacts</a>, <a href="reference/errors/">error codes</a></li>
 <li><a href="architecture/">Architecture</a></li>
 <li><a href="adr/">Architecture decision records</a></li>
 </ul>
