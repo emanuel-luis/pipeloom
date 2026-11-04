@@ -10,8 +10,9 @@ Every run produces a single event stream and artifacts you can query.
 references, graph, plan semantics, engine capabilities, Python callables), builds the dependency
 graph, compiles the execution plan into a manifest and runs it on polars or pandas. Tables are
 written to a filesystem catalog (parquet, csv or ndjson), run state goes to a sqlite or json store,
-and every run writes `run_results.json`. Not yet: incremental and merge writes, expectations,
-retries, Spark and the orchestrator integrations.
+and every run writes `run_results.json`. The 0.3 work on main adds incremental models with a
+watermark, merge and replace_partitions writes, schema-change policies, and expectations with
+quarantine. Not yet: retries, timeouts, cancellation, Spark and the orchestrator integrations.
 
 ```console
 $ pip install "pipeloom[polars]"   # or pipeloom[pandas]
@@ -53,7 +54,7 @@ plan; a plugin name is published with its first functional release.
 
 ## Documentation
 
-- [Documentation site](https://emanuel-luis.github.io/pipeloom/latest/): quickstart, running a pipeline, command line, JSON Schema, run artifacts and error codes
+- [Documentation site](https://emanuel-luis.github.io/pipeloom/latest/): quickstart, running a pipeline, incremental models, write strategies, data quality, command line, JSON Schema, run artifacts and error codes
 - [Architecture](docs/architecture.md)
 - [Architecture decision records](docs/adr/README.md)
 - [Diagrams](docs/diagrams/)

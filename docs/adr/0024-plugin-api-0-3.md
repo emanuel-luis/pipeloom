@@ -32,7 +32,7 @@ New types: `ColumnChange`, `SchemaDiff`, `ExpectationSpec`, `QualityCounts`, `Qu
 
 Row-check semantics are fixed for all engines: a check passes on null input except `not_null`; NaN counts as null; `range` bounds are inclusive; `regex` is an unanchored search; `accepted_values` compares exactly; `expr` true passes, false fails, null passes. Aggregates see only the relation passed in. `pipeloom.testing.reference` implements all of it over plain rows, and the contract suite compares each engine with it.
 
-The memory engine implements the whole contract (merge, replace_partitions, quality, cancel, `incremental` materialization). The polars and pandas engines move to (0, 3) and implement `align`, `applied_token`, `unit_scope`, `is_transient` and the new `filter_since`. They declare no `quality`, `merge` or `replace_partitions` yet, so their contract tests for those skip; the filesystem merge and quality work follows in later changes.
+The memory engine implements the whole contract (merge, replace_partitions, quality, cancel, `incremental` materialization). The polars and pandas engines move to (0, 3) and implement the whole contract except `cancel`: `align`, `applied_token`, `unit_scope`, `is_transient`, `filter_since`, `evaluate` and `apply_drops`. They declare `quality`, `merge`, `replace_partitions` and the `incremental` materialization. Their `cancel` stays a no-op (`cancel=False`).
 
 ## Consequences
 

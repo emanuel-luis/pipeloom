@@ -32,14 +32,13 @@ No policy may drop a key or fill it with nulls: a row-keeping write whose batch 
 
 Every non-empty diff emits `model.schema_changed` with `relation`, `policy`, `action` and `changes`, and is copied to `schema_changes[]` of the unit's `run_results` row (each change carries its action). A rejected change is emitted at warning level before the unit fails. The console prints one line per event. Architecture section 9 named the event `schema.changed`; section 11 and the code use `model.schema_changed`.
 
-Tables with files, such as the filesystem catalog, read every committed file through the table's current schema, so append and widening never rewrite old files. An engine that cannot do that yet leaves `EngineHarness.schema_on_read` false and the contract matrix skips the cells that write a changed schema.
+Tables with files, such as the filesystem catalog, read every committed file through the table's current schema, so append and widening never rewrite old files. An engine that cannot do that leaves `EngineHarness.schema_on_read` false and the contract matrix skips the cells that write a changed schema. The memory, polars and pandas engines all set it to true.
 
 ## Consequences
 
 - One matrix in `EngineContract` (4 policies, 4 kinds of change, 3 strategies) checks the final schema and rows of every engine against the reference.
 - A narrower batch type never fails a run; it is widened silently to the target.
 - Dropping a column with `sync_all_columns` also drops its old values on strategies that rewrite rows (merge, replace_partitions); on files it only hides them from readers.
-- Removing the need for `schema_on_read=False` is the work of the filesystem merge and replace_partitions change.
 
 ## Status
 

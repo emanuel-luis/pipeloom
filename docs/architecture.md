@@ -195,6 +195,7 @@ class EngineCapabilities:
     formats: frozenset[str]; strategies: frozenset[str]
     sql_models: bool; views: bool; idempotent_writes: bool
     cancel: bool; bytes_metrics: bool; portable: bool   # Narwhals-compatible frames
+    quality: bool                                       # evaluate and apply_drops (0.3)
     materializations: frozenset[str]                    # table, view, ephemeral (0.2)
 
 @dataclass(frozen=True)
@@ -213,12 +214,17 @@ class EngineSession(Protocol):
     def sql(self, query: str, inputs: Mapping[str, Relation]) -> Relation: ...
     def schema(self, rel: Relation) -> Schema: ...
     def count(self, rel: Relation) -> int: ...
-    def filter_since(self, rel: Relation, column: str, lower: Any) -> Relation: ...
+    def filter_since(self, rel: Relation, column: str, lower: Any, *, inclusive: bool = True) -> Relation: ...  # strict (>) when not inclusive
     def relation(self, native: Any) -> Relation: ...   # check a model's return value and wrap it; TypeError for a foreign type
     def persist(self, rel: Relation) -> Relation: ...  # in-memory copy for results shared by several units
     def create_view(self, target: "TargetRef", query: str, inputs: Mapping[str, "ReadSpec"]) -> "WriteResult": ...  # catalog view, never a session view
-    def max_value(self, rel: Relation, column: str) -> Any: ...
-    def evaluate(self, rel: Relation, checks: Sequence["ExpectationSpec"]) -> "QualityOutcome": ...
+    def max_value(self, rel: Relation, column: str) -> Any: ...      # a plain Python value, never numpy or pandas
+    def evaluate(self, rel: Relation, checks: Sequence["ExpectationSpec"]) -> "QualityCounts": ...  # raw counts; the core judges
+    def apply_drops(self, rel: Relation, checks: Sequence["ExpectationSpec"], *, quarantine: "QuarantineMeta | None") -> "DropResult": ...
+    def align(self, rel: Relation, schema: Schema) -> Relation: ...  # schema order, missing columns as typed nulls, cast
+    def applied_token(self, target: "TargetRef", token: str) -> "WriteResult | None": ...  # stored result with skipped=True
+    def unit_scope(self, unit_id: str) -> ContextManager[None]: ...  # tags this thread's work so cancel can find it
+    def is_transient(self, exc: BaseException) -> bool | None: ...   # True retryable, False permanent, None no opinion
     def cancel(self, unit_id: str) -> None: ...        # cooperative; no-op if not capable
 
 class Reader(Protocol):
@@ -281,7 +287,14 @@ class SecretProvider(Protocol):
     def resolve(self, path: str) -> str: ...
 ```
 
-In 0.2 the engine protocols above omit `evaluate`, `Writer`, `MetricsProvider`, `Catalog.apply_grants` and `Catalog.maintain`; they arrive with the versions that need them (section 16). `ReadSpec.format` accepts `"table"` to read a catalog table through `ReadSpec.table`. The 0.2 plugin API is (0, 2): [ADR-0021](adr/0021-plugin-api-0-2.md).
+The engine protocols above omit `Writer`, `MetricsProvider`, `Catalog.apply_grants` and `Catalog.maintain`; they arrive with the versions that need them (section 16). `ReadSpec.format` accepts `"table"` to read a catalog table through `ReadSpec.table`. The plugin API is (0, 2) in 0.2 ([ADR-0021](adr/0021-plugin-api-0-2.md)) and (0, 3) in 0.3 ([ADR-0024](adr/0024-plugin-api-0-3.md)); while the major version is 0 a plugin must match exactly.
+
+**0.3 contract additions.**
+- `WriteConfig` carries `strategy`, `unique_key`, `partition_by`, `update_condition` (engine dialect; `source.` and `target.` qualifiers, a bare name means source), `deletes` (`DeleteSpec`), `columns` (the final schema, chosen by the core) and `commit_meta`.
+- `WriteResult(rows_inserted, rows_updated, rows_deleted, rows_written, bytes_written, target_version, skipped, commit_meta)`. `commit_meta` is stored with the idempotency token and returned on a replay, so a replayed write hands back the watermark and the quality summary of the original attempt.
+- `evaluate` and `apply_drops` need the `quality` capability. Engines count and split rows; the core judges (section 10).
+- `pipeloom.engine.errors`: `TransientError` (raise it to force a retryable failure), `CommitConflict` (a transient error for a table commit race) and `WriteKeyError` (PLM206).
+- `pipeloom.engine.types` also holds `ColumnChange`, `SchemaDiff`, `ExpectationSpec`, `QualityCounts`, `QuarantineMeta`, `DropResult`, `can_widen` and `diff_schemas`.
 
 **ADR-0002: Engine abstraction.**
 - Context: the spec (section 4) lists coupling in the return type, reads, schema, temporary views, writes, merge, metrics and catalog SQL.
@@ -336,11 +349,11 @@ Each finding is a `Diagnostic(code, severity, message, hint, location{file,line,
 | L1 schema | PLS | PLS101 unknown field (with "did you mean"); PLS102 type mismatch; PLS103 unsupported `config_version`; PLS104 literal value in a secret-like field; PLS105 required field missing; PLS106 `${env:X}` unset or unknown `${var:x}`; PLS107 malformed interpolation; PLS108 exactly one of a set of fields required |
 | L2 references | PLR | PLR201 unknown ref (fuzzy suggestion); PLR202 duplicate model name; PLR203 unknown source; PLR204 unknown target or plugin kind; PLR205 duplicate source; PLR206 a `model_paths` entry does not exist (warning); PLR207 no target selected |
 | L3 graph | PLG | PLG301 cycle (prints the path); PLG302 self-reference; PLG303 selector matched nothing; PLG304 unknown selector method; PLG305 malformed selector; PLG306 `unit:` selector names an unknown unit (0.2) |
-| L4 plan semantics | PLP | PLP401 merge or scd2 without `unique_key`; PLP402 incremental without `column`; PLP403 aggregate expectation with `drop`; PLP404 `incremental.input` not in `inputs`; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 `replace_partitions` without `partition_by`; PLP408 ephemeral model with no consumer (warning); PLP409 a view needs a SQL model with no inlined ephemerals (0.2) |
-| L5 capability | PLC | PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 `boundary: task` with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries > 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 `frame_api: narwhals` without a portable engine; PLC509 materialization unsupported by the engine (0.2 rejects `incremental` and `intermediate`) |
+| L4 plan semantics | PLP | PLP401 merge or scd2 without `unique_key`; PLP402 incremental without `column`; PLP403 aggregate expectation with `drop`; PLP404 `incremental.input` not in `inputs`; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 `replace_partitions` without `partition_by`; PLP408 ephemeral model with no consumer (warning); PLP409 a view needs a SQL model with no inlined ephemerals (0.2); PLP410 append with a lookback above zero reloads rows (warning, 0.3); PLP411 expectations on a view or ephemeral model (0.3); PLP412 `<model>__quarantine` is also a model in the same schema (0.3) |
+| L5 capability | PLC | PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 `boundary: task` with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries > 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 `frame_api: narwhals` without a portable engine; PLC509 materialization unsupported by the engine (0.3: the memory, polars and pandas engines accept `incremental`; `intermediate` is still rejected); PLC510 expectations on an engine without the `quality` capability (0.3) |
 | L6 static code | PLK | PLK601 callable file or function not found; PLK602 parameters do not match inputs; PLK603 SQL references undeclared table (warning, active when the `sqlglot` extra is installed, 0.2); PLK604 callable name bound by something other than a def (warning); PLK605 SQL not parseable for that check (warning, 0.2) |
 | L7 preflight (opt-in, connects) | PLF | PLF701 engine unreachable; PLF702 source missing; PLF703 target schema drift detected |
-| Runtime | PLX, PLM, PLQ, PLE, PLU | PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict; PLQ301 expectation failed; PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX105 run lock held (0.2); PLX106 unit process exited without a result (0.2); PLX107 manifest invalid (0.2); PLM204 input read failed (0.2) |
+| Runtime | PLX, PLM, PLQ, PLE, PLU | PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict (data already written; permanent); PLM205 watermark unusable (missing column, family mismatch or a lookback on a non-temporal column, 0.3); PLM206 write key invalid (missing key column or duplicate merge key, 0.3); PLQ301 expectation failed or `max_drop_ratio` exceeded; PLQ302 expectation names an unknown column or an `expr` the engine rejects (0.3); PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX105 run lock held (0.2); PLX106 unit process exited without a result (0.2); PLX107 manifest invalid (0.2); PLM204 input read failed (0.2) |
 | Renderers | PLD, PLA | PLD001 task limit exceeded; PLD002 submit above 100 tasks; PLA001 unsupported execution mode |
 
 **Commands:**
@@ -404,37 +417,43 @@ incremental: {input: orders, column: updated_at, lookback: 2d, watermark_source:
 ```
 
 **Algorithm per unit:**
-1. `is_incremental` is true when the materialization is `incremental`, the target exists, the run is not a full refresh, and a watermark exists.
-2. Read `w = state.get_watermark(project, target, model)`. With no stored watermark and an existing target, seed `w` from `max(column)` of the target and record a warning. With `watermark_source: target`, read `max(column)` of the target instead and never write the state.
-3. The input relation becomes `filter_since(input, column, w, inclusive=False)`, or with a lookback `filter_since(input, column, w - lookback)` on timestamps and dates (PLM205 on other types). The body sees `ctx.is_incremental`, `ctx.watermark` and `ctx.lower_bound`.
-4. Write, storing the intended watermark `max(w, max_value(filtered input))` in the write's commit metadata, then `cas_watermark(expected=w, new=...)`. A CAS failure is PLM203.
+1. Look up the idempotency token with `EngineSession.applied_token`. A write that already used it is replayed: no read, no body, no write; the stored `commit_meta` gives the schema fields, the quality outcome and the watermark, and the unit goes straight to step 6 (ADR-0027).
+2. `is_incremental` is true when the materialization is `incremental`, the target exists, the run is not a full refresh, and a watermark exists. With `watermark_source: state` the watermark is `state.get_watermark(project, target, model)`; with no stored value and an existing target it is seeded from `max(column)` of the target (`watermark_seeded: target` in `warnings[]`). With `watermark_source: target` it is `max(column)` of the target and the state store is never written. The column's type family (timestamp with zone, timestamp without, date, integer, decimal, float, string) must match the stored one; a missing column or a mismatch is PLM205.
+3. The input is filtered with `filter_since`. Without a lookback the bound is strict: `column > w`. With a lookback it is inclusive: `column >= w - lookback`, in seconds on timestamps and in whole days (rounded up) on dates; a lookback on any other family is PLM205. The body sees `ctx.is_incremental`, `ctx.watermark` and `ctx.lower_bound`, set only when the unit is incremental.
+4. The batch maximum `m` is computed on the filtered input. The new watermark is `max(w, m)` when incremental (`m` may be empty or below `w` because of the lookback) and `m` otherwise; an empty first batch leaves the state alone.
+5. Write, with the intended watermark in `WriteConfig.commit_meta`.
+6. `cas_watermark(expected, new)`, where `expected` is the value read from state in step 2 (none when seeded); emit `state.watermark_committed`. A store treats a stored value equal to `new` and written by the same run as success, which covers a crash between the swap and the attempt file. Any other mismatch is PLM203: the data is already written, the unit fails, and the error is permanent.
 
-The watermark is committed after the write, and a retry with the same token replays the stored value instead of reading the input again (ADR-0027). A crash between the two commits exactly the original batch's watermark on retry. Append is safe only when the engine has idempotent writes (otherwise PLC505 forbids retries).
+The watermark is committed after the write, and a retry with the same token replays the stored value instead of reading the input again (ADR-0027). A crash between the two commits exactly the original batch's watermark on retry, even when new input arrived. Append is safe only when the engine has idempotent writes (otherwise PLC505 forbids retries).
 
 **State stores:**
 - `sqlite`: core, local, single host.
 - `json`: core, a directory; atomic rename for local and volume paths.
 - `table`: a spark-plugin table in the catalog. `boundary: task` requires `table` or `json` on a shared path.
 
-**Write strategies.** All return `WriteResult(rows_inserted, rows_updated, rows_deleted, rows_written, bytes_written, target_version)`, with fields `None` when unknown.
+**Write strategies.** All return a `WriteResult` (section 5), with fields `None` when unknown. The strategy of a model that sets none is `default_strategy(materialized)`: append for `incremental`, overwrite otherwise.
 
 | Strategy | Semantics | Full refresh |
 |---|---|---|
 | append | insert all rows | overwrite |
 | overwrite | replace data and schema | same |
 | replace_partitions | replace partitions present in the batch (`partition_by` required) | overwrite |
-| merge | `unique_key` equality; optional `update_condition`; `deletes: {column, value, mode: hard|soft}` | overwrite |
+| merge | `unique_key` equality; optional `update_condition`; `deletes: {column, value, mode: hard|soft}`; a missing key column or a duplicate key in the batch is PLM206; rows with a null key never match | overwrite |
 | scd2 | `unique_key`, `tracked_columns` (default all), columns `valid_from`, `valid_to`, `is_current`, row hash; deletes close the current row | rebuild |
+
+A full refresh writes append, merge and replace_partitions as overwrite. A first build (the target does not exist) keeps its strategy, because into an absent table every strategy writes the same rows and merge still checks its key. On filesystem tables (ADR-0025) every strategy writes one part file per partition when `partition_by` is set; replace_partitions swaps whole files without reading the others, and a merge rewrites the whole table in 0.3 as read-modify-write under a commit lock and an expected version. SCD2 is planned (section 16).
 
 **Idempotency:** each write receives `token = "<run_id>:<model>"`. Engines with transactional idempotency use it (for Delta, an app id per model and a monotonic version from the run start epoch). Engines without it declare `idempotent_writes=False`.
 
 **Schema-change policy (`on_schema_change`):**
 - `fail` (default): any column added, removed or changed in type raises PLM202.
-- `ignore`: write the target's columns only.
-- `append_new_columns`: add new nullable columns.
-- `sync_all_columns`: add and drop columns, and widen types where the engine can.
+- `ignore`: the final schema is the target's. The batch is aligned to it: extra columns dropped, missing ones filled with nulls, values cast to the target types (a failed cast is PLM201).
+- `append_new_columns`: the target's columns followed by the new ones, nullable, in batch order. Removed columns stay; a type change is PLM202.
+- `sync_all_columns`: the batch's columns. A type change is accepted only when `can_widen(target, batch)` (wider integer, int to float64, float32 to float64, decimals that keep every digit, finer timestamp units with the same zone, null to anything); otherwise PLM202.
 
-Every detected change emits `model.schema_changed` with a diff. The policy applies only to strategies that keep existing rows (append, merge, replace_partitions) on an existing target outside a full refresh; overwrite replaces the schema and reports the diff as `replaced`. See ADR-0026.
+The core decides the final schema (`pipeloom.runtime.schema_policy.resolve_columns`) and passes it as `WriteConfig.columns`; the engine only aligns the batch with `EngineSession.align`. A batch that differs from the target only by a lossless widening of the target's type is cast up to the target's types under every policy.
+
+Every non-empty diff emits `model.schema_changed` (`relation`, `policy`, `action`: applied, ignored, rejected or replaced, and `changes`) and is copied to `schema_changes[]` of the run results. The policy applies only to strategies that keep existing rows (append, merge, replace_partitions) on an existing target outside a full refresh; overwrite, a full refresh and a first build use the batch schema and report the diff as `replaced`. Tables read every committed file through the table's current schema (schema-on-read), so append and widening never rewrite old files. See ADR-0026.
 
 Table properties, `partition_by`, clustering and grants are applied by every strategy or rejected (PLP405). Maintenance (`optimize`, `vacuum`, clustering changes) runs only from `maintenance:` blocks with an explicit schedule (`every_n_runs`), never by default (L8).
 
@@ -452,11 +471,13 @@ quality: {quarantine: true, max_drop_ratio: 0.05}
 ```
 
 - **Row-level checks:** `not_null`, `accepted_values`, `range`, `regex`, `expr`. Allowed actions: warn, drop, fail.
-- **Aggregate checks:** `unique`, `row_count {min,max}`, `freshness {column, max_age}`. Allowed actions: warn, fail; `drop` is PLP403.
-- **Evaluation:** `EngineSession.evaluate` computes every row-level predicate in one aggregate pass and returns per-expectation `passed` and `failed` counts. Unlike DLT, counts are kept on `fail` too.
-- **Drop:** filters rows that fail any `drop` predicate. If `max_drop_ratio` is exceeded, the unit fails with PLQ301.
-- **Quarantine:** dropped rows go to `<target>__quarantine` with `_pipeloom_run_id`, `_pipeloom_failed` (array of expectation names) and `_pipeloom_ts`.
-- Lazy engines may cache the relation before the counting pass. The engine decides; Spark can persist it, and the decision is recorded in the metadata.
+- **Aggregate checks:** `unique`, `row_count {min,max}`, `freshness {column, max_age}`. Allowed actions: warn, fail; `drop` is PLP403. They see only the batch, after the drops; for an incremental model that is the new rows, not the table.
+- **Engines count, the core judges** (ADR-0028). `EngineSession.evaluate` returns raw counts: the total, violating rows per row check, rows that violate at least one drop check, and aggregate values. `pipeloom.quality.judge` decides pass or fail, the drop ratio, PLQ301 and the events. A pure-Python reference (`pipeloom.testing.reference`) defines the semantics and the contract suite compares every engine with it. Unlike DLT, counts are kept on `fail` too.
+- **Null and NaN semantics:** a null input passes every check except `not_null`; NaN counts as null; `range` bounds are inclusive; `regex` is an unanchored search and needs a string column; `accepted_values` compares exactly; `expr` true passes, null passes, false fails. `unique` counts rows minus distinct keys and ignores rows with a null key part. Freshness is `now - max(column)` computed by the core with the run's clock; a naive timestamp reads as UTC and an all-null column fails.
+- **`expr` dialects:** polars takes a SQL expression for `pl.sql_expr`; pandas takes a restricted Python expression (names, literals, operators, `in` with a tuple; no calls, attributes or `@name`; anything else is PLQ302); the memory engine takes a sqlite expression. An `expr` never runs code.
+- **Order:** row checks run on the full output; if a drop check failed the rows are split (`apply_drops`); aggregates then run on the kept rows (one `evaluate` call when nothing can drop). A lazy relation is persisted first (`cached: true` in the event).
+- **Drop:** filters rows that fail any `drop` check. A failed `fail` check, or a drop ratio above `quality.max_drop_ratio`, fails the unit with PLQ301 before it writes; the counts are still recorded.
+- **Quarantine:** dropped rows are appended to `<target>__quarantine` under the token `<run_id>:<model>#quarantine`, so a replay writes them once. The table has the model's columns plus `_pipeloom_run_id` (string), `_pipeloom_failed` (list of the failing drop-check names; JSON text in a string column on csv catalogs) and `_pipeloom_ts` (timestamp[us, UTC]). Its schema policy is `append_new_columns`.
 
 ## 11. Events, logs and run metadata
 
@@ -471,6 +492,7 @@ quality: {quarantine: true, max_drop_ratio: 0.05}
 - Unit: `unit.queued`, `unit.started`, `unit.retrying`, `unit.succeeded`, `unit.failed`, `unit.timed_out`, `unit.cancelled`, `unit.skipped`.
 - Model: `model.input_read`, `model.quality_evaluated`, `model.schema_changed`, `model.written`, `model.log` (user `ctx.log`).
 - State: `state.watermark_committed`.
+- Payloads added in 0.3: `model.written` gains `skipped` (a replayed token); `model.quality_evaluated` carries `total_rows`, `results[]`, `rows_dropped`, `rows_quarantined`, `drop_ratio`, `cached` and `failures[]` (it is a warning when anything warned, dropped or failed); `model.schema_changed` carries `relation`, `policy`, `action` and `changes[]` (a warning when rejected); `state.watermark_committed` carries `column`, `dtype`, `before`, `after`, `source` and `seeded`.
 - Other: `sink.disabled`, `artifact.written`, `diagnostic` (validation warnings).
 - `run.completed` carries the status, exit code, counts, totals, `failures[]` (one entry per failed unit with its diagnostic) and `artifacts[]` (POSIX paths of the files the run wrote), so the console prints the failure block and the artifacts line from it.
 
@@ -516,8 +538,8 @@ Long engine (JVM) traces are trimmed to the first user frame and the root cause.
 - Rows: `rows_read{input: n|null}`, `rows_written`, `rows_inserted`, `rows_updated`, `rows_deleted`, `rows_dropped`, `rows_quarantined`.
 - Bytes and version: `bytes_written`, `bytes_read` (null unless the engine reports it), `target_version`.
 - Incremental: `watermark_before`, `watermark_after`, `is_incremental`, `full_refresh`.
-- Schema: `schema_hash`, `schema_changes[]`.
-- Quality: `expectations[]{name, kind, action, passed, failed}`, `warnings[]`.
+- Schema: `schema_hash`, `schema_changes[]{kind, column, old, new, action}`.
+- Quality: `expectations[]{name, kind, action, passed, failed, value}` (`passed` is null and `value` is set for aggregate checks), `warnings[]` (expectation warnings and `watermark_seeded: target`). A replayed unit restores them from the stored commit metadata.
 - Error: `{code, category, message, hint, exception_type, trace_excerpt}`.
 - Runtime: `engine`, `engine_version`, `executor`, `orchestrator_ids` (Databricks job, run and task run ids; Airflow dag, run, task and try), `idempotency_token`.
 
@@ -679,9 +701,9 @@ Source: [07-airflow-modes.d2](diagrams/07-airflow-modes.d2).
 - `sql` alias binding;
 - each strategy, including merge deletes, SCD2 history and replace_partitions;
 - the idempotent retry of each strategy with the same token;
-- the schema-change policy matrix;
-- incremental `filter_since` and `max_value`;
-- `evaluate` counts against a reference;
+- the schema-change policy matrix, and `align` (cells that write a changed schema are skipped unless the harness sets `schema_on_read`, meaning old files are read through the table's current schema);
+- incremental `filter_since` (strict and inclusive bounds) and `max_value` types;
+- `evaluate` counts and `apply_drops` against the reference;
 - metrics fields that are non-null where declared;
 - `cancel` stops long work;
 - session cleanup restores settings (L10).
