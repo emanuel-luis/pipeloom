@@ -178,7 +178,9 @@ class JsonTableStore(MutableMapping[str, Rows]):
     def __setitem__(self, key: str, rows: Rows) -> None:
         path = self._path(key)
         tmp = path.with_name(f"{path.name}.{uuid.uuid4().hex}.tmp")
-        tmp.write_bytes(json.dumps(list(rows), ensure_ascii=True, default=_json_default).encode("utf-8"))
+        tmp.write_bytes(
+            json.dumps(list(rows), ensure_ascii=True, default=_json_default).encode("utf-8")
+        )
         os.replace(tmp, path)
 
     def __delitem__(self, key: str) -> None:
