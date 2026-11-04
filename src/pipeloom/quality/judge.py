@@ -93,7 +93,6 @@ def judge(
     now: datetime,
     max_drop_ratio: float | None,
     cached: bool,
-    rows_quarantined: int = 0,
 ) -> QualityReport:
     """`row_counts` come from the full output, `agg_counts` from what is kept after the drops
     (it may be `row_counts` itself when nothing drops)."""
@@ -116,7 +115,7 @@ def judge(
         total_rows=total,
         results=tuple(results),
         rows_dropped=row_counts.dropped,
-        rows_quarantined=rows_quarantined,
+        rows_quarantined=0,  # known only after the quarantine write
         drop_ratio=ratio,
         cached=cached,
         failures=tuple(failures),

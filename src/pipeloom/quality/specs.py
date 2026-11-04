@@ -48,10 +48,15 @@ def build_specs(cfg: ResolvedModelConfig) -> tuple[ExpectationSpec, ...]:
 
 def check_columns(specs: Sequence[ExpectationSpec], schema: Schema) -> list[str]:
     """One message per column an expectation names that the output lacks (PLQ302)."""
-    have = {c.name for c in schema}
+    have = {c.name: c.dtype for c in schema}
     problems: list[str] = []
     for s in specs:
         missing = [c for c in s.columns if c not in have]
         if missing:
             problems.append(f"expectation '{s.name}' names unknown column(s): {', '.join(missing)}")
+        elif s.kind == "regex" and have[s.columns[0]] != "string":
+            problems.append(
+                f"expectation '{s.name}': regex needs a string column, "
+                f"'{s.columns[0]}' is {have[s.columns[0]]}"
+            )
     return problems

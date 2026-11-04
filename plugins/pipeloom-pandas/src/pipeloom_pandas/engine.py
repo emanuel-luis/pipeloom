@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import ast
 import json
+import tokenize
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import replace
 from datetime import UTC
+from io import StringIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -58,6 +61,71 @@ class _Reader:
         return _rel(io.read(self._fmt, spec.location, spec.options))
 
 
+_ALLOWED = (
+    ast.Expression,
+    ast.BoolOp,
+    ast.And,
+    ast.Or,
+    ast.UnaryOp,
+    ast.Not,
+    ast.USub,
+    ast.UAdd,
+    ast.Invert,
+    ast.BinOp,
+    ast.Add,
+    ast.Sub,
+    ast.Mult,
+    ast.Div,
+    ast.FloorDiv,
+    ast.Mod,
+    ast.Pow,
+    ast.BitAnd,
+    ast.BitOr,
+    ast.Compare,
+    ast.Eq,
+    ast.NotEq,
+    ast.Lt,
+    ast.LtE,
+    ast.Gt,
+    ast.GtE,
+    ast.In,
+    ast.NotIn,
+    ast.Name,
+    ast.Load,
+    ast.Constant,
+    ast.Tuple,
+    ast.List,
+)
+
+
+def check_expr(expr: str) -> None:
+    """Allow only column names, literals, comparisons, boolean and arithmetic operators.
+
+    `DataFrame.eval` reaches Python locals and globals through `@name` and calls methods, so an
+    expression from a config file could run code. Reject `@`, calls and attribute access.
+    """
+    for tok in tokenize.generate_tokens(StringIO(expr).readline):
+        if tok.type == tokenize.OP and tok.string == "@":
+            raise ValueError("'@' is not allowed in an expression")
+    tree = ast.parse(expr.strip(), mode="eval")
+    for node in ast.walk(tree):
+        if not isinstance(node, _ALLOWED):
+            raise TypeError(f"{type(node).__name__} is not allowed in an expression")
+
+
+def eval_series(frame: pd.DataFrame, expr: str) -> pd.Series:
+    """Evaluate a checked expression against the columns of `frame` only."""
+    check_expr(expr)
+    result = frame.eval(expr, engine="python", local_dict={}, global_dict={}, resolvers=())
+    if not isinstance(result, pd.Series):
+        raise TypeError(f"expression '{expr}' is not a column expression")
+    return result
+
+
+def _eval_hook(frame: pd.DataFrame, expr: str) -> pd.Series:
+    return eval_series(frame, expr)
+
+
 class _Ops:
     """The pandas side of `pipeloom.builtins.fs_write.FrameOps`."""
 
@@ -77,20 +145,10 @@ class _Ops:
         io.write(native, fmt, path)
 
     def condition(self, native: pd.DataFrame, condition: str) -> Any:
-        result = native.eval(condition, engine="python")
-        if not isinstance(result, pd.Series):
-            raise TypeError(f"update_condition '{condition}' is not a column expression")
-        return result
+        return eval_series(native, condition)
 
 
 _OPS = _Ops()
-
-
-def _eval_hook(frame: pd.DataFrame, expr: str) -> pd.Series:
-    result = frame.eval(expr, engine="python")
-    if not isinstance(result, pd.Series):
-        raise TypeError(f"expression '{expr}' is not a column expression")
-    return result
 
 
 class _Materializer:

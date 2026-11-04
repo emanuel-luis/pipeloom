@@ -163,9 +163,9 @@ def test_judge_with_zero_rows() -> None:
 def test_judge_fail_and_drop_together_and_max_drop_ratio() -> None:
     row = QualityCounts(10, {"neg": 6, "nn": 2}, 6, {})
     agg = QualityCounts(4, {}, 0, {"fresh": NOW - timedelta(seconds=90), "rows": 4})
-    report = judge(_specs(), row, agg, now=NOW, max_drop_ratio=0.5, cached=True, rows_quarantined=6)
+    report = judge(_specs(), row, agg, now=NOW, max_drop_ratio=0.5, cached=True)
     assert report.failures == ("nn", "max_drop_ratio")
-    assert report.rows_dropped == 6 and report.rows_quarantined == 6 and report.cached
+    assert report.rows_dropped == 6 and report.rows_quarantined == 0 and report.cached
     assert report.drop_ratio == 0.6
     fresh = next(r for r in report.results if r.name == "fresh")
     assert fresh.failed == 0 and fresh.value == 90.0
@@ -180,3 +180,74 @@ def test_judge_freshness_with_a_fake_clock() -> None:
     clock.advance(-3600 * 1.5)
     report = judge(spec, counts, counts, now=clock.now(), max_drop_ratio=None, cached=False)
     assert report.failures == ()
+
+
+# -- failure paths ------------------------------------------------------------------------------
+
+SMALL = {
+    "pipeloom.yml": (
+        "config_version: 1\nname: shop\npython_paths: [src]\ntargets:\n  dev:\n"
+        "    engine: {kind: memory, root: store, tables: TABLES}\n"
+        "    catalog: {kind: memory, root: store}\n    naming: {kind: none}\n"
+    ),
+    "models/m.yml": (
+        "models:\n"
+        "  - name: a\n"
+        "    sql: select 1 as id, 5 as v union all select 2, -1 union all select null, 3\n"
+        "    quality: {quarantine: true}\n"
+        "    expectations:\n"
+        "      - {name: v_pos, check: {range: {column: v, min: 0}}, on_violation: drop}\n"
+        "      - {name: id_set, check: {not_null: [id]}, on_violation: FAIL}\n"
+    ),
+}
+
+
+def small(
+    tmp_path: Path, tables: str, action: str, strategy: str = "overwrite"
+) -> tuple[Path, dict[str, Any]]:
+    from tests.conftest import make_project
+
+    write = f"write: {{strategy: {strategy}}}\n    quality:"
+    files = {
+        k: v.replace("TABLES", tables).replace("FAIL", action).replace("quality:", write)
+        for k, v in SMALL.items()
+    }
+    root = make_project(tmp_path, files)
+    outcome, _ = run(root, "dev")
+    assert outcome.exit_code == 1
+    unit = results(root)["results"][0]
+    assert isinstance(unit, dict)
+    return root, unit
+
+
+def test_a_failed_expectation_quarantines_nothing(tmp_path: Path) -> None:
+    root, unit = small(tmp_path, "{}", "fail")
+    assert unit["error"]["code"] == "PLQ301"
+    assert unit["rows_dropped"] == 1 and unit["rows_quarantined"] == 0
+    assert "main.a__quarantine" not in JsonTableStore(root / "store")
+
+
+def test_a_main_schema_rejection_reports_no_quarantined_rows(tmp_path: Path) -> None:
+    tables = "{main.a: [{id: 1, v: 1, extra: x}]}"
+    root, unit = small(tmp_path, tables, "warn", "append")
+    assert unit["error"]["code"] == "PLM202" and "quarantine" not in unit["error"]["message"]
+    assert unit["rows_dropped"] == 1 and unit["rows_quarantined"] == 0
+    assert "main.a__quarantine" not in JsonTableStore(root / "store")
+
+
+def test_a_quarantine_schema_rejection_names_the_quarantine_table(tmp_path: Path) -> None:
+    tables = "{main.a__quarantine: [{id: 1, _pipeloom_failed: 5}]}"
+    root, unit = small(tmp_path, tables, "warn")
+    assert unit["error"]["code"] == "PLM202"
+    assert "main.a__quarantine" in unit["error"]["message"]
+    assert unit["schema_changes"] == [] and unit["rows_quarantined"] == 0
+    assert "main.a" not in JsonTableStore(root / "store")  # the main write never ran
+
+
+def test_regex_needs_a_string_column() -> None:
+    from pipeloom.engine.types import Column
+    from pipeloom.quality import check_columns
+
+    spec = ExpectationSpec("r", "regex", "warn", ("n",), {"pattern": "^1$"})
+    assert check_columns([spec], (Column("n", "int64"),))
+    assert not check_columns([spec], (Column("n", "string"),))
