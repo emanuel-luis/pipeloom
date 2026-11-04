@@ -3,6 +3,7 @@
 import click
 
 from pipeloom.cli._options import PipeloomGroup
+from pipeloom.cli.compile import compile_
 from pipeloom.cli.graph import graph
 from pipeloom.cli.ls import ls
 from pipeloom.cli.plugins import plugins
@@ -17,6 +18,7 @@ def main() -> None:
 
 
 main.add_command(validate)
+main.add_command(compile_, name="compile")
 main.add_command(ls)
 main.add_command(graph)
 main.add_command(schema)

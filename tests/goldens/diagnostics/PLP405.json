@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLP405",
+    "severity": "error",
+    "message": "option 'unique_key' of 'a' is not applied by strategy 'append'",
+    "hint": "remove 'unique_key' or change the strategy or materialization",
+    "location": {
+      "file": "models/m.yml",
+      "line": 4,
+      "col": 43,
+      "json_pointer": "/models/0/write/unique_key"
+    },
+    "context": {
+      "model": "a"
+    }
+  }
+]

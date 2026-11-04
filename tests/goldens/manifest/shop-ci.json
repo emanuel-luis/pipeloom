@@ -1,0 +1,571 @@
+{
+  "schema": "pipeloom.manifest/1",
+  "metadata": {
+    "pipeloom_version": "<version>",
+    "plugins": {
+      "catalogs": {
+        "kind": "memory",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      },
+      "engines": {
+        "kind": "memory",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      },
+      "naming": {
+        "kind": "none",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      }
+    },
+    "config_version": 1,
+    "plan_hash": "a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+    "project": "shop",
+    "target": "ci",
+    "boundary": "process",
+    "python_paths": [
+      "src"
+    ],
+    "vars": {},
+    "env_vars": [],
+    "generated_at": "<generated_at>",
+    "invocation_id": "<invocation_id>"
+  },
+  "nodes": {
+    "model.shop.dim_customers": {
+      "unique_id": "model.shop.dim_customers",
+      "name": "dim_customers",
+      "file": "models/marts/marts.yml",
+      "line": 15,
+      "materialized": "table",
+      "body": {
+        "kind": "python",
+        "callable": "shop.marts:dim_customers",
+        "file": "src/shop/marts.py"
+      },
+      "inputs": {
+        "enriched": "model.shop.orders_enriched"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "dim_customers"
+      },
+      "unit_ids": [
+        "dim_customers"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "overwrite",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [
+          "mart"
+        ],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "meta": {}
+      },
+      "tags": [
+        "mart"
+      ],
+      "checksum": "87a6a8453d20a4e3420ef68fb90430315685d1c37fc6526213ef646b16422987"
+    },
+    "model.shop.fct_orders": {
+      "unique_id": "model.shop.fct_orders",
+      "name": "fct_orders",
+      "file": "models/marts/marts.yml",
+      "line": 8,
+      "materialized": "table",
+      "body": {
+        "kind": "python",
+        "callable": "shop.marts:fct_orders",
+        "file": "src/shop/marts.py"
+      },
+      "inputs": {
+        "enriched": "model.shop.orders_enriched",
+        "payments": "model.shop.stg_payments"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "fct_orders"
+      },
+      "unit_ids": [
+        "fct_orders"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "append",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [
+          "mart"
+        ],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "meta": {}
+      },
+      "tags": [
+        "mart"
+      ],
+      "checksum": "3c942fed5e62654349b88a8b3fa1ac5ff0c76fcd0949caa85e169b03ce40d06b"
+    },
+    "model.shop.orders_enriched": {
+      "unique_id": "model.shop.orders_enriched",
+      "name": "orders_enriched",
+      "file": "models/marts/marts.yml",
+      "line": 2,
+      "materialized": "ephemeral",
+      "body": {
+        "kind": "python",
+        "callable": "shop.enrich:orders_enriched",
+        "file": "src/shop/enrich.py"
+      },
+      "inputs": {
+        "orders": "model.shop.stg_orders",
+        "customers": "model.shop.stg_customers"
+      },
+      "relation": null,
+      "unit_ids": [
+        "dim_customers",
+        "fct_orders"
+      ],
+      "config": {
+        "materialized": "ephemeral",
+        "write": {
+          "strategy": null,
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "meta": {}
+      },
+      "tags": [],
+      "checksum": "9c77f55f1beab7f3e00978de5cf2b6a835bce1ba61437be9fa56f0a6698ee0c6"
+    },
+    "model.shop.rpt_revenue": {
+      "unique_id": "model.shop.rpt_revenue",
+      "name": "rpt_revenue",
+      "file": "models/marts/marts.yml",
+      "line": 20,
+      "materialized": "table",
+      "body": {
+        "kind": "sql",
+        "sql": "select customer_id, sum(amount) as revenue from fct_orders group by customer_id"
+      },
+      "inputs": {
+        "fct_orders": "model.shop.fct_orders"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "rpt_revenue"
+      },
+      "unit_ids": [
+        "rpt_revenue"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "overwrite",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "meta": {}
+      },
+      "tags": [],
+      "checksum": "de4457035c3b09ed329591d31ea2f3d09f31aa404970dbaacf34c970bb5b524a"
+    },
+    "model.shop.stg_customers": {
+      "unique_id": "model.shop.stg_customers",
+      "name": "stg_customers",
+      "file": "models/staging/stg.yml",
+      "line": 2,
+      "materialized": "table",
+      "body": {
+        "kind": "sql",
+        "sql": "select id, lower(email) as email from raw_customers"
+      },
+      "inputs": {
+        "raw_customers": "source.shop.raw_customers"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "stg_customers"
+      },
+      "unit_ids": [
+        "stg_customers"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "overwrite",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [
+          "staging"
+        ],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "meta": {}
+      },
+      "tags": [
+        "staging"
+      ],
+      "checksum": "699122a6b93645c4a842fefb2f0d0899e218072d0368c30eabcd8cc68456cfb1"
+    },
+    "model.shop.stg_orders": {
+      "unique_id": "model.shop.stg_orders",
+      "name": "stg_orders",
+      "file": "models/staging/stg.yml",
+      "line": 5,
+      "materialized": "table",
+      "body": {
+        "kind": "sql",
+        "sql": "select id, customer_id, amount from raw_orders"
+      },
+      "inputs": {
+        "raw_orders": "source.shop.raw_orders"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "stg_orders"
+      },
+      "unit_ids": [
+        "stg_orders"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "overwrite",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [
+          "staging"
+        ],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "meta": {}
+      },
+      "tags": [
+        "staging"
+      ],
+      "checksum": "b7175a767ad5ea42955033b9e65d619ed5bca89fbac14e6f14da89f921ad22e7"
+    },
+    "model.shop.stg_payments": {
+      "unique_id": "model.shop.stg_payments",
+      "name": "stg_payments",
+      "file": "models/staging/stg.yml",
+      "line": 8,
+      "materialized": "table",
+      "body": {
+        "kind": "sql",
+        "sql": "select order_id, amount from raw_payments"
+      },
+      "inputs": {
+        "raw_payments": "source.shop.raw_payments"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "stg_payments"
+      },
+      "unit_ids": [
+        "stg_payments"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "overwrite",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [
+          "staging"
+        ],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "meta": {}
+      },
+      "tags": [
+        "staging"
+      ],
+      "checksum": "1a37ca14b88e4426c136a5281445ffa75d8df4ea8c778e67d1ad32836e9fb734"
+    }
+  },
+  "sources": {
+    "source.shop.raw_customers": {
+      "unique_id": "source.shop.raw_customers",
+      "name": "raw_customers",
+      "file": "models/staging/sources.yml",
+      "format": "memory",
+      "location": "raw/customers",
+      "table": null,
+      "options": {},
+      "tags": []
+    },
+    "source.shop.raw_orders": {
+      "unique_id": "source.shop.raw_orders",
+      "name": "raw_orders",
+      "file": "models/staging/sources.yml",
+      "format": "memory",
+      "location": "raw/orders",
+      "table": null,
+      "options": {},
+      "tags": []
+    },
+    "source.shop.raw_payments": {
+      "unique_id": "source.shop.raw_payments",
+      "name": "raw_payments",
+      "file": "models/staging/sources.yml",
+      "format": "memory",
+      "location": "raw/payments",
+      "table": null,
+      "options": {},
+      "tags": []
+    }
+  },
+  "units": {
+    "dim_customers": [
+      "model.shop.orders_enriched",
+      "model.shop.dim_customers"
+    ],
+    "fct_orders": [
+      "model.shop.orders_enriched",
+      "model.shop.fct_orders"
+    ],
+    "rpt_revenue": [
+      "model.shop.rpt_revenue"
+    ],
+    "stg_customers": [
+      "model.shop.stg_customers"
+    ],
+    "stg_orders": [
+      "model.shop.stg_orders"
+    ],
+    "stg_payments": [
+      "model.shop.stg_payments"
+    ]
+  },
+  "unit_parent_map": {
+    "dim_customers": [
+      "stg_customers",
+      "stg_orders"
+    ],
+    "fct_orders": [
+      "stg_customers",
+      "stg_orders",
+      "stg_payments"
+    ],
+    "rpt_revenue": [
+      "fct_orders"
+    ],
+    "stg_customers": [],
+    "stg_orders": [],
+    "stg_payments": []
+  },
+  "parent_map": {
+    "model.shop.dim_customers": [
+      "model.shop.orders_enriched"
+    ],
+    "model.shop.fct_orders": [
+      "model.shop.orders_enriched",
+      "model.shop.stg_payments"
+    ],
+    "model.shop.orders_enriched": [
+      "model.shop.stg_customers",
+      "model.shop.stg_orders"
+    ],
+    "model.shop.rpt_revenue": [
+      "model.shop.fct_orders"
+    ],
+    "model.shop.stg_customers": [
+      "source.shop.raw_customers"
+    ],
+    "model.shop.stg_orders": [
+      "source.shop.raw_orders"
+    ],
+    "model.shop.stg_payments": [
+      "source.shop.raw_payments"
+    ],
+    "source.shop.raw_customers": [],
+    "source.shop.raw_orders": [],
+    "source.shop.raw_payments": []
+  },
+  "child_map": {
+    "model.shop.dim_customers": [],
+    "model.shop.fct_orders": [
+      "model.shop.rpt_revenue"
+    ],
+    "model.shop.orders_enriched": [
+      "model.shop.dim_customers",
+      "model.shop.fct_orders"
+    ],
+    "model.shop.rpt_revenue": [],
+    "model.shop.stg_customers": [
+      "model.shop.orders_enriched"
+    ],
+    "model.shop.stg_orders": [
+      "model.shop.orders_enriched"
+    ],
+    "model.shop.stg_payments": [
+      "model.shop.fct_orders"
+    ],
+    "source.shop.raw_customers": [
+      "model.shop.stg_customers"
+    ],
+    "source.shop.raw_orders": [
+      "model.shop.stg_orders"
+    ],
+    "source.shop.raw_payments": [
+      "model.shop.stg_payments"
+    ]
+  },
+  "selectors": {
+    "select": [],
+    "exclude": [],
+    "selected": [
+      "model.shop.dim_customers",
+      "model.shop.fct_orders",
+      "model.shop.orders_enriched",
+      "model.shop.rpt_revenue",
+      "model.shop.stg_customers",
+      "model.shop.stg_orders",
+      "model.shop.stg_payments"
+    ]
+  }
+}

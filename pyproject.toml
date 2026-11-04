@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pipeloom"
-version = "0.0.2"
+version = "0.1.0"
 description = "Declarative, engine-agnostic data pipelines in YAML."
 readme = "README.pypi.md"
 requires-python = ">=3.11"
@@ -13,7 +13,7 @@ license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "Emanuel Luis", email = "emanuel.filho08@gmail.com" }]
 keywords = ["data-engineering", "pipelines", "yaml", "declarative", "etl", "orchestration"]
 classifiers = [
-    "Development Status :: 1 - Planning",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",

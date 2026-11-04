@@ -1,6 +1,6 @@
 # pipeloom architecture
 
-> **Status:** Design (pre-0.1). Nothing described here is implemented yet.
+> **Status:** 0.1 implements configuration, validation (L0-L6), the graph, selectors, the plan and manifest, the event bus and the CLI commands `validate`, `compile`, `ls`, `graph`, `schema` and `plugins`. Running a plan, the engines other than the in-memory one and the orchestrator integrations are designed here and arrive in later versions (section 16).
 > Decisions are recorded as ADRs in [adr/](adr/README.md). Diagrams are D2 sources in [diagrams/](diagrams/) with committed SVGs.
 
 ## 1. Vision, goals, non-goals, principles
@@ -58,8 +58,10 @@ Source: [01-context.d2](diagrams/01-context.d2).
 
 ```
 CLI / Python API (pipeloom.api.Project)
-  ├─ config     YAML loader with line marks, pydantic models, schema export
-  ├─ validate   layers L0-L7, error catalog
+  ├─ diagnostics  Diagnostic, Report, Outcome and the error-code catalog (`pipeloom.diagnostics.codes`); a leaf package
+  ├─ platform   Clock and Identity seams
+  ├─ config     YAML loader with line marks, pydantic models, defaults resolution, target binding, schema export
+  ├─ validate   L2 references, L4 plan semantics, L5 capabilities, L6 static code (L0-L1 live in config, L3 in graph)
   ├─ graph      DAG, selectors, topological order, cycle paths
   ├─ plan       Plan, ExecutionUnit, Manifest, plan_hash
   ├─ runtime    Scheduler, Executor(thread|process), ModelRunner, ModelContext
@@ -68,7 +70,8 @@ CLI / Python API (pipeloom.api.Project)
   ├─ events     Event models, EventBus, console/jsonl/file sinks
   ├─ artifacts  manifest.json, run_results.json writers
   ├─ secrets    env provider, interpolation, redaction
-  ├─ plugins    entry-point discovery, API-version gate
+  ├─ plugins    entry-point discovery, built-in table, API-version gate
+  ├─ builtins   naming strategies, filesystem catalog spec, env secret provider
   └─ testing    contract suites, RecordingSink, FakeClock, MemoryEngine
 Plugins: pipeloom-pandas | -polars | -spark | -databricks | -airflow | -openlineage
 ```
@@ -83,7 +86,7 @@ Source: [02-packages.d2](diagrams/02-packages.d2).
 2. **Validate schema:** pydantic models (L0-L1).
 3. **Resolve graph:** bind refs and sources, apply defaults and precedence, apply naming strategies to get physical names, apply selectors (L2-L3).
 4. **Validate plan:** semantics, plugin capabilities and static code checks (L4-L6).
-5. **Compile:** fuse ephemeral models into units for the chosen boundary, then freeze. Output is `Plan` plus `manifest.json` with a `plan_hash` (sha256 of the canonical JSON, excluding timestamps).
+5. **Compile:** fuse ephemeral models into units for the chosen boundary, then freeze. Output is `Plan` plus `manifest.json` with a `plan_hash` (sha256 of the canonical JSON of nodes, sources, units, edges and the project, target, boundary and config version; selection, versions, timestamps and ids are excluded).
 6. **Execute:** the scheduler runs units through an executor. Orchestrated tasks run `pipeloom run --manifest ... --select unit:<id> --expect-plan-hash <h>`.
 7. **Finalize:** merge per-invocation results, write `run_results.json`, commit run state, flush and close sinks.
 
@@ -96,7 +99,7 @@ Source: [03-lifecycle.d2](diagrams/03-lifecycle.d2).
 **Project file.**
 
 ```yaml
-# yaml-language-server: $schema=https://<docs-site>/schema/v1/project.json
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
 config_version: 1
 name: shop
 model_paths: [models]
@@ -108,13 +111,13 @@ targets:
   dev:
     engine: {kind: polars}
     catalog: {kind: filesystem, root: ./warehouse}
-    naming: {strategy: per_user}
+    naming: {kind: per_user}
     state: {kind: sqlite, path: .pipeloom/state.db}
     workers: 4
   prod:
     engine: {kind: spark}
     catalog: {kind: unity, catalog: main}
-    naming: {strategy: prefix, schema_prefix: prod_}
+    naming: {kind: prefix, schema_prefix: prod_}
     state: {kind: table, table: ops._pipeloom_state}
     artifacts: {root: /Volumes/main/ops/pipeloom}
 events:
@@ -147,7 +150,7 @@ models:
     tags: [finance, daily]
 ```
 
-`models/<dir>/_defaults.yml` can set folder-level defaults.
+`_defaults.yml` files set folder-level defaults. They cascade from the model's own folder up to its `model_paths` root, nearest first; mappings merge deeply, lists replace and `tags` is an ordered union without duplicates.
 
 **ADR-0003: Model authoring.**
 - Context: L2 and L14 require declared dependencies and YAML validation. Users still need a real transformation language.
@@ -159,14 +162,14 @@ models:
   - Opt-in SQL table-reference checking via the sqlglot extra warns on mismatch.
 - Consequences: graphs are cheap to build, so Airflow can parse DAG files safely. No Jinja. Reads of undeclared tables through `ctx.engine.native` are a documented escape hatch outside lineage.
 
-**JSON Schema.** `pipeloom schema export --out schemas/` writes `project.json` and `models.json` (draft 2020-12, assumed from pydantic v2; verify) from the pydantic models.
-- Plugin option models (engine, catalog, sink, state) are composed as discriminated unions on `kind`, using the plugins that are installed.
-- The docs site publishes per-version schemas built with all first-party plugins.
+**JSON Schema.** `pipeloom schema export --out schemas/` writes `project.json`, `models.json` and `defaults.json` (draft 2020-12) from the pydantic models.
+- Plugin option models (engine, catalog, sink, state) are composed as `oneOf` branches on `kind`, using the plugins that are installed (`--plugins builtin` limits it to the built-ins).
+- The docs site publishes the schemas of the built-in plugins under `latest/schema/v1/` (and under each version folder).
 - The modeline above enables completion in editors that use yaml-language-server.
 
 **Precedence.**
 - Runtime settings (highest first): CLI flags; `PIPELOOM_*` environment variables (for example `PIPELOOM_TARGET`, `PIPELOOM_WORKERS`); an optional git-ignored user file `~/.pipeloom/profiles.yml` with per-target overrides; the `targets.<t>` block; then top-level project keys.
-- Model config: the model entry; the nearest `_defaults.yml`; then `defaults.models`.
+- Model config: the model entry; `_defaults.yml` files from the nearest folder up to the `model_paths` root; then `defaults.models`; then built-in defaults.
 - Targets may change runtime keys only (engine options, catalog, naming, state, workers, artifacts). They may not change model semantics, so plans differ across targets only in physical names and runtime settings.
 - Interpolation: `${env:NAME}`, `${env:NAME:-default}` and `${var:name}` resolve at compile time and are recorded in the manifest. `${secret:provider/path}` resolves only at runtime (section 14).
 
@@ -309,19 +312,19 @@ Each entry point resolves to a `PluginSpec(name, kind, api_version: tuple[int, i
 
 ## 7. Validation layers and error catalog
 
-Each finding is a `Diagnostic(code, severity, message, hint, location{file,line,col,json_pointer}, context)`. Diagnostics serialize to JSON. The catalog lives in code (`pipeloom.validate.codes`) and generates the docs page. Codes are never reused.
+Each finding is a `Diagnostic(code, severity, message, hint, location{file,line,col,json_pointer}, context)`. Diagnostics serialize to JSON. The catalog lives in code (`pipeloom.diagnostics.codes`) and generates the docs page. Codes are never reused.
 
 | Layer | Prefix | Examples |
 |---|---|---|
-| L0 parse | PLY | PLY001 YAML syntax; PLY002 duplicate key; PLY003 unknown file encoding |
-| L1 schema | PLS | PLS101 unknown field (with "did you mean"); PLS102 type mismatch; PLS103 unsupported `config_version`; PLS104 literal value in a secret-like field |
-| L2 references | PLR | PLR201 unknown ref (fuzzy suggestion); PLR202 duplicate model name; PLR203 unknown source; PLR204 unknown target or plugin kind |
-| L3 graph | PLG | PLG301 cycle (prints the path); PLG302 self-reference; PLG303 selector matched nothing; PLG304 unknown selector method |
-| L4 plan semantics | PLP | PLP401 merge or scd2 without `unique_key`; PLP402 incremental without `column`; PLP403 aggregate expectation with `drop`; PLP404 `incremental.input` not in `inputs`; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning) |
-| L5 capability | PLC | PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 `boundary: task` with a non-shared state store; PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries > 0 |
-| L6 static code | PLK | PLK601 callable file or function not found; PLK602 parameters do not match inputs; PLK603 SQL references undeclared table (warning, opt-in) |
+| L0 parse | PLY | PLY001 YAML syntax, several documents or an alias bomb; PLY002 duplicate key; PLY003 not valid UTF-8; PLY004 project or model file missing or unreadable |
+| L1 schema | PLS | PLS101 unknown field (with "did you mean"); PLS102 type mismatch; PLS103 unsupported `config_version`; PLS104 literal value in a secret-like field; PLS105 required field missing; PLS106 `${env:X}` unset or unknown `${var:x}`; PLS107 malformed interpolation; PLS108 exactly one of a set of fields required |
+| L2 references | PLR | PLR201 unknown ref (fuzzy suggestion); PLR202 duplicate model name; PLR203 unknown source; PLR204 unknown target or plugin kind; PLR205 duplicate source; PLR206 a `model_paths` entry does not exist (warning); PLR207 no target selected |
+| L3 graph | PLG | PLG301 cycle (prints the path); PLG302 self-reference; PLG303 selector matched nothing; PLG304 unknown selector method; PLG305 malformed selector |
+| L4 plan semantics | PLP | PLP401 merge or scd2 without `unique_key`; PLP402 incremental without `column`; PLP403 aggregate expectation with `drop`; PLP404 `incremental.input` not in `inputs`; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 `replace_partitions` without `partition_by`; PLP408 ephemeral model with no consumer (warning) |
+| L5 capability | PLC | PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 `boundary: task` with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries > 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 `frame_api: narwhals` without a portable engine |
+| L6 static code | PLK | PLK601 callable file or function not found; PLK602 parameters do not match inputs; PLK603 SQL references undeclared table (warning, opt-in, 0.2); PLK604 callable name bound by something other than a def (warning) |
 | L7 preflight (opt-in, connects) | PLF | PLF701 engine unreachable; PLF702 source missing; PLF703 target schema drift detected |
-| Runtime | PLX, PLM, PLQ, PLE, PLU | PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict; PLQ301 expectation failed; PLE401 sink disabled; PLU001 plugin API mismatch |
+| Runtime | PLX, PLM, PLQ, PLE, PLU | PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict; PLQ301 expectation failed; PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX107 manifest invalid (0.2) |
 | Renderers | PLD, PLA | PLD001 task limit exceeded; PLD002 submit above 100 tasks; PLA001 unsupported execution mode |
 
 **Commands:**
@@ -508,7 +511,9 @@ Long engine (JVM) traces are trimmed to the first user frame and the root cause.
 - Engines without history count rows instead: `count` on eager frames, or the writer's return value.
 
 **Artifacts.** Layout: `<artifacts.root>/runs/<run_id>/{manifest.json, run_results.json, events/<invocation_id>.jsonl, units/<unit_id>/attempt-<n>.json}`. Local runs also copy the latest into `target/`.
-- `manifest.json` (`pipeloom.manifest/1`): `metadata{pipeloom_version, plugins, config_version, plan_hash, project, target, boundary}`, `nodes{unique_id: resolved config, inputs, checksum}`, `sources`, `units{unit_id: [unique_ids]}`, `parent_map`, `child_map`, `selectors`.
+- `manifest.json` (`pipeloom.manifest/1`): `metadata{pipeloom_version, plugins, config_version, plan_hash, project, target, boundary, python_paths, vars, env_vars, generated_at, invocation_id}`, `nodes{unique_id: resolved config, body, inputs, relation, unit_ids, checksum}`, `sources`, `units{unit_id: [unique_ids]}`, `unit_parent_map{unit_id: [unit_ids]}`, `parent_map`, `child_map`, `selectors{select, exclude, selected}`.
+  - `plan_hash` is the sha256 of the canonical JSON (sorted keys, no spaces) of `nodes`, `sources`, `units`, `unit_parent_map`, `parent_map`, `child_map` and `metadata` reduced to `project`, `target`, `boundary` and `config_version`. Selection, versions, timestamps and ids do not change it. A `per_user` naming strategy puts the user into the relations, so use `none` where the hash must match across machines.
+  - A node `checksum` is the sha256 of its canonical config plus its body (the SQL text, or the callable and its file bytes), with CRLF read as LF.
 - `run_results.json` (`pipeloom.run_results/1`): `metadata`, `args`, `run`, `results[]`.
 - Finalize merges unit files and picks the latest attempt per unit. Run records also go to the state store for history.
 
@@ -685,7 +690,7 @@ Catalog, state-store and sink contract suites follow the same pattern.
 ## 16. Roadmap
 
 - **0.0.2:** reserve the name; skeleton (section 18); CI, release, governance; this document and the ADRs.
-- **0.1:** config models, loader with line marks, L0-L6, graph, selectors (`name`, `+name`, `name+`, `tag:`, `path:`, `materialized:`), plan, manifest, schema export, event bus with console and jsonl sinks. CLI: `validate`, `compile`, `ls`, `graph`, `schema`, `plugins`. A `MemoryEngine` for tests.
+- **0.1:** config models, loader with line marks, L0-L6, graph, selectors (`name`, `+name`, `name+`, `tag:`, `path:`, `materialized:`), plan, manifest, schema export, event bus with console and jsonl sinks. CLI: `validate`, `compile`, `ls`, `graph`, `schema`, `plugins`. A `MemoryEngine` for tests. Deferred to 0.2: PLC503 and PLK603, the `~/.pipeloom/profiles.yml` file, `PIPELOOM_*` variables beyond `PIPELOOM_TARGET`, `PIPELOOM_PROJECT_DIR` and `PIPELOOM_LOG_FORMAT`, and Narwhals support.
 - **0.2:** scheduler, thread and process executors, `pipeloom-polars` and `pipeloom-pandas`, table/view/ephemeral, append and overwrite, sqlite and json state, run_results, the contract suite.
 - **0.3:** incremental, merge, replace_partitions, schema-change policy, expectations and quarantine, retries, timeouts, cancellation.
 - **0.4:** `pipeloom-spark` (Delta and Spark Connect), metrics from commit history, intermediates, idempotent writes, the `table` state store.

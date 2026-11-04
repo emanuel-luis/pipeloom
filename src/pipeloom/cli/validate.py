@@ -33,13 +33,13 @@ def validate(
     log_format: str,
     warn_error: bool,
 ) -> None:
-    """Check the project: YAML, schema, secrets, target and plugin options (L0 to L3)."""
+    """Check the project: YAML, schema, secrets, target and plugin options (L0 to L6)."""
     opts = ProjectOptions(
         project_dir=project_dir, target=target, vars=vars_, plugins=plugins, env=os.environ
     )
     inv = Invocation("validate", log_format)
-    project = Project(opts)
-    outcome = project.resolve()
+    project = Project(opts, invocation_id=inv.invocation_id)
+    outcome = project.validate()
     bound = project.bind().value
     errors = sum(1 for d in outcome.diagnostics if d.severity is Severity.ERROR)
     warnings = sum(1 for d in outcome.diagnostics if d.severity is Severity.WARNING)

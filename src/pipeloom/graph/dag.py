@@ -44,6 +44,18 @@ class Graph:
         return _walk(self.children, node, depth)
 
 
+def inlined_ancestors(graph: Graph, node: str, ephemeral: frozenset[str]) -> frozenset[str]:
+    """Ephemeral ancestors of `node` reachable through ephemeral-only paths."""
+    found: set[str] = set()
+    stack = [node]
+    while stack:
+        for parent in graph.parents.get(stack.pop(), ()):
+            if parent in ephemeral and parent not in found:
+                found.add(parent)
+                stack.append(parent)
+    return frozenset(found)
+
+
 def _walk(edges: Mapping[str, tuple[str, ...]], start: str, depth: int | None) -> frozenset[str]:
     """Nodes reachable in at most `depth` steps (unlimited when None), excluding `start`."""
     seen = {start}

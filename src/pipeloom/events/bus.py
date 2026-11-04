@@ -110,7 +110,12 @@ class EventBus:
 
     def _failed(self, slot: _Slot, exc: Exception, pending: deque[Event]) -> None:
         slot.failures += 1
-        slot.last_error = f"{type(exc).__name__}: {exc}"
+        if isinstance(exc, OSError):
+            # An OS error's text carries absolute paths: name the type and the configured path.
+            where = getattr(slot.sink, "location", None)
+            slot.last_error = type(exc).__name__ + (f" writing {where}" if where else "")
+        else:
+            slot.last_error = f"{type(exc).__name__}: {exc}"
         if slot.failures >= slot.budget:
             self._disable(slot, pending)
 

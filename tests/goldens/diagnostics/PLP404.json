@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLP404",
+    "severity": "error",
+    "message": "incremental.input 'orders' is not an input of 'a'",
+    "hint": "inputs: none",
+    "location": {
+      "file": "models/m.yml",
+      "line": 5,
+      "col": 26,
+      "json_pointer": "/models/0/incremental/input"
+    },
+    "context": {
+      "model": "a"
+    }
+  }
+]

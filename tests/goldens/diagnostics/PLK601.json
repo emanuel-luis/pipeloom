@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLK601",
+    "severity": "error",
+    "message": "module 'missing' of model 'a' not found under python_paths",
+    "hint": "looked for missing.py and missing/__init__.py under src",
+    "location": {
+      "file": "models/m.yml",
+      "line": 2,
+      "col": 23,
+      "json_pointer": "/models/0/python"
+    },
+    "context": {
+      "model": "a",
+      "callable": "missing:a"
+    }
+  }
+]

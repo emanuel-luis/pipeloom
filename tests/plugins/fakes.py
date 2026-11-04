@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 
+from pipeloom.engine.types import EngineCapabilities
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
 
 
@@ -27,6 +28,20 @@ MEMORY_CLONE: PluginSpec[object] = PluginSpec(
 )
 FAKE_ENGINE: PluginSpec[object] = PluginSpec(
     "fake", "fake", "engines", API_VERSION, _build, FakeOptions, description="A fake engine."
+)
+NOSQL: PluginSpec[object] = PluginSpec(
+    "nosql",
+    "nosql",
+    "engines",
+    API_VERSION,
+    _build,
+    FakeOptions,
+    capabilities=EngineCapabilities(
+        formats=frozenset({"memory"}),
+        strategies=frozenset({"append", "overwrite"}),
+        materializations=frozenset({"table", "ephemeral"}),
+    ),
+    description="An engine with no SQL, views, idempotent writes or portable frames.",
 )
 FAKE_SINK: PluginSpec[object] = PluginSpec(
     "tap", "tap", "sinks", API_VERSION, _build, FakeOptions, description="A fake sink."

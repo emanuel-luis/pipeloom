@@ -1,0 +1,2 @@
+error PLK601 models/m.yml:2:23 module 'missing' of model 'a' not found under python_paths
+      hint: looked for missing.py and missing/__init__.py under src

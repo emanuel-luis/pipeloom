@@ -1,0 +1,4 @@
+error PLP401 models/m.yml:4:12 model 'a' uses merge without write.unique_key
+      hint: set write.unique_key to the columns that identify a row
+error PLC501 models/m.yml:4:23 engine 'memory' does not support strategy 'merge' (model 'a')
+      hint: supported: append, overwrite

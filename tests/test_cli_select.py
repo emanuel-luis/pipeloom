@@ -161,13 +161,32 @@ def test_validate_runs_l2_and_l3(tmp_path: Path) -> None:
     assert r.exit_code == 1 and "PLG301" in r.stderr
 
 
-def test_validate_ok_on_graph_project(project: list[str]) -> None:
-    r = run(["validate", *project])
+def test_validate_ok_on_graph_project(tmp_path: Path) -> None:
+    files = dict(FILES)
+    files["models/marts/mart.yml"] = files["models/marts/mart.yml"].replace("view", "table")
+    make_project(tmp_path, files)
+    r = run(["validate", "--project-dir", str(tmp_path)])
     assert r.exit_code == 0
     assert r.stdout.strip() == "Project 'shop' is valid."
+
+
+def test_validate_flags_a_view_on_the_memory_engine(project: list[str]) -> None:
+    r = run(["validate", *project])
+    assert r.exit_code == 1 and "PLC507" in r.stderr
 
 
 def test_ls_events_go_to_stderr(project: list[str]) -> None:
     r = run(["ls", *project, "--log-format", "json"])
     types = [json.loads(line)["type"] for line in r.stderr.splitlines()]
     assert types[0] == "invocation.started" and types[-1] == "invocation.completed"
+
+
+def test_ls_output_text_explicit(project: list[str]) -> None:
+    explicit = run(["ls", *project, "--output", "text", "--select", "stg_a stg_b"])
+    assert explicit.exit_code == 0 and lines(explicit) == ["stg_a", "stg_b"]
+    assert explicit.stdout == run(["ls", *project, "--select", "stg_a stg_b"]).stdout
+
+
+def test_graph_output_text_explicit(project: list[str]) -> None:
+    explicit = run(["graph", *project, "--output", "text", "--select", "stg_a mart"])
+    assert explicit.exit_code == 0 and lines(explicit) == ["stg_a", "mart <- stg_a"]

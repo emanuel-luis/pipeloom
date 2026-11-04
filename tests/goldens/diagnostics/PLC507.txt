@@ -1,0 +1,2 @@
+error PLC507 models/m.yml:2:44 engine 'memory' has no catalog views (model 'a')
+      hint: use table, or an engine with views

@@ -1,0 +1,33 @@
+[
+  {
+    "code": "PLP401",
+    "severity": "error",
+    "message": "model 'a' uses merge without write.unique_key",
+    "hint": "set write.unique_key to the columns that identify a row",
+    "location": {
+      "file": "models/m.yml",
+      "line": 4,
+      "col": 12,
+      "json_pointer": "/models/0/write/unique_key"
+    },
+    "context": {
+      "model": "a"
+    }
+  },
+  {
+    "code": "PLC501",
+    "severity": "error",
+    "message": "engine 'memory' does not support strategy 'merge' (model 'a')",
+    "hint": "supported: append, overwrite",
+    "location": {
+      "file": "models/m.yml",
+      "line": 4,
+      "col": 23,
+      "json_pointer": "/models/0/write/strategy"
+    },
+    "context": {
+      "model": "a",
+      "engine": "memory"
+    }
+  }
+]

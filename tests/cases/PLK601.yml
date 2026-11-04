@@ -1,0 +1,11 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    targets:
+      dev:
+        engine: {kind: memory}
+  models/m.yml: |
+    models:
+      - {name: a, python: "missing:a"}

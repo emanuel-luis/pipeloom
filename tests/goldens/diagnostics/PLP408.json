@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLP408",
+    "severity": "warning",
+    "message": "ephemeral model 'e' has no consumer",
+    "hint": "no persisted model reads it, so it never runs",
+    "location": {
+      "file": "models/m.yml",
+      "line": 2,
+      "col": 12,
+      "json_pointer": "/models/0/name"
+    },
+    "context": {
+      "model": "e"
+    }
+  }
+]

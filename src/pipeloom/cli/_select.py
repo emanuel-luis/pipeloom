@@ -45,7 +45,7 @@ def resolve_selection(
     opts = ProjectOptions(
         project_dir=project_dir, target=target, vars=vars_, plugins=plugins, env=os.environ
     )
-    project = Project(opts)
+    project = Project(opts, invocation_id=inv.invocation_id)
     outcome = project.resolve()
     bound = project.bind().value
     if outcome.value is None:

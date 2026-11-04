@@ -1,0 +1,2 @@
+error PLK602 models/m.yml:2:23 parameters of 'm:a' do not match the inputs of 'a': missing ['x'], unexpected ['y']
+      hint: expected (ctx, x)

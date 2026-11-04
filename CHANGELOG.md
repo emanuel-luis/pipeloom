@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-04
+
+First functional release: configuration, layered validation, the dependency graph, selectors,
+the plan and manifest, the event bus and the CLI. Running plans comes in 0.2.
+
 ### Added
 
 - Diagnostics package with the full error-code catalog (active and reserved codes), text and JSON rendering.
@@ -29,15 +34,21 @@ All notable changes to this project are documented here. The format follows
 - Typed events (`pipeloom.event/1`) and a synchronous event bus with failure budgets, redaction and context-manager close; `console`, `jsonl` and buffered sinks; code PLE401 (ADR-0018).
 - `--log-format text|json` (`PIPELOOM_LOG_FORMAT`) on every command; `console` and `jsonl` sinks configurable under `events.sinks`.
 - `pipeloom.testing.RecordingSink` and `FakeClock`.
+- Plan model (`pipeloom.plan`): frozen `Plan`, `PlanNode`, `ExecutionUnit`; one unit per non-ephemeral model with its inlined ephemeral ancestors, identical for both boundaries; target relations from the bound naming strategy.
+- Manifest `pipeloom.manifest/1` with `plan_hash` and per-node checksums (CRLF read as LF), `write_manifest`, `read_manifest` and `compute_plan_hash`.
+- L4 plan semantics (PLP401 to PLP408), L5 capability checks read from the engine spec without importing it (PLC501, PLC502, PLC504 to PLC508) and L6 static checks of Python callables (PLK601, PLK602, PLK604).
+- `Project.validate()` and `Project.compile(selection, boundary)` in the API; `pipeloom validate` now runs L0 to L6.
+- `pipeloom compile` with the selection options, `--boundary`, `--out` and `--warn-error`; it emits `plan.compiled` and `artifact.written`.
+- Generated docs: error codes, JSON Schemas under `schema/v1/`, the command-line reference, a quickstart and the schema guide.
 
 ### Changed
 
-- `pipeloom validate` now runs L0 to L3: reference checks and the graph.
 - `pipeloom validate` binds the selected target and checks plugin options, and accepts `--target` and `--plugin`.
 - Diagnostics and the run summary go to stderr through the event bus; the summary line now reads `<command> finished in N ms | exit C | E error(s), W warning(s)`. `rich>=13.7` is a new dependency.
 - PLS104 matches secret words in key segments (`max_tokens` is no longer flagged) and ignores booleans.
 - The CLI needs `click>=8.2`; runtime dependencies now include pydantic and PyYAML.
 - CI tests Python 3.11 to 3.14 on Ubuntu, Windows and macOS now that the repository is public.
+- PLE401 names the exception type and the sink's configured path instead of the OS error text.
 
 ## [0.0.2] - 2026-10-29
 
@@ -50,5 +61,6 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.0.2...v0.1.0
 [0.0.2]: https://github.com/emanuel-luis/pipeloom/releases/tag/v0.0.2

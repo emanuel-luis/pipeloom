@@ -1,0 +1,2 @@
+error PLP405 models/m.yml:4:43 option 'unique_key' of 'a' is not applied by strategy 'append'
+      hint: remove 'unique_key' or change the strategy or materialization

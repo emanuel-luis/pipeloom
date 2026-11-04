@@ -111,3 +111,18 @@ def test_validate_passes_the_live_environment_mapping(monkeypatch: pytest.Monkey
     monkeypatch.setattr(Project, "load", spy)
     run(["validate", "--project-dir", str(MINIMAL)])
     assert seen and seen[0] is os.environ
+
+
+def test_validate_runs_l4_to_l6(tmp_path: Path) -> None:
+    shop = FIXTURES / "shop"
+    ok = run(["validate", "--project-dir", str(shop), "--target", "ci"])
+    assert ok.exit_code == 0 and ok.stdout.strip() == "Project 'shop' is valid."
+    make_project(
+        tmp_path,
+        {
+            "pipeloom.yml": BASE,
+            "models/m.yml": "models:\n  - {name: a, sql: select 1, write: {strategy: merge}}\n",
+        },
+    )
+    bad = run(["validate", "--project-dir", str(tmp_path)])
+    assert bad.exit_code == 1 and "PLP401" in bad.stderr and "PLC501" in bad.stderr

@@ -1,0 +1,2 @@
+error PLC506 models/m.yml:2:25 source 'raw' has format 'parquet', which engine 'memory' cannot read
+      hint: supported formats: memory

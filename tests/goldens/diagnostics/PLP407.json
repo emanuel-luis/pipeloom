@@ -1,0 +1,33 @@
+[
+  {
+    "code": "PLP407",
+    "severity": "error",
+    "message": "model 'a' uses replace_partitions without partition_by",
+    "hint": "set partition_by to the partition columns",
+    "location": {
+      "file": "models/m.yml",
+      "line": 2,
+      "col": 11,
+      "json_pointer": "/models/0/name"
+    },
+    "context": {
+      "model": "a"
+    }
+  },
+  {
+    "code": "PLC501",
+    "severity": "error",
+    "message": "engine 'memory' does not support strategy 'replace_partitions' (model 'a')",
+    "hint": "supported: append, overwrite",
+    "location": {
+      "file": "models/m.yml",
+      "line": 4,
+      "col": 23,
+      "json_pointer": "/models/0/write/strategy"
+    },
+    "context": {
+      "model": "a",
+      "engine": "memory"
+    }
+  }
+]
