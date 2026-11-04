@@ -146,7 +146,22 @@ class ConsoleSink:
         if event.type == "unit.failed":
             err = d["error"]
             what = f"{err['code']} {err['exception_type'] or ''}".rstrip()
-            return f"{head}FAIL   {label} {what} {_secs(d['duration_ms'])}"
+            line = f"{head}FAIL   {label} {what} {_secs(d['duration_ms'])}"
+            if self._in_run:  # the run summary prints the block
+                return line
+            pad = " " * 9
+            block = [f"{pad}{err['code']} {err['message']}"]
+            if err.get("hint"):
+                block.append(f"{pad}hint: {err['hint']}")
+            frames = [t for t in err.get("trace_excerpt", [])[:-1] if _FRAME.match(t)]
+            loc = err.get("location") or {}
+            if frames:
+                block.append(f"{pad}at {frames[-1]}")
+            elif loc.get("file"):
+                block.append(
+                    f"{pad}at {loc['file']}" + (f":{loc['line']}" if loc.get("line") else "")
+                )
+            return "\n".join([line, *block])
         if event.type == "unit.skipped":
             why = f"upstream {d['upstream']} failed" if d["upstream"] else "stopped by --fail-fast"
             return f"{head}SKIP   {label} {why}"

@@ -187,7 +187,13 @@ class ProcessExecutor:
             except ValueError:  # not an event: keep it in the log
                 note(line)
                 return
-            if not event.type.startswith(_NOT_RELAYED) and event.type != "diagnostic":
+            if event.type == "diagnostic":  # the reason a child stopped before its unit ran
+                where = event.data.get("location")
+                at = ""
+                if isinstance(where, dict) and where.get("file"):
+                    at = f" ({where['file']}" + (f":{where['line']})" if where.get("line") else ")")
+                note(f"{event.data.get('code')} {event.data.get('message')}{at}")
+            elif not event.type.startswith(_NOT_RELAYED):
                 self._bus.forward(event)
             return
         note(line)

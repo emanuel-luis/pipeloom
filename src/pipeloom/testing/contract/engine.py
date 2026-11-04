@@ -268,6 +268,7 @@ class EngineContract:
 
     def test_a_view_sees_an_upstream_overwrite(self, h: EngineHarness, tmp_path: Path) -> None:
         requires(h, "views")
+        requires(h, "sql_models")  # the view is a SQL query
         requires(h, "strategies", "overwrite")
         with self.session(h, tmp_path) as s:
             self.write(s, h, "t_up", ROWS, "overwrite", "r:1")

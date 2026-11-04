@@ -142,7 +142,8 @@ def run(
     if bound is not None:
         root = artifacts_root(bound, bound.loaded.project_dir.resolve())
         invocation = inv.invocation_id
-        extra.append((RunFileSink(lambda rid: RunPaths(root, rid).events(invocation)), 5))
+        fallback = root / "runs" / "_invocations" / f"{invocation}.jsonl"
+        extra.append((RunFileSink(lambda rid: RunPaths(root, rid).events(invocation), fallback), 5))
     bus = inv.open_bus(
         bound,
         project_sinks=parent is None,  # a child reports to its parent only

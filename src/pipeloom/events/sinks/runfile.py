@@ -20,8 +20,10 @@ class RunFileSink:
     name = "run_file"
     forwarded = False
 
-    def __init__(self, path_for: Callable[[str], Path]) -> None:
+    def __init__(self, path_for: Callable[[str], Path], fallback: Path | None = None) -> None:
         self._path_for = path_for
+        self._fallback = fallback
+        """Where held events go when the invocation ends without ever having a run id."""
         self._held: list[Event] = []
         self._fh: TextIO | None = None
 
@@ -44,6 +46,11 @@ class RunFileSink:
             self._fh.flush()
 
     def close(self) -> None:
+        if self._fh is None and self._held and self._fallback is not None:
+            self._fallback.parent.mkdir(parents=True, exist_ok=True)
+            with self._fallback.open("w", encoding="utf-8", newline="\n") as fh:
+                fh.writelines(dumps(e) + "\n" for e in self._held)
+            self._held = []
         if self._fh is not None:
             self._fh.close()
             self._fh = None

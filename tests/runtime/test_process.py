@@ -243,3 +243,26 @@ def test_a_bad_manifest_is_plx107(tmp_path: Path, edit: str) -> None:
     assert outcome.diagnostics[0].location is not None
     assert outcome.diagnostics[0].location.file == "target/m.json"
     assert outcome.exit_code == 1
+
+
+def test_a_child_that_stops_before_its_unit_leaves_its_reason(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real = ChildCommand.argv
+
+    def wrong_hash(self: ChildCommand, unit_id: str) -> list[str]:
+        argv = real(self, unit_id)
+        argv[argv.index("--expect-plan-hash") + 1] = "0" * 64
+        return argv
+
+    monkeypatch.setattr(ChildCommand, "argv", wrong_hash)
+    root = project_dir(tmp_path)
+    outcome, _ = run(root, RunOptions(run_id="r1", workers=1))
+    (plx106,) = [d for d in outcome.diagnostics if d.code == "PLX106"][:1]
+    log = (root / "target/runs/r1/logs/a-attempt-1.log").read_text(encoding="utf-8")
+    assert "PLX103" in log
+    row = json.loads((root / "target/runs/r1/units/a/attempt-1.json").read_bytes())
+    assert any("PLX103" in line for line in row["error"]["trace_excerpt"])
+    assert plx106.context["unit"] == "a"
+    # the child had no run id yet, so its events went to the fallback file
+    assert list((root / "target/runs/_invocations").glob("*.jsonl"))

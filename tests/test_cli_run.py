@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -394,3 +396,13 @@ def test_a_child_reports_to_its_parent_only(root: Path) -> None:
     assert {e.context.get("parent_invocation_id") for e in events(r)} == {"up"}
     plain = pipeloom(root, "-s", "a", "--run-id", "r2")
     assert plain.exit_code == 0 and (root / "out" / "events.jsonl").is_file()
+
+
+def test_unit_mode_text_shows_the_failure_block(
+    root: Path, golden: Callable[[str, str], None]
+) -> None:
+    r = pipeloom(root, "-s", "unit:bad", "--run-id", "r1", fmt="text")
+    assert r.exit_code == 1
+    lines = [ln for ln in r.stderr.splitlines() if "FAIL" in ln or ln.startswith("         ")]
+    text = "".join(re.sub(r"^\d\d:\d\d:\d\d ", "", ln) + "\n" for ln in lines)
+    golden("events/console_unit.txt", re.sub(r"\d+\.\d\ds", "0.00s", text))

@@ -107,3 +107,13 @@ def test_a_task_run_prints_the_units_the_children_finished(tmp_path: Path) -> No
     assert r.exit_code == 0, r.stderr
     assert "executor process" in r.stderr and "1/1 OK" in r.stderr
     assert r.stderr.count("1/1 OK") == 1
+
+
+def test_run_file_sink_without_a_run_id_writes_the_fallback(tmp_path: Path) -> None:
+    fallback = tmp_path / "runs" / "_invocations" / "i.jsonl"
+    sink = RunFileSink(lambda rid: tmp_path / rid / "e.jsonl", fallback)
+    with EventBus([(sink, 5)], clock=clock(), invocation_id="i") as bus:
+        bus.emit(UnitQueued(downstream=0), unit_id="only")
+    assert [
+        json.loads(ln)["unit_id"] for ln in fallback.read_text(encoding="utf-8").splitlines()
+    ] == ["only"]
