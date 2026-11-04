@@ -939,6 +939,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../0019-yaml-dialect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-0019: YAML dialect: PyYAML with YAML 1.2 core scalars
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1065,7 +1093,7 @@
 <h2 id="options">Options</h2>
 <ul>
 <li><strong>Python floor:</strong> 3.10 (reaches end of life in October 2026) or 3.11.</li>
-<li><strong>CLI:</strong> click (the 0.0.2 skeleton depends on <code>click&gt;=8.1</code>).</li>
+<li><strong>CLI:</strong> click (<code>click&gt;=8.2</code>, for <code>CliRunner</code> to expose <code>result.stderr</code>; the 0.0.2 skeleton depended on <code>click&gt;=8.1</code>).</li>
 <li><strong>Config models:</strong> pydantic v2, which also exports the JSON Schema (section 4).</li>
 <li><strong>Build backend:</strong> hatchling.</li>
 <li><strong>Types:</strong> mypy in strict mode.</li>
@@ -1075,7 +1103,7 @@
 <h2 id="consequences">Consequences</h2>
 <ul>
 <li>Code may use 3.11 features, and users on 3.10 cannot install pipeloom.</li>
-<li>The package has one runtime dependency (<code>click</code>) at 0.0.2.</li>
+<li>The package had one runtime dependency (<code>click</code>) at 0.0.2. From 0.1 the CLI needs <code>click&gt;=8.2</code>, and the runtime also depends on <code>pydantic&gt;=2.12</code> and <code>PyYAML&gt;=6.0.2</code>.</li>
 <li><code>pyproject.toml</code> and CI follow this ADR.</li>
 <li>While the repo was private, CI ran one Windows and one macOS job on 3.12 only, to save macOS minutes. The full matrix returned when the repo went public on 2026-11-02.</li>
 </ul>

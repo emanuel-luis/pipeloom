@@ -2,82 +2,86 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/architecture/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0000-template/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0001-record-architecture-decisions/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0002-engine-abstraction/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0003-model-authoring/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0004-plugin-discovery/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0005-packaging/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0006-ready-queue-scheduler/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0007-data-handoff/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0008-incremental-and-state/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0009-expectations-and-quarantine/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0010-events-sinks-artifacts/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0011-databricks-job-rendering/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0012-airflow-rendering-and-modes/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0013-run-identity-and-reruns/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0014-secrets-by-reference/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0015-python-version-and-toolchain/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0016-versioning-and-plugin-api/</loc>
-         <lastmod>2026-11-02</lastmod>
+         <lastmod>2026-11-04</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0019-yaml-dialect/</loc>
+         <lastmod>2026-11-04</lastmod>
     </url>
 </urlset>
