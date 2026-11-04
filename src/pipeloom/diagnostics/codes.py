@@ -175,7 +175,7 @@ _ACTIVE: Final = (
         W,
         "Sink disabled",
         (
-            "An event sink failed more times in a row than its failure_budget and was disabled. "
+            "An event sink failed failure_budget times in a row and was disabled. "
             "The other sinks keep receiving events and get a sink.disabled event."
         ),
     ),

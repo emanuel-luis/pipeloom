@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, ClassVar, Final, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_serializer
 
 from pipeloom.diagnostics import Diagnostic, Severity
 
@@ -18,10 +18,6 @@ class Level(StrEnum):
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
-
-
-# Fields typed `dict[str, Any]` hold JSON objects: pydantic cannot build the recursive JsonValue
-# alias used elsewhere, and `model_dump(mode="json")` already guarantees JSON-safe output.
 
 
 class Event(BaseModel):
@@ -40,7 +36,7 @@ class Event(BaseModel):
     unit_id: str | None = None
     model: str | None = None
     attempt: int | None = None
-    data: dict[str, Any]
+    data: dict[str, JsonValue]
     context: dict[str, str] = Field(default_factory=dict)
 
     @field_serializer("ts")
@@ -75,7 +71,7 @@ class InvocationStarted(EventPayload):
     TYPE = "invocation.started"
 
     command: str
-    args: dict[str, Any]
+    args: dict[str, JsonValue]
     pipeloom_version: str
     project: str | None
     target: str | None
@@ -88,8 +84,8 @@ class DiagnosticEmitted(EventPayload):
     severity: str
     message: str
     hint: str | None
-    location: dict[str, Any] | None
-    context: dict[str, Any]
+    location: dict[str, JsonValue] | None
+    context: dict[str, JsonValue]
 
     @classmethod
     def from_diagnostic(cls, d: Diagnostic) -> DiagnosticEmitted:

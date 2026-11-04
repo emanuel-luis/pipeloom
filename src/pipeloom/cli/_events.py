@@ -11,7 +11,7 @@ import click
 
 import pipeloom
 from pipeloom.config.bind import BoundProject
-from pipeloom.diagnostics import Diagnostic, JsonValue, Severity
+from pipeloom.diagnostics import Diagnostic, Severity
 from pipeloom.events.bus import EventBus, EventSink
 from pipeloom.events.model import (
     ArtifactWritten,
@@ -28,7 +28,7 @@ from pipeloom.platform import SystemClock
 TERMINAL_BUDGET = 5
 
 
-def _json_arg(value: Any) -> JsonValue:
+def _json_arg(value: Any) -> Any:
     if isinstance(value, Path):
         return value.as_posix()
     if isinstance(value, tuple | list):
@@ -38,12 +38,12 @@ def _json_arg(value: Any) -> JsonValue:
     return str(value)
 
 
-def _context_args() -> dict[str, JsonValue]:
+def _context_args() -> dict[str, Any]:
     """The current command's options. --vars values may hold secrets, so only names are kept."""
     ctx = click.get_current_context(silent=True)
     if ctx is None:
         return {}
-    args: dict[str, JsonValue] = {}
+    args: dict[str, Any] = {}
     for key, value in sorted(ctx.params.items()):
         if key == "vars_":
             if value:

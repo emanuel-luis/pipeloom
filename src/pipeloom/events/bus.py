@@ -34,6 +34,7 @@ class _Slot:
     name: str
     failures: int = 0
     disabled: bool = False
+    last_error: str = ""
 
 
 def _emit(event: Event, sink: EventSink) -> None:
@@ -52,7 +53,7 @@ class EventBus:
     """Fans events out to sinks in the configured order.
 
     One lock covers sequence numbers and fan-out, so every sink sees the same order. A sink
-    that raises `Exception` more than `failure_budget` times in a row is disabled and the
+    that raises `Exception` `failure_budget` times in a row is disabled and the
     remaining sinks get a `sink.disabled` event. `BaseException` (Ctrl+C, SystemExit)
     propagates. Sinks must not call back into the bus: the lock is not re-entrant.
     """
@@ -102,26 +103,20 @@ class EventBus:
         )
         return self._redactor.redact(event) if self._redactor else event
 
+    def _disable(self, slot: _Slot, pending: deque[Event]) -> None:
+        slot.disabled = True
+        payload = SinkDisabled(sink=slot.name, failures=slot.failures, error=slot.last_error)
+        pending.append(self._make(payload, None, None, None, None))
+
     def _failed(self, slot: _Slot, exc: Exception, pending: deque[Event]) -> None:
         slot.failures += 1
-        if slot.failures < slot.budget:
-            return
-        slot.disabled = True
-        pending.append(
-            self._make(
-                SinkDisabled(
-                    sink=slot.name,
-                    failures=slot.failures,
-                    error=f"{type(exc).__name__}: {exc}",
-                ),
-                None,
-                None,
-                None,
-                None,
-            )
-        )
+        slot.last_error = f"{type(exc).__name__}: {exc}"
+        if slot.failures >= slot.budget:
+            self._disable(slot, pending)
 
-    def _each(self, action: Callable[[EventSink], None], pending: deque[Event]) -> None:
+    def _each(
+        self, action: Callable[[EventSink], None], pending: deque[Event], *, resets: bool = False
+    ) -> None:
         for slot in self._slots:
             if slot.disabled:
                 continue
@@ -130,13 +125,14 @@ class EventBus:
             except Exception as exc:  # noqa: BLE001 - a sink must never break the pipeline
                 self._failed(slot, exc, pending)
             else:
-                slot.failures = 0
+                if resets:  # only a delivered event ends a streak of failed deliveries
+                    slot.failures = 0
 
     def _drain(self, pending: deque[Event]) -> None:
         # Iterative on purpose: a sink.disabled event may itself disable another sink.
         while pending:
             event = pending.popleft()
-            self._each(partial(_emit, event), pending)
+            self._each(partial(_emit, event), pending, resets=True)
 
     def emit(
         self,
@@ -169,6 +165,10 @@ class EventBus:
             self._closed = True
             pending: deque[Event] = deque()
             self._each(_flush, pending)
+            # A sink still failing at the end is reported before it is closed.
+            for slot in self._slots:
+                if not slot.disabled and slot.failures > 0:
+                    self._disable(slot, pending)
             self._drain(pending)
             # Sinks disabled while closing still get closed; a failure here is not counted.
             for slot in self._slots:

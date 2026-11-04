@@ -24,7 +24,7 @@ Every command is an invocation with its own `invocation_id` and an event bus.
 - A command collects what it finds and emits at the end, in this order: `invocation.started`, diagnostics (sorted by file, line, column, code), `plan.compiled` and `artifact.written` if any, `invocation.completed`.
 - `--log-format text|json` (`PIPELOOM_LOG_FORMAT`) picks the terminal sink: `console` (text) or `jsonl` to stderr (json). Sinks listed under `events.sinks` in `pipeloom.yml` are added after the project loads and binds. Stdout stays for command results.
 - `console` and `jsonl` are built-in sink plugins. `failure_budget`, `buffered` and `buffer_size` apply to every sink. The `jsonl` sink takes an optional `path`, relative to the project directory; without it the sink writes to stderr.
-- A sink that fails more than its budget in a row is disabled (PLE401, a warning) and the other sinks receive `sink.disabled`.
+- A sink that fails `failure_budget` times in a row is disabled (PLE401, a warning) and the other sinks receive `sink.disabled`. A sink that is still failing when the bus closes gets the same notice, so failures below the budget are not silent.
 
 ## Consequences
 

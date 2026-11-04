@@ -181,3 +181,12 @@ def test_no_diagnostic_printer_module_is_left() -> None:
     import importlib.util
 
     assert importlib.util.find_spec("pipeloom.cli._output") is None
+
+
+def test_a_jsonl_sink_that_cannot_write_gets_a_ple401_warning(tmp_path: Path) -> None:
+    args = project(tmp_path, "events:\n  sinks:\n    - {kind: jsonl, path: target}\n")
+    (tmp_path / "target").mkdir()
+    result = run(["validate", *args])
+    assert result.exit_code == 0
+    assert "warning PLE401 sink 'jsonl' disabled" in result.stderr
+    assert (tmp_path / "target").is_dir()

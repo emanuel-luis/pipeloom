@@ -104,3 +104,19 @@ def test_fake_clock_and_recording_sink_helpers() -> None:
     rec.assert_sequence("a", "c")
     with pytest.raises(AssertionError):
         rec.assert_sequence("c", "a")
+
+
+def test_event_data_must_be_json() -> None:
+    from datetime import date
+
+    with pytest.raises(ValidationError):
+        Event(
+            id="a",
+            run_id=None,
+            invocation_id="i",
+            seq=1,
+            ts=datetime(2026, 1, 1, tzinfo=UTC),
+            type="t",
+            level=Level.INFO,
+            data={"when": date(2026, 1, 1)},  # type: ignore[dict-item]
+        )

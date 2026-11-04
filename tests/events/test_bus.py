@@ -191,3 +191,40 @@ def test_redactor_runs_before_sinks_and_on_the_returned_event() -> None:
     )
     assert event.data["command"] == "***" and rec.events[0] == event
     assert event.context == {"k": "x ***"}
+
+
+def test_a_clean_flush_does_not_reset_the_failure_count() -> None:
+    bad, good = RecordingSink(fail_on="*"), RecordingSink()
+    bus = make_bus((bad, 3), (good, 5))
+    for _ in range(3):
+        bus.emit(started())
+        bus.flush()
+    assert good.types().count("sink.disabled") == 1
+
+
+def test_close_reports_a_sink_still_failing_below_its_budget() -> None:
+    bad, good = RecordingSink(fail_on="*"), RecordingSink()
+    bus = make_bus((bad, 5), (good, 5))
+    bus.emit(started())
+    bus.emit(started())
+    assert "sink.disabled" not in good.types()
+    bus.close()
+    notice = good.events[-1]
+    assert notice.type == "sink.disabled" and notice.data["failures"] == 2
+    assert notice.data["error"] == "RuntimeError: recording sink told to fail on invocation.started"
+    assert bad.closed and good.closed
+
+
+def test_close_stays_quiet_for_a_sink_that_recovered() -> None:
+    class Once(RecordingSink):
+        def emit(self, event: Event) -> None:
+            if event.seq == 1:
+                raise RuntimeError("once")
+            super().emit(event)
+
+    good = RecordingSink()
+    bus = make_bus((Once(), 5), (good, 5))
+    bus.emit(started())
+    bus.emit(started())
+    bus.close()
+    assert "sink.disabled" not in good.types()
