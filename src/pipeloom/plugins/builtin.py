@@ -19,6 +19,10 @@ BUILTINS: Final[Mapping[Group, Mapping[str, str]]] = {
         "prefix": "pipeloom.builtins.naming:PREFIX_SPEC",
     },
     "secret_providers": {"env": "pipeloom.builtins.secrets_env:SPEC"},
+    "state_stores": {
+        "json": "pipeloom.state.jsondir:SPEC",
+        "sqlite": "pipeloom.state.sqlite:SPEC",
+    },
     "sinks": {
         "console": "pipeloom.events.sinks.console:SPEC",
         "jsonl": "pipeloom.events.sinks.jsonl:SPEC",
