@@ -272,8 +272,10 @@ class Executor(Protocol):
     name: str
     boundary: str                                    # "process" | "task"
     def submit(self, unit_id: str, *, queued_at: float) -> "UnitHandle": ...
-    def wait_any(self) -> "UnitCompletion": ...     # blocks on the completion queue
-    def cancel(self, handle: "UnitHandle") -> bool: ...   # not called before 0.3
+    def wait_any(self, timeout: float | None) -> "UnitCompletion | None": ...  # None on timeout or wake
+    def cancel(self, handle: "UnitHandle", reason: str, *, final: bool = False) -> bool: ...  # timeout and final also abandon the unit
+    def has_terminal_event(self, handle: "UnitHandle") -> bool: ...  # a child process already emitted its own
+    def wake(self) -> None: ...                      # unblocks wait_any; safe from a signal handler
     def shutdown(self, *, wait: bool) -> None: ...
 
 class Clock(Protocol):
@@ -379,7 +381,7 @@ pending → cancelled (run cancelled)
 queued  → cancelled (run cancelled)
 ```
 
-The transition table is checked in code (`pipeloom.runtime.states`). A skipped unit carries a reason: `upstream_failed` (with the failed upstream) or `fail_fast`. In 0.2 `retrying`, `timed_out` and `running → cancelled` are not reachable yet; they arrive in 0.3.
+The transition table is checked in code (`pipeloom.runtime.states`). `retrying -> cancelled` is part of it: a stop request, or fail-fast, cancels a unit that waits for its next attempt. A skipped unit carries a reason: `upstream_failed` (with the failed upstream) or `fail_fast`.
 
 **Run state machine:** `created → compiled → running → succeeded | failed | cancelled`. A run with warnings is still `succeeded`.
 
@@ -387,13 +389,15 @@ The transition table is checked in code (`pipeloom.runtime.states`). A skipped u
 
 Source: [04-state-machines.d2](diagrams/04-state-machines.d2).
 
-**Policies:**
-- **Retries:** `retries` (default 0) and `retry_delay` (exponential with jitter, capped). Errors classify as `transient` (IO, connection, engine-declared) or `permanent` (user code, validation, quality fail). Only transient errors retry unless `retry_on: any`.
-- **Retry ownership:** with `boundary: task`, the orchestrator owns retries. `pipeloom run --select unit:...` then runs with internal retries off and reads the attempt number from orchestrator context.
-- **Timeouts:** per-unit `timeout`.
-  - The thread executor cannot kill threads. On timeout it marks the unit `timed_out`, calls `EngineSession.cancel(unit_id)` (for example a Spark job-group or Spark Connect interrupt tag) and discards any late result.
-  - The process executor kills the child process.
-- **Cancellation:** SIGINT or SIGTERM stops dequeuing, cancels running units, waits `cancel_grace` (default 30 s), then marks the rest `cancelled`. Exit code 130.
+**Policies** (ADR-0029):
+- **Retries:** `retries` (default 0), `retry_delay` (default 1s) and `retry_on` (`transient`, the default, or `any`). The scheduler keeps a retry heap and never sleeps: a failed attempt with retries left moves `running -> retrying`, emits `unit.retrying` and holds no worker slot while it waits. `pipeloom.runtime.retry.classify` decides the category, in this order: `TransientError` anywhere in the cause chain; the engine's `is_transient` opinion; `ConnectionError` or `TimeoutError` in the chain; in the read, write and state phases an `OSError` other than FileNotFoundError, PermissionError (a Windows sharing violation is transient), IsADirectoryError, NotADirectoryError and FileExistsError; PLX106 is transient. Everything else is permanent. PLQ301, PLQ302, PLM202, PLM203, PLM205 and PLM206 are always permanent, so `retry_on: transient` never repeats them; `retry_on: any` retries every failed attempt and therefore repeats deterministic failures. PLC505 rejects retries on an append model whose engine has no idempotent writes.
+- **Backoff:** with `n` the retry number and `base` the `retry_delay`, `d = min(max(base, 300 s), base * 2^(n-1))` and the wait is `d * (0.5 + 0.5 * u)`, where `u` comes from `random.Random(f"{run_id}:{unit_id}:{n}")`. Delays fall in [d/2, d] and are reproducible.
+- **Retry ownership:** the owner of the schedule retries. `pipeloom run --select unit:...` runs with `retries=0`, so a child of the process executor and a unit run by an external orchestrator never retry inside; the orchestrator (or the parent scheduler) owns the retry and the attempt number.
+- **Timeouts:** per-attempt `timeout`, never retried. A timed-out unit is `timed_out` (PLX102), its descendants are skipped and the run fails.
+  - The thread executor runs one daemon thread per attempt. It cannot kill a thread: it sets the attempt's cancel token, calls `EngineSession.cancel(unit_id)` once, writes the `timed_out` attempt file itself and drops whatever the thread reports later. The runner checks the token before reading, after the body, before the write and around the quarantine write, never between the start of the table write and the end of the watermark swap. A thread that is still working can therefore still commit after the verdict; the first terminal attempt file wins (`write_json_once`), finalize lets a scheduler `timed_out` or `cancelled` verdict beat a later result and records `late_result: <status>` in `warnings[]`, and `run.completed` reports `abandoned_threads`.
+  - The process executor starts each child in its own process group. The child enforces the timeout with its own thread executor; the parent's deadline is `timeout + cancel_grace`, after which it kills the child and everything it started (`killpg` on POSIX, `taskkill /T /F` on Windows, only while the child has not been reaped).
+- **Cancellation:** the first SIGINT or SIGTERM (SIGINT or Ctrl+Break on Windows) asks for a graceful stop: nothing new starts, pending, queued and retrying units are cancelled, and running units are asked to stop and get `cancel_grace` (default 30 s; target setting `cancel_grace` and flag `--cancel-grace`) to finish. Units that finish in time keep their real result; the rest are marked `cancelled` (PLX104). The run emits one `run.cancel_requested`, ends `cancelled` and exits 130. A second signal is a hard stop that skips the grace and abandons live thread attempts; a third raises KeyboardInterrupt. `RunControl.request_stop` does the same from the API. A unit invocation (child process) handles the same signals and exits 130.
+- **Windows:** a graceful stop of a child is `CTRL_BREAK_EVENT` to its process group (`CTRL_C_EVENT` cannot target one), followed by a kill after `cancel_grace`. There are no job objects in 0.3: a grandchild of a child that exits on its own survives. On POSIX the executor sweeps the child's process group after it exits.
 - **Failure isolation:** skip-downstream is the default. Independent branches continue. `--fail-fast` stops dequeuing after the first failure.
 - **Concurrency guard:** `StateStore.lock("<project>/<target>", run_id)` blocks a second concurrent run on the same target (PLX105). The lock is a 60 s lease that a heartbeat thread renews every 20 s, so a crashed run frees it within a minute. `--no-lock` is the escape hatch. Unit mode (`--select unit:<id>`) takes no lock and does not finalize: the owning invocation does ([ADR-0020](adr/0020-execution-model-0-2.md)).
 
@@ -490,10 +494,12 @@ quality: {quarantine: true, max_drop_ratio: 0.05}
 **Event types:**
 - Run: `run.started`, `run.compiled` (plan summary), `run.cancel_requested`, `run.completed`.
 - Unit: `unit.queued`, `unit.started`, `unit.retrying`, `unit.succeeded`, `unit.failed`, `unit.timed_out`, `unit.cancelled`, `unit.skipped`.
+- Payloads added in 0.3 for control: `unit.retrying{attempt, next_attempt, delay_ms, error}` (warning; `attempt` is the one that failed); `unit.timed_out{timeout_s, attempt}`; `unit.cancelled{reason: cancel|timeout}`; `run.cancel_requested{signal, grace_s}` (`signal` is SIGINT, SIGTERM or SIGBREAK, or null for an API stop).
 - Model: `model.input_read`, `model.quality_evaluated`, `model.schema_changed`, `model.written`, `model.log` (user `ctx.log`).
 - State: `state.watermark_committed`.
 - Payloads added in 0.3: `model.written` gains `skipped` (a replayed token); `model.quality_evaluated` carries `total_rows`, `results[]`, `rows_dropped`, `rows_quarantined`, `drop_ratio`, `cached` and `failures[]` (it is a warning when anything warned, dropped or failed); `model.schema_changed` carries `relation`, `policy`, `action` and `changes[]` (a warning when rejected); `state.watermark_committed` carries `column`, `dtype`, `before`, `after`, `source` and `seeded`.
 - Other: `sink.disabled`, `artifact.written`, `diagnostic` (validation warnings).
+- `run.completed` also carries `abandoned_threads`, the number of timed-out or cancelled unit threads that were still alive when the run ended (a thread cannot be killed; it ends with the process).
 - `run.completed` carries the status, exit code, counts, totals, `failures[]` (one entry per failed unit with its diagnostic) and `artifacts[]` (POSIX paths of the files the run wrote), so the console prints the failure block and the artifacts line from it.
 
 **Bus and sinks:**
@@ -736,7 +742,7 @@ Catalog, state-store and sink contract suites follow the same pattern.
 - **0.0.2:** reserve the name; skeleton (section 18); CI, release, governance; this document and the ADRs.
 - **0.1:** config models, loader with line marks, L0-L6, graph, selectors (`name`, `+name`, `name+`, `tag:`, `path:`, `materialized:`), plan, manifest, schema export, event bus with console and jsonl sinks. CLI: `validate`, `compile`, `ls`, `graph`, `schema`, `plugins`. A `MemoryEngine` for tests. Deferred to 0.2: PLC503 and PLK603, the `~/.pipeloom/profiles.yml` file, `PIPELOOM_*` variables beyond `PIPELOOM_TARGET`, `PIPELOOM_PROJECT_DIR` and `PIPELOOM_LOG_FORMAT`, and Narwhals support.
 - **0.2:** scheduler, thread and process executors, `pipeloom-polars` and `pipeloom-pandas`, table/view/ephemeral, append and overwrite, sqlite and json state, run_results, the contract suite. pandas has no SQL models or views yet (PLC502, PLC507), so SQL on pandas is deferred. `incremental` and `intermediate` are rejected with PLC509 until their versions. PLK603 and PLK605 need the `sqlglot` extra.
-- **0.3:** incremental, merge, replace_partitions, schema-change policy, expectations and quarantine, retries, timeouts, cancellation.
+- **0.3 (delivered):** incremental models with watermarks, merge and replace_partitions on filesystem tables (format /2), schema-change policies, expectations and quarantine, retries with backoff, per-attempt timeouts, graceful and hard cancellation, plugin API (0, 3). SCD2 and `intermediate` moved out of 0.3.
 - **0.4:** `pipeloom-spark` (Delta and Spark Connect), metrics from commit history, intermediates, idempotent writes, the `table` state store.
 - **0.5:** `pipeloom-databricks`: renderer, bundle YAML, deploy, run, repair, finalize, task values, task grouping.
 - **0.6:** `pipeloom-airflow`: LOCAL, VIRTUALENV and KUBERNETES modes, then DATABRICKS mode.

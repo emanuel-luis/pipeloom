@@ -8,7 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- Guides for incremental models, merge, replace_partitions and schema changes, and data quality; architecture sections 5, 7, 9, 10, 11 and 15 describe the 0.3 contract as built. ADR-0024 and ADR-0026 now say that the polars and pandas engines implement quality, merge and replace_partitions.
+- Guides for incremental models, merge, replace_partitions and schema changes, data quality, and retries, timeouts and cancellation; architecture sections 5, 7, 8, 9, 10, 11, 15 and 16 describe the 0.3 contract as built, and the state-machine diagram shows `retrying -> cancelled`. ADR-0024 and ADR-0026 now say that the polars and pandas engines implement quality, merge and replace_partitions.
 - Cancellation: the first SIGINT or SIGTERM (Ctrl+C or Ctrl+Break on Windows) stops starting units and gives running ones `cancel_grace` to finish; a second signal kills them at once. The run ends `cancelled` with exit code 130, emits `run.cancel_requested`, and unfinished units report PLX104.
 - `run --cancel-grace DURATION` and the `cancel_grace` setting (default 30s); `Project.run(..., control=RunControl())` stops a run from the API.
 - Plugin API (0, 3), ADR-0024: `EngineSession` gains `filter_since(..., inclusive=)`, `evaluate`, `apply_drops`, `align`, `applied_token`, `unit_scope` and `is_transient`; `cancel` becomes active. `WriteConfig` gains `partition_by`, `update_condition`, `deletes`, `columns` and `commit_meta`; `WriteResult` gains `skipped` and `commit_meta`. `EngineCapabilities.quality` marks engines that implement expectations. Plugins built for (0, 2) fail with PLU001.
