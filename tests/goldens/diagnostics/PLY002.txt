@@ -1,0 +1,2 @@
+error PLY002 pipeloom.yml:6:1 duplicate key 'name'
+      hint: first defined at line 2

@@ -10,7 +10,7 @@ Declarative, engine-agnostic data pipelines in YAML. Version 0.0.2 is a name-res
 
 ## Layout
 
-- `src/pipeloom/`: package (`cli.py`, `__main__.py`, `py.typed`)
+- `src/pipeloom/`: package (`cli/`, `config/`, `diagnostics/`, `secrets/`, `api.py`, `platform.py`, `__main__.py`, `py.typed`)
 - `tests/`: pytest
 - `docs/`: mkdocs site, `architecture.md`, `adr/`, `diagrams/` (D2 sources and committed SVGs)
 - `.github/workflows/`: ci, security, release, docs

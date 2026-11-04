@@ -1,0 +1,15 @@
+[
+  {
+    "code": "PLY003",
+    "severity": "error",
+    "message": "file is not valid UTF-8",
+    "hint": "save the file as UTF-8 (UTF-16 is not supported)",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 2,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {}
+  }
+]

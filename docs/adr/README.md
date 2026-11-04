@@ -20,3 +20,4 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0014 | [Secrets by reference](0014-secrets-by-reference.md) | Accepted | 2026-10-29 |
 | 0015 | [Python 3.11 or newer; click CLI; pydantic v2; hatchling; mypy strict](0015-python-version-and-toolchain.md) | Accepted | 2026-10-29 |
 | 0016 | [Versioning, release, plugin API version](0016-versioning-and-plugin-api.md) | Accepted | 2026-10-29 |
+| 0019 | [YAML dialect: PyYAML with YAML 1.2 core scalars](0019-yaml-dialect.md) | Accepted | 2026-11-04 |

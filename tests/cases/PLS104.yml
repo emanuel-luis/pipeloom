@@ -1,0 +1,9 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine: {kind: memory}
+        catalog: {kind: unity, token: abc123, password: 123456, api_key: 3.14,
+      access_key: '${env:KEY:-hunter2}', secret: '${secret:kv/s}', private_key: '${env:PK}'}

@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLS102",
+    "severity": "error",
+    "message": "invalid value for 'workers': Input should be a valid integer, unable to parse string as an integer",
+    "hint": null,
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 6,
+      "col": 14,
+      "json_pointer": "/targets/dev/workers"
+    },
+    "context": {
+      "pydantic_type": "int_parsing"
+    }
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "code": "PLS103",
+    "severity": "error",
+    "message": "config_version is missing or not 1",
+    "hint": "start the file with 'config_version: 1'",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 1,
+      "col": 1,
+      "json_pointer": "/config_version"
+    },
+    "context": {}
+  }
+]

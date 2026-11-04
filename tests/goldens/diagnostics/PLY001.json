@@ -1,0 +1,15 @@
+[
+  {
+    "code": "PLY001",
+    "severity": "error",
+    "message": "expected ',' or ']', but got '<stream end>'",
+    "hint": null,
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 7,
+      "col": 1,
+      "json_pointer": null
+    },
+    "context": {}
+  }
+]

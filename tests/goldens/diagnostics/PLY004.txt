@@ -1,0 +1,2 @@
+error PLY004 pipeloom.yml cannot read 'pipeloom.yml': file not found
+      hint: run pipeloom from the project directory or pass --project-dir

@@ -1,0 +1,7 @@
+sources:
+  - {name: raw_orders, format: memory, location: raw/orders}
+models:
+  - name: stg_orders
+    sql: select * from raw_orders where country = '${var:country}'
+    inputs: {raw_orders: {source: raw_orders}}
+    tags: [staging]

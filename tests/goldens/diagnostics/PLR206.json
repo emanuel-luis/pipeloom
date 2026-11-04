@@ -1,0 +1,15 @@
+[
+  {
+    "code": "PLR206",
+    "severity": "warning",
+    "message": "model_paths entry 'missing_dir' does not exist",
+    "hint": "create the directory or remove the entry",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 6,
+      "col": 23,
+      "json_pointer": "/model_paths/1"
+    },
+    "context": {}
+  }
+]

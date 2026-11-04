@@ -1,0 +1,2 @@
+warning PLR206 pipeloom.yml:6:23 model_paths entry 'missing_dir' does not exist
+      hint: create the directory or remove the entry

@@ -1,0 +1,15 @@
+[
+  {
+    "code": "PLY004",
+    "severity": "error",
+    "message": "cannot read 'pipeloom.yml': file not found",
+    "hint": "run pipeloom from the project directory or pass --project-dir",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": null,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {}
+  }
+]

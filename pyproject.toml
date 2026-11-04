@@ -23,7 +23,11 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
 ]
-dependencies = ["click>=8.1"]
+dependencies = [
+    "click>=8.2",
+    "pydantic>=2.12",
+    "pyyaml>=6.0.2",
+]
 
 [project.urls]
 Repository = "https://github.com/emanuel-luis/pipeloom"
@@ -34,7 +38,16 @@ Changelog = "https://github.com/emanuel-luis/pipeloom/blob/main/CHANGELOG.md"
 pipeloom = "pipeloom.cli:main"
 
 [dependency-groups]
-dev = ["pytest", "pytest-cov", "mypy", "ruff", "pre-commit"]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "mypy",
+    "ruff",
+    "pre-commit",
+    "hypothesis>=6.170.14",
+    "pytest-timeout>=2.4.0",
+    "types-pyyaml>=6.0.12.20261103",
+]
 docs = ["mkdocs-material", "mkdocstrings[python]", "mkdocs-click", "mike"]
 
 [tool.hatch.build.targets.wheel]
@@ -57,4 +70,5 @@ files = ["src", "tests"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers --strict-config"
+timeout = 60
 testpaths = ["tests"]

@@ -1,0 +1,41 @@
+[
+  {
+    "code": "PLR206",
+    "severity": "warning",
+    "message": "model_paths entry 'models' does not exist",
+    "hint": "create the directory or remove the entry",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 1,
+      "col": 1,
+      "json_pointer": "/model_paths/0"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS107",
+    "severity": "error",
+    "message": "malformed interpolation '${env:1bad}'",
+    "hint": "use ${env:NAME}, ${env:NAME:-default} or ${var:name}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 6,
+      "col": 39,
+      "json_pointer": "/targets/dev/catalog/root"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS107",
+    "severity": "error",
+    "message": "malformed interpolation '${var:unclosed'",
+    "hint": "use ${env:NAME}, ${env:NAME:-default} or ${var:name}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 6,
+      "col": 61,
+      "json_pointer": "/targets/dev/catalog/other"
+    },
+    "context": {}
+  }
+]
