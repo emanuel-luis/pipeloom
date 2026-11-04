@@ -6,6 +6,8 @@ set -euo pipefail
 mode="${1:?usage: wsl-spark-tests.sh classic|connect [pytest args...]}"
 shift
 cd "$(dirname "$0")/.."
+# A non-login shell (wsl -e bash) misses the user's uv install directories.
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 export UV_PROJECT_ENVIRONMENT="${PIPELOOM_WSL_VENV:-$HOME/.venvs/pipeloom-spark}"
 uv sync --locked --all-packages --group spark
 extra=()
