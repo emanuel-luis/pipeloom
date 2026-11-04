@@ -31,9 +31,10 @@ test: ## pytest, core and plugins
 
 spark-test: ## print the WSL recipe for the Spark tests (Spark never runs in Windows Python)
 	@echo "Spark tests need Linux and Java 17 or 21. On Windows, run them in WSL:"
-	@echo "  wsl -d Ubuntu -e bash -lc 'cd /mnt/d/<path>/pipeloom && export UV_PROJECT_ENVIRONMENT=\$$HOME/.venvs/pipeloom-spark && uv sync --locked --all-packages --group spark && PIPELOOM_TEST_SPARK=classic uv run pytest -q -p no:cacheprovider plugins/pipeloom-spark/tests'"
-	@echo "  (then the same with PIPELOOM_TEST_SPARK=connect and -m spark_connect)"
-	@echo "On Linux or macOS with the group installed: PIPELOOM_TEST_SPARK=classic uv run pytest -q plugins/pipeloom-spark/tests"
+	@echo "  wsl -d Ubuntu -e bash /mnt/d/<path>/pipeloom/scripts/wsl-spark-tests.sh classic"
+	@echo "  wsl -d Ubuntu -e bash /mnt/d/<path>/pipeloom/scripts/wsl-spark-tests.sh connect"
+	@echo "Extra arguments go to pytest; PIPELOOM_WSL_VENV picks the virtualenv (default ~/.venvs/pipeloom-spark)."
+	@echo "On Linux or macOS: bash scripts/wsl-spark-tests.sh classic"
 
 build: ## build every distribution (core and plugins) into dist/
 	uv build --all-packages
