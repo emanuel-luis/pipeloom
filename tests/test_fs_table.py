@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
@@ -7,7 +8,15 @@ from typing import Any
 import pytest
 
 from pipeloom.builtins.filesystem import SPEC, FilesystemCatalog
-from pipeloom.builtins.fs_table import TOKEN_LOG_SIZE, FsCommit, FsTable, ViewDefinition
+from pipeloom.builtins.fs_table import (
+    FS_TABLE_SCHEMA,
+    TOKEN_LOG_SIZE,
+    FsCommit,
+    FsFile,
+    FsTable,
+    ViewDefinition,
+)
+from pipeloom.engine.errors import CommitConflict, TransientError
 from pipeloom.engine.types import Column, Namespace, ReadSpec, TargetRef, WriteResult
 from pipeloom.testing.clock import FakeClock
 
@@ -135,7 +144,7 @@ def test_unknown_format_version_is_rejected(tmp_path: Path) -> None:
     commit(t, "overwrite", [part(t, "a")], "k1")
     f = t.path / "_pipeloom" / "commit.json"
     f.write_text(
-        f.read_text(encoding="utf-8").replace("fs_table/1", "fs_table/9"), encoding="utf-8"
+        f.read_text(encoding="utf-8").replace("fs_table/2", "fs_table/9"), encoding="utf-8"
     )
     with pytest.raises(ValueError, match="unsupported"):
         t.current()
@@ -220,3 +229,99 @@ def test_catalog_rejects_escaping_segments(tmp_path: Path, bad: str) -> None:
         cat.table(TargetRef(None, bad, "x"))
     with pytest.raises(ValueError):
         cat.table(TargetRef(None, "s", bad))
+
+
+def _lock(t: FsTable, expires: str) -> Path:
+    path = t.path / "_pipeloom" / "commit.lock"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"owner": "dead", "expires_at": expires}), encoding="utf-8")
+    return path
+
+
+def test_commit_takes_over_an_expired_lock(tmp_path: Path) -> None:
+    t = table(tmp_path)  # FakeClock starts at 2026-01-01 12:00 UTC
+    lock = _lock(t, "2026-01-01T11:59:00+00:00")
+    assert commit(t, "overwrite", [part(t, "a")], "k1").version == 1
+    assert not lock.exists()
+
+
+def test_commit_refuses_a_live_lock(tmp_path: Path) -> None:
+    t = table(tmp_path)
+    lock = _lock(t, "2026-01-01T12:10:00+00:00")
+    p = part(t, "a")
+    with pytest.raises(CommitConflict):
+        commit(t, "overwrite", [p], "k1")
+    assert lock.exists() and t.current() is None
+
+
+def test_expected_version_mismatch_is_a_transient_conflict(tmp_path: Path) -> None:
+    t = table(tmp_path)
+    kw: dict[str, Any] = {"columns": COLS, "rows": 1, "result": WriteResult()}
+    t.commit(mode="overwrite", files=[part(t, "a")], token="k1", expected_version=0, **kw)
+    t.commit(mode="overwrite", files=[part(t, "b")], token="k2", expected_version=1, **kw)
+    with pytest.raises(CommitConflict) as err:
+        t.commit(mode="overwrite", files=[part(t, "c")], token="k3", expected_version=1, **kw)
+    assert isinstance(err.value, TransientError) and current(t).version == 2
+    assert not (t.path / "_pipeloom" / "commit.lock").exists()
+
+
+def test_v1_commit_is_readable_and_upgrades_on_the_next_commit(tmp_path: Path) -> None:
+    t = table(tmp_path)
+    a = part(t, "a")
+    commit(t, "overwrite", [a], "k1")
+    f = t.path / "_pipeloom" / "commit.json"
+    doc = json.loads(f.read_text(encoding="utf-8"))
+    doc["schema"] = "pipeloom.fs_table/1"
+    del doc["file_info"], doc["partition_by"]
+    f.write_text(json.dumps(doc), encoding="utf-8")
+    old = current(t)
+    assert old.info(a.name) == FsFile() and old.partition_by == ()
+    commit(t, "append", [part(t, "b")], "k2")
+    assert json.loads(f.read_text(encoding="utf-8"))["schema"] == FS_TABLE_SCHEMA
+
+
+def test_append_can_drop_files_and_tracks_partitions(tmp_path: Path) -> None:
+    t = table(tmp_path)
+    a, b = part(t, "aa"), part(t, "b")
+    t.commit(
+        mode="overwrite",
+        files=[a, b],
+        columns=COLS,
+        rows=5,
+        token="k1",
+        result=WriteResult(),
+        file_info={a.name: FsFile(3, None, ("x",)), b.name: FsFile(2, None, ("y",))},
+        partition_by=("p",),
+    )
+    c = part(t, "c")
+    out = t.commit(
+        mode="append",
+        files=[c],
+        columns=COLS,
+        rows=4,
+        token="k2",
+        result=WriteResult(),
+        file_info={c.name: FsFile(4, None, ("x",))},
+        drop=[a.name],
+        removed_rows=3,
+        partition_by=("p",),
+    )
+    assert out.files == (b.name, c.name) and out.rows == 6 and not a.exists()
+    assert out.info(b.name).partition == ("y",) and out.info(c.name) == FsFile(4, 1, ("x",))
+    with pytest.raises(ValueError, match="uncommitted"):
+        t.commit(
+            mode="append", files=[], columns=COLS, rows=0, token="k3", result=WriteResult(),
+            drop=["part-nope.txt"],
+        )  # fmt: skip
+
+
+def test_read_aligned_reads_every_file_through_the_commit_schema(tmp_path: Path) -> None:
+    t = table(tmp_path)
+    commit(t, "overwrite", [part(t, "1")], "k1")
+    commit(t, "append", [part(t, "2")], "k2")
+    got = t.read_aligned(
+        lambda p, fmt, schema: [p.read_text(encoding="utf-8")],
+        lambda frame, schema: [*frame, len(schema)],
+        lambda frames: [x for f in frames for x in f],
+    )
+    assert got == ["1", 1, "2", 1]

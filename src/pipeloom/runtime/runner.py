@@ -28,6 +28,7 @@ from pipeloom.events.bus import EventBus
 from pipeloom.events.model import (
     ModelInputRead,
     ModelLog,
+    ModelSchemaChanged,
     ModelWritten,
     UnitFailed,
     UnitStarted,
@@ -39,6 +40,7 @@ from pipeloom.runtime.errors import ErrorInfo, Phase, build_error, full_tracebac
 from pipeloom.runtime.executors import UnitCompletion
 from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.memo import EphemeralMemo
+from pipeloom.runtime.schema_policy import SchemaRejected, changes_json, resolve_columns
 from pipeloom.state.types import StateStore, UnitRecord
 
 DEFAULT_SCHEMA = "main"
@@ -246,7 +248,8 @@ class ModelRunner:
             return None
         strategy = node.config.write.strategy or "overwrite"
         # A full refresh rebuilds the table instead of adding to it.
-        return "overwrite" if self._rt.full_refresh and strategy == "append" else strategy
+        keeps = strategy in ("append", "merge", "replace_partitions")
+        return "overwrite" if self._rt.full_refresh and keeps else strategy
 
     def _execute(
         self,
@@ -445,9 +448,25 @@ class ModelRunner:
         token = f"{self._rt.run_id}:{node.name}"
         t0 = self._rt.clock.monotonic()
         try:
-            columns = self._session.schema(rel)
-            row["schema_hash"] = schema_hash((c.name, c.dtype, c.nullable) for c in columns)
+            batch = self._session.schema(rel)
             self._catalog.ensure_namespace(target.namespace)
+            policy = write.on_schema_change
+            columns, diff, action = resolve_columns(
+                policy,
+                self._catalog.table_schema(target),
+                batch,
+                strategy=strategy,
+                full_refresh=self._rt.full_refresh,
+                keys=(*(write.unique_key or ()), *node.config.partition_by),
+            )
+            if not diff.empty and action != "none":
+                row["schema_changes"] = changes_json(policy, diff, action)
+                self._schema_changed(node, target, policy, action, diff.to_json())
+            row["schema_hash"] = schema_hash((c.name, c.dtype, c.nullable) for c in columns)
+            same = [(c.name, c.dtype) for c in batch] == [(c.name, c.dtype) for c in columns]
+            keep = same and action in ("none", "replaced")
+            if not keep:
+                rel = self._session.align(rel, columns)
             deletes = (
                 None
                 if write.deletes is None
@@ -459,9 +478,21 @@ class ModelRunner:
                 partition_by=tuple(node.config.partition_by),
                 update_condition=write.update_condition,
                 deletes=deletes,
+                columns=None if keep else columns,
                 options=dict(write.options),
             )
             result = self._session.materializer(strategy).materialize(rel, target, cfg, token)
+        except SchemaRejected as exc:
+            row["schema_changes"] = changes_json(exc.policy, exc.diff, "rejected")
+            self._schema_changed(node, target, exc.policy, "rejected", exc.diff.to_json())
+            self._fail(
+                "PLM202",
+                "write",
+                exc,
+                f"schema change rejected for model '{node.name}' (on_schema_change: {exc.policy})",
+                "change the model, or set write.on_schema_change to ignore, append_new_columns "
+                "or sync_all_columns",
+            )
         except WriteKeyError as exc:
             self._fail(
                 "PLM206",
@@ -480,6 +511,22 @@ class ModelRunner:
             )
         self._written(node, target, strategy, result, t0)
         return result
+
+    def _schema_changed(
+        self,
+        node: PlanNode,
+        target: TargetRef,
+        policy: str,
+        action: Literal["applied", "ignored", "rejected", "replaced"],
+        changes: list[dict[str, JsonValue]],
+    ) -> None:
+        self._bus.emit(
+            ModelSchemaChanged(
+                relation=target.relation_name, policy=policy, action=action, changes=changes
+            ),
+            unit_id=node.name,
+            model=node.name,
+        )
 
     def _create_view(self, node: PlanNode, target: TargetRef, body: SqlBody) -> WriteResult:
         inputs: dict[str, ReadSpec] = {}

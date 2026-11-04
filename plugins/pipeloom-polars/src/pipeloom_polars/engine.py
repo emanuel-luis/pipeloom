@@ -5,10 +5,12 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import replace
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import polars as pl
 
+from pipeloom.builtins import fs_write
 from pipeloom.builtins.filesystem import FilesystemCatalog
 from pipeloom.builtins.fs_table import FsTable, ViewDefinition
 from pipeloom.engine import portable
@@ -53,6 +55,31 @@ class _Reader:
         return _rel(io.scan(self._fmt, spec.location, spec.options))
 
 
+class _Ops:
+    """The polars side of `pipeloom.builtins.fs_write.FrameOps`."""
+
+    def collect(self, native: Any) -> pl.DataFrame:
+        return native.collect() if isinstance(native, pl.LazyFrame) else native
+
+    def read_file(self, path: Path, fmt: str, schema: Schema) -> pl.LazyFrame:
+        return io.scan_part(fmt, path, schema)
+
+    def align(self, native: Any, schema: Schema) -> Any:
+        return io.align_frame(native, schema)
+
+    def concat(self, frames: Sequence[Any]) -> pl.LazyFrame:
+        return io.concat(frames)
+
+    def write(self, native: pl.DataFrame, fmt: str, path: Path) -> None:
+        io.write(native, fmt, path)
+
+    def condition(self, native: pl.DataFrame, condition: str) -> pl.Series:
+        return native.select(pl.sql_expr(condition).alias("c")).to_series()
+
+
+_OPS = _Ops()
+
+
 class _Materializer:
     def __init__(self, session: PolarsSession, strategy: str) -> None:
         self.strategy = strategy
@@ -62,33 +89,15 @@ class _Materializer:
         self, rel: Relation, target: TargetRef, cfg: WriteConfig, token: str
     ) -> WriteResult:
         catalog = self._session.catalog
-        table = catalog.table(target)
-        replay = table.applied(token)
-        if replay is not None:
-            return replace(replay, skipped=True)
-        path = table.new_file(io.EXTENSIONS[catalog.format])
-        try:
-            frame = (
-                rel.native if cfg.columns is None else self._session.align(rel, cfg.columns).native
-            )
-            df: pl.DataFrame = frame.collect()
-            io.write(df, catalog.format, path)
-            commit = table.commit(
-                mode="append" if self.strategy == "append" else "overwrite",
-                files=[path],
-                columns=portable.schema(df),
-                rows=df.height,
-                token=token,
-                result=WriteResult(
-                    rows_inserted=df.height,
-                    rows_written=df.height,
-                    commit_meta=dict(cfg.commit_meta),
-                ),
-            )
-        except BaseException:
-            table.discard([path])
-            raise
-        return commit.result
+        return fs_write.materialize(
+            catalog.table(target),
+            _OPS,
+            catalog.format,
+            io.EXTENSIONS[catalog.format],
+            rel.native,
+            replace(cfg, strategy=self.strategy),
+            token,
+        )
 
 
 class PolarsSession:
@@ -120,7 +129,7 @@ class PolarsSession:
             assert commit.view is not None
             return self._run_view(commit.view)
         assert commit.format is not None
-        return _rel(io.scan_parts(commit.format, table.files(), commit.columns))
+        return _rel(fs_write.read_table(table, _OPS, commit))
 
     def _run_view(self, view: ViewDefinition) -> Relation:
         inputs = {a: self.reader(s.format).read(s) for a, s in view.inputs.items()}
@@ -184,13 +193,7 @@ class PolarsSession:
         return _rel(portable.filter_since(rel.native, column, lower, inclusive=inclusive))
 
     def align(self, rel: Relation, schema: Schema) -> Relation:
-        have = set(rel.native.collect_schema().names())
-        exprs = []
-        for col in schema:
-            expr = pl.col(col.name) if col.name in have else pl.lit(None)
-            dtype = io.polars_dtype(col.dtype)
-            exprs.append((expr if dtype is None else expr.cast(dtype)).alias(col.name))
-        return _rel(rel.native.select(exprs))
+        return _rel(io.align_frame(rel.native, schema))
 
     def max_value(self, rel: Relation, column: str) -> Any:
         return portable.max_value(rel.native, column)

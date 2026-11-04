@@ -48,6 +48,7 @@ def harness(tmp_path: Path) -> EngineHarness:
         return session.relation(pl.LazyFrame({"a": [1]}).map_batches(_boom))
 
     return EngineHarness(
+        schema_on_read=True,
         engine=PolarsEngine(),
         catalog=FilesystemCatalog(tmp_path / "wh"),
         make_native=lambda rows, schema: _frame(rows, schema).lazy(),
@@ -55,6 +56,7 @@ def harness(tmp_path: Path) -> EngineHarness:
         write_source=write_source,
         failing_relation=failing,
         settings_snapshot=lambda: pl.Config.state(),
+        update_condition="source.v > target.v",
     )
 
 

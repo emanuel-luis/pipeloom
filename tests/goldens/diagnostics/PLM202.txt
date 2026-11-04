@@ -1,0 +1,2 @@
+error PLM202 models/m.yml:2 schema change rejected for model 'a' (on_schema_change: fail): pipeloom.runtime.schema_policy.SchemaRejected: the batch schema differs from the target: added extra (string)
+      hint: change the model, or set write.on_schema_change to ignore, append_new_columns or sync_all_columns

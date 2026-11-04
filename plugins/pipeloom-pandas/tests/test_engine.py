@@ -71,7 +71,7 @@ def test_unsupported_format_strategy_sql_and_view(tmp_path: Path) -> None:
         with pytest.raises(ValueError, match="format"):
             s.reader("orc")
         with pytest.raises(ValueError, match="strategy"):
-            s.materializer("merge")
+            s.materializer("scd2")
         with pytest.raises(NotImplementedError):
             s.sql("select 1", {})
         with pytest.raises(NotImplementedError):

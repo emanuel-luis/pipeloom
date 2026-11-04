@@ -13,7 +13,13 @@ All notable changes to this project are documented here. The format follows
 - `pipeloom.testing.reference`: a pure-Python reference for quality counts, drops, merge, replace_partitions and align. The memory engine now implements merge, replace_partitions, quality, cancel and the `incremental` materialization on top of it.
 - `EngineContract` gains the strategy matrix, idempotent replay per strategy, `align`, `filter_since` bounds, `max_value` types, quality counts and drops against the reference, and cancel. `EngineHarness` gains `expr_cases`, `update_condition` and `slow_relation`.
 - Diagnostic PLM206 (write key invalid) is emitted by the runner; PLM205, PLQ302, PLP410, PLP411, PLP412 and PLC510 are reserved in the catalog for 0.3.
+- Schema-change policy, ADR-0026: `write.on_schema_change` (fail, ignore, append_new_columns, sync_all_columns) now applies to append, merge and replace_partitions on an existing target. `pipeloom.runtime.schema_policy.resolve_columns` decides the final schema, the runner aligns the batch and passes it as `WriteConfig.columns`. Overwrite and full refresh replace the schema and report the diff.
+- Event `model.schema_changed` (relation, policy, action, changes), `schema_changes[]` in run_results, a console line, and PLM202 (schema change rejected) is active with a case file.
+- `EngineContract` gains the schema-change policy matrix and `EngineHarness.schema_on_read`; engines that do not read old files through the table schema yet skip the cells that write a changed schema.
 - `pipeloom.engine.portable.rewrite_qualified` and an `inclusive` option on `portable.filter_since`.
+- Filesystem tables v2, ADR-0025: commit files carry per-file row counts and partition values, and a commit takes a lock (30 second lease) and checks an expected version, raising the transient `CommitConflict` on a clash. /1 tables stay readable and upgrade on their next commit.
+- The polars and pandas engines declare `merge` and `replace_partitions`. With `partition_by` every strategy writes one file per partition; replace_partitions swaps files without reading the others; an empty batch still records its token. A merge rewrites the whole table in 0.3.
+- `pipeloom.engine.portable`: `merge_frames`, `replace_partition_frames`, partition value encoding and `empty_like`. `pipeloom.builtins.fs_write` holds the write logic the two engines share, and `FsTable.read_aligned` reads every part file through the commit schema.
 
 ### Changed
 

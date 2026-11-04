@@ -1,6 +1,6 @@
 # ADR-0024: Plugin API (0, 3)
 
-Architecture: [Section 5, Engine and catalog contracts](../architecture.md#5-engine-and-catalog-contracts)
+Architecture: [Section 5, Engine and catalog contracts](../architecture.md#5-core-protocols)
 
 Amends [ADR-0002](0002-engine-abstraction.md) and [ADR-0021](0021-plugin-api-0-2.md).
 
@@ -47,4 +47,4 @@ Accepted
 
 ## Date
 
-2026-11-05
+2026-11-04

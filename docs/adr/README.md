@@ -24,7 +24,9 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0018 | [Events in 0.1: invocation events, nullable run id, jsonl on stderr](0018-events-in-0-1.md) | Accepted | 2026-11-04 |
 | 0019 | [YAML dialect: PyYAML with YAML 1.2 core scalars](0019-yaml-dialect.md) | Accepted | 2026-11-04 |
 | 0020 | [Execution model in 0.2](0020-execution-model-0-2.md) | Accepted | 2026-11-04 |
-| 0021 | [Plugin API (0, 2)](0021-plugin-api-0-2.md) | Accepted | 2026-11-05 |
+| 0021 | [Plugin API (0, 2)](0021-plugin-api-0-2.md) | Accepted | 2026-11-04 |
 | 0022 | [Filesystem table format](0022-filesystem-table-format.md) | Accepted | 2026-11-04 |
 | 0023 | [Multi-distribution release](0023-multi-distribution-release.md) | Accepted | 2026-11-04 |
-| 0024 | [Plugin API (0, 3)](0024-plugin-api-0-3.md) | Accepted | 2026-11-05 |
+| 0024 | [Plugin API (0, 3)](0024-plugin-api-0-3.md) | Accepted | 2026-11-04 |
+| 0025 | [Filesystem tables v2](0025-filesystem-tables-v2.md) | Accepted | 2026-11-04 |
+| 0026 | [Schema-change policy](0026-schema-change-policy.md) | Accepted | 2026-11-04 |
