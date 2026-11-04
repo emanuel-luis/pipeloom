@@ -19,6 +19,7 @@ from pipeloom.engine.protocols import Catalog, EngineSession, Materializer, Read
 from pipeloom.engine.types import (
     DropResult,
     ExpectationSpec,
+    IntermediateRef,
     QualityCounts,
     QuarantineMeta,
     ReadSpec,
@@ -28,6 +29,7 @@ from pipeloom.engine.types import (
     WriteConfig,
     WriteResult,
 )
+from pipeloom.platform import SystemClock
 from pipeloom_polars import io
 from pipeloom_polars.spec import CAPABILITIES
 
@@ -47,6 +49,10 @@ class _Reader:
         self._fmt = fmt
 
     def read(self, spec: ReadSpec) -> Relation:
+        if self._fmt == "intermediate":
+            if spec.location is None:
+                raise ValueError("reading an intermediate needs a location")
+            return self._session.read_intermediate(spec.location)
         if self._fmt == "table":
             if spec.table is None:
                 raise ValueError("a table read needs a table")
@@ -121,7 +127,7 @@ class PolarsSession:
     # -- reading ------------------------------------------------------------------------------
 
     def reader(self, fmt: str) -> Reader:
-        if fmt != "table" and fmt not in CAPABILITIES.formats:
+        if fmt not in ("table", "intermediate") and fmt not in CAPABILITIES.formats:
             raise ValueError(f"polars engine cannot read format '{fmt}'")
         return _Reader(self, fmt)
 
@@ -135,6 +141,10 @@ class PolarsSession:
             return self._run_view(commit.view)
         assert commit.format is not None
         return _rel(fs_write.read_table(table, _OPS, commit))
+
+    def read_intermediate(self, location: str) -> Relation:
+        table = FsTable(Path(location), clock=SystemClock())
+        return _rel(fs_write.read_table(table, _OPS))
 
     def _run_view(self, view: ViewDefinition) -> Relation:
         inputs = {a: self.reader(s.format).read(s) for a, s in view.inputs.items()}
@@ -232,6 +242,18 @@ class PolarsSession:
     def applied_token(self, target: TargetRef, token: str) -> WriteResult | None:
         replay = self.catalog.table(target).applied(token)
         return None if replay is None else replace(replay, skipped=True)
+
+    def write_intermediate(self, rel: Relation, ref: IntermediateRef, token: str) -> WriteResult:
+        catalog = self.catalog
+        return fs_write.materialize(
+            FsTable(Path(ref.location), clock=SystemClock()),
+            _OPS,
+            catalog.format,
+            io.EXTENSIONS[catalog.format],
+            rel.native,
+            WriteConfig("overwrite"),
+            token,
+        )
 
     def unit_scope(self, unit_id: str) -> AbstractContextManager[None]:
         return nullcontext()

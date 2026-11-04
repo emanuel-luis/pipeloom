@@ -1,0 +1,2 @@
+error PLP413 models/m.yml:4:19 intermediate model 'a' sets incremental, a strategy other than overwrite or partition_by
+      hint: remove those options, or materialize the model as a table

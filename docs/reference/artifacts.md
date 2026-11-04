@@ -15,6 +15,7 @@ target/
     events/<invocation_id>.jsonl   events of each invocation
     units/<unit_id>/attempt-<n>.json   one file per attempt of a unit
     logs/<unit_id>-attempt-<n>.log     output of a task-boundary unit
+    intermediate/<model>/          result of an `intermediate` model, deleted after `artifacts.intermediate_ttl`
 ```
 
 Finalize writes `run_results.json` into the run folder, then copies it and the manifest to the
@@ -45,8 +46,10 @@ worked on the run), `project`, `target`, `plan_hash`, `selector`, `full_refresh`
 (`succeeded`, `failed` or `cancelled`), `started_at`, `ended_at`, `duration_ms`, `counts`
 (`total` and one number per unit status), `totals` (`rows_written` and `bytes_written` of
 succeeded units), `identity` (`user`, `host`, `orchestrator`, `orchestrator_ids`),
-`pipeloom_version`, `plugins`, `python_version`, `git_sha` (null outside a git repository) and
-`exit_code`.
+`pipeloom_version`, `plugins`, `python_version`, `git_sha` (null outside a git repository),
+`exit_code`, `intermediate_ttl` (seconds; the TTL this run was finalized with, which other runs
+use to judge its intermediates) and `warnings` (run-level messages, such as
+`intermediate_cleanup_failed: <run_id>: <error>` when an expired folder could not be deleted).
 
 Every row in `results` has every key. Ephemeral models have no row: they appear in the
 `ephemeral_inlined` list of the units that inline them.

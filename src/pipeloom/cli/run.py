@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -60,6 +61,24 @@ def _run_id(ctx: click.Context, param: click.Parameter, value: str | None) -> st
     return value
 
 
+def _started_at(ctx: click.Context, param: click.Parameter, value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError as err:
+        raise click.BadParameter(
+            f"'{value}' is not an ISO 8601 timestamp", ctx=ctx, param=param
+        ) from err
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise click.BadParameter(
+            f"'{value}' has no UTC offset; write it as 2026-11-04T09:30:00Z or with +HH:MM",
+            ctx=ctx,
+            param=param,
+        )
+    return parsed
+
+
 @click.command()
 @project_options
 @target_option
@@ -93,6 +112,16 @@ def _run_id(ctx: click.Context, param: click.Parameter, value: str | None) -> st
     default=False,
     show_default=True,
     help="Rebuild append tables from scratch. Takes an optional true or false.",
+)
+@click.option(
+    "--run-started-at",
+    envvar="PIPELOOM_RUN_STARTED_AT",
+    callback=_started_at,
+    default=None,
+    metavar="ISO8601",
+    help="Start time of the run, with a UTC offset (for example the start of the orchestrator "
+    "job). Engines use it to make writes idempotent. Needs --run-id. A reused run id keeps "
+    "the start it recorded.",
 )
 @click.option("--fail-fast", is_flag=True, help="After the first failure, start no more units.")
 @click.option("--no-lock", is_flag=True, help="Do not take the run lock.")
@@ -130,6 +159,7 @@ def run(
     manifest: Path | None,
     expect_plan_hash: str | None,
     run_id: str | None,
+    run_started_at: datetime | None,
     full_refresh: bool,
     fail_fast: bool,
     no_lock: bool,
@@ -146,6 +176,8 @@ def run(
     `-s unit:NAME` runs one unit without a lock or run results, and never retries it; the
     process executor uses it.
     """
+    if run_started_at is not None and run_id is None:
+        raise click.UsageError("--run-started-at needs --run-id")
     chosen = cast("Literal['process', 'task'] | None", boundary)
     if manifest is not None and chosen is not None:
         plan = read_manifest(manifest, Report())
@@ -190,6 +222,7 @@ def run(
                     manifest=manifest,
                     expect_plan_hash=expect_plan_hash,
                     run_id=run_id,
+                    run_started_at=run_started_at,
                     full_refresh=full_refresh,
                     fail_fast=fail_fast,
                     lock=not no_lock,

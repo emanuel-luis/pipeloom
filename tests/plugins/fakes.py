@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from pipeloom.engine.types import EngineCapabilities
+from pipeloom.engine.types import CatalogCapabilities, EngineCapabilities
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
 
 
@@ -22,7 +22,7 @@ def _build(_opts: Any) -> object:
     return object()
 
 
-API04: PluginSpec[object] = PluginSpec("future", "future", "engines", (0, 4), _build, FakeOptions)
+API05: PluginSpec[object] = PluginSpec("future", "future", "engines", (0, 5), _build, FakeOptions)
 API02: PluginSpec[object] = PluginSpec("old", "old", "engines", (0, 2), _build, FakeOptions)
 MEMORY_CLONE: PluginSpec[object] = PluginSpec(
     "memory", "memory", "engines", API_VERSION, _build, FakeOptions
@@ -89,4 +89,16 @@ class StrictOptions(OptionsModel):
 
 STRICT: PluginSpec[object] = PluginSpec(
     "strict", "strict", "engines", API_VERSION, _build, StrictOptions
+)
+
+
+NOVIEWS: PluginSpec[object] = PluginSpec(
+    "noviews",
+    "noviews",
+    "catalogs",
+    API_VERSION,
+    _build,
+    FakeOptions,
+    capabilities=CatalogCapabilities(views=False),
+    description="A catalog that cannot hold views.",
 )

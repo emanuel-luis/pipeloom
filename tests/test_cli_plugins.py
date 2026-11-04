@@ -90,13 +90,13 @@ def test_plugins_list_check_imports_and_reports_api() -> None:
     result = run(["plugins", "list", "--check", "--output", "json"])
     rows = json.loads(result.stdout)
     assert result.exit_code == 0
-    assert {r["api"] for r in rows} == {"0.3"} and {r["status"] for r in rows} == {"ok"}
+    assert {r["api"] for r in rows} == {"0.4"} and {r["status"] for r in rows} == {"ok"}
     text = run(["plugins", "list", "--check"]).stdout.splitlines()[0].split()
     assert text[-2:] == ["API", "STATUS"]
 
 
 def test_plugins_list_plugin_flag_and_failures(monkeypatch: pytest.MonkeyPatch) -> None:
-    ep = FakeEntryPoint("future", f"{FAKES}:API04", "engines", FakeDist("pipeloom-future", "2.0"))
+    ep = FakeEntryPoint("future", f"{FAKES}:API05", "engines", FakeDist("pipeloom-future", "2.0"))
     install_entry_points(monkeypatch, [ep])
     plain = run(["plugins", "list", "--group", "engines", "--output", "json"])
     assert plain.exit_code == 0
@@ -180,7 +180,7 @@ def test_schema_export_plugin_flag(tmp_path: Path) -> None:
 def test_schema_export_reports_plugin_failures(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    ep = FakeEntryPoint("future", f"{FAKES}:API04", "engines", FakeDist("pipeloom-future", "2"))
+    ep = FakeEntryPoint("future", f"{FAKES}:API05", "engines", FakeDist("pipeloom-future", "2"))
     install_entry_points(monkeypatch, [ep])
     result = run(["schema", "export", "--out", str(tmp_path / "o")])
     assert result.exit_code == 1 and "PLU001" in result.stderr

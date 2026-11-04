@@ -1,4 +1,4 @@
-"""`can_widen`, `diff_schemas` and the small value types of plugin API (0, 3)."""
+"""`can_widen`, `diff_schemas` and the small value types of plugin API (0, 4)."""
 
 from __future__ import annotations
 

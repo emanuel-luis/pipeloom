@@ -5,8 +5,11 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
-        catalog: {kind: memory}
+        engine: {kind: nosql}
   models/m.yml: |
     models:
-      - {name: a, sql: select 1 as x, materialized: intermediate}
+      - {name: a, python: "m:a", materialized: intermediate}
+  src/m.py: |
+    def a(ctx):
+        return None
+plugins: ["tests.plugins.fakes:NOSQL"]

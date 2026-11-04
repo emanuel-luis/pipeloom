@@ -30,6 +30,7 @@ from pipeloom.engine.types import (
     Column,
     DeleteSpec,
     ExpectationSpec,
+    IntermediateRef,
     QuarantineMeta,
     ReadSpec,
     Relation,
@@ -740,6 +741,66 @@ class EngineContract:
         assert kept == _key(_norm(want_kept))
         assert want_dropped is not None
         assert dropped == _key(_norm(want_dropped))
+
+    # -- intermediate -----------------------------------------------------------------------
+
+    def intermediate(self, tmp_path: Path, run_id: str, model: str = "m") -> IntermediateRef:
+        location = tmp_path / "artifacts" / "runs" / run_id / "intermediate" / model
+        return IntermediateRef(run_id, model, location.as_posix())
+
+    def put_intermediate(
+        self, s: EngineSession, h: EngineHarness, ref: IntermediateRef, rows: Rows, token: str
+    ) -> WriteResult:
+        return s.write_intermediate(s.relation(h.make_native(rows, SCHEMA)), ref, token)
+
+    def read_intermediate(
+        self, s: EngineSession, h: EngineHarness, ref: IntermediateRef
+    ) -> list[dict[str, Any]]:
+        rel = s.reader("intermediate").read(ReadSpec("intermediate", location=ref.location))
+        return _key(h.to_rows(rel.native))
+
+    def test_intermediate_write_then_read_equals_input(
+        self, h: EngineHarness, tmp_path: Path
+    ) -> None:
+        requires(h, "materializations", "intermediate")
+        ref = self.intermediate(tmp_path, "r1")
+        with self.session(h, tmp_path) as s:
+            result = self.put_intermediate(s, h, ref, ROWS, "r1:m")
+            assert result.rows_written == len(ROWS) and not result.skipped
+            assert self.read_intermediate(s, h, ref) == _key([dict(r) for r in ROWS])
+
+    def test_intermediate_same_token_writes_once(self, h: EngineHarness, tmp_path: Path) -> None:
+        requires(h, "materializations", "intermediate")
+        ref = self.intermediate(tmp_path, "r1")
+        with self.session(h, tmp_path) as s:
+            self.put_intermediate(s, h, ref, ROWS, "r1:m")
+            again = self.put_intermediate(s, h, ref, ROWS[:1], "r1:m")
+            assert again.skipped
+            assert self.read_intermediate(s, h, ref) == _key([dict(r) for r in ROWS])
+
+    def test_intermediate_a_new_token_replaces_the_data(
+        self, h: EngineHarness, tmp_path: Path
+    ) -> None:
+        requires(h, "materializations", "intermediate")
+        ref = self.intermediate(tmp_path, "r1")
+        with self.session(h, tmp_path) as s:
+            self.put_intermediate(s, h, ref, ROWS, "t1")
+            second = self.put_intermediate(s, h, ref, ROWS[:1], "t2")
+            assert not second.skipped
+            assert self.read_intermediate(s, h, ref) == _key([dict(ROWS[0])])
+
+    def test_intermediate_second_run_id_has_its_own_folder(
+        self, h: EngineHarness, tmp_path: Path
+    ) -> None:
+        requires(h, "materializations", "intermediate")
+        first, second = self.intermediate(tmp_path, "r1"), self.intermediate(tmp_path, "r2")
+        assert first.location != second.location
+        with self.session(h, tmp_path) as s:
+            self.put_intermediate(s, h, first, ROWS, "r1:m")
+            self.put_intermediate(s, h, second, ROWS[:1], "r2:m")
+            assert self.read_intermediate(s, h, first) == _key([dict(r) for r in ROWS])
+            assert self.read_intermediate(s, h, second) == _key([dict(ROWS[0])])
+        assert Path(first.location).is_dir() and Path(second.location).is_dir()
 
     # -- cancel -----------------------------------------------------------------------------
 

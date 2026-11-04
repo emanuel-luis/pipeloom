@@ -64,6 +64,9 @@ class SinkBlock(PluginBlock):
 class ArtifactsConfig(_Model):
     root: str | None = None
     """Directory or volume path where artifacts are written."""
+    intermediate_ttl: Duration = 86400
+    """How long the persisted results of `intermediate` models are kept after their run ended.
+    0 deletes them when a run succeeds. Default 1d."""
 
 
 class RuntimeSettings(_Model):

@@ -26,6 +26,11 @@ class RuntimeContext:
     vars: Mapping[str, Any]
     full_refresh: bool = False
     orchestrator: Mapping[str, str] = field(default_factory=dict)
+    run_started_at: datetime | None = None
+    """Timezone-aware UTC; the same value in every invocation of a run, None only in a unit
+    invocation that cannot find the run record."""
+    artifacts_root: str = "target"
+    """Absolute POSIX path or URI of the artifacts folder."""
 
 
 @dataclass(frozen=True, slots=True)

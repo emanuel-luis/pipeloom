@@ -1,0 +1,14 @@
+run:
+  prior_start: "2026-01-01T00:00:00+00:00"
+  run_started_at: "2026-01-02T00:00:00+00:00"
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine: {kind: memory}
+        catalog: {kind: memory}
+  models/m.yml: |
+    models:
+      - {name: a, sql: select 1 as x}

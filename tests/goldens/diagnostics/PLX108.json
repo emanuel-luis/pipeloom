@@ -1,0 +1,13 @@
+[
+  {
+    "code": "PLX108",
+    "severity": "error",
+    "message": "--run-started-at <time> differs from the start recorded for run case: <time>",
+    "hint": "omit the flag to continue the run, or use a new --run-id",
+    "location": null,
+    "context": {
+      "given": "<time>",
+      "recorded": "<time>"
+    }
+  }
+]

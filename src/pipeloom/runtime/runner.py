@@ -8,6 +8,7 @@ import threading
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from pathlib import PurePath
 from typing import Any, Literal, NoReturn
 
 from pipeloom.artifacts.io import write_json_once
@@ -21,6 +22,7 @@ from pipeloom.engine.types import (
     ROW_CHECKS,
     DeleteSpec,
     ExpectationSpec,
+    IntermediateRef,
     QuarantineMeta,
     ReadSpec,
     Relation,
@@ -208,7 +210,7 @@ class ModelRunner:
             ephemeral_inlined=[self._plan.nodes[u].name for u in unit.nodes[:-1]],
             materialization=node.materialized,
             strategy=strategy,
-            relation_name=None if node.relation is None else node.relation.relation_name,
+            relation_name=self._relation_name(node),
             attempt=attempt,
             started_at=_iso(started),
             queue_wait_ms=wait_ms,
@@ -216,7 +218,9 @@ class ModelRunner:
             engine=self._engine.name,
             engine_version=self._engine.version,
             executor=self._executor,
-            idempotency_token=None if strategy is None else f"{rt.run_id}:{node.name}",
+            idempotency_token=None
+            if strategy is None and node.materialized != "intermediate"
+            else f"{rt.run_id}:{node.name}",
             retries_used=attempt - first,
         )
         self._rows[handle] = (row, started)
@@ -224,7 +228,10 @@ class ModelRunner:
         trace: str | None = None
         interrupted: Reason | None = None
         try:
-            self._execute(unit_id, node, strategy, attempt, started, row)
+            # One scope from the first read to the end of the write: engines that run lazily
+            # (Spark) do their work at the write, and cancel must find it.
+            with self._session.unit_scope(unit_id):
+                self._execute(unit_id, node, strategy, attempt, started, row)
         except UnitInterrupted as stop:
             interrupted = stop.reason
         except _Fail as fail:
@@ -380,6 +387,81 @@ class ModelRunner:
         keeps = strategy in ("append", "merge", "replace_partitions")
         return "overwrite" if self._rt.full_refresh and keeps else strategy
 
+    def _location(self, model: str) -> str:
+        """Where this run keeps the persisted result of an `intermediate` model."""
+        return f"{self._rt.artifacts_root}/runs/{self._rt.run_id}/intermediate/{model}"
+
+    def _shown(self, location: str) -> str:
+        """The location for artifacts, events and messages: relative to the project when under it."""
+        try:
+            return PurePath(location).relative_to(self._rt.project_dir).as_posix()
+        except ValueError:
+            return location
+
+    def _relation_name(self, node: PlanNode) -> str | None:
+        if node.materialized == "intermediate":
+            return self._shown(self._location(node.name))
+        return None if node.relation is None else node.relation.relation_name
+
+    def _read_spec(self, upstream: PlanNode) -> ReadSpec:
+        if upstream.materialized == "intermediate":
+            return ReadSpec("intermediate", location=self._location(upstream.name))
+        return ReadSpec("table", table=upstream.relation)
+
+    def _execute_intermediate(
+        self,
+        unit_id: str,
+        node: PlanNode,
+        attempt: int,
+        started: datetime,
+        row: dict[str, Any],
+    ) -> WriteResult:
+        assert node.relation is not None
+        rows_read: dict[str, int | None] = {}
+        rel = self._compute(node, unit_id, attempt, started, {}, rows_read)
+        row["rows_read"] = rows_read
+        rel, before_write, finish = self._quality(node, node.relation, unit_id, rel, row)
+        ref = IntermediateRef(
+            self._rt.run_id, node.name, self._location(node.name), self._rt.run_started_at
+        )
+        t0 = self._rt.clock.monotonic()
+        try:
+            self._check()
+            if before_write is not None:
+                before_write()
+                self._check()
+            result = self._session.write_intermediate(
+                rel, ref, token=f"{self._rt.run_id}:{node.name}"
+            )
+        except _Fail:
+            raise
+        except Exception as exc:  # noqa: BLE001 - engines raise their own errors
+            self._fail(
+                "PLM201",
+                "write",
+                exc,
+                f"cannot write intermediate '{node.name}' to '{self._shown(ref.location)}'",
+                "check that the artifacts root can be written, then run again",
+            )
+        finally:
+            if finish is not None:
+                finish()
+        self._bus.emit(
+            ModelWritten(
+                relation=self._shown(ref.location),
+                materialization="intermediate",
+                strategy=None,
+                rows_written=result.rows_written,
+                rows_inserted=result.rows_inserted,
+                bytes_written=result.bytes_written,
+                duration_ms=max(0, int((self._rt.clock.monotonic() - t0) * 1000)),
+                skipped=result.skipped,
+            ),
+            unit_id=node.name,
+            model=node.name,
+        )
+        return result
+
     def _execute(
         self,
         unit_id: str,
@@ -394,6 +476,8 @@ class ModelRunner:
         if node.materialized == "view":
             assert target is not None and isinstance(node.body, SqlBody)
             result = self._create_view(node, target, node.body)
+        elif node.materialized == "intermediate":
+            result = self._execute_intermediate(unit_id, node, attempt, started, row)
         elif node.materialized in ("table", "incremental") and strategy is not None:
             assert target is not None
             token = f"{self._rt.run_id}:{node.name}"
@@ -544,12 +628,11 @@ class ModelRunner:
         ctx = self._context(node, unit_id, attempt, started, None if inc is None else inc.state)
         failed = f"model '{node.name}' raised"
         try:
-            with self._session.unit_scope(unit_id):
-                if isinstance(node.body, SqlBody):
-                    sql_out = self._session.sql(node.body.sql, inputs)
-                    self._check()
-                    return sql_out
-                out = self._call(node.body, node, ctx, inputs)
+            if isinstance(node.body, SqlBody):
+                sql_out = self._session.sql(node.body.sql, inputs)
+                self._check()
+                return sql_out
+            out = self._call(node.body, node, ctx, inputs)
         except Exception as exc:  # noqa: BLE001 - the body is user code
             self._fail("PLX101", "body", exc, failed)
         self._check()
@@ -675,7 +758,7 @@ class ModelRunner:
             )
         upstream = plan.nodes[uid]
         if upstream.materialized != "ephemeral":
-            spec = ReadSpec("table", table=upstream.relation)
+            spec = self._read_spec(upstream)
             return self._read(spec, alias, "model", upstream.name, node, unit_id, attempt)
         if uid not in local:
 
@@ -883,7 +966,7 @@ class ModelRunner:
             self._session.materializer("append").materialize(
                 self._session.align(rows, columns),
                 qt,
-                WriteConfig("append", columns=columns),
+                WriteConfig("append", columns=columns, run_started_at=self._rt.run_started_at),
                 token,
             )
         except SchemaRejected as exc:
@@ -954,6 +1037,7 @@ class ModelRunner:
                 deletes=deletes,
                 columns=None if keep else columns,
                 options=dict(write.options),
+                run_started_at=self._rt.run_started_at,
             )
             self._check()
             if before_write is not None:
@@ -1016,7 +1100,7 @@ class ModelRunner:
             if uid in self._plan.sources:
                 inputs[alias] = self._source_spec(self._plan.sources[uid])
             else:
-                inputs[alias] = ReadSpec("table", table=self._plan.nodes[uid].relation)
+                inputs[alias] = self._read_spec(self._plan.nodes[uid])
         t0 = self._rt.clock.monotonic()
         try:
             self._catalog.ensure_namespace(target.namespace)

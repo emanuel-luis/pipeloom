@@ -56,6 +56,26 @@ class StateStoreCapabilities:
 
 
 @dataclass(frozen=True)
+class CatalogCapabilities:
+    """What a catalog can do. Static data: L5 reads it without importing the catalog."""
+
+    views: bool = True
+    """The catalog can hold views (PLC507 otherwise)."""
+
+
+@dataclass(frozen=True)
+class IntermediateRef:
+    """Where a run keeps the persisted result of an `intermediate` model."""
+
+    run_id: str
+    model: str
+    location: str
+    """Absolute POSIX path or URI. `ReadSpec(format="intermediate", location=...)` reads it."""
+    run_started_at: datetime | None = None
+    """The run's start (UTC), for an engine that needs a stable write version."""
+
+
+@dataclass(frozen=True)
 class Namespace:
     catalog: str | None
     schema: str
@@ -109,6 +129,10 @@ class WriteConfig:
     options: Mapping[str, JsonValue] = field(default_factory=dict)
     commit_meta: Mapping[str, JsonValue] = field(default_factory=dict)
     """Stored with the idempotency token and echoed when the token is replayed."""
+    run_started_at: datetime | None = None
+    """The run's start (UTC), filled by the runner. An engine that needs a stable write version
+    (a Delta `txnVersion`) reads it here, never from the session context: the session opens
+    before the start time is resolved."""
 
 
 @dataclass(frozen=True)

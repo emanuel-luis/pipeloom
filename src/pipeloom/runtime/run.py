@@ -21,7 +21,7 @@ from pipeloom.artifacts.layout import RunPaths
 from pipeloom.artifacts.results import RunHeader, RunStatusName, exit_code_of, git_sha, result_row
 from pipeloom.config.bind import BoundProject
 from pipeloom.diagnostics import Diagnostic, JsonValue, Location, Report, Severity
-from pipeloom.engine.protocols import Catalog, Engine
+from pipeloom.engine.protocols import Catalog, Engine, EngineSession
 from pipeloom.events.bus import EventBus
 from pipeloom.events.model import (
     ArtifactWritten,
@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 DEFAULT_ARTIFACTS_ROOT = "target"
 DEFAULT_CANCEL_GRACE = 30.0
 MAX_DEFAULT_WORKERS = 4
-USAGE_CODES = frozenset({"PLG304", "PLG305"})
+USAGE_CODES = frozenset({"PLG304", "PLG305", "PLX108"})
 
 
 @dataclass(frozen=True)
@@ -72,6 +72,16 @@ class RunOptions:
     cancel_grace: float | None = None
     """Seconds a stopped or timed-out unit gets to finish before it is killed; default 30."""
     control: RunControl | None = None
+    run_started_at: datetime | None = None
+    """Timezone-aware start time of the run, for example the start of the orchestrator job.
+    Needs `run_id`. A reused run id keeps the start it recorded; a different value is PLX108."""
+
+    def __post_init__(self) -> None:
+        if self.run_started_at is not None:
+            if self.run_started_at.tzinfo is None:
+                raise ValueError("run_started_at must be timezone-aware")
+            if self.run_id is None:
+                raise ValueError("run_started_at needs run_id")
 
 
 @dataclass(frozen=True)
@@ -163,6 +173,28 @@ def _verdict(
         if s in (UnitState.RUNNING, UnitState.PENDING, UnitState.QUEUED, UnitState.RETRYING)
     ]
     return skipped, cancelled, unfinished
+
+
+def resolve_run_started_at(
+    flag: datetime | None, prior: RunRecord | None, now: datetime, *, unit_mode: bool
+) -> tuple[datetime | None, Diagnostic | None]:
+    """The start time every invocation of a run shares: the recorded start, else the flag,
+    else now. A unit invocation without either has none."""
+    flag = None if flag is None else flag.astimezone(UTC)
+    if prior is not None:
+        recorded = prior.started_at.astimezone(UTC)
+        if flag is not None and flag != recorded:
+            return None, Report().add(
+                "PLX108",
+                f"--run-started-at {_iso(flag)} differs from the start recorded for run "
+                f"{prior.run_id}: {_iso(recorded)}",
+                hint="omit the flag to continue the run, or use a new --run-id",
+                context={"given": _iso(flag), "recorded": _iso(recorded)},
+            )
+        return recorded, None
+    if flag is not None:
+        return flag, None
+    return (None if unit_mode else now.astimezone(UTC)), None
 
 
 def _lock_held(held: LockHeld) -> Diagnostic:
@@ -282,22 +314,10 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     task = plan.metadata.boundary == "task" and not unit_mode
     executor_name = "process" if plan.metadata.boundary == "task" else "thread"
     identity = project.identity
-    rt = RuntimeContext(
-        run_id=run_id,
-        invocation_id=project.invocation_id,
-        project=plan.metadata.project,
-        target=plan.metadata.target,
-        project_dir=project_dir,
-        clock=clock,
-        identity=identity,
-        vars=plan.metadata.vars,
-        full_refresh=opts.full_refresh,
-        orchestrator=dict(identity.orchestrator_ids),
-    )
     engine: Engine = engine_plugin.create()
     catalog: Catalog = catalog_plugin.create()
     state: StateStore = bound.plugins["state_stores"].create()
-    scope = f"{rt.project}/{rt.target}"
+    scope = f"{plan.metadata.project}/{plan.metadata.target}"
     if not unit_mode:
         write_manifest(plan, paths.manifest)
     floor = {u: paths.next_attempt(u) for u in units}
@@ -307,13 +327,39 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     abandoned = 0
     try:
         with ExitStack() as stack:
+            rt = RuntimeContext(
+                run_id=run_id,
+                invocation_id=project.invocation_id,
+                project=plan.metadata.project,
+                target=plan.metadata.target,
+                project_dir=project_dir,
+                clock=clock,
+                identity=identity,
+                vars=plan.metadata.vars,
+                full_refresh=opts.full_refresh,
+                orchestrator=dict(identity.orchestrator_ids),
+                artifacts_root=paths.root.as_posix(),
+            )
+            # The engine session opens before any state-store call: a store that lives in the
+            # engine (a table) reuses the engine's own session. It opens without the start time,
+            # which engines read from `WriteConfig.run_started_at` instead.
+            session: EngineSession | None = None
+            if not task:
+                session = stack.enter_context(engine.session(rt, catalog=catalog))
+            prior = state.get_run(run_id)
+            run_started_at, conflict = resolve_run_started_at(
+                opts.run_started_at, prior, started, unit_mode=unit_mode
+            )
+            if conflict is not None:
+                return _early(bus, [*diags, conflict])
+            rt = replace(rt, run_started_at=run_started_at)
             if opts.lock and not unit_mode:
                 try:
                     stack.enter_context(state.lock(scope, run_id))
                 except LockHeld as held:
                     return _early(bus, [*diags, _lock_held(held)])
-            prior = None if unit_mode else state.get_run(run_id)
-            run_started = prior.started_at if prior else started
+            prior = None if unit_mode else prior
+            run_started = run_started_at or started
             invocation_ids = tuple(
                 dict.fromkeys((*(prior.invocation_ids if prior else ()), rt.invocation_id))
             )
@@ -360,7 +406,6 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                     )
                 )
             executor: Executor
-            session_cm: AbstractContextManager[Any]
             loader_cm: AbstractContextManager[Any]
             if task:
                 env = {**os.environ, **(project.options.env or {})}
@@ -385,11 +430,10 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                     unit_nodes={u: plan.units[u].nodes[-1] for u in plan.units},
                     cancel_grace=grace,
                 )
-                session_cm, loader_cm = nullcontext(), nullcontext()
+                loader_cm = nullcontext()
             else:
-                session_cm = engine.session(rt, catalog=catalog)
                 loader_cm = CallableLoader(project_dir, plan.metadata.python_paths)
-            with session_cm as session, loader_cm as loader:
+            with loader_cm as loader:
                 if not task:
                     assert session is not None and loader is not None
                     memo = EphemeralMemo(_consumers(plan, units), persist=session.persist)
@@ -584,6 +628,7 @@ def _finish(
         unfinished=unfinished,
         crashed=crashed,
         timed_out=timed_out,
+        intermediate_ttl=bound.runtime.artifacts.intermediate_ttl,
     )
     run = done.run_results["run"]
     status: RunStatus = run["status"]
@@ -651,4 +696,4 @@ def _finish(
     )
 
 
-__all__ = ["RunOptions", "RunOutcome", "execute_run", "new_run_id"]
+__all__ = ["RunOptions", "RunOutcome", "execute_run", "new_run_id", "resolve_run_started_at"]

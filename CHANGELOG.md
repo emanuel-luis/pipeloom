@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `intermediate` materialization on the memory, polars and pandas engines (ADR-0030, amends ADR-0007): the result is written to `<artifacts.root>/runs/<run_id>/intermediate/<model>` and read by its consumers; `relation_name` in `run_results` is that location. PLP413 rejects `incremental`, a strategy other than overwrite and `partition_by` on an intermediate.
+- `artifacts.intermediate_ttl` (default 1d; 0 deletes at the end of a succeeded run). Finalize deletes expired intermediates; a deletion error is reported in the new `run.warnings` of `run_results`, never as a failure.
+- `EngineContract` gains the intermediate tests (write then read, repeated token, one folder per run id).
+- Plugin API (0, 4), ADR-0030: `RuntimeContext` gains `run_started_at` and `artifacts_root`; `EngineSession` gains `write_intermediate`; `CatalogCapabilities(views=)` and `IntermediateRef` are new types. Plugins built for (0, 3) fail with PLU001.
+- `run --run-started-at ISO8601` (environment `PIPELOOM_RUN_STARTED_AT`) sets the start time every engine sees. It needs an offset and `--run-id`; a reused run id keeps its recorded start, and a different value is PLX108 (exit 2).
+- The engine session opens before any state-store call and the run lock (so it has no `run_started_at`; engines read `WriteConfig.run_started_at`, new and additive), and `unit_scope` now spans a unit's reads, body, checks and write.
+- PLC507 also fires when the catalog declares no views (`CatalogCapabilities(views=False)`).
+
 ## [0.3.0] - 2026-11-04
 
 pipeloom 0.3 adds incremental models, merge and replace_partitions, schema-change policies, expectations with quarantine, retries, timeouts and cancellation, on plugin API (0, 3).

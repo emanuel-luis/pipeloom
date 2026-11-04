@@ -450,3 +450,44 @@ def test_cancel_grace_setting_is_read_from_the_project(tmp_path: Path) -> None:
     assert bound is not None and bound.runtime.cancel_grace == 7
     assert _grace(RunOptions(), bound) == 7.0
     assert _grace(RunOptions(cancel_grace=2), bound) == 2.0
+
+
+def _recorded_start(root: Path, run_id: str) -> str:
+    return str(results(root, run_id)["run"]["started_at"])
+
+
+def test_run_started_at_flag_is_recorded(root: Path) -> None:
+    r = pipeloom(root, "-s", "a", "--run-id", "r1", "--run-started-at", "2026-01-02T03:04:05+02:00")
+    assert r.exit_code == 0, r.stderr
+    assert _recorded_start(root, "r1") == "2026-01-02T01:04:05.000000Z"
+
+
+def test_run_started_at_env_var(root: Path) -> None:
+    env = {"PIPELOOM_RUN_STARTED_AT": "2026-01-02T03:04:05Z"}
+    r = pipeloom(root, "-s", "a", "--run-id", "r1", env=env)
+    assert r.exit_code == 0, r.stderr
+    assert _recorded_start(root, "r1") == "2026-01-02T03:04:05.000000Z"
+
+
+@pytest.mark.parametrize("value", ["2026-01-02T03:04:05", "2026-01-02", "yesterday"])
+def test_run_started_at_needs_an_offset(root: Path, value: str) -> None:
+    r = pipeloom(root, "--run-id", "r1", "--run-started-at", value)
+    assert r.exit_code == 2
+    assert not (root / "target" / "runs" / "r1").exists()
+
+
+def test_run_started_at_needs_a_run_id(root: Path) -> None:
+    r = pipeloom(root, "--run-started-at", "2026-01-02T03:04:05Z")
+    assert r.exit_code == 2 and "--run-id" in r.stderr
+
+
+def test_a_reused_run_id_keeps_its_start_and_a_mismatch_is_exit_2(root: Path) -> None:
+    first = "2026-01-02T03:04:05Z"
+    assert pipeloom(root, "-s", "a", "--run-id", "r1", "--run-started-at", first).exit_code == 0
+    assert pipeloom(root, "-s", "a", "--run-id", "r1").exit_code == 0
+    assert _recorded_start(root, "r1") == "2026-01-02T03:04:05.000000Z"
+    same = pipeloom(root, "-s", "a", "--run-id", "r1", "--run-started-at", first)
+    assert same.exit_code == 0
+    other = pipeloom(root, "-s", "a", "--run-id", "r1", "--run-started-at", "2026-01-03T00:00:00Z")
+    assert other.exit_code == 2 and codes(other) == {"PLX108"}
+    assert "2026-01-02T03:04:05" in other.stderr and "2026-01-03T00:00:00" in other.stderr

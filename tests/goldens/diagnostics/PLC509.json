@@ -2,17 +2,17 @@
   {
     "code": "PLC509",
     "severity": "error",
-    "message": "engine 'memory' cannot materialize 'intermediate' (model 'a')",
-    "hint": "supported: ephemeral, incremental, table, view",
+    "message": "engine 'nosql' cannot materialize 'intermediate' (model 'a')",
+    "hint": "supported: ephemeral, table",
     "location": {
       "file": "models/m.yml",
       "line": 2,
-      "col": 49,
+      "col": 44,
       "json_pointer": "/models/0/materialized"
     },
     "context": {
       "model": "a",
-      "engine": "memory"
+      "engine": "nosql"
     }
   }
 ]

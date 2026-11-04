@@ -10,6 +10,7 @@ from pipeloom.engine.types import (
     DropResult,
     EngineCapabilities,
     ExpectationSpec,
+    IntermediateRef,
     Namespace,
     QualityCounts,
     QuarantineMeta,
@@ -77,6 +78,11 @@ class EngineSession(Protocol):
         self, target: TargetRef, query: str, inputs: Mapping[str, ReadSpec]
     ) -> WriteResult:
         """Create or replace a catalog view over `inputs`, which `query` names by alias."""
+        ...
+
+    def write_intermediate(self, rel: Relation, ref: IntermediateRef, token: str) -> WriteResult:
+        """Persist `rel` at `ref.location`, overwriting; repeating `token` must not write twice.
+        Needs the `intermediate` materialization."""
         ...
 
     def max_value(self, rel: Relation, column: str) -> Any:

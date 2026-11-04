@@ -358,7 +358,7 @@ _ACTIVE_02: Final = (
         "PLC509",
         E,
         "Materialization unsupported by engine",
-        "The materialization is not in the selected engine's capabilities. No engine offers intermediate yet.",
+        "The materialization is not in the selected engine's capabilities.",
     ),
     (
         "PLP409",
@@ -479,10 +479,27 @@ _ACTIVE_03: Final = (
         "A model's quarantine table is named <model>__quarantine, and another model already has that name in the same schema.",
     ),
     (
+        "PLP413",
+        E,
+        "Intermediate model with a write option",
+        "An intermediate model is rewritten whole at a location of its own. It cannot be incremental, use a strategy other than overwrite, or set partition_by.",
+    ),
+    (
         "PLC510",
         E,
         "Expectations on an engine without quality",
         "The selected engine does not declare the quality capability, so it cannot evaluate expectations.",
+    ),
+)
+
+
+# Active since 0.4.
+_ACTIVE_04: Final = (
+    (
+        "PLX108",
+        E,
+        "Run start time conflict",
+        "--run-started-at differs from the start the run recorded when it first ran. A reused run id keeps its recorded start. Exit code 2.",
     ),
 )
 
@@ -500,7 +517,12 @@ _RESERVED: Final = (
 
 def _build() -> Mapping[str, CodeInfo]:
     out: dict[str, CodeInfo] = {}
-    for since, table in (("0.1", _ACTIVE), ("0.2", _ACTIVE_02), ("0.3", _ACTIVE_03)):
+    for since, table in (
+        ("0.1", _ACTIVE),
+        ("0.2", _ACTIVE_02),
+        ("0.3", _ACTIVE_03),
+        ("0.4", _ACTIVE_04),
+    ):
         for code, sev, title, expl in table:
             out[code] = CodeInfo(code, _PREFIX_LAYER[code[:3]], sev, title, expl, "active", since)
     for code, sev, title, since in _RESERVED:
