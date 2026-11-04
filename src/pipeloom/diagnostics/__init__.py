@@ -132,6 +132,10 @@ class Report:
         self._items.append(diagnostic)
         return diagnostic
 
+    def extend(self, diagnostics: Iterable[Diagnostic]) -> None:
+        """Add diagnostics produced elsewhere."""
+        self._items.extend(diagnostics)
+
     @property
     def has_errors(self) -> bool:
         return self.error_count > 0

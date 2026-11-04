@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import os
 import re
 from collections.abc import Mapping
@@ -20,9 +21,26 @@ from pipeloom.secrets.interpolation import InterpolationRecord, interpolate
 
 M = TypeVar("M", bound=BaseModel)
 
-_SECRET_KEY = re.compile(
-    r"password|passwd|secret|token|api_?key|private_?key|credential|access_?key", re.IGNORECASE
-)
+_SECRET_SUBSTRINGS = ("password", "passwd", "secret", "credential")
+_SECRET_SUFFIXES = ("token", "apikey", "privatekey", "accesskey")
+_SECRET_PAIRS = frozenset({("api", "key"), ("private", "key"), ("access", "key")})
+_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
+
+
+def _is_secret_key(key: str) -> bool:
+    """True when the key's words name a secret.
+
+    Words are split on _, -, . and camelCase, lowercased, with trailing digits dropped.
+    """
+    parts = re.split(r"[_.\-]", _CAMEL.sub("_", key).lower())
+    words = [w for w in (p.rstrip("0123456789") for p in parts) if w]
+    return (
+        any(sub in w for w in words for sub in _SECRET_SUBSTRINGS)
+        or any(w.endswith(_SECRET_SUFFIXES) for w in words)
+        or any(pair in _SECRET_PAIRS for pair in itertools.pairwise(words))
+    )
+
+
 # In a secret-like field only ${secret:...} and ${env:NAME} (no default, or an empty one) pass.
 _REFERENCE = re.compile(r"^\$\{(?:secret:[^}]+|env:[A-Za-z_][A-Za-z0-9_]*(?::-)?)\}$")
 
@@ -65,7 +83,7 @@ def _secret_key_of(pointer: str) -> str | None:
         if seg.isdigit():
             continue
         key = _unescape(seg)
-        return key if _SECRET_KEY.search(key) else None
+        return key if _is_secret_key(key) else None
     return None
 
 
@@ -77,7 +95,7 @@ def _scan_secrets(doc: LoadedDocument, report: Report) -> None:
     """PLS104: a literal scalar under a secret-like key."""
 
     def literal(value: Any) -> bool:
-        if value is None or value == "":
+        if value is None or value == "" or isinstance(value, bool):
             return False
         return not (isinstance(value, str) and _REFERENCE.match(value))
 
@@ -88,7 +106,7 @@ def _scan_secrets(doc: LoadedDocument, report: Report) -> None:
         elif isinstance(node, list):
             for i, v in enumerate(node):
                 visit(v, f"{pointer}/{i}", key)
-        elif key is not None and _SECRET_KEY.search(key) and literal(node):
+        elif key is not None and _is_secret_key(key) and literal(node):
             report.add(
                 "PLS104",
                 f"literal value in secret-like field '{key}'",

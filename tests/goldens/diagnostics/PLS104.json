@@ -63,5 +63,148 @@
       "json_pointer": "/targets/dev/catalog/access_key"
     },
     "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'apiKey'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 8,
+      "col": 11,
+      "json_pointer": "/targets/dev/catalog/apiKey"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'client_secret'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 8,
+      "col": 31,
+      "json_pointer": "/targets/dev/catalog/client_secret"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'password2'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 8,
+      "col": 47,
+      "json_pointer": "/targets/dev/catalog/password2"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'dbpassword'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 8,
+      "col": 62,
+      "json_pointer": "/targets/dev/catalog/dbpassword"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'clientsecret'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 9,
+      "col": 17,
+      "json_pointer": "/targets/dev/catalog/clientsecret"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'authtoken'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 9,
+      "col": 31,
+      "json_pointer": "/targets/dev/catalog/authtoken"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'refreshtoken'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 9,
+      "col": 48,
+      "json_pointer": "/targets/dev/catalog/refreshtoken"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'apikey1'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 9,
+      "col": 60,
+      "json_pointer": "/targets/dev/catalog/apikey1"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'passwords'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 9,
+      "col": 74,
+      "json_pointer": "/targets/dev/catalog/passwords"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'secrets'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 9,
+      "col": 86,
+      "json_pointer": "/targets/dev/catalog/secrets"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'credentials'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 10,
+      "col": 16,
+      "json_pointer": "/targets/dev/catalog/credentials"
+    },
+    "context": {}
   }
 ]

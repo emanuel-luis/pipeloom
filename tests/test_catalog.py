@@ -34,11 +34,13 @@ def test_codes_are_well_formed_and_sorted() -> None:
         assert isinstance(entry.layer, Layer)
 
 
-def test_pr1_codes_active_and_others_reserved() -> None:
+def test_active_codes_and_others_reserved() -> None:
     active = {c for c, i in CATALOG.items() if i.status == "active"}
-    assert active == {f"PLY00{n}" for n in range(1, 5)} | {f"PLS10{n}" for n in range(1, 9)} | {
-        "PLR206"
-    }
+    assert active == (
+        {f"PLY00{n}" for n in range(1, 5)}
+        | {f"PLS10{n}" for n in range(1, 9)}
+        | {"PLR204", "PLR206", "PLR207", "PLU001", "PLU002", "PLU003"}
+    )
     assert info("PLG301").status == "reserved"
 
 

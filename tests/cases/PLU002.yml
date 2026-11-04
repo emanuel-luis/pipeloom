@@ -1,0 +1,9 @@
+entry_points:
+  - {group: engines, name: memory, value: "tests.plugins.fakes:MEMORY_CLONE", dist: other-memory, version: "1.0"}
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine: {kind: memory}

@@ -128,6 +128,48 @@ _ACTIVE: Final = (
         "model_paths entry does not exist",
         "A directory listed in model_paths is missing, so no models are read from it.",
     ),
+    (
+        "PLR204",
+        E,
+        "Unknown target or plugin kind",
+        (
+            "The selected target is not in targets, or an engine, catalog, naming or sink block "
+            "names a kind that no installed plugin provides."
+        ),
+    ),
+    (
+        "PLR207",
+        E,
+        "No target selected",
+        (
+            "Several targets exist and none was chosen. Use --target, PIPELOOM_TARGET or "
+            "default_target."
+        ),
+    ),
+    (
+        "PLU001",
+        E,
+        "Plugin API mismatch",
+        (
+            "A plugin was built for another plugin API version. While the major version is 0 "
+            "the versions must match exactly."
+        ),
+    ),
+    (
+        "PLU002",
+        E,
+        "Duplicate plugin kind",
+        "Two installed plugins provide the same kind in one group, and a config names it.",
+    ),
+    (
+        "PLU003",
+        E,
+        "Plugin failed to load",
+        (
+            "A plugin module cannot be imported, does not resolve to a PluginSpec, or its group "
+            "or kind differs from the entry point that registered it."
+        ),
+    ),
 )
 
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
@@ -135,9 +177,7 @@ _RESERVED: Final = (
     ("PLR201", E, "Unknown ref", "0.1"),
     ("PLR202", E, "Duplicate model name", "0.1"),
     ("PLR203", E, "Unknown source", "0.1"),
-    ("PLR204", E, "Unknown target or plugin kind", "0.1"),
     ("PLR205", E, "Duplicate source", "0.1"),
-    ("PLR207", E, "No target selected", "0.1"),
     ("PLG301", E, "Cycle in the graph", "0.1"),
     ("PLG302", E, "Self-reference", "0.1"),
     ("PLG303", W, "Selector matched nothing", "0.1"),
@@ -166,9 +206,6 @@ _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
     ("PLF702", E, "Source missing", "0.2"),
     ("PLF703", E, "Target schema drift detected", "0.2"),
-    ("PLU001", E, "Plugin API mismatch", "0.1"),
-    ("PLU002", E, "Duplicate plugin kind", "0.1"),
-    ("PLU003", E, "Plugin failed to load", "0.1"),
     ("PLE401", W, "Sink disabled", "0.1"),
     ("PLX101", E, "Model raised", "0.3"),
     ("PLX102", E, "Timeout", "0.3"),

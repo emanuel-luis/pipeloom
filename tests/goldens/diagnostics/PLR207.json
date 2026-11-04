@@ -1,0 +1,28 @@
+[
+  {
+    "code": "PLR206",
+    "severity": "warning",
+    "message": "model_paths entry 'models' does not exist",
+    "hint": "create the directory or remove the entry",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 1,
+      "col": 1,
+      "json_pointer": "/model_paths/0"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLR207",
+    "severity": "error",
+    "message": "no target selected",
+    "hint": "use --target, PIPELOOM_TARGET or default_target; targets: dev, prod",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 4,
+      "col": 3,
+      "json_pointer": "/targets"
+    },
+    "context": {}
+  }
+]

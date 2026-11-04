@@ -30,7 +30,7 @@ Entry points. pipeloom picks one implementation per role by `kind`, which is 1-o
 
 ## Status
 
-Accepted
+Accepted. Amended by [ADR-0017](0017-plugin-spec-and-builtins.md): the spec gains `group`, `capabilities` and `description`, built-ins come from an in-code table, and PLU003 is added.
 
 ## Date
 

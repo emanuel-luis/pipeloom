@@ -14,9 +14,17 @@ All notable changes to this project are documented here. The format follows
 - Pydantic configuration models for `pipeloom.yml`, model files and `_defaults.yml`, with schema errors mapped to file locations and did-you-mean hints.
 - `pipeloom validate` with `--project-dir` (`PIPELOOM_PROJECT_DIR`), `--vars` and `--warn-error`; exit codes 0, 1, 2 and 130.
 - Python API: `pipeloom.api.Project` and `ProjectOptions`; `pipeloom.platform` clock and identity seams.
+- Plugin system: `pipeloom.plugins` with `PluginSpec`, `PluginRegistry`, `API_VERSION` and `check_api`; entry-point discovery that reads metadata only, `--plugin module:attr`, `PIPELOOM_DISABLE_PLUGIN_AUTOLOAD`, and codes PLU001 to PLU003 (ADR-0017).
+- Built-in plugins from a lazy in-code table: `memory` engine and catalog, `none`, `prefix` and `per_user` naming, `env` secret provider, and the `filesystem` catalog spec (implementation in 0.2).
+- Engine contracts: `pipeloom.engine` types and protocols, `RuntimeContext`, and `pipeloom.testing.memory` (MemoryEngine and MemoryCatalog on sqlite3).
+- Target binding: `--target` (`PIPELOOM_TARGET`), `default_target`, runtime merge and plugin option validation, with codes PLR204 and PLR207. `Project.bind()` in the API.
+- `pipeloom schema export` writes JSON Schemas for `pipeloom.yml`, model files and `_defaults.yml`, with plugin options as `oneOf` branches.
+- `pipeloom plugins list` with `--group`, `--output`, `--check` and `--plugin`.
 
 ### Changed
 
+- `pipeloom validate` binds the selected target and checks plugin options, and accepts `--target` and `--plugin`.
+- PLS104 matches secret words in key segments (`max_tokens` is no longer flagged) and ignores booleans.
 - The CLI needs `click>=8.2`; runtime dependencies now include pydantic and PyYAML.
 - CI tests Python 3.11 to 3.14 on Ubuntu, Windows and macOS now that the repository is public.
 
