@@ -41,7 +41,6 @@ def test_l4_to_l6_run_together(tmp_path: Path) -> None:
     )
     assert codes(tmp_path, models, {"src/m.py": "def b(): ...\n"}) == {
         "PLP407",
-        "PLC501",
         "PLK602",
     }
 

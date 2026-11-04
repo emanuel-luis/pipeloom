@@ -14,8 +14,16 @@ from pipeloom.artifacts.layout import RunPaths
 from pipeloom.artifacts.results import result_row, schema_hash
 from pipeloom.diagnostics import JsonValue, Location
 from pipeloom.engine import portable
+from pipeloom.engine.errors import WriteKeyError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
-from pipeloom.engine.types import ReadSpec, Relation, TargetRef, WriteConfig, WriteResult
+from pipeloom.engine.types import (
+    DeleteSpec,
+    ReadSpec,
+    Relation,
+    TargetRef,
+    WriteConfig,
+    WriteResult,
+)
 from pipeloom.events.bus import EventBus
 from pipeloom.events.model import (
     ModelInputRead,
@@ -440,10 +448,28 @@ class ModelRunner:
             columns = self._session.schema(rel)
             row["schema_hash"] = schema_hash((c.name, c.dtype, c.nullable) for c in columns)
             self._catalog.ensure_namespace(target.namespace)
+            deletes = (
+                None
+                if write.deletes is None
+                else DeleteSpec(write.deletes.column, write.deletes.value, write.deletes.mode)
+            )
             cfg = WriteConfig(
-                strategy, unique_key=tuple(write.unique_key or ()), options=dict(write.options)
+                strategy,
+                unique_key=tuple(write.unique_key or ()),
+                partition_by=tuple(node.config.partition_by),
+                update_condition=write.update_condition,
+                deletes=deletes,
+                options=dict(write.options),
             )
             result = self._session.materializer(strategy).materialize(rel, target, cfg, token)
+        except WriteKeyError as exc:
+            self._fail(
+                "PLM206",
+                "write",
+                exc,
+                f"invalid write key for model '{node.name}'",
+                "check write.unique_key and partition_by, and that the batch has no duplicate key",
+            )
         except Exception as exc:  # noqa: BLE001 - engines raise their own errors
             self._fail(
                 "PLM201",

@@ -2,8 +2,8 @@
   {
     "code": "PLC501",
     "severity": "error",
-    "message": "engine 'memory' does not support strategy 'merge' (model 'a')",
-    "hint": "supported: append, overwrite",
+    "message": "engine 'memory' does not support strategy 'scd2' (model 'a')",
+    "hint": "supported: append, merge, overwrite, replace_partitions",
     "location": {
       "file": "models/m.yml",
       "line": 4,

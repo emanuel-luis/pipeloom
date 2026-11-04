@@ -3,7 +3,7 @@
     "code": "PLC509",
     "severity": "error",
     "message": "engine 'memory' cannot materialize 'intermediate' (model 'a')",
-    "hint": "supported: ephemeral, table, view",
+    "hint": "supported: ephemeral, incremental, table, view",
     "location": {
       "file": "models/m.yml",
       "line": 2,

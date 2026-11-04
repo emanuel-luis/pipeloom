@@ -10,8 +10,9 @@ import pytest
 
 from pipeloom.engine.protocols import EngineSession
 from pipeloom.engine.types import Relation, Schema
+from pipeloom.testing import reference
 from pipeloom.testing.contract.engine import EngineContract, EngineHarness
-from pipeloom.testing.memory import MemoryCatalog, MemoryEngine
+from pipeloom.testing.memory import MemoryCatalog, MemoryEngine, slow_relation
 
 
 class _Boom:
@@ -44,6 +45,12 @@ def harness(tmp_path: Path) -> EngineHarness:
         write_source=write_source,
         failing_relation=failing,
         settings_snapshot=dict,
+        expr_cases=(
+            ("id > 1", lambda r: None if r["id"] is None else r["id"] > 1),
+            ("f < 5.0", lambda r: None if reference.is_null(r["f"]) else r["f"] < 5.0),
+        ),
+        update_condition="source.v > target.v",
+        slow_relation=slow_relation,
     )
 
 

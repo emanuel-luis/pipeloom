@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from contextlib import AbstractContextManager
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from pipeloom.engine.types import (
+    DropResult,
     EngineCapabilities,
+    ExpectationSpec,
     Namespace,
+    QualityCounts,
+    QuarantineMeta,
     ReadSpec,
     Relation,
     Schema,
@@ -55,7 +59,11 @@ class EngineSession(Protocol):
 
     def count(self, rel: Relation) -> int: ...
 
-    def filter_since(self, rel: Relation, column: str, lower: Any) -> Relation: ...
+    def filter_since(
+        self, rel: Relation, column: str, lower: Any, *, inclusive: bool = True
+    ) -> Relation:
+        """Rows with `column >= lower` (`>` when not inclusive); null rows are dropped."""
+        ...
 
     def relation(self, native: Any) -> Relation:
         """Check a model's return value and wrap it; raise TypeError for a foreign type."""
@@ -71,7 +79,36 @@ class EngineSession(Protocol):
         """Create or replace a catalog view over `inputs`, which `query` names by alias."""
         ...
 
-    def max_value(self, rel: Relation, column: str) -> Any: ...
+    def max_value(self, rel: Relation, column: str) -> Any:
+        """The maximum as a plain Python value (never numpy or pandas); None when empty."""
+        ...
+
+    def evaluate(self, rel: Relation, checks: Sequence[ExpectationSpec]) -> QualityCounts:
+        """Raw counts and aggregate values; the core judges them. Needs `quality`."""
+        ...
+
+    def apply_drops(
+        self, rel: Relation, checks: Sequence[ExpectationSpec], *, quarantine: QuarantineMeta | None
+    ) -> DropResult:
+        """Split `rel` by the drop checks. Needs `quality`."""
+        ...
+
+    def align(self, rel: Relation, schema: Schema) -> Relation:
+        """Select in `schema` order, add missing columns as typed nulls, cast to the types."""
+        ...
+
+    def applied_token(self, target: TargetRef, token: str) -> WriteResult | None:
+        """The stored result (with `skipped=True`) of a write that used `token`, else None.
+        None also when the engine is not idempotent."""
+        ...
+
+    def unit_scope(self, unit_id: str) -> AbstractContextManager[None]:
+        """Tags the work done in this thread with `unit_id`, so `cancel` can find it."""
+        ...
+
+    def is_transient(self, exc: BaseException) -> bool | None:
+        """True for a retryable error, False for a permanent one, None for no opinion."""
+        ...
 
     def cancel(self, unit_id: str) -> None:
         """Cooperative; a no-op for engines that cannot cancel."""

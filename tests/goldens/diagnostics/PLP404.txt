@@ -1,4 +1,2 @@
-error PLC509 models/m.yml:4:19 engine 'memory' cannot materialize 'incremental' (model 'a')
-      hint: supported: ephemeral, table, view
 error PLP404 models/m.yml:5:26 incremental.input 'orders' is not an input of 'a'
       hint: inputs: none

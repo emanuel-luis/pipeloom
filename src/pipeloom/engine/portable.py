@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Literal
 
 import narwhals.stable.v2 as nw
@@ -102,6 +103,22 @@ def max_value(native: Any, column: str) -> Any:
     return _plain(_collect(nw.from_native(native).select(nw.col(column).max())).item())
 
 
-def filter_since(native: Any, column: str, lower: Any) -> Any:
-    """Rows with `column >= lower`, as a native frame of the same kind."""
-    return nw.to_native(nw.from_native(native).filter(nw.col(column) >= lower))
+def filter_since(native: Any, column: str, lower: Any, *, inclusive: bool = True) -> Any:
+    """Rows with `column >= lower` (`>` when not inclusive), as a native frame of the same kind."""
+    col = nw.col(column)
+    keep = col >= lower if inclusive else col > lower
+    return nw.to_native(nw.from_native(native).filter(keep))
+
+
+_QUALIFIED = re.compile(r"'(?:[^']|'')*'|\b(source|target)\.(\w+)")
+
+
+def rewrite_qualified(cond: str) -> str:
+    """`source.x` becomes `x` and `target.x` becomes `__pipeloom_t_x`; quoted literals stay."""
+
+    def sub(m: re.Match[str]) -> str:
+        if m.group(1) is None:
+            return m.group(0)
+        return m.group(2) if m.group(1) == "source" else f"__pipeloom_t_{m.group(2)}"
+
+    return _QUALIFIED.sub(sub, cond)

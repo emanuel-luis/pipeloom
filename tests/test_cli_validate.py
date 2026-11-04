@@ -125,4 +125,4 @@ def test_validate_runs_l4_to_l6(tmp_path: Path) -> None:
         },
     )
     bad = run(["validate", "--project-dir", str(tmp_path)])
-    assert bad.exit_code == 1 and "PLP401" in bad.stderr and "PLC501" in bad.stderr
+    assert bad.exit_code == 1 and "PLP401" in bad.stderr

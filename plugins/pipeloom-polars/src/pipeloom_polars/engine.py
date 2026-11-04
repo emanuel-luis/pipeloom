@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping
-from contextlib import contextmanager
+from collections.abc import Iterator, Mapping, Sequence
+from contextlib import AbstractContextManager, contextmanager, nullcontext
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 import polars as pl
@@ -12,7 +13,18 @@ from pipeloom.builtins.filesystem import FilesystemCatalog
 from pipeloom.builtins.fs_table import FsTable, ViewDefinition
 from pipeloom.engine import portable
 from pipeloom.engine.protocols import Catalog, EngineSession, Materializer, Reader
-from pipeloom.engine.types import ReadSpec, Relation, Schema, TargetRef, WriteConfig, WriteResult
+from pipeloom.engine.types import (
+    DropResult,
+    ExpectationSpec,
+    QualityCounts,
+    QuarantineMeta,
+    ReadSpec,
+    Relation,
+    Schema,
+    TargetRef,
+    WriteConfig,
+    WriteResult,
+)
 from pipeloom_polars import io
 from pipeloom_polars.spec import CAPABILITIES
 
@@ -53,10 +65,13 @@ class _Materializer:
         table = catalog.table(target)
         replay = table.applied(token)
         if replay is not None:
-            return replay
+            return replace(replay, skipped=True)
         path = table.new_file(io.EXTENSIONS[catalog.format])
         try:
-            df: pl.DataFrame = rel.native.collect()
+            frame = (
+                rel.native if cfg.columns is None else self._session.align(rel, cfg.columns).native
+            )
+            df: pl.DataFrame = frame.collect()
             io.write(df, catalog.format, path)
             commit = table.commit(
                 mode="append" if self.strategy == "append" else "overwrite",
@@ -64,7 +79,11 @@ class _Materializer:
                 columns=portable.schema(df),
                 rows=df.height,
                 token=token,
-                result=WriteResult(rows_inserted=df.height, rows_written=df.height),
+                result=WriteResult(
+                    rows_inserted=df.height,
+                    rows_written=df.height,
+                    commit_meta=dict(cfg.commit_meta),
+                ),
             )
         except BaseException:
             table.discard([path])
@@ -159,11 +178,40 @@ class PolarsSession:
     def count(self, rel: Relation) -> int:
         return portable.count(rel.native)
 
-    def filter_since(self, rel: Relation, column: str, lower: Any) -> Relation:
-        return _rel(portable.filter_since(rel.native, column, lower))
+    def filter_since(
+        self, rel: Relation, column: str, lower: Any, *, inclusive: bool = True
+    ) -> Relation:
+        return _rel(portable.filter_since(rel.native, column, lower, inclusive=inclusive))
+
+    def align(self, rel: Relation, schema: Schema) -> Relation:
+        have = set(rel.native.collect_schema().names())
+        exprs = []
+        for col in schema:
+            expr = pl.col(col.name) if col.name in have else pl.lit(None)
+            dtype = io.polars_dtype(col.dtype)
+            exprs.append((expr if dtype is None else expr.cast(dtype)).alias(col.name))
+        return _rel(rel.native.select(exprs))
 
     def max_value(self, rel: Relation, column: str) -> Any:
         return portable.max_value(rel.native, column)
+
+    def evaluate(self, rel: Relation, checks: Sequence[ExpectationSpec]) -> QualityCounts:
+        raise NotImplementedError("expectations arrive with the quality capability")
+
+    def apply_drops(
+        self, rel: Relation, checks: Sequence[ExpectationSpec], *, quarantine: QuarantineMeta | None
+    ) -> DropResult:
+        raise NotImplementedError("expectations arrive with the quality capability")
+
+    def applied_token(self, target: TargetRef, token: str) -> WriteResult | None:
+        replay = self.catalog.table(target).applied(token)
+        return None if replay is None else replace(replay, skipped=True)
+
+    def unit_scope(self, unit_id: str) -> AbstractContextManager[None]:
+        return nullcontext()
+
+    def is_transient(self, exc: BaseException) -> bool | None:
+        return None
 
     def cancel(self, unit_id: str) -> None:
         return None

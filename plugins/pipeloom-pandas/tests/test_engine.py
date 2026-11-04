@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pandas as pd
@@ -49,7 +50,9 @@ def test_a_replayed_token_keeps_the_commit(tmp_path: Path) -> None:
         mat = s.materializer("append")
         first = mat.materialize(rel, T, WriteConfig("append"), "r:1")
         before = sorted(p.name for p in (tmp_path / "wh" / "main" / "t").iterdir())
-        assert mat.materialize(rel, T, WriteConfig("append"), "r:1") == first
+        assert (
+            replace(mat.materialize(rel, T, WriteConfig("append"), "r:1"), skipped=False) == first
+        )
         assert sorted(p.name for p in (tmp_path / "wh" / "main" / "t").iterdir()) == before
         assert first.rows_written == 1 and first.bytes_written and first.target_version == 1
 

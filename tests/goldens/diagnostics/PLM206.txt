@@ -1,0 +1,2 @@
+error PLM206 models/m.yml:2 invalid write key for model 'a': pipeloom.engine.errors.WriteKeyError: the batch repeats the unique_key (1,)
+      hint: check write.unique_key and partition_by, and that the batch has no duplicate key

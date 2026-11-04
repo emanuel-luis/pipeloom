@@ -1,2 +1,2 @@
-error PLC501 models/m.yml:4:23 engine 'memory' does not support strategy 'merge' (model 'a')
-      hint: supported: append, overwrite
+error PLC501 models/m.yml:4:23 engine 'memory' does not support strategy 'scd2' (model 'a')
+      hint: supported: append, merge, overwrite, replace_partitions
