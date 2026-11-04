@@ -871,9 +871,6 @@
                   "const": "fakejobs"
                 },
                 "pipelines": {
-                  "default": [
-                    "main"
-                  ],
                   "description": "Pipelines to render.",
                   "items": {
                     "type": "string"
@@ -1199,9 +1196,6 @@
               "const": "fakejobs"
             },
             "pipelines": {
-              "default": [
-                "main"
-              ],
               "description": "Pipelines to render.",
               "items": {
                 "type": "string"
