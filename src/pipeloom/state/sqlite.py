@@ -17,7 +17,7 @@ from pipeloom.engine.types import StateStoreCapabilities
 from pipeloom.platform import Clock, SystemClock
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
 from pipeloom.state import codec
-from pipeloom.state.lease import held, new_lock_info
+from pipeloom.state.lease import Heartbeat, held, new_lock_info
 from pipeloom.state.types import (
     HEARTBEAT_SECONDS,
     LEASE_SECONDS,
@@ -66,6 +66,8 @@ class SqliteStore:
         self._path = Path(path)
         self._clock: Clock = clock or SystemClock()
         self._heartbeat = heartbeat_seconds
+        self.heartbeat = Heartbeat()
+        """`heartbeat.last_error` is the last failed lease renewal, for the run to warn about."""
         self._lease = lease_seconds
         self._path.parent.mkdir(parents=True, exist_ok=True)
         with self._write() as db:
@@ -229,7 +231,7 @@ class SqliteStore:
                     info.expires_at.isoformat(),
                 ),
             )
-        return held(info, self._renew, self._release, self._heartbeat)
+        return held(info, self._renew, self._release, self._heartbeat, self.heartbeat)
 
     def _renew(self, info: LockInfo) -> None:
         expires = self._clock.now() + timedelta(seconds=self._lease)

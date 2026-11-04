@@ -202,9 +202,23 @@ class StateStoreContract:
                 assert taken.owner != first.owner
         finally:
             old.__exit__(None, None, None)
-        # The first holder's release must not have removed the second holder's lock,
-        # and after both are gone the scope is free again.
         with store.lock("run", "r3"):
+            pass
+
+    def test_only_the_owner_releases(self, store: StateStore, clock: FakeClock) -> None:
+        a = store.lock("run", "a")
+        a.__enter__()
+        clock.advance(LEASE_SECONDS + 1)
+        b = store.lock("run", "b")
+        b.__enter__()
+        try:
+            a.__exit__(None, None, None)  # A leaves while B holds the lock
+            with pytest.raises(LockHeld) as err, store.lock("run", "c"):
+                pass
+            assert err.value.info.run_id == "b"
+        finally:
+            b.__exit__(None, None, None)
+        with store.lock("run", "d"):
             pass
 
     def test_a_subprocess_cannot_take_a_held_lock(

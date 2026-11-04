@@ -2,7 +2,11 @@
 
 Every write goes to `<name>.<uuid>.tmp` and is moved into place with `os.replace`. Locks are
 lease files created with `O_EXCL`; an expired one is taken over by renaming it away first, which
-only one contender can do. ponytail: `O_EXCL` and `os.replace` are weak on NFS and SMB; a
+only one contender can do for a given file. Known race: a contender that read an expired lease
+can rename away a fresh lease that a faster contender created in between. It checks the owner
+after the rename and puts the lease back, but between the rename and the restore the scope looks
+free and a third process can take it, and on a file system without hard links or with a
+contender already in place the restore can fail. ponytail: `O_EXCL` and `os.replace` are weak on NFS and SMB; a
 database-backed store is the answer there.
 """
 
@@ -28,7 +32,7 @@ from pipeloom.engine.types import StateStoreCapabilities
 from pipeloom.platform import Clock, SystemClock
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
 from pipeloom.state import codec
-from pipeloom.state.lease import expired, held, new_lock_info
+from pipeloom.state.lease import Heartbeat, expired, held, new_lock_info
 from pipeloom.state.types import (
     HEARTBEAT_SECONDS,
     LEASE_SECONDS,
@@ -121,6 +125,8 @@ class JsonDirStore:
         self._root = Path(path)
         self._clock: Clock = clock or SystemClock()
         self._heartbeat = heartbeat_seconds
+        self.heartbeat = Heartbeat()
+        """`heartbeat.last_error` is the last failed lease renewal, for the run to warn about."""
         self._lease = lease_seconds
         marker = self._root / "_state.json"
         self._root.mkdir(parents=True, exist_ok=True)
@@ -218,11 +224,19 @@ class JsonDirStore:
             except FileNotFoundError:
                 continue  # another contender took it over first
             moved = _read_lock(stale)
-            with suppress(OSError):
-                if moved is not None and moved.owner != existing.owner:
-                    # Raced: we moved a lease that was just renewed or retaken. Put it back.
+            if moved is not None and moved.owner != existing.owner:
+                # Raced: the lease we renamed was renewed or retaken after we read it. Put it
+                # back (a hard link fails if a contender already created the file, or on file
+                # systems without links; then try a rename) and never delete it.
+                try:
                     os.link(stale, path)
-                    raise LockHeld(moved)
+                except OSError:
+                    with suppress(OSError):
+                        os.rename(stale, path)
+                else:
+                    with suppress(OSError):
+                        stale.unlink()
+                raise LockHeld(moved)
             with suppress(OSError):
                 stale.unlink()
 
@@ -261,7 +275,11 @@ class JsonDirStore:
         info = new_lock_info(scope, run_id, self._clock, self._lease)
         self._acquire(path, info)
         return held(
-            info, self._renew_file(path, self._lease), self._release_file(path), self._heartbeat
+            info,
+            self._renew_file(path, self._lease),
+            self._release_file(path),
+            self._heartbeat,
+            self.heartbeat,
         )
 
     @contextmanager

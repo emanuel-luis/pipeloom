@@ -30,22 +30,35 @@ def expired(info: LockInfo, clock: Clock) -> bool:
     return info.expires_at <= clock.now()
 
 
+class Heartbeat:
+    """The last renewal failure of a held lock, for the run to report."""
+
+    def __init__(self) -> None:
+        self.last_error: Exception | None = None
+
+
 @contextmanager
 def held(
     info: LockInfo,
     renew: Callable[[LockInfo], None],
     release: Callable[[LockInfo], None],
     interval: float = HEARTBEAT_SECONDS,
+    status: Heartbeat | None = None,
 ) -> Iterator[LockInfo]:
-    """Hold an acquired lock: renew it from a daemon thread, release it on exit."""
+    """Hold an acquired lock: renew it from a daemon thread, release it on exit.
+
+    A failed renewal is recorded in `status.last_error` and retried at the next beat; only the
+    release stops the thread.
+    """
     stop = threading.Event()
 
     def beat() -> None:
         while not stop.wait(interval):
             try:
                 renew(info)
-            except Exception:  # noqa: BLE001 - the thread must not die loudly; the lease lapses
-                return
+            except Exception as err:  # noqa: BLE001 - a transient failure must not stop renewal
+                if status is not None:
+                    status.last_error = err
 
     thread = threading.Thread(target=beat, name=f"pipeloom-lease-{info.scope}", daemon=True)
     thread.start()
@@ -57,4 +70,4 @@ def held(
         release(info)
 
 
-__all__ = ["SystemClock", "expired", "held", "new_lock_info", "new_owner"]
+__all__ = ["Heartbeat", "SystemClock", "expired", "held", "new_lock_info", "new_owner"]

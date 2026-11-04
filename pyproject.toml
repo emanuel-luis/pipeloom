@@ -109,9 +109,26 @@ ignore_imports = ["pipeloom.engine.protocols -> pipeloom.runtime.context"]
 [[tool.importlinter.contracts]]
 name = "Only pipeloom.testing imports pipeloom.testing"
 type = "forbidden"
-source_modules = ["pipeloom"]
+# Every top-level module except testing: with `pipeloom` as the source, testing would be one too.
+source_modules = [
+    "pipeloom.__main__",
+    "pipeloom.api",
+    "pipeloom.builtins",
+    "pipeloom.cli",
+    "pipeloom.config",
+    "pipeloom.diagnostics",
+    "pipeloom.engine",
+    "pipeloom.events",
+    "pipeloom.graph",
+    "pipeloom.plan",
+    "pipeloom.platform",
+    "pipeloom.plugins",
+    "pipeloom.runtime",
+    "pipeloom.secrets",
+    "pipeloom.state",
+    "pipeloom.validate",
+]
 forbidden_modules = ["pipeloom.testing"]
-ignore_imports = ["pipeloom.testing.** -> pipeloom.testing.**"]
 
 [[tool.importlinter.contracts]]
 name = "No dataframe or SQL parsing library in the core"

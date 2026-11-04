@@ -9,7 +9,7 @@ import pytest
 
 from pipeloom.platform import Clock
 from pipeloom.state.jsondir import JsonDirStore, _seg
-from pipeloom.state.lease import held, new_lock_info, new_owner
+from pipeloom.state.lease import Heartbeat, held, new_lock_info, new_owner
 from pipeloom.state.sqlite import SqliteStore
 from pipeloom.state.types import LockHeld, StateStore
 from pipeloom.testing.clock import FakeClock
@@ -111,3 +111,20 @@ def test_lock_held_message(tmp_path: Path) -> None:
     store = SqliteStore(tmp_path / "a.db")
     with store.lock("s", "r1"), pytest.raises(LockHeld, match="held by"):
         store.lock("s", "r2")
+
+
+def test_heartbeat_survives_a_failed_renewal(tmp_path: Path) -> None:
+    info = new_lock_info("s", "r", FakeClock(step=timedelta(0)))
+    calls: list[int] = []
+    renewed = threading.Event()
+    status = Heartbeat()
+
+    def renew(_i: object) -> None:
+        calls.append(1)
+        if len(calls) == 1:
+            raise OSError("transient")
+        renewed.set()
+
+    with held(info, renew, lambda _i: None, 0.01, status):
+        assert renewed.wait(5)
+    assert isinstance(status.last_error, OSError)
