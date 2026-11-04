@@ -14,7 +14,7 @@ from pipeloom.engine.types import Schema
 EXTENSIONS: Final = {"parquet": "parquet", "csv": "csv", "ndjson": "ndjson"}
 """Part file extension by catalog format."""
 
-_SIMPLE: Final[Mapping[str, Any]] = {
+_SIMPLE: dict[str, Any] = {
     "int8": pl.Int8,
     "int16": pl.Int16,
     "int32": pl.Int32,
@@ -33,7 +33,7 @@ _SIMPLE: Final[Mapping[str, Any]] = {
     "binary": pl.Binary,
 }
 if hasattr(pl, "UInt128"):  # polars 1.34 and later; the floor is 1.30
-    _SIMPLE = {**_SIMPLE, "uint128": pl.UInt128}
+    _SIMPLE["uint128"] = pl.UInt128
 _TIMESTAMP = re.compile(r"timestamp\[(ms|us|ns)(?:, ([^\]]+))?\]")
 _DECIMAL = re.compile(r"decimal\((\d+),(\d+)\)")
 
