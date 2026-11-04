@@ -25,3 +25,4 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0019 | [YAML dialect: PyYAML with YAML 1.2 core scalars](0019-yaml-dialect.md) | Accepted | 2026-11-04 |
 | 0020 | [Execution model in 0.2](0020-execution-model-0-2.md) | Accepted | 2026-11-04 |
 | 0021 | [Plugin API (0, 2)](0021-plugin-api-0-2.md) | Accepted | 2026-11-05 |
+| 0022 | [Filesystem table format](0022-filesystem-table-format.md) | Accepted | 2026-11-04 |
