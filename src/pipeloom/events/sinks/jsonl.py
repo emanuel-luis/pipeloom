@@ -35,6 +35,11 @@ class JsonlSink:
         self.root = root
         self._fh: TextIO | None = None
 
+    @property
+    def location(self) -> str | None:
+        """The configured path as given (relative to the project), None for stderr."""
+        return None if self._path is None else self._path.as_posix()
+
     def _open(self, path: Path) -> TextIO:
         target = path if self.root is None else self.root / path
         target.parent.mkdir(parents=True, exist_ok=True)

@@ -189,4 +189,7 @@ def test_a_jsonl_sink_that_cannot_write_gets_a_ple401_warning(tmp_path: Path) ->
     result = run(["validate", *args])
     assert result.exit_code == 0
     assert "warning PLE401 sink 'jsonl' disabled" in result.stderr
+    line = next(ln for ln in result.stderr.splitlines() if "PLE401" in ln)
+    assert "Error writing target" in line
+    assert str(tmp_path) not in line
     assert (tmp_path / "target").is_dir()
