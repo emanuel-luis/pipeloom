@@ -99,7 +99,8 @@
     },
     "python_version": "<python_version>",
     "git_sha": "<git_sha>",
-    "exit_code": 0
+    "exit_code": 0,
+    "warnings": []
   },
   "results": [
     {

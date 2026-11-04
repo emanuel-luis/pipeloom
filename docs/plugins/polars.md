@@ -30,7 +30,7 @@ rejected when the session opens.
 | Portable frames (`frame_api: narwhals`) | yes |
 | Cancel | no |
 
-`incremental` is supported; an `intermediate` materialization is rejected with PLC509. The polars bound is
+`incremental` and `intermediate` are supported; an intermediate is a table of part files under the artifacts root. The polars bound is
 `polars>=1.30,<3`.
 
 ## Frames

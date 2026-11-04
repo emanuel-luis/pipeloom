@@ -60,7 +60,7 @@ Cancels = dict[str, threading.Event]
 CAPABILITIES = EngineCapabilities(
     formats=frozenset({"memory"}),
     strategies=frozenset({"append", "overwrite", "merge", "replace_partitions"}),
-    materializations=frozenset({"table", "view", "ephemeral", "incremental"}),
+    materializations=frozenset({"table", "view", "ephemeral", "incremental", "intermediate"}),
     sql_models=True,
     views=True,
     idempotent_writes=True,
@@ -197,6 +197,28 @@ class JsonTableStore(MutableMapping[str, Rows]):
         return sum(1 for _ in self.root.glob("*.json"))
 
 
+_INTERMEDIATE_FILE = "rows.json"
+
+
+def _load_intermediate(location: str) -> dict[str, Any] | None:
+    try:
+        text = (Path(location) / _INTERMEDIATE_FILE).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return None
+    doc: dict[str, Any] = json.loads(text)
+    return doc
+
+
+class _IntermediateReader:
+    def read(self, spec: ReadSpec) -> Relation:
+        if spec.location is None:
+            raise ValueError("reading an intermediate needs a location")
+        doc = _load_intermediate(spec.location)
+        if doc is None:
+            raise FileNotFoundError(f"no intermediate at '{spec.location}'")
+        return Relation(tuple(doc["rows"]), "memory")
+
+
 class _MemoryReader:
     def __init__(
         self,
@@ -294,6 +316,8 @@ class MemorySession:
         self.native = store
 
     def reader(self, fmt: str) -> Reader:
+        if fmt == "intermediate":
+            return _IntermediateReader()
         if fmt not in ("memory", "table"):
             raise ValueError(f"memory engine cannot read format '{fmt}'")
         return _MemoryReader(self._store, self._views, self._run_view)
@@ -400,7 +424,24 @@ class MemorySession:
                     del self._cancels[unit_id]
 
     def write_intermediate(self, rel: Relation, ref: IntermediateRef, token: str) -> WriteResult:
-        raise NotImplementedError("intermediate models arrive with the next change")
+        """JSON at the location, replaced whole. The token of the last write sits beside the rows."""
+        with self._lock:
+            doc = _load_intermediate(ref.location)
+            if doc is not None and doc["token"] == token:
+                return WriteResult(
+                    rows_written=len(doc["rows"]), rows_inserted=len(doc["rows"]), skipped=True
+                )
+            rows = [dict(r) for r in _rows(rel)]  # read it all first: a failure keeps the old file
+            folder = Path(ref.location)
+            folder.mkdir(parents=True, exist_ok=True)
+            path = folder / _INTERMEDIATE_FILE
+            tmp = path.with_name(f"{path.name}.{uuid.uuid4().hex}.tmp")
+            data = json.dumps(
+                {"token": token, "rows": rows}, ensure_ascii=True, default=_json_default
+            )
+            tmp.write_bytes(data.encode("utf-8"))
+            os.replace(tmp, path)
+            return WriteResult(rows_written=len(rows), rows_inserted=len(rows))
 
     def unit_scope(self, unit_id: str) -> AbstractContextManager[None]:
         return self._scope(unit_id)

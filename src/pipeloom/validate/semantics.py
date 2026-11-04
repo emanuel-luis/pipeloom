@@ -92,6 +92,18 @@ def _check_model(project: ResolvedProject, m: ResolvedModel, report: Report) -> 
                 "use on_violation: warn or fail",
                 f"/{i}/on_violation",
             )
+    if c.materialized == "intermediate" and (
+        "incremental" in m.own_fields
+        or c.write.strategy not in (None, "overwrite")
+        or c.partition_by
+    ):
+        err(
+            "PLP413",
+            f"intermediate model '{m.name}' sets incremental, a strategy other than overwrite "
+            "or partition_by",
+            "materialized",
+            "remove those options, or materialize the model as a table",
+        )
     if "expectations" in m.own_fields and c.expectations and c.materialized in _NO_ROWS:
         err(
             "PLP411",

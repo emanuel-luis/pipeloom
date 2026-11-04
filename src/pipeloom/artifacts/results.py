@@ -144,7 +144,9 @@ class RunHeader:
     git_sha: str | None
 
 
-def build_run_results(header: RunHeader, rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
+def build_run_results(
+    header: RunHeader, rows: Sequence[dict[str, Any]], warnings: Sequence[str] = ()
+) -> dict[str, Any]:
     ordered = sorted(rows, key=lambda r: str(r["unit_id"]))
     status = status_of(ordered)
     h = header
@@ -178,6 +180,7 @@ def build_run_results(header: RunHeader, rows: Sequence[dict[str, Any]]) -> dict
             "python_version": h.python_version,
             "git_sha": h.git_sha,
             "exit_code": exit_code_of(status),
+            "warnings": list(warnings),
         },
         "results": ordered,
     }

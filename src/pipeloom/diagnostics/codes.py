@@ -358,7 +358,7 @@ _ACTIVE_02: Final = (
         "PLC509",
         E,
         "Materialization unsupported by engine",
-        "The materialization is not in the selected engine's capabilities. No engine offers intermediate yet.",
+        "The materialization is not in the selected engine's capabilities.",
     ),
     (
         "PLP409",
@@ -477,6 +477,12 @@ _ACTIVE_03: Final = (
         E,
         "Quarantine relation collides with a model",
         "A model's quarantine table is named <model>__quarantine, and another model already has that name in the same schema.",
+    ),
+    (
+        "PLP413",
+        E,
+        "Intermediate model with a write option",
+        "An intermediate model is rewritten whole at a location of its own. It cannot be incremental, use a strategy other than overwrite, or set partition_by.",
     ),
     (
         "PLC510",

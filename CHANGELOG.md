@@ -8,7 +8,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- Plugin API (0, 4), ADR-0030: `RuntimeContext` gains `run_started_at` and `artifacts_root`; `EngineSession` gains `write_intermediate` (the memory, polars and pandas engines raise `NotImplementedError` until intermediates land); `CatalogCapabilities(views=)` and `IntermediateRef` are new types. Plugins built for (0, 3) fail with PLU001.
+- `intermediate` materialization on the memory, polars and pandas engines (ADR-0030, amends ADR-0007): the result is written to `<artifacts.root>/runs/<run_id>/intermediate/<model>` and read by its consumers; `relation_name` in `run_results` is that location. PLP413 rejects `incremental`, a strategy other than overwrite and `partition_by` on an intermediate.
+- `artifacts.intermediate_ttl` (default 1d; 0 deletes at the end of a succeeded run). Finalize deletes expired intermediates; a deletion error is reported in the new `run.warnings` of `run_results`, never as a failure.
+- `EngineContract` gains the intermediate tests (write then read, repeated token, one folder per run id).
+- Plugin API (0, 4), ADR-0030: `RuntimeContext` gains `run_started_at` and `artifacts_root`; `EngineSession` gains `write_intermediate`; `CatalogCapabilities(views=)` and `IntermediateRef` are new types. Plugins built for (0, 3) fail with PLU001.
 - `run --run-started-at ISO8601` (environment `PIPELOOM_RUN_STARTED_AT`) sets the start time every engine sees. It needs an offset and `--run-id`; a reused run id keeps its recorded start, and a different value is PLX108 (exit 2).
 - The engine session opens before the run lock, and `unit_scope` now spans a unit's reads, body, checks and write.
 - PLC507 also fires when the catalog declares no views (`CatalogCapabilities(views=False)`).
@@ -90,7 +93,7 @@ pipeloom 0.2 runs plans: a scheduler, thread and process executors, polars and p
 ### Changed
 
 - Plugin API version is (0, 2): `Engine.version`, `Engine.session(ctx, *, catalog)`, and `EngineSession.relation`, `persist` and `create_view`. Plugins built for (0, 1) fail with PLU001.
-- A model with a materialization the engine does not declare (`incremental`, `intermediate`) is rejected with PLC509.
+- A model with a materialization the engine does not declare is rejected with PLC509.
 - The import-linter layers include `pipeloom.artifacts` next to `pipeloom.state`, and imports under `TYPE_CHECKING` are ignored.
 
 ## [0.1.0] - 2026-11-04
