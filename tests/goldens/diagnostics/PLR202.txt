@@ -1,0 +1,2 @@
+error PLR202 models/b.yml:2:11 duplicate model name 'orders'
+      hint: first defined in models/a.yml:2

@@ -1,0 +1,1 @@
+warning PLG303 selector 'tag:nope' matched nothing

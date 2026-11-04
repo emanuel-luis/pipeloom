@@ -1,14 +1,20 @@
 from __future__ import annotations
 
 import base64
+import os
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
 import pytest
+from hypothesis import settings
 
 GOLDENS = Path(__file__).parent / "goldens"
 FIXTURES = Path(__file__).parent / "fixtures"
+
+settings.register_profile("dev", deadline=None)
+settings.register_profile("ci", deadline=None, derandomize=True)
+settings.load_profile("ci" if os.environ.get("CI") else "dev")
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:

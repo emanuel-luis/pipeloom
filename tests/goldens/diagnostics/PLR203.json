@@ -1,0 +1,19 @@
+[
+  {
+    "code": "PLR203",
+    "severity": "error",
+    "message": "unknown source 'raw_ordrs' in input 'o' of model 'stg_orders'",
+    "hint": "did you mean 'raw_orders'?",
+    "location": {
+      "file": "models/m.yml",
+      "line": 6,
+      "col": 26,
+      "json_pointer": "/models/0/inputs/o/source"
+    },
+    "context": {
+      "model": "stg_orders",
+      "input": "o",
+      "source": "raw_ordrs"
+    }
+  }
+]

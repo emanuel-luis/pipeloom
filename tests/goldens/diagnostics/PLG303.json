@@ -1,0 +1,12 @@
+[
+  {
+    "code": "PLG303",
+    "severity": "warning",
+    "message": "selector 'tag:nope' matched nothing",
+    "hint": null,
+    "location": null,
+    "context": {
+      "selector": "tag:nope"
+    }
+  }
+]

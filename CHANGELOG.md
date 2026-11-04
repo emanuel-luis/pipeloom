@@ -20,6 +20,11 @@ All notable changes to this project are documented here. The format follows
 - Target binding: `--target` (`PIPELOOM_TARGET`), `default_target`, runtime merge and plugin option validation, with codes PLR204 and PLR207. `Project.bind()` in the API.
 - `pipeloom schema export` writes JSON Schemas for `pipeloom.yml`, model files and `_defaults.yml`, with plugin options as `oneOf` branches.
 - `pipeloom plugins list` with `--group`, `--output`, `--check` and `--plugin`.
+- Model settings resolution: `_defaults.yml` cascades from the model's folder up to its model_paths root, then `defaults.models`; mappings merge deeply, lists replace and `tags` is a deduplicated union. Unique ids `model.<project>.<name>` and `source.<project>.<name>`.
+- L2 reference checks (PLR201, PLR202, PLR203, PLR205) with did-you-mean hints.
+- Dependency graph with deterministic topological order, depth-limited ancestors and descendants, and cycle detection (PLG301, PLG302).
+- Selector engine: space union, comma intersection, `N+` and `+N` graph operators, and the `name`, `tag`, `path` and `materialized` methods (PLG303 to PLG305). No CLI flags yet.
+- `Project.resolve()` in the API runs load, bind, resolve, L2 and graph.
 
 ### Changed
 

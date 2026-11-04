@@ -1,0 +1,13 @@
+[
+  {
+    "code": "PLG304",
+    "severity": "error",
+    "message": "unknown selector method 'nme' in 'nme:stg_orders'",
+    "hint": "did you mean 'name'?",
+    "location": null,
+    "context": {
+      "selector": "nme:stg_orders",
+      "method": "nme"
+    }
+  }
+]

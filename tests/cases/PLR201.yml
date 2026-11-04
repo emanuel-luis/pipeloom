@@ -1,0 +1,14 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine: {kind: memory}
+  models/m.yml: |
+    models:
+      - name: stg_orders
+        sql: select 1
+      - name: report
+        sql: select * from orders
+        inputs: {orders: {ref: stg_ordrs}}

@@ -9,7 +9,8 @@ import pytest
 import yaml
 
 from pipeloom.api import Project, ProjectOptions
-from pipeloom.diagnostics import format_diagnostic
+from pipeloom.diagnostics import Report, format_diagnostic
+from pipeloom.graph.selectors import Selection, SelectorError, apply
 from tests.conftest import make_project
 from tests.plugins.fakes import FakeDist, FakeEntryPoint, install_entry_points
 
@@ -39,9 +40,20 @@ def test_case(
         plugins=tuple(spec.get("plugins", ())),
         env={},
     )
-    outcome = Project(options).bind()
-    assert code in {d.code for d in outcome.diagnostics}
-    text = "".join(format_diagnostic(d) + "\n" for d in outcome.diagnostics)
-    as_json = json.dumps([d.to_json() for d in outcome.diagnostics], indent=2, ensure_ascii=True)
+    outcome = Project(options).resolve()
+    diagnostics = outcome.diagnostics
+    if "select" in spec or "exclude" in spec:
+        assert outcome.value is not None
+        report = Report()
+        report.extend(diagnostics)
+        sel = Selection(tuple(spec.get("select", ())), tuple(spec.get("exclude", ())))
+        try:
+            apply(sel, outcome.value.graph, outcome.value.project, report)
+        except SelectorError as err:
+            report.extend([err.diagnostic])
+        diagnostics = report.sorted()
+    assert code in {d.code for d in diagnostics}
+    text = "".join(format_diagnostic(d) + "\n" for d in diagnostics)
+    as_json = json.dumps([d.to_json() for d in diagnostics], indent=2, ensure_ascii=True)
     golden(f"diagnostics/{code}.txt", text)
     golden(f"diagnostics/{code}.json", as_json + "\n")

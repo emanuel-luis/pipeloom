@@ -1,0 +1,13 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine: {kind: memory}
+  models/a.yml: |
+    sources:
+      - {name: raw, format: memory, location: raw/a}
+  models/b.yml: |
+    sources:
+      - {name: raw, format: memory, location: raw/b}
