@@ -42,3 +42,9 @@ PLM207 is a new code and permanent for retries. The core raises it for the new `
 - Every write costs one `DESCRIBE HISTORY` before and one after, plus a schema read.
 - The MERGE commit of a write is found by position (the newest MERGE after the starting version): a concurrent MERGE on the same table can be mistaken for it in the metrics only.
 - Delta type widening and column mapping are not required.
+- A MERGE carries no transaction, so the guard can only refuse its token commit: when a later run already committed the model, the MERGE has been applied before PLM207 is raised. Append, overwrite and replace_partitions are refused before any data lands.
+
+## Deviations found while testing
+
+- Delta skips an append of an empty DataFrame unless the commit carries a transaction. When the guard does not apply (no run start time, or `txn_guard: false`), an empty token commit gets an app id of its own, `<app id>@<token>` with version 1, so it is still recorded.
+- A table that `saveAsTable` creates does not keep the writer's `userMetadata`. The `spark_catalog` catalog therefore creates a missing table empty first, with no token, and the tokened write is an ordinary append into it.
