@@ -63,5 +63,31 @@
       "json_pointer": "/targets/dev/catalog/access_key"
     },
     "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'apiKey'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 8,
+      "col": 11,
+      "json_pointer": "/targets/dev/catalog/apiKey"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'client_secret'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 8,
+      "col": 31,
+      "json_pointer": "/targets/dev/catalog/client_secret"
+    },
+    "context": {}
   }
 ]

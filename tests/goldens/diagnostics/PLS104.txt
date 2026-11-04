@@ -8,3 +8,7 @@ error PLS104 pipeloom.yml:6:70 literal value in secret-like field 'api_key'
       hint: use ${secret:provider/path} or ${env:NAME}
 error PLS104 pipeloom.yml:7:15 literal value in secret-like field 'access_key'
       hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:8:11 literal value in secret-like field 'apiKey'
+      hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:8:31 literal value in secret-like field 'client_secret'
+      hint: use ${secret:provider/path} or ${env:NAME}

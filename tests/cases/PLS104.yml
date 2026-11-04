@@ -6,4 +6,5 @@ files:
       dev:
         engine: {kind: memory}
         catalog: {kind: unity, token: abc123, password: 123456, api_key: 3.14,
-      access_key: '${env:KEY:-hunter2}', secret: '${secret:kv/s}', private_key: '${env:PK}'}
+      access_key: '${env:KEY:-hunter2}', secret: '${secret:kv/s}', private_key: '${env:PK}',
+      apiKey: abc, client_secret: xyz, max_tokens: 100, tokenizer: bpe, use_token: true}

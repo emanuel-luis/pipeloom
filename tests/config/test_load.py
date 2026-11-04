@@ -150,7 +150,7 @@ def test_utf8_file_names_and_content(project_factory: Factory, rel: str) -> None
 
 @pytest.mark.parametrize(
     "value",
-    ["123456", "3.14", "true", "hunter2", "'${env:K:-hunter2}'", "'${var:v}'", "'x${env:K}'"],
+    ["123456", "3.14", "hunter2", "'${env:K:-hunter2}'", "'${var:v}'", "'x${env:K}'"],
 )
 def test_secret_like_literals_are_flagged(project_factory: Factory, value: str) -> None:
     text = BASE + f"    catalog: {{kind: u, password: {value}}}\n"
@@ -161,4 +161,25 @@ def test_secret_like_literals_are_flagged(project_factory: Factory, value: str) 
 @pytest.mark.parametrize("value", ["'${env:K}'", "'${env:K:-}'", "'${secret:kv/db}'", "~", "''"])
 def test_secret_like_references_pass(project_factory: Factory, value: str) -> None:
     text = BASE + f"    catalog: {{kind: u, password: {value}}}\n"
+    assert codes(load(project_factory({"pipeloom.yml": text, "models/.keep": ""}))) == []
+
+
+@pytest.mark.parametrize(
+    "key",
+    ["api_key", "apiKey", "db_password", "token", "access_key", "private_key", "client_secret"],
+)
+def test_secret_key_names_match(project_factory: Factory, key: str) -> None:
+    text = BASE + f"    catalog: {{kind: u, {key}: hunter2}}\n"
+    assert codes(load(project_factory({"pipeloom.yml": text, "models/.keep": ""}))) == ["PLS104"]
+
+
+@pytest.mark.parametrize("key", ["max_tokens", "tokenizer", "secretary_name"])
+@pytest.mark.parametrize("value", ["100", "hunter2", "true"])
+def test_non_secret_key_names_pass(project_factory: Factory, key: str, value: str) -> None:
+    text = BASE + f"    catalog: {{kind: u, {key}: {value}}}\n"
+    assert codes(load(project_factory({"pipeloom.yml": text, "models/.keep": ""}))) == []
+
+
+def test_boolean_in_secret_like_key_is_not_flagged(project_factory: Factory) -> None:
+    text = BASE + "    catalog: {kind: u, use_token: true, password: false}\n"
     assert codes(load(project_factory({"pipeloom.yml": text, "models/.keep": ""}))) == []
