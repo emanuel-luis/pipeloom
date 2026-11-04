@@ -8,8 +8,8 @@ from typing import Any
 
 import click
 
-from pipeloom.cli._options import plugin_option
-from pipeloom.cli._output import print_diagnostics
+from pipeloom.cli._events import Invocation
+from pipeloom.cli._options import log_format_option, plugin_option
 from pipeloom.config.schema import dump_schema, export_schemas
 from pipeloom.diagnostics import Report
 from pipeloom.plugins import PluginRegistry
@@ -37,8 +37,10 @@ def schema() -> None:
     help="Plugins whose options appear in the schema; installed imports every plugin.",
 )
 @plugin_option
-def export(out: Path, which: str, plugins: tuple[str, ...]) -> None:
+@log_format_option
+def export(out: Path, which: str, plugins: tuple[str, ...], log_format: str) -> None:
     """Write the JSON Schemas, with plugin options as oneOf branches."""
+    inv = Invocation("schema.export", log_format)
     report = Report()
     registry = PluginRegistry.discover(
         cli_plugins=plugins,
@@ -47,12 +49,13 @@ def export(out: Path, which: str, plugins: tuple[str, ...]) -> None:
         report=report,
     )
     specs: Any = registry.load_all(report)
-    errors, _ = print_diagnostics(report.sorted())
-    if errors:
-        click.echo(f"{errors} error(s)", err=True)
-        raise SystemExit(1)
+    if report.has_errors:
+        inv.finish(report.sorted(), 1)
     out.mkdir(parents=True, exist_ok=True)
     for name, doc in sorted(export_schemas(specs).items()):
-        with (out / name).open("w", encoding="utf-8", newline="\n") as fh:
-            fh.write(dump_schema(doc))
+        content = dump_schema(doc).encode("utf-8")
+        with (out / name).open("wb") as fh:
+            fh.write(content)
+        inv.artifact(out / name, content, "json_schema")
         click.echo((out / name).as_posix())
+    inv.finish(report.sorted(), 0)

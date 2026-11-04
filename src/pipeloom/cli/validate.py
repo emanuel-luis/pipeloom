@@ -9,32 +9,40 @@ from typing import Any
 import click
 
 from pipeloom.api import Project, ProjectOptions
-from pipeloom.cli._options import plugin_option, project_options, target_option
-from pipeloom.cli._output import print_diagnostics
+from pipeloom.cli._events import Invocation
+from pipeloom.cli._options import (
+    log_format_option,
+    plugin_option,
+    project_options,
+    target_option,
+)
+from pipeloom.diagnostics import Severity
 
 
 @click.command()
 @project_options
 @target_option
 @plugin_option
+@log_format_option
 @click.option("--warn-error", is_flag=True, help="Exit 1 on warnings too.")
 def validate(
     project_dir: Path,
     vars_: dict[str, Any],
     target: str | None,
     plugins: tuple[str, ...],
+    log_format: str,
     warn_error: bool,
 ) -> None:
     """Check the project: YAML, schema, secrets, target and plugin options (L0 and L1)."""
     opts = ProjectOptions(
         project_dir=project_dir, target=target, vars=vars_, plugins=plugins, env=os.environ
     )
+    inv = Invocation("validate", log_format)
     outcome = Project(opts).bind()
-    errors, warnings = print_diagnostics(outcome.diagnostics)
-    if errors or outcome.value is None:
-        click.echo(f"{errors} error(s), {warnings} warning(s)", err=True)
-        raise SystemExit(1)
-    if warnings and warn_error:
-        click.echo(f"{warnings} warning(s) treated as errors", err=True)
-        raise SystemExit(1)
-    click.echo(f"Project '{outcome.value.loaded.config.name}' is valid.")
+    bound = outcome.value
+    errors = sum(1 for d in outcome.diagnostics if d.severity is Severity.ERROR)
+    warnings = sum(1 for d in outcome.diagnostics if d.severity is Severity.WARNING)
+    failed = errors > 0 or bound is None or (warn_error and warnings > 0)
+    if bound is not None and not failed:
+        click.echo(f"Project '{bound.loaded.config.name}' is valid.")
+    inv.finish(outcome.diagnostics, 1 if failed else 0, bound=bound)

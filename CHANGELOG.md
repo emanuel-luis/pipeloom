@@ -25,10 +25,14 @@ All notable changes to this project are documented here. The format follows
 - Dependency graph with deterministic topological order, depth-limited ancestors and descendants, and cycle detection (PLG301, PLG302).
 - Selector engine: space union, comma intersection, `N+` and `+N` graph operators, and the `name`, `tag`, `path` and `materialized` methods (PLG303 to PLG305). No CLI flags yet.
 - `Project.resolve()` in the API runs load, bind, resolve, L2 and graph.
+- Typed events (`pipeloom.event/1`) and a synchronous event bus with failure budgets, redaction and context-manager close; `console`, `jsonl` and buffered sinks; code PLE401 (ADR-0018).
+- `--log-format text|json` (`PIPELOOM_LOG_FORMAT`) on every command; `console` and `jsonl` sinks configurable under `events.sinks`.
+- `pipeloom.testing.RecordingSink` and `FakeClock`.
 
 ### Changed
 
 - `pipeloom validate` binds the selected target and checks plugin options, and accepts `--target` and `--plugin`.
+- Diagnostics and the run summary go to stderr through the event bus; the summary line now reads `<command> finished in N ms | exit C | E error(s), W warning(s)`. `rich>=13.7` is a new dependency.
 - PLS104 matches secret words in key segments (`max_tokens` is no longer flagged) and ignores booleans.
 - The CLI needs `click>=8.2`; runtime dependencies now include pydantic and PyYAML.
 - CI tests Python 3.11 to 3.14 on Ubuntu, Windows and macOS now that the repository is public.

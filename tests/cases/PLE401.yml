@@ -1,0 +1,13 @@
+plugins: ["tests.events.fakes:BOOM_SINK"]
+cli: [validate]
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine: {kind: memory}
+    events:
+      sinks:
+        - {kind: boom, failure_budget: 1}
+  models/.keep: ""
