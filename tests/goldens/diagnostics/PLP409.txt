@@ -1,0 +1,2 @@
+error PLP409 models/m.yml:2:44 view 'a' is a Python model
+      hint: write the view as SQL, or materialize it as a table

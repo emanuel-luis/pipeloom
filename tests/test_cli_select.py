@@ -170,9 +170,17 @@ def test_validate_ok_on_graph_project(tmp_path: Path) -> None:
     assert r.stdout.strip() == "Project 'shop' is valid."
 
 
-def test_validate_flags_a_view_on_the_memory_engine(project: list[str]) -> None:
-    r = run(["validate", *project])
+def test_validate_flags_a_view_on_an_engine_without_views(tmp_path: Path) -> None:
+    files = dict(FILES)
+    files["pipeloom.yml"] = files["pipeloom.yml"].replace("kind: memory", "kind: nosql")
+    make_project(tmp_path, files)
+    args = ["validate", "--project-dir", str(tmp_path), "--plugin", "tests.plugins.fakes:NOSQL"]
+    r = run(args)
     assert r.exit_code == 1 and "PLC507" in r.stderr
+
+
+def test_validate_accepts_a_view_on_the_memory_engine(project: list[str]) -> None:
+    assert run(["validate", *project]).exit_code == 0
 
 
 def test_ls_events_go_to_stderr(project: list[str]) -> None:

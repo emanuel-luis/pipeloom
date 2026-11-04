@@ -161,3 +161,128 @@ class UnitCancelled(EventPayload):
     LEVEL = Level.WARNING
 
     reason: Literal["cancel", "timeout"] = "cancel"
+
+
+class ErrorInfo(BaseModel):
+    """Why a unit failed. `category` tells a retry policy whether trying again can help."""
+
+    model_config = ConfigDict(frozen=True)
+
+    code: str
+    category: Literal["transient", "permanent"]
+    message: str
+    hint: str | None = None
+    exception_type: str | None = None
+    trace_excerpt: list[str] = Field(default_factory=list)
+    """Frames under the project dir, then the root cause."""
+    location: dict[str, JsonValue] | None = None
+
+
+class RunStarted(EventPayload):
+    TYPE = "run.started"
+
+    project: str
+    target: str
+    plan_hash: str
+    selected: int
+    """Units this invocation runs."""
+    workers: int
+    boundary: Literal["process", "task"]
+    executor: str
+    full_refresh: bool
+    fail_fast: bool
+    engine: str
+    engine_version: str
+
+
+class RunCompiled(EventPayload):
+    TYPE = "run.compiled"
+
+    units: int
+    by_materialization: dict[str, int]
+    ephemeral_inlined: int
+    selected: int
+    plan_hash: str
+    executor: str
+
+
+class RunCompleted(EventPayload):
+    TYPE = "run.completed"
+
+    status: Literal["succeeded", "failed", "cancelled"]
+    exit_code: int
+    duration_ms: int
+    counts: dict[str, int]
+    rows_written: int
+    bytes_written: int
+    failures: list[dict[str, JsonValue]]
+    """One entry per failed unit: unit id and the diagnostic."""
+    artifacts: list[str]
+    """POSIX paths of the files the run wrote."""
+
+    def event_level(self) -> Level:
+        return Level.INFO if self.status == "succeeded" else Level.ERROR
+
+
+class UnitStarted(EventPayload):
+    TYPE = "unit.started"
+
+    materialization: str
+    executor: str
+    queue_wait_ms: int
+
+
+class UnitSucceeded(EventPayload):
+    TYPE = "unit.succeeded"
+
+    materialization: str
+    strategy: str | None
+    relation: str | None
+    rows_written: int | None
+    rows_inserted: int | None
+    bytes_written: int | None
+    duration_ms: int
+
+
+class UnitFailed(EventPayload):
+    TYPE = "unit.failed"
+    LEVEL = Level.ERROR
+
+    error: ErrorInfo
+    duration_ms: int
+    traceback: str | None = None
+    """The full traceback; the only place it appears."""
+
+
+class ModelInputRead(EventPayload):
+    TYPE = "model.input_read"
+
+    alias: str
+    kind: Literal["source", "model", "ephemeral"]
+    name: str
+    rows: int | None
+    """None for a lazy relation, which is not counted."""
+    duration_ms: int
+
+
+class ModelWritten(EventPayload):
+    TYPE = "model.written"
+
+    relation: str
+    materialization: str
+    strategy: str | None
+    rows_written: int | None
+    rows_inserted: int | None
+    bytes_written: int | None
+    duration_ms: int
+
+
+class ModelLog(EventPayload):
+    TYPE = "model.log"
+
+    message: str
+    level: Literal["debug", "info", "warning"] = "info"
+    fields: dict[str, JsonValue] = Field(default_factory=dict)
+
+    def event_level(self) -> Level:
+        return Level(self.level)

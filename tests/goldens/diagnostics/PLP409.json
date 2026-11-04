@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLP409",
+    "severity": "error",
+    "message": "view 'a' is a Python model",
+    "hint": "write the view as SQL, or materialize it as a table",
+    "location": {
+      "file": "models/m.yml",
+      "line": 2,
+      "col": 44,
+      "json_pointer": "/models/0/materialized"
+    },
+    "context": {
+      "model": "a"
+    }
+  }
+]

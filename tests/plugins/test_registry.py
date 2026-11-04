@@ -7,7 +7,7 @@ import pytest
 from pipeloom.diagnostics import Report
 from pipeloom.plugins import API_VERSION, GROUPS, PluginRegistry, PluginSpec, check_api
 from tests.plugins.fakes import (
-    API02,
+    API03,
     FakeDist,
     FakeEntryPoint,
     FakeOptions,
@@ -111,11 +111,11 @@ def test_unknown_kind_is_none_without_a_diagnostic() -> None:
 
 
 def test_plu001_api_mismatch(monkeypatch: pytest.MonkeyPatch) -> None:
-    install_entry_points(monkeypatch, [ep("engines", "future", "API02")])
+    install_entry_points(monkeypatch, [ep("engines", "future", "API03")])
     report = Report()
     assert PluginRegistry.discover(env={}).load("engines", "future", report) is None
     (d,) = report.sorted()
-    assert d.code == "PLU001" and "0.2" in d.message and "0.1" in d.message
+    assert d.code == "PLU001" and "0.3" in d.message and "0.2" in d.message
 
 
 def test_plu002_duplicate_kind(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -160,9 +160,9 @@ def test_check_api_rules() -> None:
 
     assert check_api(spec(API_VERSION)) is None
     assert check_api(spec((0, 0))) is not None  # below the core is still a mismatch before 1.0
-    assert check_api(spec((0, 2))) is not None
+    assert check_api(spec((0, 3))) is not None
     assert check_api(spec((1, 0))) is not None
-    assert check_api(API02) is not None
+    assert check_api(API03) is not None
 
 
 def test_load_all_skips_duplicates_and_reports_failures(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -170,7 +170,7 @@ def test_load_all_skips_duplicates_and_reports_failures(monkeypatch: pytest.Monk
         monkeypatch,
         [
             ep("engines", "memory", "MEMORY_CLONE", "other"),
-            ep("engines", "future", "API02"),
+            ep("engines", "future", "API03"),
             ep("engines", "fake", "FAKE_ENGINE"),
         ],
     )

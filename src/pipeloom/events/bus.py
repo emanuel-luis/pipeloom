@@ -78,6 +78,11 @@ class EventBus:
         self._seq = 0
         self._closed = False
 
+    def set_run_id(self, run_id: str) -> None:
+        """Stamp the events that follow with `run_id`; the run id is known after the bus is built."""
+        with self._lock:
+            self._run_id = run_id
+
     def _make(
         self,
         payload: EventPayload,

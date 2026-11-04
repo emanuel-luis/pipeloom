@@ -14,6 +14,8 @@ from pipeloom.api import Project, ProjectOptions
 from pipeloom.cli import main
 from pipeloom.diagnostics import Report, format_diagnostic
 from pipeloom.graph.selectors import Selection, SelectorError, apply
+from pipeloom.runtime.run import RunOptions
+from pipeloom.testing.clock import FakeClock
 from tests.conftest import make_project
 from tests.plugins.fakes import FakeDist, FakeEntryPoint, install_entry_points
 
@@ -46,6 +48,15 @@ def test_case(
         plugins=tuple(spec.get("plugins", ())),
         env={},
     )
+    if spec.get("run"):  # runtime codes: run the project; failed units are diagnostics
+        project = Project(options, clock=FakeClock(), invocation_id="inv")
+        outcome_run = project.run(RunOptions(run_id="case", workers=1))
+        text = "".join(format_diagnostic(d) + "\n" for d in outcome_run.diagnostics)
+        assert code in text
+        as_json = json.dumps([d.to_json() for d in outcome_run.diagnostics], indent=2)
+        golden(f"diagnostics/{code}.txt", text)
+        golden(f"diagnostics/{code}.json", as_json + "\n")
+        return
     outcome = Project(options).validate()
     diagnostics = outcome.diagnostics
     if "select" in spec or "exclude" in spec:

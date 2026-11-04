@@ -334,18 +334,50 @@ _ACTIVE: Final = (
     ),
 )
 
+# Active since 0.2.
+_ACTIVE_02: Final = (
+    (
+        "PLX101",
+        E,
+        "Model raised",
+        "A model's body raised, or returned a value its engine cannot use as a relation.",
+    ),
+    (
+        "PLM201",
+        E,
+        "Write failed",
+        "The engine failed to write a model's result or to create its view.",
+    ),
+    (
+        "PLM204",
+        E,
+        "Input read failed",
+        "An input of a model could not be read from its source or from the catalog.",
+    ),
+    (
+        "PLC509",
+        E,
+        "Materialization unsupported by engine",
+        "The materialization is not in the selected engine's capabilities. 0.2 engines do not offer incremental or intermediate.",
+    ),
+    (
+        "PLP409",
+        E,
+        "View is not a plain SQL model",
+        "A view must be a SQL model that reads no ephemeral model, because its query is stored in the catalog as written.",
+    ),
+)
+
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
     ("PLK603", W, "SQL references undeclared table", "0.2"),
     ("PLF701", E, "Engine unreachable", "0.2"),
     ("PLF702", E, "Source missing", "0.2"),
     ("PLF703", E, "Target schema drift detected", "0.2"),
-    ("PLX101", E, "Model raised", "0.3"),
     ("PLX102", E, "Timeout", "0.3"),
     ("PLX103", E, "Plan hash mismatch", "0.3"),
     ("PLX104", E, "Cancelled", "0.3"),
     ("PLX107", E, "Manifest invalid", "0.2"),
-    ("PLM201", E, "Write failed", "0.3"),
     ("PLM202", E, "Schema change rejected", "0.3"),
     ("PLM203", E, "Watermark CAS conflict", "0.3"),
     ("PLQ301", E, "Expectation failed", "0.3"),
@@ -357,8 +389,9 @@ _RESERVED: Final = (
 
 def _build() -> Mapping[str, CodeInfo]:
     out: dict[str, CodeInfo] = {}
-    for code, sev, title, expl in _ACTIVE:
-        out[code] = CodeInfo(code, _PREFIX_LAYER[code[:3]], sev, title, expl, "active", "0.1")
+    for since, table in (("0.1", _ACTIVE), ("0.2", _ACTIVE_02)):
+        for code, sev, title, expl in table:
+            out[code] = CodeInfo(code, _PREFIX_LAYER[code[:3]], sev, title, expl, "active", since)
     for code, sev, title, since in _RESERVED:
         out[code] = CodeInfo(
             code,

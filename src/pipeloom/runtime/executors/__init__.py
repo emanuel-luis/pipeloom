@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol
+
+if TYPE_CHECKING:
+    from pipeloom.runtime.runner import ModelResult
 
 
 @dataclass(frozen=True)
@@ -15,8 +18,8 @@ class UnitHandle:
 class UnitCompletion:
     unit_id: str
     status: Literal["succeeded", "failed"]
-    result: object | None = None
-    """The runner's `ModelResult`; typed loosely until the runner lands."""
+    result: ModelResult | None = None
+    """What the runner reported; None when the completion carries an internal error."""
     internal_error: BaseException | None = None
     """A bug in the runner or executor, not a failed unit. The scheduler stops and re-raises."""
 
