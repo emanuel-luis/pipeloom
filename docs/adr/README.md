@@ -27,3 +27,4 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0021 | [Plugin API (0, 2)](0021-plugin-api-0-2.md) | Accepted | 2026-11-05 |
 | 0022 | [Filesystem table format](0022-filesystem-table-format.md) | Accepted | 2026-11-04 |
 | 0023 | [Multi-distribution release](0023-multi-distribution-release.md) | Accepted | 2026-11-04 |
+| 0024 | [Plugin API (0, 3)](0024-plugin-api-0-3.md) | Accepted | 2026-11-05 |
