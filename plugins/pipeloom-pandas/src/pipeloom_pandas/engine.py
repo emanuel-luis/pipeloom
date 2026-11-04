@@ -5,10 +5,12 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import replace
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from pipeloom.builtins import fs_write
 from pipeloom.builtins.filesystem import FilesystemCatalog
 from pipeloom.builtins.fs_table import FsTable
 from pipeloom.engine import portable
@@ -53,6 +55,34 @@ class _Reader:
         return _rel(io.read(self._fmt, spec.location, spec.options))
 
 
+class _Ops:
+    """The pandas side of `pipeloom.builtins.fs_write.FrameOps`."""
+
+    def collect(self, native: pd.DataFrame) -> pd.DataFrame:
+        return native
+
+    def read_file(self, path: Path, fmt: str, schema: Schema) -> pd.DataFrame:
+        return io.read_part(fmt, path, schema)
+
+    def align(self, native: pd.DataFrame, schema: Schema) -> pd.DataFrame:
+        return io.align_frame(native, schema)
+
+    def concat(self, frames: Sequence[pd.DataFrame]) -> pd.DataFrame:
+        return io.concat(frames)
+
+    def write(self, native: pd.DataFrame, fmt: str, path: Path) -> None:
+        io.write(native, fmt, path)
+
+    def condition(self, native: pd.DataFrame, condition: str) -> Any:
+        result = native.eval(condition, engine="python")
+        if not isinstance(result, pd.Series):
+            raise TypeError(f"update_condition '{condition}' is not a column expression")
+        return result
+
+
+_OPS = _Ops()
+
+
 class _Materializer:
     def __init__(self, session: PandasSession, strategy: str) -> None:
         self.strategy = strategy
@@ -62,32 +92,15 @@ class _Materializer:
         self, rel: Relation, target: TargetRef, cfg: WriteConfig, token: str
     ) -> WriteResult:
         catalog = self._session.catalog
-        table = catalog.table(target)
-        replay = table.applied(token)
-        if replay is not None:
-            return replace(replay, skipped=True)
-        path = table.new_file(io.EXTENSIONS[catalog.format])
-        try:
-            df: pd.DataFrame = (
-                rel.native if cfg.columns is None else self._session.align(rel, cfg.columns).native
-            )
-            io.write(df, catalog.format, path)
-            commit = table.commit(
-                mode="append" if self.strategy == "append" else "overwrite",
-                files=[path],
-                columns=portable.schema(df),
-                rows=len(df),
-                token=token,
-                result=WriteResult(
-                    rows_inserted=len(df),
-                    rows_written=len(df),
-                    commit_meta=dict(cfg.commit_meta),
-                ),
-            )
-        except BaseException:
-            table.discard([path])
-            raise
-        return commit.result
+        return fs_write.materialize(
+            catalog.table(target),
+            _OPS,
+            catalog.format,
+            io.EXTENSIONS[catalog.format],
+            rel.native,
+            replace(cfg, strategy=self.strategy),
+            token,
+        )
 
 
 class PandasSession:
@@ -117,7 +130,7 @@ class PandasSession:
             raise FileNotFoundError(f"table '{target.relation_name}' does not exist")
         if commit.kind == "view" or commit.format is None:
             raise ValueError(f"'{target.relation_name}' is a view; the pandas engine has none")
-        return _rel(io.read_parts(commit.format, table.files(), commit.columns))
+        return _rel(fs_write.read_table(table, _OPS, commit))
 
     # -- writing ------------------------------------------------------------------------------
 
@@ -156,20 +169,7 @@ class PandasSession:
         return _rel(portable.filter_since(rel.native, column, lower, inclusive=inclusive))
 
     def align(self, rel: Relation, schema: Schema) -> Relation:
-        df: pd.DataFrame = rel.native
-        out: dict[str, Any] = {}
-        for col in schema:
-            arrow = io.arrow_type(col.dtype)
-            if col.name in df.columns:
-                series = df[col.name]
-                out[col.name] = series if arrow is None else series.astype(pd.ArrowDtype(arrow))
-            else:
-                out[col.name] = pd.Series(
-                    [None] * len(df),
-                    index=df.index,
-                    dtype=object if arrow is None else pd.ArrowDtype(arrow),
-                )
-        return _rel(pd.DataFrame(out, index=df.index))
+        return _rel(io.align_frame(rel.native, schema))
 
     def max_value(self, rel: Relation, column: str) -> Any:
         return portable.max_value(rel.native, column)

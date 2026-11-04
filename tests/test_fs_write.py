@@ -1,0 +1,306 @@
+"""Merge, replace_partitions and per-partition files on filesystem tables, on both engines."""
+
+from __future__ import annotations
+
+import json
+import threading
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from contextlib import contextmanager
+from datetime import UTC, date, datetime
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from pipeloom.builtins.filesystem import FilesystemCatalog
+from pipeloom.builtins.fs_table import FsCommit
+from pipeloom.engine import portable
+from pipeloom.engine.errors import CommitConflict, TransientError, WriteKeyError
+from pipeloom.engine.protocols import EngineSession
+from pipeloom.engine.types import Column, DeleteSpec, Schema, TargetRef, WriteConfig, WriteResult
+from pipeloom.platform import Identity
+from pipeloom.runtime.context import RuntimeContext
+from pipeloom.testing.clock import FakeClock
+
+Rows = Sequence[Mapping[str, Any]]
+KV = (Column("id", "int64"), Column("p", "string"), Column("v", "int64"))
+TARGET = TargetRef(None, "main", "t")
+
+
+def _polars_frame(rows: Rows, schema: Schema) -> Any:
+    pl = pytest.importorskip("polars")
+    from pipeloom_polars import io
+
+    return pl.DataFrame(
+        [dict(r) for r in rows], schema={c.name: io.polars_dtype(c.dtype) for c in schema}
+    )
+
+
+def _pandas_frame(rows: Rows, schema: Schema) -> Any:
+    pd = pytest.importorskip("pandas")
+    pa = pytest.importorskip("pyarrow")
+    from pipeloom_pandas import io
+
+    arrow = pa.schema([(c.name, io.arrow_type(c.dtype)) for c in schema])
+    table = pa.Table.from_pylist([dict(r) for r in rows], schema=arrow)
+    return table.to_pandas(types_mapper=pd.ArrowDtype)
+
+
+def _rows(native: Any) -> list[dict[str, Any]]:
+    frame = native.collect() if hasattr(native, "collect") else native
+    if hasattr(frame, "to_dicts"):
+        out = list(frame.to_dicts())
+    else:
+        pa = pytest.importorskip("pyarrow")
+        out = pa.Table.from_pandas(frame, preserve_index=False).to_pylist()
+    return sorted(out, key=lambda r: repr(sorted(r.items())))
+
+
+class Env:
+    def __init__(self, engine: str, root: Path, fmt: str) -> None:
+        self.catalog = FilesystemCatalog(root, format=fmt, clock=FakeClock())
+        if engine == "polars":
+            from pipeloom_polars.engine import PolarsEngine
+
+            self.engine: Any = PolarsEngine()
+            self.make = _polars_frame
+        else:
+            from pipeloom_pandas.engine import PandasEngine
+
+            self.engine = PandasEngine()
+            self.make = _pandas_frame
+        self.root = root
+
+    @contextmanager
+    def session(self) -> Iterator[EngineSession]:
+        ctx = RuntimeContext(
+            run_id="t",
+            invocation_id="t",
+            project="t",
+            target="t",
+            project_dir=self.root,
+            clock=FakeClock(),
+            identity=Identity("tester", "host"),
+            vars={},
+        )
+        with self.engine.session(ctx, catalog=self.catalog) as s:
+            yield s
+
+    def put(
+        self, s: EngineSession, rows: Rows, cfg: WriteConfig, token: str, schema: Schema = KV
+    ) -> WriteResult:
+        self.catalog.ensure_namespace(TARGET.namespace)
+        rel = s.relation(self.make(rows, schema))
+        return s.materializer(cfg.strategy).materialize(rel, TARGET, cfg, token)
+
+    def table_rows(self, s: EngineSession) -> list[dict[str, Any]]:
+        return _rows(s.reader("table").read(_spec()).native)
+
+    def commit(self) -> FsCommit:
+        c = self.catalog.table(TARGET).current()
+        assert c is not None
+        return c
+
+
+def _spec() -> Any:
+    from pipeloom.engine.types import ReadSpec
+
+    return ReadSpec("table", table=TARGET)
+
+
+@pytest.fixture(params=["polars", "pandas"])
+def env_factory(request: pytest.FixtureRequest, tmp_path: Path) -> Callable[[str], Env]:
+    pytest.importorskip(request.param)
+    return lambda fmt="parquet": Env(request.param, tmp_path / "wh", fmt)
+
+
+@pytest.fixture
+def env(env_factory: Callable[[str], Env]) -> Env:
+    return env_factory("parquet")
+
+
+SEED = (
+    {"id": 1, "p": "a", "v": 10},
+    {"id": 2, "p": "a", "v": 20},
+    {"id": 3, "p": "b", "v": 30},
+    {"id": 4, "p": None, "v": 40},
+)
+
+
+def test_every_strategy_writes_one_file_per_partition(env: Env) -> None:
+    with env.session() as s:
+        env.put(s, SEED, WriteConfig("overwrite", partition_by=("p",)), "t1")
+        c = env.commit()
+        assert c.partition_by == ("p",) and len(c.files) == 3
+        parts = {c.info(n).partition: c.info(n).rows for n in c.files}
+        assert parts == {("a",): 2, ("b",): 1, (None,): 1}
+        env.put(s, [{"id": 5, "p": "b", "v": 50}], WriteConfig("append", partition_by=("p",)), "t2")
+        assert len(env.commit().files) == 4
+        assert len(env.table_rows(s)) == 5
+
+
+def test_replace_partitions_swaps_files_without_touching_the_others(env: Env) -> None:
+    cfg = WriteConfig("replace_partitions", partition_by=("p",))
+    with env.session() as s:
+        env.put(s, SEED, WriteConfig("overwrite", partition_by=("p",)), "t1")
+        before = env.commit()
+        keep = [n for n in before.files if before.info(n).partition == ("b",)]
+        result = env.put(
+            s, [{"id": 9, "p": "a", "v": 90}, {"id": 8, "p": None, "v": 80}], cfg, "t2"
+        )
+        after = env.commit()
+        assert len(keep) == 1 and set(keep) <= set(after.files) and len(after.files) == 3
+        assert result.rows_deleted == 3 and after.rows == 3 and after.version == 2
+        assert {r["id"] for r in env.table_rows(s)} == {3, 8, 9}
+
+
+def test_replace_partitions_upgrades_a_v1_table(env: Env) -> None:
+    cfg = WriteConfig("replace_partitions", partition_by=("p",))
+    with env.session() as s:
+        env.put(s, SEED, WriteConfig("overwrite"), "t1")
+        path = env.catalog.table(TARGET).path / "_pipeloom" / "commit.json"
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        doc["schema"] = "pipeloom.fs_table/1"
+        del doc["file_info"], doc["partition_by"]
+        path.write_text(json.dumps(doc), encoding="utf-8")
+        assert env.commit().info(env.commit().files[0]).partition is None
+        result = env.put(s, [{"id": 7, "p": "a", "v": 70}], cfg, "t2")
+        assert result.rows_deleted == 2
+        assert {r["id"] for r in env.table_rows(s)} == {3, 4, 7}
+        assert json.loads(path.read_text(encoding="utf-8"))["schema"] == "pipeloom.fs_table/2"
+        assert env.commit().rows == 3
+
+
+def test_partition_values_round_trip(env: Env) -> None:
+    schema = (
+        Column("d", "date"),
+        Column("t", "timestamp[us, UTC]"),
+        Column("n", "decimal(10,2)"),
+        Column("v", "int64"),
+    )
+    d, t, n = date(2026, 1, 2), datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC), Decimal("1.50")
+    rows = [
+        {"d": d, "t": t, "n": n, "v": 1},
+        {"d": None, "t": None, "n": None, "v": 2},
+        {"d": d, "t": t, "n": n, "v": 3},
+    ]
+    with env.session() as s:
+        env.put(s, rows, WriteConfig("overwrite", partition_by=("d", "t", "n")), "t1", schema)
+        c = env.commit()
+        got = {
+            tuple(
+                portable.decode_partition_value(col.dtype, v)
+                for col, v in zip(schema[:3], key, strict=True)
+            )
+            for key in (c.info(f).partition for f in c.files)
+            if key is not None
+        }
+        assert got == {(d, t, n), (None, None, None)}
+        batch = [{"d": d, "t": t, "n": n, "v": 9}, {"d": None, "t": None, "n": None, "v": 8}]
+        cfg = WriteConfig("replace_partitions", partition_by=("d", "t", "n"))
+        result = env.put(s, batch, cfg, "t2", schema)
+        assert result.rows_deleted == 3
+        assert [r["v"] for r in sorted(env.table_rows(s), key=lambda r: r["v"])] == [8, 9]
+
+
+def test_empty_batches(env: Env) -> None:
+    with env.session() as s:
+        env.put(s, SEED, WriteConfig("overwrite", partition_by=("p",)), "t1")
+        before = env.commit()
+        merge = env.put(s, [], WriteConfig("merge", unique_key=("id",), partition_by=("p",)), "t2")
+        mid = env.commit()
+        assert mid.version == 2 and mid.files == before.files and merge.rows_written == 0
+        repl = env.put(s, [], WriteConfig("replace_partitions", partition_by=("p",)), "t3")
+        after = env.commit()
+        assert after.version == 3 and after.files == before.files and repl.rows_deleted == 0
+        assert s.applied_token(TARGET, "t3") is not None
+        assert len(env.table_rows(s)) == 4
+
+
+def test_merge_into_a_missing_table_inserts(env: Env) -> None:
+    cfg = WriteConfig("merge", unique_key=("id",), deletes=DeleteSpec("p", "x", "hard"))
+    with env.session() as s:
+        result = env.put(s, [{"id": 1, "p": "a", "v": 1}, {"id": 2, "p": "x", "v": 2}], cfg, "t1")
+        assert result.rows_inserted == 1 and env.commit().version == 1
+        assert len(env.table_rows(s)) == 1
+
+
+def test_a_batch_without_the_key_is_rejected(env: Env) -> None:
+    schema = (Column("p", "string"), Column("v", "int64"))
+    with env.session() as s:
+        with pytest.raises(WriteKeyError):
+            env.put(s, [{"p": "a", "v": 1}], WriteConfig("merge", unique_key=("id",)), "t1", schema)
+        with pytest.raises(WriteKeyError):
+            env.put(
+                s,
+                [{"p": "a", "v": 1}],
+                WriteConfig("overwrite", partition_by=("zz",)),
+                "t2",
+                schema,
+            )
+        assert env.catalog.table(TARGET).current() is None
+
+
+@pytest.mark.parametrize("fmt", ["csv", "ndjson"])
+def test_merge_and_replace_on_text_formats(env_factory: Callable[[str], Env], fmt: str) -> None:
+    env = env_factory(fmt)
+    with env.session() as s:
+        env.put(s, SEED, WriteConfig("overwrite", partition_by=("p",)), "t1")
+        env.put(
+            s,
+            [{"id": 2, "p": "a", "v": 99}, {"id": 5, "p": "c", "v": 5}],
+            WriteConfig("merge", unique_key=("id",)),
+            "t2",
+        )
+        assert {r["id"]: r["v"] for r in env.table_rows(s)} == {1: 10, 2: 99, 3: 30, 4: 40, 5: 5}
+        env.put(
+            s,
+            [{"id": 6, "p": "c", "v": 6}],
+            WriteConfig("replace_partitions", partition_by=("p",)),
+            "t3",
+        )
+        assert {r["id"] for r in env.table_rows(s)} == {1, 2, 3, 4, 6}
+
+
+def test_two_threads_committing_one_table_conflict(env: Env) -> None:
+    with env.session() as s:
+        env.put(s, SEED, WriteConfig("overwrite"), "t1")
+        gate = threading.Barrier(2)
+        outcomes: list[BaseException | WriteResult] = []
+
+        def work(i: int) -> None:
+            cfg = WriteConfig("merge", unique_key=("id",))
+            rel = s.relation(env.make([{"id": 10 + i, "p": "n", "v": i}], KV))
+            mat = s.materializer("merge")
+            try:
+                outcomes.append(mat.materialize(rel, TARGET, cfg, f"t-{i}"))
+            except BaseException as exc:  # noqa: BLE001 - inspected below
+                outcomes.append(exc)
+
+        # Every catalog.table() call returns a table whose commit waits for the other thread.
+        original = env.catalog.table
+        env.catalog.table = lambda target: _patched(original(target), gate)  # type: ignore[method-assign]
+        threads = [threading.Thread(target=work, args=(i,)) for i in range(2)]
+        for th in threads:
+            th.start()
+        for th in threads:
+            th.join()
+        env.catalog.table = original  # type: ignore[method-assign]
+        errors = [o for o in outcomes if isinstance(o, BaseException)]
+        assert len(errors) == 1 and isinstance(errors[0], CommitConflict)
+        assert isinstance(errors[0], TransientError)
+        assert len(env.table_rows(s)) == 5 and env.commit().version == 2
+        leftovers = list(env.catalog.table(TARGET).path.glob("part-*"))
+        assert len(leftovers) == len(env.commit().files)
+
+
+def _patched(table: Any, gate: threading.Barrier) -> Any:
+    real = table.commit
+
+    def commit(**kw: Any) -> Any:
+        gate.wait(timeout=10)
+        return real(**kw)
+
+    table.commit = commit
+    return table

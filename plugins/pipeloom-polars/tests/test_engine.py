@@ -70,7 +70,7 @@ def test_unsupported_format_and_strategy(tmp_path: Path) -> None:
         with pytest.raises(ValueError, match="format"):
             s.reader("orc")
         with pytest.raises(ValueError, match="strategy"):
-            s.materializer("merge")
+            s.materializer("scd2")
 
 
 def test_a_missing_table_raises(tmp_path: Path) -> None:

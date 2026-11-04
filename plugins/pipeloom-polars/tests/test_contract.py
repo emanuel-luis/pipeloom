@@ -55,6 +55,7 @@ def harness(tmp_path: Path) -> EngineHarness:
         write_source=write_source,
         failing_relation=failing,
         settings_snapshot=lambda: pl.Config.state(),
+        update_condition="source.v > target.v",
     )
 
 

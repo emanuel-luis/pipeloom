@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+import json
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
 import pytest
 
 from pipeloom.engine import portable
-from pipeloom.engine.types import Column
+from pipeloom.engine.errors import WriteKeyError
+from pipeloom.engine.types import Column, DeleteSpec, WriteConfig
 
 
 def polars_frame(lazy: bool = False) -> Any:
@@ -121,3 +123,116 @@ def test_pandas_max_value_is_plain_and_serialisable() -> None:
         value = portable.max_value(frame, "x")
         assert value == expected and type(value) is type(expected)
         json.dumps(encode_value(value))
+
+
+# -- merge, replace_partitions and partition values ----------------------------------------------
+
+
+def _kv(kind: str, rows: list[tuple[Any, ...]]) -> Any:
+    cols = ["id", "label", "v"]
+    data = {c: [r[i] for r in rows] for i, c in enumerate(cols)}
+    if kind == "polars":
+        pl = pytest.importorskip("polars")
+        return pl.DataFrame(data, schema={"id": pl.Int64, "label": pl.String, "v": pl.Int64})
+    pd = pytest.importorskip("pandas")
+    return pd.DataFrame(data).astype({"id": "Int64", "label": "string", "v": "Int64"})
+
+
+def _cond(kind: str) -> Any:
+    if kind == "polars":
+        pl = pytest.importorskip("polars")
+        return lambda df, cond: df.select(pl.sql_expr(cond).alias("c")).to_series()
+    return lambda df, cond: df.eval(cond, engine="python")
+
+
+def _out(frame: Any) -> list[tuple[Any, ...]]:
+    nw_frame = portable.nw.from_native(frame)
+    return sorted(nw_frame.iter_rows(), key=repr)
+
+
+@pytest.fixture(params=["polars", "pandas"])
+def kind(request: pytest.FixtureRequest) -> str:
+    pytest.importorskip(request.param)
+    return str(request.param)
+
+
+def test_merge_frames_inserts_updates_and_skips_null_keys(kind: str) -> None:
+    cur = _kv(kind, [(1, "a", 10), (2, "b", 20), (None, "old", 0)])
+    bat = _kv(kind, [(2, "b2", 30), (3, "c", 5), (None, "n1", 1), (None, "n2", 2)])
+    out = portable.merge_frames(
+        cur, bat, WriteConfig("merge", unique_key=("id",)), condition_hook=None
+    )
+    assert (out.inserted, out.updated, out.deleted) == (3, 1, 0)
+    assert len(_out(out.frame)) == 6
+
+
+def test_merge_frames_condition_and_deletes(kind: str) -> None:
+    cur = _kv(kind, [(1, "a", 10), (2, "b", 20), (3, "c", 30)])
+    bat = _kv(kind, [(1, "gone", 1), (2, "gone", 99), (9, "gone", 0), (4, "d", 4)])
+    for mode, rows in (("hard", 3), ("soft", 4)):
+        cfg = WriteConfig(
+            "merge",
+            unique_key=("id",),
+            update_condition="source.v > target.v",
+            deletes=DeleteSpec("label", "gone", mode),  # type: ignore[arg-type]
+        )
+        out = portable.merge_frames(cur, bat, cfg, condition_hook=_cond(kind))
+        assert (out.inserted, out.updated, out.deleted) == (1, 0, 1)
+        assert len(_out(out.frame)) == rows
+
+
+def test_merge_frames_rejects_bad_keys(kind: str) -> None:
+    cur = _kv(kind, [(1, "a", 1)])
+    with pytest.raises(WriteKeyError):
+        portable.merge_frames(
+            cur,
+            _kv(kind, [(3, "x", 1), (3, "y", 2)]),
+            WriteConfig("merge", unique_key=("id",)),
+            condition_hook=None,
+        )
+    with pytest.raises(WriteKeyError):
+        portable.merge_frames(
+            cur, cur, WriteConfig("merge", unique_key=("nope",)), condition_hook=None
+        )
+    with pytest.raises(WriteKeyError):
+        portable.merge_frames(cur, cur, WriteConfig("merge"), condition_hook=None)
+
+
+def test_replace_partition_frames_treats_null_as_a_value(kind: str) -> None:
+    cur = _kv(kind, [(1, "a", 1), (2, "a", 2), (3, "b", 3), (4, None, 4)])
+    bat = _kv(kind, [(9, "a", 9), (8, None, 8)])
+    out, deleted = portable.replace_partition_frames(cur, bat, ("label",))
+    assert deleted == 3 and sorted(r[0] for r in _out(out)) == [3, 8, 9]
+    with pytest.raises(WriteKeyError):
+        portable.replace_partition_frames(cur, bat, ())
+
+
+def test_split_partitions_keys(kind: str) -> None:
+    frame = _kv(kind, [(1, "a", 1), (2, None, 2), (3, "a", 3)])
+    parts = portable.split_partitions(frame, ("label",))
+    assert [(k, portable.count(f)) for k, f in parts] == [(("a",), 2), ((None,), 1)]
+    assert portable.split_partitions(portable.empty_like(frame), ("label",)) == []
+
+
+def test_partition_values_round_trip() -> None:
+    values = [
+        (date(2026, 1, 2), "date"),
+        (datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC), "timestamp[us, UTC]"),
+        (datetime(2026, 1, 2, 3, 4, 5), "timestamp[us]"),
+        (Decimal("1.50"), "decimal(10,2)"),
+        (None, "date"),
+        (float("nan"), "float64"),
+        (7, "int64"),
+        ("x", "string"),
+        (True, "boolean"),
+    ]
+    for value, dtype in values:
+        raw = portable.encode_partition_value(value)
+        json.dumps(raw)
+        back = portable.decode_partition_value(dtype, raw)
+        assert back == (None if value != value else value)  # noqa: PLR0124 - NaN is null
+
+
+def test_rewrite_qualified_skips_literals() -> None:
+    cond = "source.v > target.v and label != 'source.x'"
+    assert portable.rewrite_qualified(cond) == "v > __pipeloom_t_v and label != 'source.x'"

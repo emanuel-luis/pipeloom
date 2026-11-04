@@ -45,6 +45,7 @@ def harness(tmp_path: Path) -> EngineHarness:
         engine=PandasEngine(),
         catalog=FilesystemCatalog(tmp_path / "wh"),
         make_native=_frame,
+        update_condition="source.v > target.v",
         to_rows=to_rows,
         write_source=write_source,
         failing_relation=failing,

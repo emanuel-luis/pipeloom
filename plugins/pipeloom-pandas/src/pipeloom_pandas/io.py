@@ -86,27 +86,45 @@ def read(fmt: str, location: str, options: Mapping[str, Any]) -> pd.DataFrame:
     return _concat([_read_one(fmt, p, options) for p in _files(location)])
 
 
-def read_parts(fmt: str, files: Sequence[Path], schema: Schema) -> pd.DataFrame:
-    """The committed part files of a table, concatenated, with the stored logical types."""
-    frames = []
-    for path in files:
-        text = [c.name for c in schema if c.dtype == "string"]
-        df = _read_one(fmt, str(path), {}, text)
-        if fmt != "parquet":  # csv and ndjson lose the types; parquet keeps them
-            for col in schema:
-                dtype = arrow_type(col.dtype)
-                if dtype is None or col.name not in df.columns:
-                    continue  # an unnamed type keeps what the reader inferred
-                series = df[col.name]
-                if pa.types.is_date(dtype) and pd.api.types.is_string_dtype(series):
-                    series = series.str.slice(0, 10)  # ndjson writes a date as an ISO datetime
-                if pa.types.is_timestamp(dtype) and pd.api.types.is_string_dtype(series):
-                    # ndjson writes nanosecond ISO text, which a direct Arrow cast rejects
-                    stamps = pd.to_datetime(series, utc=dtype.tz is not None)
-                    series = stamps.dt.tz_convert(dtype.tz) if dtype.tz else stamps
-                df[col.name] = series.astype(pd.ArrowDtype(dtype))
-        frames.append(df)
-    return _concat(frames)
+def read_part(fmt: str, path: Path, schema: Schema) -> pd.DataFrame:
+    """One committed part file with the stored logical types."""
+    text = [c.name for c in schema if c.dtype == "string"]
+    df = _read_one(fmt, str(path), {}, text)
+    if fmt != "parquet":  # csv and ndjson lose the types; parquet keeps them
+        for col in schema:
+            dtype = arrow_type(col.dtype)
+            if dtype is None or col.name not in df.columns:
+                continue  # an unnamed type keeps what the reader inferred
+            series = df[col.name]
+            if pa.types.is_date(dtype) and pd.api.types.is_string_dtype(series):
+                series = series.str.slice(0, 10)  # ndjson writes a date as an ISO datetime
+            if pa.types.is_timestamp(dtype) and pd.api.types.is_string_dtype(series):
+                # ndjson writes nanosecond ISO text, which a direct Arrow cast rejects
+                stamps = pd.to_datetime(series, utc=dtype.tz is not None)
+                series = stamps.dt.tz_convert(dtype.tz) if dtype.tz else stamps
+            df[col.name] = series.astype(pd.ArrowDtype(dtype))
+    return df
+
+
+def align_frame(df: pd.DataFrame, schema: Schema) -> pd.DataFrame:
+    """Columns in `schema` order; a missing one is a typed null, the others are cast."""
+    out: dict[str, Any] = {}
+    for col in schema:
+        arrow = arrow_type(col.dtype)
+        if col.name in df.columns:
+            series = df[col.name]
+            out[col.name] = series if arrow is None else series.astype(pd.ArrowDtype(arrow))
+        else:
+            out[col.name] = pd.Series(
+                [None] * len(df),
+                index=df.index,
+                dtype=object if arrow is None else pd.ArrowDtype(arrow),
+            )
+    return pd.DataFrame(out, index=df.index)
+
+
+def concat(frames: Sequence[pd.DataFrame]) -> pd.DataFrame:
+    return _concat(list(frames))
 
 
 def write(df: pd.DataFrame, fmt: str, path: Path) -> None:
