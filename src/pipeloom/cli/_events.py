@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Mapping, Sequence
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any
 
 import click
@@ -80,7 +80,11 @@ class Invocation:
         self._args = _context_args()
         self._extra: list[EventPayload] = []
 
-    def artifact(self, path: Path, content: bytes, kind: str) -> None:
+    def add(self, payload: EventPayload) -> None:
+        """Queue an event to emit after the diagnostics."""
+        self._extra.append(payload)
+
+    def artifact(self, path: PurePath, content: bytes, kind: str) -> None:
         import hashlib
 
         self._extra.append(
