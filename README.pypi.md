@@ -2,9 +2,11 @@
 
 Declarative, engine-agnostic data pipelines in YAML.
 
-pipeloom 0.2 reads a YAML project, validates it in layers, builds the dependency graph, compiles
+pipeloom 0.3 reads a YAML project, validates it in layers, builds the dependency graph, compiles
 the execution plan into a manifest and runs it on polars or pandas. Every run writes
-`run_results.json` with one row per model.
+`run_results.json` with one row per model. 0.3 adds incremental models, merge and
+replace_partitions writes, schema-change policies, expectations with quarantine, retries,
+timeouts and cancellation.
 
 ```console
 $ pip install "pipeloom[polars]"   # or pipeloom[pandas]

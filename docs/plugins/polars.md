@@ -23,8 +23,9 @@ rejected when the session opens.
 | Capability | Value |
 | --- | --- |
 | Source formats | `parquet`, `csv`, `json`, `ndjson` |
-| Write strategies | `append`, `overwrite` |
-| Materializations | `table`, `view`, `ephemeral` |
+| Write strategies | `append`, `overwrite`, `merge`, `replace_partitions` |
+| Materializations | `table`, `incremental`, `view`, `ephemeral` |
+| Expectations and quarantine | yes (`expr` through `pl.sql_expr`) |
 | SQL models and views | yes, through `pl.SQLContext` |
 | Idempotent writes | yes, by run token |
 | Portable frames (`frame_api: narwhals`) | yes |
