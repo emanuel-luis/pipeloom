@@ -106,6 +106,13 @@ def _workers(opts: RunOptions, bound: BoundProject) -> int:
     return min(MAX_DEFAULT_WORKERS, os.cpu_count() or 1)
 
 
+def _grace(opts: RunOptions, bound: BoundProject) -> float:
+    if opts.cancel_grace is not None:
+        return opts.cancel_grace
+    configured = bound.runtime.cancel_grace
+    return DEFAULT_CANCEL_GRACE if configured is None else float(configured)
+
+
 def artifacts_root(bound: BoundProject, project_dir: Path) -> Path:
     root = Path(bound.runtime.artifacts.root or DEFAULT_ARTIFACTS_ROOT)
     return root if root.is_absolute() else project_dir / root
@@ -270,7 +277,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     project_dir = bound.loaded.project_dir.resolve()
     paths = RunPaths(artifacts_root(bound, project_dir), run_id)
     workers = _workers(opts, bound)
-    grace = DEFAULT_CANCEL_GRACE if opts.cancel_grace is None else opts.cancel_grace
+    grace = _grace(opts, bound)
     policies = _policies(plan, units, unit_mode=unit_mode)
     task = plan.metadata.boundary == "task" and not unit_mode
     executor_name = "process" if plan.metadata.boundary == "task" else "thread"

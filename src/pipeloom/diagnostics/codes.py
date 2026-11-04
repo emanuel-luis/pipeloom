@@ -419,6 +419,12 @@ _ACTIVE_03: Final = (
         "A unit attempt ran longer than its timeout. A timed-out unit is not retried and its descendants are skipped.",
     ),
     (
+        "PLX104",
+        E,
+        "Cancelled",
+        "A unit was still running when the run was stopped and did not finish within the grace period, or the stop was hard. The run ends cancelled with exit code 130.",
+    ),
+    (
         "PLM202",
         E,
         "Schema change rejected",
@@ -486,7 +492,6 @@ _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
     ("PLF702", E, "Source missing", "0.2"),
     ("PLF703", E, "Target schema drift detected", "0.2"),
-    ("PLX104", E, "Cancelled", "0.3"),
     ("PLD001", E, "Task limit exceeded", "0.4"),
     ("PLD002", E, "Submit above 100 tasks", "0.4"),
     ("PLA001", E, "Unsupported execution mode", "0.4"),

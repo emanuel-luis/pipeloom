@@ -406,3 +406,47 @@ def test_unit_mode_text_shows_the_failure_block(
     lines = [ln for ln in r.stderr.splitlines() if "FAIL" in ln or ln.startswith("         ")]
     text = "".join(re.sub(r"^\d\d:\d\d:\d\d ", "", ln) + "\n" for ln in lines)
     golden("events/console_unit.txt", re.sub(r"\d+\.\d\ds", "0.00s", text))
+
+
+def grace_seen(monkeypatch: pytest.MonkeyPatch, root: Path, *args: str) -> tuple[Result, list[Any]]:
+    seen: list[Any] = []
+    original = Project.run
+
+    def spy(self: Project, opts: Any = None, bus: Any = None, control: Any = None) -> Any:
+        seen.append(opts.cancel_grace)
+        return original(self, opts, bus, control)
+
+    monkeypatch.setattr(Project, "run", spy)
+    return pipeloom(root, *args), seen
+
+
+@pytest.mark.parametrize(("value", "seconds"), [("45", 45), ("30s", 30), ("2m", 120)])
+def test_cancel_grace_takes_a_duration(
+    root: Path, monkeypatch: pytest.MonkeyPatch, value: str, seconds: int
+) -> None:
+    result, seen = grace_seen(monkeypatch, root, "-s", "a", "--cancel-grace", value)
+    assert result.exit_code == 0
+    assert seen == [seconds]
+
+
+def test_cancel_grace_defaults_to_unset(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    result, seen = grace_seen(monkeypatch, root, "-s", "a")
+    assert result.exit_code == 0
+    assert seen == [None]
+
+
+def test_a_bad_cancel_grace_exits_2(root: Path) -> None:
+    result = pipeloom(root, "-s", "a", "--cancel-grace", "soon")
+    assert result.exit_code == 2
+    assert "not a duration" in result.output
+
+
+def test_cancel_grace_setting_is_read_from_the_project(tmp_path: Path) -> None:
+    from pipeloom.runtime.run import RunOptions, _grace
+
+    yml = YML.replace("targets:", "cancel_grace: 7s\ntargets:", 1)
+    project = make_project(tmp_path, {"pipeloom.yml": yml, "models/m.yml": MODELS})
+    bound = Project(ProjectOptions(project_dir=project, target="ci")).bind().value
+    assert bound is not None and bound.runtime.cancel_grace == 7
+    assert _grace(RunOptions(), bound) == 7.0
+    assert _grace(RunOptions(cancel_grace=2), bound) == 2.0

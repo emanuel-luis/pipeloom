@@ -10,6 +10,7 @@ from typing import Literal, Self
 from pipeloom.events.bus import EventBus
 from pipeloom.events.model import (
     EventPayload,
+    RunCancelRequested,
     UnitCancelled,
     UnitQueued,
     UnitRetrying,
@@ -187,6 +188,7 @@ class Scheduler:
             if self._waiting[u] == 0:
                 self._queue(u)
         keyboard = False
+        self._control.add_waker(self._executor.wake)
         try:
             while True:
                 now = self._clock.monotonic()
@@ -214,6 +216,7 @@ class Scheduler:
                         self._halt()
                 self._deadlines(self._clock.monotonic())
         finally:
+            self._control.remove_waker(self._executor.wake)
             # Also set when an exception escapes, so the caller can finalize what happened.
             self.result = ScheduleResult(
                 states=dict(self._states),
@@ -377,6 +380,8 @@ class Scheduler:
             self.interrupted = True
             self._halt()
             self._stop_by = now + self._grace
+            if self._announce:
+                self._bus.emit(RunCancelRequested(signal=control.signal_name, grace_s=self._grace))
             for run in self._run_of.values():
                 self._executor.cancel(run.handle, "cancel")
         if self._run_of and (

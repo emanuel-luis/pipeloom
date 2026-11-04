@@ -225,6 +225,16 @@ class RunCompiled(EventPayload):
     executor: str
 
 
+class RunCancelRequested(EventPayload):
+    TYPE = "run.cancel_requested"
+    LEVEL = Level.WARNING
+
+    signal: str | None
+    """SIGINT, SIGTERM or SIGBREAK when a signal asked for the stop; None for an API call."""
+    grace_s: float
+    """Seconds running units get to finish before they are marked cancelled."""
+
+
 class RunCompleted(EventPayload):
     TYPE = "run.completed"
 

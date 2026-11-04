@@ -69,9 +69,7 @@ def _quality_lines(stamp: str, model: str, d: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-_QUIET = frozenset(
-    {"unit.queued", "unit.started", "model.input_read", "model.written", "run.cancel_requested"}
-)
+_QUIET = frozenset({"unit.queued", "unit.started", "model.input_read", "model.written"})
 _NAME_WIDTH = 24
 _INDENT = " " * 9
 _FRAME = re.compile(r"^.+:\d+ in .+$")
@@ -226,6 +224,9 @@ class ConsoleSink:
             )
         if event.type == "run.completed":
             return self._summary(stamp, d)
+        if event.type == "run.cancel_requested":
+            by = f" by {d['signal']}" if d["signal"] else ""
+            return f"{stamp} CANCEL stop requested{by}; running units have {d['grace_s']:g}s"
         if event.type == "unit.retrying":
             err = d["error"] or {}
             what = f"{err.get('code', '')} ({err.get('category', '')})".strip()

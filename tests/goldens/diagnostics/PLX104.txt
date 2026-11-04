@@ -1,0 +1,2 @@
+error PLX104 unit 'a' was cancelled (attempt 1)
+      hint: the run was stopped before the unit finished

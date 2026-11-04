@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+from collections.abc import Callable
 from typing import Literal
 
 from pipeloom.events.model import ErrorInfo
@@ -53,16 +54,30 @@ class RunControl:
     """
 
     def __init__(self) -> None:
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # reentrant: a signal handler may fire inside a call
         self._stop = False
         self._hard = False
         self._signal: str | None = None
+        self._wakers: list[Callable[[], None]] = []
+
+    def add_waker(self, wake: Callable[[], None]) -> None:
+        """Call `wake` on every stop request, so a scheduler blocked in `wait_any` returns."""
+        with self._lock:
+            self._wakers.append(wake)
+
+    def remove_waker(self, wake: Callable[[], None]) -> None:
+        with self._lock:
+            if wake in self._wakers:
+                self._wakers.remove(wake)
 
     def request_stop(self, *, hard: bool = False, signal_name: str | None = None) -> None:
         with self._lock:
             self._stop = True
             self._hard = self._hard or hard
             self._signal = self._signal or signal_name
+            wakers = list(self._wakers)
+        for wake in wakers:
+            wake()
 
     @property
     def stop_requested(self) -> bool:

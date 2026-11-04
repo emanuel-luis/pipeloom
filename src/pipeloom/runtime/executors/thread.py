@@ -107,6 +107,15 @@ class ThreadExecutor:
 
     def shutdown(self, *, wait: bool) -> None:
         if not wait:
+            # Give up on every live attempt: its late result is dropped and nobody joins it.
+            with self._lock:
+                gone = [
+                    h for h, t in self._threads.items() if h not in self._abandoned and t.is_alive()
+                ]
+                self._abandoned.update(gone)
+            if self._on_interrupt is not None:
+                for handle in gone:
+                    self._on_interrupt(handle, "cancel")
             return
         with self._lock:
             live = [t for h, t in self._threads.items() if h not in self._abandoned]
