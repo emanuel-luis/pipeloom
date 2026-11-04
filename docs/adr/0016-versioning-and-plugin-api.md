@@ -14,7 +14,8 @@ Several distributions ship from one repository, and several contracts evolve at 
 ## Decision
 
 - SemVer per distribution, with lockstep versions for first-party distributions during 0.x and one tag `vX.Y.Z`.
-- The tag workflow checks that the tag equals the version, builds, then publishes to PyPI by trusted publishing through the protected `pypi` environment, then creates the GitHub release with notes from `CHANGELOG.md` (Keep a Changelog).
+- The tag workflow checks that the tag equals the version, builds, then publishes to PyPI by trusted publishing, then creates the GitHub release with notes from `CHANGELOG.md` (Keep a Changelog).
+- Each distribution publishes from its own job and its own GitHub environment: `pypi` for the core and `pypi-<plugin>` for each plugin (`pypi-polars`, `pypi-pandas`, `pypi-spark`, `pypi-databricks`, `pypi-airflow`). PyPI accepts only one pending trusted publisher per owner, repository, workflow and environment, so new plugin projects cannot share one environment. Amended on 2026-11-04 after PyPI rejected a second pending publisher for `pypi`; ADR-0023 has the job layout.
 - `config_version`, the manifest and event schema versions, and the plugin API version are versioned separately.
 - `pipeloom.plugins.API_VERSION = (MAJOR, MINOR)`, independent of the package version. MINOR covers additive changes. MAJOR covers breaking protocol changes. The core accepts plugins with the same MAJOR and MINOR not above its own, otherwise it raises PLU001.
 - Before 1.0 the plugin API is `0.x` and any minor may break. Plugin API 1.0 ships with pipeloom 1.0.
