@@ -34,6 +34,7 @@ dependencies = [
 [project.optional-dependencies]
 polars = ["pipeloom-polars==0.3.0"]
 pandas = ["pipeloom-pandas==0.3.0"]
+spark = ["pipeloom-spark[local]==0.3.0"]
 sqlglot = ["sqlglot>=26"]
 
 [project.urls]
@@ -61,6 +62,7 @@ dev = [
     "pyarrow>=26.0.1",
     "sqlglot>=26",
 ]
+spark = ["pipeloom-spark[local]"]
 docs = ["mkdocs-material", "mkdocstrings[python]", "mkdocs-click", "mike"]
 
 [tool.uv.workspace]
@@ -69,6 +71,7 @@ members = ["plugins/*"]
 [tool.uv.sources]
 pipeloom-polars = { workspace = true }
 pipeloom-pandas = { workspace = true }
+pipeloom-spark = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pipeloom"]
@@ -79,7 +82,13 @@ only-include = ["src", "tests", "CHANGELOG.md"]
 [tool.ruff]
 extend-exclude = ["docs"]
 line-length = 100
-src = ["src", "tests", "plugins/pipeloom-polars/src", "plugins/pipeloom-pandas/src"]
+src = [
+    "src",
+    "tests",
+    "plugins/pipeloom-polars/src",
+    "plugins/pipeloom-pandas/src",
+    "plugins/pipeloom-spark/src",
+]
 
 [tool.ruff.lint]
 extend-select = ["BLE", "I", "UP", "B"]
@@ -93,17 +102,24 @@ files = [
     "plugins/pipeloom-polars/tests",
     "plugins/pipeloom-pandas/src",
     "plugins/pipeloom-pandas/tests",
+    "plugins/pipeloom-spark/src",
+    "plugins/pipeloom-spark/tests",
 ]
 
 [[tool.mypy.overrides]]
-module = ["pandas", "pandas.*", "pyarrow", "pyarrow.*"]
+# pyspark is not installed by the default environment (only by the `spark` group).
+module = ["pandas", "pandas.*", "pyarrow", "pyarrow.*", "pyspark", "pyspark.*", "delta", "delta.*", "py4j", "py4j.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
 timeout = 60
-testpaths = ["tests", "plugins/pipeloom-polars/tests", "plugins/pipeloom-pandas/tests"]
+testpaths = ["tests", "plugins/pipeloom-polars/tests", "plugins/pipeloom-pandas/tests", "plugins/pipeloom-spark/tests"]
 pythonpath = ["."]
+markers = [
+    "spark: needs local Spark (PIPELOOM_TEST_SPARK=classic, Linux or macOS, Java)",
+    "spark_connect: needs a local Spark Connect server (PIPELOOM_TEST_SPARK=connect)",
+]
 
 [tool.coverage.run]
 # Directories, never package names: for a package name coverage imports it inside
@@ -113,6 +129,7 @@ source = [
   "src/pipeloom",
   "plugins/pipeloom-polars/src/pipeloom_polars",
   "plugins/pipeloom-pandas/src/pipeloom_pandas",
+  "plugins/pipeloom-spark/src/pipeloom_spark",
 ]
 
 [tool.importlinter]
@@ -173,7 +190,7 @@ forbidden_modules = ["pipeloom.testing"]
 name = "No dataframe or SQL parsing library in the core"
 type = "forbidden"
 source_modules = ["pipeloom"]
-forbidden_modules = ["polars", "pandas", "pyarrow", "sqlglot"]
+forbidden_modules = ["polars", "pandas", "pyarrow", "sqlglot", "pyspark", "delta", "py4j"]
 ignore_imports = ["pipeloom.validate.static -> sqlglot"]
 
 [[tool.importlinter.contracts]]

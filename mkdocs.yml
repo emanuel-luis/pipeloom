@@ -31,6 +31,7 @@ nav:
   - Plugins:
       - Polars: plugins/polars.md
       - pandas: plugins/pandas.md
+      - Spark: plugins/spark.md
   - Reference:
       - Command line: reference/cli.md
       - JSON Schema: reference/schema.md
