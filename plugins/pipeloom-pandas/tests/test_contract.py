@@ -13,6 +13,7 @@ import pytest
 from pipeloom.builtins.filesystem import FilesystemCatalog
 from pipeloom.engine.protocols import EngineSession
 from pipeloom.engine.types import Relation, Schema
+from pipeloom.testing import reference
 from pipeloom.testing.contract.engine import EngineContract, EngineHarness
 from pipeloom_pandas import io
 from pipeloom_pandas.engine import PandasEngine
@@ -47,6 +48,10 @@ def harness(tmp_path: Path) -> EngineHarness:
         catalog=FilesystemCatalog(tmp_path / "wh"),
         make_native=_frame,
         update_condition="source.v > target.v",
+        expr_cases=(
+            ("id > 1", lambda r: None if r["id"] is None else r["id"] > 1),
+            ("f < 5.0", lambda r: None if reference.is_null(r["f"]) else r["f"] < 5.0),
+        ),
         to_rows=to_rows,
         write_source=write_source,
         failing_relation=failing,

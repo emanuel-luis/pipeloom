@@ -13,7 +13,14 @@ import narwhals.stable.v2 as nw
 
 from pipeloom.diagnostics import JsonValue
 from pipeloom.engine.errors import WriteKeyError
-from pipeloom.engine.types import Column, Schema, WriteConfig
+from pipeloom.engine.types import (
+    ROW_CHECKS,
+    Column,
+    ExpectationSpec,
+    QualityCounts,
+    Schema,
+    WriteConfig,
+)
 
 _SIMPLE: tuple[tuple[Any, str], ...] = (
     (nw.Int8, "int8"),
@@ -419,4 +426,171 @@ def merge_frames(
         int(inserts.shape[0] + nokey_inserts.shape[0]),
         int(updates.shape[0]),
         int(deleted.shape[0]),
+    )
+
+
+# -- quality ------------------------------------------------------------------------------------
+#
+# Row checks become one non-null boolean column per check (`__pipeloom_v<i>`, true = the row
+# violates it), built with explicit null guards: a null input passes (except not_null) and NaN is
+# null. Counts then come from one `select`. Only `expr` checks use the engine dialect, through the
+# `dialect_hook(frame, expression)` the engine passes: it evaluates the string on a native frame
+# and returns a boolean native series (true passes, false fails, null passes).
+
+_V = "__pipeloom_v"
+
+DialectHook = Callable[[Any, str], Any]
+
+
+def violation_name(i: int) -> str:
+    return f"{_V}{i}"
+
+
+def _row_specs(checks: Sequence[ExpectationSpec]) -> list[ExpectationSpec]:
+    return [c for c in checks if c.kind in ROW_CHECKS]
+
+
+def _is_float(dtype: Any) -> bool:
+    return isinstance(dtype, nw.Float32 | nw.Float64)
+
+
+def _violated(spec: ExpectationSpec, schema: Any) -> Any:
+    """Expression: the row violates the (non-expr) row check."""
+    out: Any = None
+    for column in spec.columns:
+        ref = nw.col(column)
+        if _is_float(schema[column]):
+            ref = ref.fill_nan(None)
+        if spec.kind == "not_null":
+            bad = ref.is_null()
+        else:
+            if spec.kind == "accepted_values":
+                values = spec.params["values"]
+                assert isinstance(values, list)
+                bad = ~ref.is_in(values)
+            elif spec.kind == "range":
+                low, high = spec.params.get("min"), spec.params.get("max")
+                bad = nw.lit(False)
+                if low is not None:
+                    bad = bad | (ref < low)
+                if high is not None:
+                    bad = bad | (ref > high)
+            else:  # regex
+                bad = ~ref.cast(nw.String).str.contains(str(spec.params["pattern"]))
+            bad = ~ref.is_null() & bad
+        bad = bad.fill_null(False)
+        out = bad if out is None else out | bad
+    return out
+
+
+def violation_columns(
+    native: Any, specs: Sequence[ExpectationSpec], *, dialect_hook: DialectHook
+) -> Any:
+    """`native` as an eager frame plus `__pipeloom_v<i>`, a non-null boolean per row check in
+    `specs` (other kinds are skipped; `i` counts the row checks only)."""
+    frame = _eager(native)
+    schema = frame.schema
+    rows = _row_specs(specs)
+    if any(s.kind == "expr" for s in rows):
+        floats = [n for n, t in schema.items() if _is_float(t)]
+        clean = frame.with_columns(*(nw.col(n).fill_nan(None) for n in floats))
+        raw = {
+            violation_name(i): nw.from_native(
+                dialect_hook(nw.to_native(clean), str(s.params["expr"])), series_only=True
+            )
+            .cast(nw.Boolean)
+            .alias(violation_name(i))
+            for i, s in enumerate(rows)
+            if s.kind == "expr"
+        }
+        frame = frame.with_columns(*raw.values())
+        frame = frame.with_columns(*(~nw.col(n) for n in raw))
+        frame = frame.with_columns(*(nw.col(n).fill_null(False) for n in raw))
+    cols = [
+        _violated(s, schema).alias(violation_name(i))
+        for i, s in enumerate(rows)
+        if s.kind != "expr"
+    ]
+    if cols:
+        frame = frame.with_columns(*cols)
+    return nw.to_native(frame)
+
+
+def count_violations(native: Any, specs: Sequence[ExpectationSpec]) -> QualityCounts:
+    """Counts from a frame that `violation_columns` made for the same `specs`, in one select.
+    `aggregates` is empty."""
+    frame = _eager(native)
+    rows = _row_specs(specs)
+    drops = [violation_name(i) for i, s in enumerate(rows) if s.action == "drop"]
+    exprs = [nw.len().alias("__n")]
+    exprs += [
+        nw.col(violation_name(i)).cast(nw.Int64).sum().alias(f"__f{i}") for i in range(len(rows))
+    ]
+    if drops:
+        any_drop = nw.any_horizontal(*(nw.col(n) for n in drops), ignore_nulls=False)
+        exprs.append(any_drop.cast(nw.Int64).sum().alias("__d"))
+    row = frame.select(*exprs).row(0)
+    failed = {s.name: int(row[1 + i] or 0) for i, s in enumerate(rows)}
+    dropped = int(row[-1] or 0) if drops else 0
+    return QualityCounts(int(row[0]), failed, dropped, {})
+
+
+def aggregate_values(native: Any, specs: Sequence[ExpectationSpec]) -> dict[str, Any]:
+    """unique: duplicate rows (rows with a null key part are left out); row_count: the rows;
+    freshness: the max of the column as a Python value."""
+    frame = _eager(native)
+    out: dict[str, Any] = {}
+    for spec in specs:
+        if spec.kind == "row_count":
+            out[spec.name] = int(frame.shape[0])
+        elif spec.kind == "unique":
+            keys = list(spec.columns)
+            floats = [k for k in keys if _is_float(frame.schema[k])]
+            keyed = frame.select(*keys).with_columns(*(nw.col(k).fill_nan(None) for k in floats))
+            keyed = keyed.drop_nulls()
+            out[spec.name] = int(keyed.shape[0] - keyed.unique().shape[0])
+        elif spec.kind == "freshness":
+            out[spec.name] = max_value(nw.to_native(frame), spec.columns[0])
+    return out
+
+
+def evaluate(
+    native: Any, checks: Sequence[ExpectationSpec], *, dialect_hook: DialectHook
+) -> QualityCounts:
+    """The full `EngineSession.evaluate` for portable engines."""
+    rows = _row_specs(checks)
+    marked = violation_columns(native, rows, dialect_hook=dialect_hook) if rows else native
+    counts = count_violations(marked, rows) if rows else QualityCounts(count(native), {}, 0, {})
+    return QualityCounts(
+        counts.total_rows, counts.failed, counts.dropped, aggregate_values(native, checks)
+    )
+
+
+@dataclass(frozen=True)
+class DropSplit:
+    kept: Any
+    """Native frame: the original columns of the rows no drop check caught."""
+    dropped: Any
+    """Native frame: the other rows, plus one boolean column per drop check (`flags`)."""
+    names: list[str]
+    flags: list[str]
+    """Column names of the drop checks, parallel to `names` (declaration order)."""
+
+
+def split_drops(
+    native: Any, checks: Sequence[ExpectationSpec], *, dialect_hook: DialectHook
+) -> DropSplit:
+    drops = [c for c in checks if c.kind in ROW_CHECKS and c.action == "drop"]
+    frame = _eager(native)
+    original = list(frame.columns)
+    if not drops:
+        return DropSplit(nw.to_native(frame), nw.to_native(frame.head(0)), [], [])
+    marked = _eager(violation_columns(native, drops, dialect_hook=dialect_hook))
+    flags = [violation_name(i) for i in range(len(drops))]
+    bad = nw.any_horizontal(*(nw.col(f) for f in flags), ignore_nulls=False)
+    return DropSplit(
+        nw.to_native(marked.filter(~bad).select(*original)),
+        nw.to_native(marked.filter(bad)),
+        [d.name for d in drops],
+        flags,
     )

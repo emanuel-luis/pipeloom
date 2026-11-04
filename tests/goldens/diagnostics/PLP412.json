@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLP412",
+    "severity": "error",
+    "message": "the quarantine table of 'a' collides with model 'a__quarantine'",
+    "hint": "rename model 'a__quarantine' or turn quality.quarantine off",
+    "location": {
+      "file": "models/m.yml",
+      "line": 4,
+      "col": 14,
+      "json_pointer": "/models/0/quality"
+    },
+    "context": {
+      "model": "a"
+    }
+  }
+]

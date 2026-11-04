@@ -1,0 +1,84 @@
+[
+  {
+    "unit_id": "orders",
+    "status": "succeeded",
+    "rows_written": 6,
+    "rows_dropped": 1,
+    "rows_quarantined": 1,
+    "expectations": [
+      {
+        "name": "amount_not_negative",
+        "kind": "range",
+        "action": "drop",
+        "passed": 6,
+        "failed": 1,
+        "value": null
+      },
+      {
+        "name": "customer_set",
+        "kind": "not_null",
+        "action": "warn",
+        "passed": 6,
+        "failed": 1,
+        "value": null
+      },
+      {
+        "name": "status_paid",
+        "kind": "accepted_values",
+        "action": "warn",
+        "passed": 6,
+        "failed": 1,
+        "value": null
+      },
+      {
+        "name": "amount_small",
+        "kind": "expr",
+        "action": "warn",
+        "passed": 6,
+        "failed": 1,
+        "value": null
+      },
+      {
+        "name": "has_rows",
+        "kind": "row_count",
+        "action": "fail",
+        "passed": null,
+        "failed": 0,
+        "value": 6
+      },
+      {
+        "name": "id_unique",
+        "kind": "unique",
+        "action": "fail",
+        "passed": null,
+        "failed": 0,
+        "value": 0
+      }
+    ],
+    "warnings": [
+      "expectation 'customer_set' (not_null) failed",
+      "expectation 'status_paid' (accepted_values) failed",
+      "expectation 'amount_small' (expr) failed"
+    ],
+    "error": null
+  },
+  {
+    "unit_id": "orders_strict",
+    "status": "failed",
+    "rows_written": null,
+    "rows_dropped": 0,
+    "rows_quarantined": 0,
+    "expectations": [
+      {
+        "name": "status_paid",
+        "kind": "accepted_values",
+        "action": "fail",
+        "passed": 6,
+        "failed": 1,
+        "value": null
+      }
+    ],
+    "warnings": [],
+    "error": "PLQ301"
+  }
+]

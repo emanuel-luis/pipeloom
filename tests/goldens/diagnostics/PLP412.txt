@@ -1,0 +1,2 @@
+error PLP412 models/m.yml:4:14 the quarantine table of 'a' collides with model 'a__quarantine'
+      hint: rename model 'a__quarantine' or turn quality.quarantine off

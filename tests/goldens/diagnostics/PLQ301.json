@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLQ301",
+    "severity": "error",
+    "message": "model 'a' failed expectation(s): id_set: ValueError: id_set",
+    "hint": "fix the data, or relax on_violation or quality.max_drop_ratio",
+    "location": {
+      "file": "models/m.yml",
+      "line": 2,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {
+      "unit": "a",
+      "category": "permanent"
+    }
+  }
+]

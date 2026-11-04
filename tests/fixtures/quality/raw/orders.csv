@@ -1,0 +1,8 @@
+id,customer,amount,status
+1,a@x.com,10.0,paid
+2,b@x.com,20.0,paid
+3,,5.0,paid
+4,d@x.com,-3.0,paid
+5,e@x.com,150.0,shipped
+6,f@x.com,7.0,paid
+7,g@x.com,8.0,paid
