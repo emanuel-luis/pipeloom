@@ -876,6 +876,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plp409" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP409
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -975,6 +986,17 @@
     <span class="md-ellipsis">
       
         PLC508
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc509" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC509
       
     </span>
   </a>
@@ -1214,6 +1236,17 @@
     <span class="md-ellipsis">
       
         PLM203
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm204" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM204
       
     </span>
   </a>
@@ -1869,6 +1902,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plp409" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP409
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1968,6 +2012,17 @@
     <span class="md-ellipsis">
       
         PLC508
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc509" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC509
       
     </span>
   </a>
@@ -2214,6 +2269,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#plm204" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM204
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#plq301" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2453,6 +2519,9 @@
 <h3 id="plp408">PLP408<a class="headerlink" href="#plp408" title="Permanent link">&para;</a></h3>
 <p>Ephemeral model with no consumer. Severity: warning. Status: active. Since: 0.1.</p>
 <p>No persisted model reads this ephemeral model, directly or through other ephemeral models, so it never runs.</p>
+<h3 id="plp409">PLP409<a class="headerlink" href="#plp409" title="Permanent link">&para;</a></h3>
+<p>View is not a plain SQL model. Severity: error. Status: active. Since: 0.2.</p>
+<p>A view must be a SQL model that reads no ephemeral model, because its query is stored in the catalog as written.</p>
 <h2 id="l5-capability">L5 capability<a class="headerlink" href="#l5-capability" title="Permanent link">&para;</a></h2>
 <h3 id="plc501">PLC501<a class="headerlink" href="#plc501" title="Permanent link">&para;</a></h3>
 <p>Strategy unsupported by engine. Severity: error. Status: active. Since: 0.1.</p>
@@ -2478,6 +2547,9 @@
 <h3 id="plc508">PLC508<a class="headerlink" href="#plc508" title="Permanent link">&para;</a></h3>
 <p>frame_api narwhals without portable engine. Severity: error. Status: active. Since: 0.1.</p>
 <p>A Python model asks for Narwhals frames on an engine whose frames are not portable.</p>
+<h3 id="plc509">PLC509<a class="headerlink" href="#plc509" title="Permanent link">&para;</a></h3>
+<p>Materialization unsupported by engine. Severity: error. Status: active. Since: 0.2.</p>
+<p>The materialization is not in the selected engine's capabilities. 0.2 engines do not offer incremental or intermediate.</p>
 <h2 id="l6-static-code">L6 static code<a class="headerlink" href="#l6-static-code" title="Permanent link">&para;</a></h2>
 <h3 id="plk601">PLK601<a class="headerlink" href="#plk601" title="Permanent link">&para;</a></h3>
 <p>Callable file or function not found. Severity: error. Status: active. Since: 0.1.</p>
@@ -2517,20 +2589,23 @@
 <p>An event sink failed failure_budget times in a row and was disabled. The other sinks keep receiving events and get a sink.disabled event.</p>
 <h2 id="runtime">Runtime<a class="headerlink" href="#runtime" title="Permanent link">&para;</a></h2>
 <h3 id="plm201">PLM201<a class="headerlink" href="#plm201" title="Permanent link">&para;</a></h3>
-<p>Write failed. Severity: error. Status: reserved. Since: 0.3.</p>
-<p>Reserved: not emitted yet.</p>
+<p>Write failed. Severity: error. Status: active. Since: 0.2.</p>
+<p>The engine failed to write a model's result or to create its view.</p>
 <h3 id="plm202">PLM202<a class="headerlink" href="#plm202" title="Permanent link">&para;</a></h3>
 <p>Schema change rejected. Severity: error. Status: reserved. Since: 0.3.</p>
 <p>Reserved: not emitted yet.</p>
 <h3 id="plm203">PLM203<a class="headerlink" href="#plm203" title="Permanent link">&para;</a></h3>
 <p>Watermark CAS conflict. Severity: error. Status: reserved. Since: 0.3.</p>
 <p>Reserved: not emitted yet.</p>
+<h3 id="plm204">PLM204<a class="headerlink" href="#plm204" title="Permanent link">&para;</a></h3>
+<p>Input read failed. Severity: error. Status: active. Since: 0.2.</p>
+<p>An input of a model could not be read from its source or from the catalog.</p>
 <h3 id="plq301">PLQ301<a class="headerlink" href="#plq301" title="Permanent link">&para;</a></h3>
 <p>Expectation failed. Severity: error. Status: reserved. Since: 0.3.</p>
 <p>Reserved: not emitted yet.</p>
 <h3 id="plx101">PLX101<a class="headerlink" href="#plx101" title="Permanent link">&para;</a></h3>
-<p>Model raised. Severity: error. Status: reserved. Since: 0.3.</p>
-<p>Reserved: not emitted yet.</p>
+<p>Model raised. Severity: error. Status: active. Since: 0.2.</p>
+<p>A model's body raised, or returned a value its engine cannot use as a relation.</p>
 <h3 id="plx102">PLX102<a class="headerlink" href="#plx102" title="Permanent link">&para;</a></h3>
 <p>Timeout. Severity: error. Status: reserved. Since: 0.3.</p>
 <p>Reserved: not emitted yet.</p>
