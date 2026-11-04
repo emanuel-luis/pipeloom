@@ -771,6 +771,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plg306" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG306
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1302,6 +1313,28 @@
     <span class="md-ellipsis">
       
         PLX104
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx105" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX105
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx106" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX106
       
     </span>
   </a>
@@ -1797,6 +1830,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plg306" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG306
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2335,6 +2379,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#plx105" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX105
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx106" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX106
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#plx107" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2494,6 +2560,9 @@
 <h3 id="plg305">PLG305<a class="headerlink" href="#plg305" title="Permanent link">&para;</a></h3>
 <p>Malformed selector. Severity: error. Status: active. Since: 0.1.</p>
 <p>A selector cannot be parsed, for example an empty atom or a depth of 0. Exit code 2.</p>
+<h3 id="plg306">PLG306<a class="headerlink" href="#plg306" title="Permanent link">&para;</a></h3>
+<p>Unknown unit. Severity: error. Status: active. Since: 0.2.</p>
+<p>A unit: selector names a unit that the project does not have. Ephemeral models are not units.</p>
 <h2 id="l4-plan-semantics">L4 plan semantics<a class="headerlink" href="#l4-plan-semantics" title="Permanent link">&para;</a></h2>
 <h3 id="plp401">PLP401<a class="headerlink" href="#plp401" title="Permanent link">&para;</a></h3>
 <p>merge or scd2 without unique_key. Severity: error. Status: active. Since: 0.1.</p>
@@ -2610,14 +2679,20 @@
 <p>Timeout. Severity: error. Status: reserved. Since: 0.3.</p>
 <p>Reserved: not emitted yet.</p>
 <h3 id="plx103">PLX103<a class="headerlink" href="#plx103" title="Permanent link">&para;</a></h3>
-<p>Plan hash mismatch. Severity: error. Status: reserved. Since: 0.3.</p>
-<p>Reserved: not emitted yet.</p>
+<p>Plan hash mismatch. Severity: error. Status: active. Since: 0.2.</p>
+<p>The plan hash of the manifest or of the compiled project differs from --expect-plan-hash.</p>
 <h3 id="plx104">PLX104<a class="headerlink" href="#plx104" title="Permanent link">&para;</a></h3>
 <p>Cancelled. Severity: error. Status: reserved. Since: 0.3.</p>
 <p>Reserved: not emitted yet.</p>
+<h3 id="plx105">PLX105<a class="headerlink" href="#plx105" title="Permanent link">&para;</a></h3>
+<p>Run lock held. Severity: error. Status: active. Since: 0.2.</p>
+<p>Another run holds the lock of this project and target. The message names the holder, its run and when its lease expires.</p>
+<h3 id="plx106">PLX106<a class="headerlink" href="#plx106" title="Permanent link">&para;</a></h3>
+<p>Unit process exited without a result. Severity: error. Status: active. Since: 0.2.</p>
+<p>A unit started under boundary task exited without writing its attempt file. The excerpt holds the last lines of its log.</p>
 <h3 id="plx107">PLX107<a class="headerlink" href="#plx107" title="Permanent link">&para;</a></h3>
-<p>Manifest invalid. Severity: error. Status: reserved. Since: 0.2.</p>
-<p>Reserved: not emitted yet.</p>
+<p>Manifest invalid. Severity: error. Status: active. Since: 0.2.</p>
+<p>The manifest cannot be read, has another schema, was edited after it was written, or belongs to another project or target.</p>
 <h2 id="renderers">Renderers<a class="headerlink" href="#renderers" title="Permanent link">&para;</a></h2>
 <h3 id="pla001">PLA001<a class="headerlink" href="#pla001" title="Permanent link">&para;</a></h3>
 <p>Unsupported execution mode. Severity: error. Status: reserved. Since: 0.4.</p>

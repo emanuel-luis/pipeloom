@@ -462,6 +462,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pipeloom-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pipeloom-schema" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -731,6 +742,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pipeloom-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pipeloom-schema" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -911,6 +933,46 @@
                                   text or one JSON object per line.  [default:
                                   text]
   --help                          Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-run">pipeloom run<a class="headerlink" href="#pipeloom-run" title="Permanent link">&para;</a></h4>
+<p>Run the selected models. Exit codes: 0 ok, 1 a unit or a check failed, 2 bad usage, 130 stopped.</p>
+<p><code>-s unit:NAME</code> runs one unit without a lock or run results; the process executor uses it.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom run [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY    Directory that holds pipeloom.yml.  [default: .]
+  --vars TEXT                Variables as a YAML or JSON mapping; they
+                             override the vars block.
+  --target TEXT              Target to bind; default_target or the only target
+                             when omitted.
+  --plugin MODULE:ATTR       A PluginSpec to load besides the installed
+                             plugins. Repeatable.
+  -s, --select SELECTOR      Models to include: name, tag:x, path:dir,
+                             materialized:x, +model, model+, N+model, model+N.
+                             Space unions, comma intersects. Repeatable, all
+                             are unioned.
+  --exclude SELECTOR         Remove the models this selector matches from the
+                             selection. Repeatable.
+  --log-format [text|json]   Diagnostics and events on stderr: readable text
+                             or one JSON object per line.  [default: text]
+  --manifest FILE            Run the plan of this manifest instead of
+                             compiling the project.
+  --expect-plan-hash HEX     Stop with PLX103 unless the plan hash is this
+                             sha256.
+  --run-id TEXT              Name of the run. Reusing it continues that run.
+                             Default: a timestamp and a suffix.
+  --full-refresh BOOLEAN     Rebuild append tables from scratch. Takes an
+                             optional true or false.  [default: False]
+  --fail-fast                After the first failure, start no more units.
+  --no-lock                  Do not take the run lock.
+  --workers INTEGER RANGE    Units to run at once. Default: the target's
+                             setting, else min(4, CPUs).  [x&gt;=1]
+  --boundary [process|task]  process runs units on threads here; task runs
+                             each in its own process. Default: the target's
+                             boundary.
+  --warn-error               Exit 1 on warnings too.
+  --help                     Show this message and exit.
 </code></pre>
 <h4 id="pipeloom-schema">pipeloom schema<a class="headerlink" href="#pipeloom-schema" title="Permanent link">&para;</a></h4>
 <p>JSON Schemas for the YAML files.</p>
