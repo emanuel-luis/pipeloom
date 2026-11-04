@@ -13,6 +13,7 @@ from pipeloom.artifacts.io import write_json_atomic
 from pipeloom.artifacts.layout import RunPaths
 from pipeloom.artifacts.results import result_row, schema_hash
 from pipeloom.diagnostics import JsonValue, Location
+from pipeloom.engine import portable
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
 from pipeloom.engine.types import ReadSpec, Relation, TargetRef, WriteConfig, WriteResult
 from pipeloom.events.bus import EventBus
@@ -77,20 +78,6 @@ def _target_ref(dotted: str) -> TargetRef:
 
 async def _await(awaitable: Awaitable[Any]) -> Any:
     return await awaitable
-
-
-# The seam for frame_api: a later PR converts to and from Narwhals frames here. L5 (PLC508)
-# already keeps `narwhals` away from engines that are not portable.
-def _to_frame_api(rel: Relation, api: str) -> Any:
-    if api == "native":
-        return rel.native
-    raise NotImplementedError(f"frame_api '{api}' is not wired yet")
-
-
-def _from_frame_api(obj: Any, api: str) -> Any:
-    if api == "native":
-        return obj
-    raise NotImplementedError(f"frame_api '{api}' is not wired yet")
 
 
 class ModelRunner:
@@ -310,7 +297,7 @@ class ModelRunner:
         except Exception as exc:  # noqa: BLE001 - the body is user code
             self._fail("PLX101", "body", exc, failed)
         try:
-            return self._session.relation(_from_frame_api(out, node.config.frame_api))
+            return self._session.relation(portable.from_frame_api(out))
         except TypeError as exc:
             self._fail(
                 "PLX101",
@@ -330,7 +317,7 @@ class ModelRunner:
     ) -> Any:
         fn = self._loader.load(body.callable)
         api = node.config.frame_api
-        out = fn(ctx, **{a: _to_frame_api(r, api) for a, r in inputs.items()})
+        out = fn(ctx, **{a: portable.to_frame_api(r.native, api) for a, r in inputs.items()})
         return asyncio.run(_await(out)) if inspect.isawaitable(out) else out
 
     def _context(

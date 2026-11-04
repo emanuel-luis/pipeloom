@@ -16,6 +16,12 @@ resolution-markers = [
     "python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
+[manifest]
+members = [
+    "pipeloom",
+    "pipeloom-polars",
+]
+
 [[package]]
 name = "annotated-types"
 version = "0.8.0"
@@ -1584,6 +1590,11 @@ dependencies = [
     { name = "rich" },
 ]
 
+[package.optional-dependencies]
+polars = [
+    { name = "pipeloom-polars" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "hypothesis" },
@@ -1611,10 +1622,12 @@ docs = [
 requires-dist = [
     { name = "click", specifier = ">=8.2" },
     { name = "narwhals", specifier = ">=2.0" },
+    { name = "pipeloom-polars", marker = "extra == 'polars'", editable = "plugins/pipeloom-polars" },
     { name = "pydantic", specifier = ">=2.12" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "rich", specifier = ">=13.7" },
 ]
+provides-extras = ["polars"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1637,6 +1650,21 @@ docs = [
     { name = "mkdocs-click" },
     { name = "mkdocs-material" },
     { name = "mkdocstrings", extras = ["python"] },
+]
+
+[[package]]
+name = "pipeloom-polars"
+version = "0.1.0"
+source = { editable = "plugins/pipeloom-polars" }
+dependencies = [
+    { name = "pipeloom" },
+    { name = "polars" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pipeloom", editable = "." },
+    { name = "polars", specifier = ">=1.30,<3" },
 ]
 
 [[package]]
