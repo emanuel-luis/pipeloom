@@ -29,8 +29,11 @@ unit: "Unit" {
   running -> failed: "permanent error or\nretries used"
   running -> timed_out: "timeout"
   running -> cancelled: "run cancelled"
-  pending -> skipped: "an upstream failed,\ntimed_out or skipped"
+  pending -> skipped: "reason upstream_failed:\nan upstream failed,\ntimed_out or skipped"
+  queued -> skipped: "reason fail_fast"
+  pending -> skipped: "reason fail_fast"
   pending -> cancelled: "run cancelled"
+  queued -> cancelled: "run cancelled"
 }
 
 run: "Run" {

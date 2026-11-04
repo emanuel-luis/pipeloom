@@ -44,11 +44,11 @@ def test_active_codes_and_others_reserved() -> None:
         | {"PLE401", "PLU001", "PLU002", "PLU003"}
         | {f"PLP40{n}" for n in range(1, 10)}
         | {"PLC501", "PLC502", "PLC503", "PLC504", "PLC505", "PLC506", "PLC507", "PLC508"}
-        | {"PLK601", "PLK602", "PLK604"}
+        | {"PLK601", "PLK602", "PLK603", "PLK604", "PLK605"}
         | {"PLX101", "PLM201", "PLM204", "PLC509", "PLP409"}
         | {"PLX103", "PLX105", "PLX106", "PLX107", "PLM206"}
     )
-    assert info("PLK603").status == "reserved"
+    assert info("PLF701").status == "reserved"
 
 
 def test_unknown_code_raises() -> None:

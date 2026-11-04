@@ -1,0 +1,2 @@
+warning PLK603 models/m.yml:5:10 SQL of model 'a' reads 'customers', which is not an input alias
+      hint: declare it under inputs, or ignore this warning for an external table

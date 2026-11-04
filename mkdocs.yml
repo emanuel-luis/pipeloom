@@ -22,12 +22,15 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Quickstart: quickstart.md
+  - Guide:
+      - Running a pipeline: guide/running.md
   - Plugins:
       - Polars: plugins/polars.md
       - pandas: plugins/pandas.md
   - Reference:
       - Command line: reference/cli.md
       - JSON Schema: reference/schema.md
+      - Run artifacts: reference/artifacts.md
       - Error codes: reference/errors.md
   - Architecture: architecture.md
   - Decisions: adr/README.md
