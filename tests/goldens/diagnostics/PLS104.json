@@ -24,5 +24,44 @@
       "json_pointer": "/targets/dev/catalog/token"
     },
     "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'password'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 6,
+      "col": 53,
+      "json_pointer": "/targets/dev/catalog/password"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'api_key'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 6,
+      "col": 70,
+      "json_pointer": "/targets/dev/catalog/api_key"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'access_key'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 7,
+      "col": 15,
+      "json_pointer": "/targets/dev/catalog/access_key"
+    },
+    "context": {}
   }
 ]

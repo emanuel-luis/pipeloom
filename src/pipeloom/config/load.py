@@ -23,7 +23,8 @@ M = TypeVar("M", bound=BaseModel)
 _SECRET_KEY = re.compile(
     r"password|passwd|secret|token|api_?key|private_?key|credential|access_?key", re.IGNORECASE
 )
-_REFERENCE = re.compile(r"^\$\{(?:secret|env):[^}]*\}$")
+# In a secret-like field only ${secret:...} and ${env:NAME} (no default, or an empty one) pass.
+_REFERENCE = re.compile(r"^\$\{(?:secret:[^}]+|env:[A-Za-z_][A-Za-z0-9_]*(?::-)?)\}$")
 
 
 @dataclass(frozen=True)
@@ -73,10 +74,12 @@ def _in_vars(pointer: str) -> bool:
 
 
 def _scan_secrets(doc: LoadedDocument, report: Report) -> None:
-    """PLS104: a literal string under a secret-like key."""
+    """PLS104: a literal scalar under a secret-like key."""
 
     def literal(value: Any) -> bool:
-        return isinstance(value, str) and value != "" and not _REFERENCE.match(value)
+        if value is None or value == "":
+            return False
+        return not (isinstance(value, str) and _REFERENCE.match(value))
 
     def visit(node: Any, pointer: str, key: str | None) -> None:
         if isinstance(node, dict):

@@ -18,7 +18,7 @@ from typing import Any, Literal
 from pipeloom.config.yaml import LoadedDocument
 from pipeloom.diagnostics import Report, suggest
 
-_TOKEN = re.compile(r"\$\$\{|\$\{([^}]*)\}")
+_TOKEN = re.compile(r"\$\$\{|\$\{([^}]*)\}|\$\{(?:env|var|secret):[^}]*\Z")
 _ENV = re.compile(r"^env:([A-Za-z_][A-Za-z0-9_]*)(?::-(.*))?$", re.DOTALL)
 _VAR = re.compile(r"^var:([A-Za-z_][A-Za-z0-9_]*)$")
 _WHOLE_VAR = re.compile(r"^\$\{var:([A-Za-z_][A-Za-z0-9_]*)\}$")
@@ -67,8 +67,10 @@ class _Interpolator:
             return self.vars[whole.group(1)]
 
         def repl(m: re.Match[str]) -> str:
-            if m.group(1) is None:
+            if m.group(0) == "$${":
                 return "${"
+            if m.group(1) is None:  # an unclosed ${env:, ${var: or ${secret:
+                return self.malformed(m.group(0), pointer)
             return self.expression(m, pointer)
 
         return _TOKEN.sub(repl, value)

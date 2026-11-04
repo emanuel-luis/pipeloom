@@ -123,3 +123,38 @@ def test_invalid_bytes_and_utf16() -> None:
 def test_control_character_is_reader_error() -> None:
     _, report = load("a: \x01\n")
     assert codes(report) == ["PLY003"]
+
+
+def test_chained_merge_keys() -> None:
+    text = "base: &b {x: 1}\nmid: &m {<<: *b, y: 2}\nfin: {<<: *m, z: 3}\n"
+    doc, report = load(text)
+    assert doc is not None and not report.has_errors
+    assert doc.data["fin"] == {"x": 1, "y": 2, "z": 3}  # type: ignore[attr-defined]
+
+
+def test_chained_merge_precedence_and_list_sources() -> None:
+    text = (
+        "a: &a {k: 1, only_a: 1}\n"
+        "b: &b {<<: *a, k: 2}\n"
+        "c: &c {k: 3, only_c: 3}\n"
+        "fin:\n  <<: [*b, *c]\n  own: 0\n"
+    )
+    doc, report = load(text)
+    assert doc is not None and not report.has_errors
+    # b's own k beats its merged k; b (earlier) beats c; explicit keys win
+    assert doc.data["fin"] == {  # type: ignore[attr-defined]
+        "k": 2,
+        "only_a": 1,
+        "only_c": 3,
+        "own": 0,
+    }
+
+
+def test_merge_cycle_and_merge_bomb() -> None:
+    _, report = load("a: &a\n  <<: *a\n")
+    assert codes(report) == ["PLY001"]
+    lines = ["l0: &l0 {a: 1}"]
+    for i in range(1, 30):
+        lines.append(f"l{i}: &l{i} {{<<: [*l{i - 1}, *l{i - 1}], k{i}: 1}}")
+    _, report = load("\n".join(lines) + "\n")
+    assert codes(report) == ["PLY001"]

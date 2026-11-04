@@ -5,4 +5,4 @@ files:
     targets:
       dev:
         engine: {kind: memory}
-        catalog: {kind: filesystem, root: '${env:1bad}'}
+        catalog: {kind: filesystem, root: '${env:1bad}', other: '${var:unclosed'}

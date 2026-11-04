@@ -24,5 +24,18 @@
       "json_pointer": "/targets/dev/catalog/root"
     },
     "context": {}
+  },
+  {
+    "code": "PLS107",
+    "severity": "error",
+    "message": "malformed interpolation '${var:unclosed'",
+    "hint": "use ${env:NAME}, ${env:NAME:-default} or ${var:name}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 6,
+      "col": 61,
+      "json_pointer": "/targets/dev/catalog/other"
+    },
+    "context": {}
   }
 ]

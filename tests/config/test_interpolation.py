@@ -75,3 +75,14 @@ def test_skip_leaves_value() -> None:
 def test_keys_and_non_strings_untouched() -> None:
     data, _, _ = run("'${env:A}': 1\nl: [1, true, null]\n", {"A": "v"})
     assert data == {"${env:A}": 1, "l": [1, True, None]}
+
+
+def test_unclosed_reference_is_malformed() -> None:
+    for text in ("${env:X", "${var:x", "${secret:kv/a", "a ${env:A} b ${var:v"):
+        _, _, report = run(f"a: '{text}'\n", {"A": "1"}, {"v": 1})
+        assert [d.code for d in report.sorted()] == ["PLS107"], text
+
+
+def test_escaped_unclosed_is_literal() -> None:
+    data, _, report = run("a: '$${env:X'\n")
+    assert data == {"a": "${env:X"} and not report.has_errors

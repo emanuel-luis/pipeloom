@@ -2,3 +2,9 @@ warning PLR206 pipeloom.yml:1:1 model_paths entry 'models' does not exist
       hint: create the directory or remove the entry
 error PLS104 pipeloom.yml:6:35 literal value in secret-like field 'token'
       hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:6:53 literal value in secret-like field 'password'
+      hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:6:70 literal value in secret-like field 'api_key'
+      hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:7:15 literal value in secret-like field 'access_key'
+      hint: use ${secret:provider/path} or ${env:NAME}

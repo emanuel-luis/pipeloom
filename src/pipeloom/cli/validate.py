@@ -18,7 +18,7 @@ from pipeloom.cli._output import print_diagnostics
 @click.option("--warn-error", is_flag=True, help="Exit 1 on warnings too.")
 def validate(project_dir: Path, vars_: dict[str, Any], warn_error: bool) -> None:
     """Check the project: YAML, schema and secrets (layers L0 and L1)."""
-    opts = ProjectOptions(project_dir=project_dir, vars=vars_, env=dict(os.environ))
+    opts = ProjectOptions(project_dir=project_dir, vars=vars_, env=os.environ)
     outcome = Project(opts).load()
     errors, warnings = print_diagnostics(outcome.diagnostics)
     if errors or outcome.value is None:

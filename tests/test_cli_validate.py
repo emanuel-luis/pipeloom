@@ -97,3 +97,17 @@ def test_help_lists_options() -> None:
     out = run(["validate", "--help"]).stdout
     for flag in ("--project-dir", "--vars", "--warn-error"):
         assert flag in out
+
+
+def test_validate_passes_the_live_environment_mapping(monkeypatch: pytest.MonkeyPatch) -> None:
+    import os
+
+    seen: list[Any] = []
+
+    def spy(self: Project) -> Any:
+        seen.append(self.options.env)
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(Project, "load", spy)
+    run(["validate", "--project-dir", str(MINIMAL)])
+    assert seen and seen[0] is os.environ

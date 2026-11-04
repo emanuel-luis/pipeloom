@@ -104,16 +104,10 @@ class _Builder:
         self.key_marks: dict[str, Mark] = {}
         self.count = 0
         self.active: set[int] = set()
+        self.merging: set[int] = set()
 
     def build(self, node: Node, pointer: str) -> Any:
-        self.count += 1
-        if self.count > MAX_NODES:
-            raise _Problem(
-                "PLY001",
-                f"alias expansion exceeds {MAX_NODES} nodes",
-                node,
-                "remove nested aliases, or split the data",
-            )
+        self.tick(node)
         self.value_marks[pointer] = _mark_of(node)
         if isinstance(node, ScalarNode):
             return self.scalar(node)
@@ -164,35 +158,54 @@ class _Builder:
         return key
 
     def mapping(self, node: MappingNode, pointer: str) -> dict[str, Any]:
-        explicit: dict[str, tuple[Node, Node]] = {}
-        merged: list[tuple[str, Node, Node]] = []
-        for knode, vnode in node.value:
-            if isinstance(knode, ScalarNode) and knode.tag == _TAG + "merge":
-                for source in self._merge_sources(vnode):
-                    self.count += 1
-                    for k2, v2 in source.value:
-                        merged.append((self.key_of(k2), k2, v2))
-                continue
-            key = self.key_of(knode)
-            if key in explicit:
-                first = explicit[key][0]
-                raise _Problem(
-                    "PLY002",
-                    f"duplicate key '{key}'",
-                    knode,
-                    f"first defined at line {first.start_mark.line + 1}",
-                )
-            explicit[key] = (knode, vnode)
-        entries: dict[str, tuple[Node, Node]] = {}
-        for key, k2, v2 in merged:
-            entries.setdefault(key, (k2, v2))  # earlier merge source wins
-        entries.update(explicit)  # explicit keys win over merged ones
+        entries = self.entries(node, check_duplicates=True)
         result: dict[str, Any] = {}
         for key, (knode, vnode) in entries.items():
             child = f"{pointer}/{_escape(key)}"
             self.key_marks[child] = _mark_of(knode)
             result[key] = self.build(vnode, child)
         return result
+
+    def entries(self, node: MappingNode, *, check_duplicates: bool) -> dict[str, tuple[Node, Node]]:
+        """Flatten a mapping and its merge sources (recursively) into key -> (key, value) nodes.
+
+        Explicit keys win over merged ones; an earlier merge source wins over a later one.
+        """
+        if id(node) in self.merging:
+            raise _Problem("PLY001", "recursive alias", node)
+        self.merging.add(id(node))
+        try:
+            explicit: dict[str, tuple[Node, Node]] = {}
+            merged: dict[str, tuple[Node, Node]] = {}
+            for knode, vnode in node.value:
+                self.tick(knode)
+                if isinstance(knode, ScalarNode) and knode.tag == _TAG + "merge":
+                    for source in self._merge_sources(vnode):
+                        for key, pair in self.entries(source, check_duplicates=False).items():
+                            merged.setdefault(key, pair)
+                    continue
+                key = self.key_of(knode)
+                if check_duplicates and key in explicit:
+                    raise _Problem(
+                        "PLY002",
+                        f"duplicate key '{key}'",
+                        knode,
+                        f"first defined at line {explicit[key][0].start_mark.line + 1}",
+                    )
+                explicit[key] = (knode, vnode)
+            return {**merged, **explicit}
+        finally:
+            self.merging.discard(id(node))
+
+    def tick(self, node: Node) -> None:
+        self.count += 1
+        if self.count > MAX_NODES:
+            raise _Problem(
+                "PLY001",
+                f"alias expansion exceeds {MAX_NODES} nodes",
+                node,
+                "remove nested aliases, or split the data",
+            )
 
     def _merge_sources(self, vnode: Node) -> list[MappingNode]:
         if isinstance(vnode, MappingNode):

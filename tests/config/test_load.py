@@ -146,3 +146,19 @@ def test_utf8_file_names_and_content(project_factory: Factory, rel: str) -> None
     outcome = load(project_factory(files))
     assert outcome.value is not None
     assert outcome.value.model_files[0].config.models[0].description == "café"
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["123456", "3.14", "true", "hunter2", "'${env:K:-hunter2}'", "'${var:v}'", "'x${env:K}'"],
+)
+def test_secret_like_literals_are_flagged(project_factory: Factory, value: str) -> None:
+    text = BASE + f"    catalog: {{kind: u, password: {value}}}\n"
+    outcome = load(project_factory({"pipeloom.yml": text, "models/.keep": ""}))
+    assert codes(outcome) == ["PLS104"]
+
+
+@pytest.mark.parametrize("value", ["'${env:K}'", "'${env:K:-}'", "'${secret:kv/db}'", "~", "''"])
+def test_secret_like_references_pass(project_factory: Factory, value: str) -> None:
+    text = BASE + f"    catalog: {{kind: u, password: {value}}}\n"
+    assert codes(load(project_factory({"pipeloom.yml": text, "models/.keep": ""}))) == []
