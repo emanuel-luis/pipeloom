@@ -43,6 +43,12 @@ class Redactor:
             return {k: self._walk(v) for k, v in node.items()}
         return node
 
+    def scrub(self, node: Any) -> Any:
+        """A copy of any JSON-like value with the registered values masked in its strings.
+
+        For text that is written outside the event bus: attempt files, run results, state."""
+        return self._walk(node) if self._values else node
+
     def redact(self, event: Event) -> Event:
         if not self._values:
             return event

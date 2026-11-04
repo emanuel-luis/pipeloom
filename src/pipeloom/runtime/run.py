@@ -455,6 +455,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                         memo=memo,
                         executor_name=executor_name,
                         policies=policies,
+                        redactor=project.redactor,
                     )
                     executor = ThreadExecutor(
                         runner.run_unit,
@@ -614,7 +615,7 @@ def _finish(
                 err = ErrorInfo(
                     code="PLX101",
                     category="permanent",
-                    message=f"internal error: {type(exc).__name__}: {exc}",
+                    message=project.redactor.mask(f"internal error: {type(exc).__name__}: {exc}"),
                     hint="this is probably a pipeloom bug; report it",
                     exception_type=type(exc).__name__,
                 )
