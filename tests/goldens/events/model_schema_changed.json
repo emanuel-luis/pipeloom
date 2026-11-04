@@ -1,0 +1,13 @@
+{
+  "relation": "main.a",
+  "policy": "append_new_columns",
+  "action": "applied",
+  "changes": [
+    {
+      "kind": "added",
+      "column": "extra",
+      "old": null,
+      "new": "string"
+    }
+  ]
+}

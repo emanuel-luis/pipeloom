@@ -413,6 +413,12 @@ _ACTIVE_02: Final = (
 # Active since 0.3.
 _ACTIVE_03: Final = (
     (
+        "PLM202",
+        E,
+        "Schema change rejected",
+        "The batch schema differs from the existing target and the model's on_schema_change policy does not allow it.",
+    ),
+    (
         "PLM206",
         E,
         "Write key invalid",
@@ -433,7 +439,6 @@ _RESERVED: Final = (
     ("PLC510", E, "Expectations on an engine without quality", "0.3"),
     ("PLX102", E, "Timeout", "0.3"),
     ("PLX104", E, "Cancelled", "0.3"),
-    ("PLM202", E, "Schema change rejected", "0.3"),
     ("PLM203", E, "Watermark CAS conflict", "0.3"),
     ("PLQ301", E, "Expectation failed", "0.3"),
     ("PLD001", E, "Task limit exceeded", "0.4"),

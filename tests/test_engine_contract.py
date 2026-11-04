@@ -50,6 +50,7 @@ def harness(tmp_path: Path) -> EngineHarness:
             ("f < 5.0", lambda r: None if reference.is_null(r["f"]) else r["f"] < 5.0),
         ),
         typed_nulls=False,
+        schema_on_read=True,
         update_condition="source.v > target.v",
         slow_relation=slow_relation,
     )

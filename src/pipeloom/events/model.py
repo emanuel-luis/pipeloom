@@ -277,6 +277,19 @@ class ModelWritten(EventPayload):
     duration_ms: int
 
 
+class ModelSchemaChanged(EventPayload):
+    TYPE = "model.schema_changed"
+
+    relation: str
+    policy: str
+    action: Literal["applied", "ignored", "rejected", "replaced"]
+    changes: list[dict[str, JsonValue]]
+    """The diff from the target to the batch: kind, column, old, new."""
+
+    def event_level(self) -> Level:
+        return Level.WARNING if self.action == "rejected" else Level.INFO
+
+
 class ModelLog(EventPayload):
     TYPE = "model.log"
 

@@ -434,7 +434,7 @@ The watermark is committed after the write. A crash between the two reprocesses 
 - `append_new_columns`: add new nullable columns.
 - `sync_all_columns`: add and drop columns, and widen types where the engine can.
 
-Every detected change emits `schema.changed` with a diff.
+Every detected change emits `model.schema_changed` with a diff. The policy applies only to strategies that keep existing rows (append, merge, replace_partitions) on an existing target outside a full refresh; overwrite replaces the schema and reports the diff as `replaced`. See ADR-0026.
 
 Table properties, `partition_by`, clustering and grants are applied by every strategy or rejected (PLP405). Maintenance (`optimize`, `vacuum`, clustering changes) runs only from `maintenance:` blocks with an explicit schedule (`every_n_runs`), never by default (L8).
 

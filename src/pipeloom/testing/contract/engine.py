@@ -40,6 +40,7 @@ from pipeloom.engine.types import (
 )
 from pipeloom.platform import Identity
 from pipeloom.runtime.context import RuntimeContext
+from pipeloom.runtime.schema_policy import SchemaRejected, resolve_columns
 from pipeloom.testing import reference
 from pipeloom.testing.clock import FakeClock
 
@@ -70,6 +71,9 @@ class EngineHarness:
     typed_nulls: bool = True
     """`align` gives a column it adds the declared type, not an untyped null. False only for
     engines that infer types from values (the memory engine)."""
+    schema_on_read: bool = False
+    """Old data files read through the table's current schema: a column added, dropped or widened
+    later still reads back. The schema-change matrix skips its writing cells without it."""
     slow_relation: Callable[[EngineSession, float], Relation] | None = None
     """Blocks up to the given seconds inside a unit scope and raises once `cancel` fires."""
 
@@ -127,6 +131,44 @@ QUALITY_ROWS = (
     {"id": 2, "f": -1.0, "s": "ab1", "ts": _T[1]},  # duplicate id
     {"id": None, "f": 3.0, "s": "abx", "ts": _T[0]},  # two null keys are not duplicates
 )
+
+
+MATRIX_SCHEMA = (Column("id", "int64"), Column("part", "string"), Column("v", "int64"))
+MATRIX_SEED = ({"id": 1, "part": "a", "v": 10}, {"id": 2, "part": "b", "v": 20})
+_ID_PART = (Column("id", "int64"), Column("part", "string"))
+MATRIX_BATCHES: dict[str, tuple[Schema, Rows]] = {
+    "added": (
+        (*MATRIX_SCHEMA, Column("extra", "string")),
+        (
+            {"id": 2, "part": "b", "v": 21, "extra": "x"},
+            {"id": 3, "part": "c", "v": 30, "extra": "y"},
+        ),
+    ),
+    "removed": (_ID_PART, ({"id": 2, "part": "b"}, {"id": 3, "part": "c"})),
+    "widened": (
+        (*_ID_PART, Column("v", "float64")),
+        ({"id": 2, "part": "b", "v": 21.0}, {"id": 3, "part": "c", "v": 30.0}),
+    ),
+    "incompatible": (
+        (*_ID_PART, Column("v", "string")),
+        ({"id": 2, "part": "b", "v": "21"}, {"id": 3, "part": "c", "v": "30"}),
+    ),
+}
+_BASE = [(c.name, c.dtype) for c in MATRIX_SCHEMA]
+_PLUS = [*_BASE, ("extra", "string")]
+POLICY_NAMES = ("fail", "ignore", "append_new_columns", "sync_all_columns")
+# Final columns per policy and scenario; None means the policy rejects the change (PLM202).
+MATRIX_COLUMNS: dict[str, dict[str, list[tuple[str, str]] | None]] = {
+    "fail": {"added": None, "removed": None, "widened": None, "incompatible": None},
+    "ignore": {"added": _BASE, "removed": _BASE, "widened": _BASE, "incompatible": _BASE},
+    "append_new_columns": {"added": _PLUS, "removed": _BASE, "widened": None, "incompatible": None},
+    "sync_all_columns": {
+        "added": _PLUS,
+        "removed": _BASE[:2],
+        "widened": [("id", "int64"), ("part", "string"), ("v", "float64")],
+        "incompatible": None,
+    },
+}
 
 
 def _norm(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
@@ -522,6 +564,63 @@ class EngineContract:
             want = reference.align_rows(rows, target)
             self.assert_schema(h, s.schema(out), target, want)
             assert _key(h.to_rows(out.native)) == _key(want)
+
+    # -- schema-change policy ---------------------------------------------------------------
+
+    @pytest.mark.parametrize("strategy", ["append", "merge", "replace_partitions"])
+    @pytest.mark.parametrize("policy", POLICY_NAMES)
+    @pytest.mark.parametrize("scenario", list(MATRIX_BATCHES))
+    def test_schema_policy_matrix(
+        self, h: EngineHarness, tmp_path: Path, strategy: str, policy: str, scenario: str
+    ) -> None:
+        """Seed a table, write a batch that differs from it, and check the final schema and rows
+        against the reference. `columns` of the write is what the core's policy decides."""
+        requires(h, "strategies", strategy)
+        batch_schema, batch_rows = MATRIX_BATCHES[scenario]
+        name = f"t_sp_{strategy}_{policy}_{scenario}"
+        cfg = WriteConfig(strategy, unique_key=("id",), partition_by=("part",))
+        with self.session(h, tmp_path) as s:
+            self.put(s, h, name, MATRIX_SEED, MATRIX_SCHEMA, WriteConfig("overwrite"), "seed")
+            target_schema = h.catalog.table_schema(_target(name))
+            batch = s.relation(h.make_native(batch_rows, batch_schema))
+            want_names = MATRIX_COLUMNS[policy][scenario]
+            if want_names is None:
+                with pytest.raises(SchemaRejected):
+                    resolve_columns(
+                        policy,
+                        target_schema,
+                        s.schema(batch),
+                        strategy=strategy,
+                        full_refresh=False,
+                    )
+                return
+            columns, diff, action = resolve_columns(
+                policy, target_schema, s.schema(batch), strategy=strategy, full_refresh=False
+            )
+            assert [(c.name, c.dtype) for c in columns] == want_names
+            ignored = policy == "ignore" or (
+                policy == "append_new_columns" and scenario == "removed"
+            )
+            assert not diff.empty and action == ("ignored" if ignored else "applied")
+            if not h.schema_on_read:
+                pytest.skip("engine does not read old files through the commit schema yet")
+            aligned = s.align(batch, columns)
+            write = replace(cfg, columns=columns)
+            h.catalog.ensure_namespace(_target(name).namespace)
+            s.materializer(strategy).materialize(aligned, _target(name), write, "r:policy")
+            got = self.table_rows(s, h, name)
+            rel = s.reader("table").read(ReadSpec("table", table=_target(name)))
+            got_schema = s.schema(rel)
+        old = reference.align_rows(MATRIX_SEED, columns)
+        new = reference.align_rows(batch_rows, columns)
+        if strategy == "append":
+            want = [*old, *new]
+        elif strategy == "merge":
+            want = reference.merge_rows(old, new, cfg).rows
+        else:
+            want = reference.replace_partitions_rows(old, new, ("part",))[0]
+        assert got == _key(_norm(want))
+        self.assert_schema(h, got_schema, columns, want)
 
     # -- filter_since and max_value ---------------------------------------------------------
 

@@ -36,6 +36,18 @@ def _plan_line(d: dict[str, Any]) -> str:
     )
 
 
+def _schema_line(d: dict[str, Any]) -> str:
+    changes = ", ".join(
+        f"+{c['column']} {c['new']}"
+        if c["kind"] == "added"
+        else f"-{c['column']}"
+        if c["kind"] == "removed"
+        else f"~{c['column']} {c['old']} -> {c['new']}"
+        for c in d["changes"]
+    )
+    return f"schema changed on {d['relation']} (policy {d['policy']}, {d['action']}): {changes}"
+
+
 _QUIET = frozenset(
     {"unit.queued", "unit.started", "model.input_read", "model.written", "run.cancel_requested"}
 )
@@ -111,6 +123,8 @@ class ConsoleSink:
             return "", None
         if event.type.startswith("run.") or event.type.startswith("unit."):
             return self._run_line(event, stamp, d), style
+        if event.type == "model.schema_changed":
+            return f"{stamp} {event.model or 'model'}: {_schema_line(d)}", style
         if event.type == "model.log":
             return f"{stamp} {event.model or 'model'}: {d['message']}", style
         if event.type == "artifact.written" and self._in_run:
