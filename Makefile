@@ -13,9 +13,10 @@ help: ## list the targets
 install: ## install every dependency group into the uv environment
 	uv sync --all-groups
 
-lint: ## ruff check and format check
+lint: ## ruff check, format check and import-linter contracts
 	uv run ruff check .
 	uv run ruff format --check .
+	uv run lint-imports
 
 format: ## apply ruff fixes and formatting
 	uv run ruff check --fix .
