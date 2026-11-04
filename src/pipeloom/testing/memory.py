@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 
 Rows = tuple[dict[str, Any], ...]
 Store = MutableMapping[str, Rows]
+Tokens = dict[tuple[str, str], WriteResult]
 
 CAPABILITIES = EngineCapabilities(
     formats=frozenset({"memory"}),
@@ -82,7 +83,7 @@ class _MemoryReader:
 
 
 class _MemoryMaterializer:
-    def __init__(self, strategy: str, store: Store, tokens: set[tuple[str, str]]) -> None:
+    def __init__(self, strategy: str, store: Store, tokens: Tokens) -> None:
         self.strategy = strategy
         self._store = store
         self._tokens = tokens
@@ -91,21 +92,23 @@ class _MemoryMaterializer:
         self, rel: Relation, target: TargetRef, cfg: WriteConfig, token: str
     ) -> WriteResult:
         key = target.relation_name
-        if (key, token) in self._tokens:
-            return WriteResult(skipped=True)
+        applied = self._tokens.get((key, token))
+        if applied is not None:
+            return applied
         new = _rows(rel)
         if self.strategy == "append":
             self._store[key] = (*self._store.get(key, ()), *new)
         else:
             self._store[key] = new
-        self._tokens.add((key, token))
-        return WriteResult(rows=len(new))
+        result = WriteResult(rows_inserted=len(new), rows_written=len(new))
+        self._tokens[(key, token)] = result
+        return result
 
 
 class MemorySession:
     native: Any
 
-    def __init__(self, store: Store, tokens: set[tuple[str, str]]) -> None:
+    def __init__(self, store: Store, tokens: Tokens) -> None:
         self._store = store
         self._tokens = tokens
         self.native = store
@@ -166,7 +169,7 @@ class MemoryEngine:
 
     def __init__(self, store: Store | None = None) -> None:
         self.store: Store = {} if store is None else store
-        self._tokens: set[tuple[str, str]] = set()
+        self._tokens: Tokens = {}
 
     @contextmanager
     def session(self, ctx: RuntimeContext) -> Iterator[EngineSession]:

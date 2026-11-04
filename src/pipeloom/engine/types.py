@@ -92,7 +92,9 @@ class WriteConfig:
 
 @dataclass(frozen=True)
 class WriteResult:
-    rows: int | None = None
-    bytes: int | None = None
-    skipped: bool = False
-    """The idempotency token was already applied, so nothing was written."""
+    rows_inserted: int | None = None
+    rows_updated: int | None = None
+    rows_deleted: int | None = None
+    rows_written: int | None = None
+    bytes_written: int | None = None
+    target_version: int | str | None = None

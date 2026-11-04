@@ -68,12 +68,12 @@ def test_materialize_append_and_overwrite(engine: MemoryEngine) -> None:
     with engine.session(CTX) as s:
         rel = s.reader("memory").read(ReadSpec("memory", location="raw"))
         cfg = WriteConfig("append")
-        assert s.materializer("append").materialize(rel, T, cfg, "t1").rows == 3
+        assert s.materializer("append").materialize(rel, T, cfg, "t1").rows_written == 3
         s.materializer("append").materialize(rel, T, cfg, "t2")
         assert len(engine.store["main.out"]) == 6
         one = s.sql("select * from x where id = 1", {"x": rel})
         res = s.materializer("overwrite").materialize(one, T, WriteConfig("overwrite"), "t3")
-        assert res.rows == 1 and engine.store["main.out"] == one.native
+        assert res.rows_written == 1 and engine.store["main.out"] == one.native
         with pytest.raises(ValueError, match="merge"):
             s.materializer("merge")
 
@@ -87,9 +87,9 @@ def test_materialize_is_idempotent_per_token(engine: MemoryEngine) -> None:
     with engine.session(CTX) as s:  # tokens outlive a session
         again = s.materializer("append").materialize(rel, T, cfg, "same")
         other = s.materializer("append").materialize(rel, other_target, cfg, "same")
-    assert not first.skipped and again.skipped and again.rows is None
+    assert again == first and first.rows_written == 3  # a replayed token returns the first result
     assert len(engine.store["main.out"]) == 3
-    assert not other.skipped  # the token is per target
+    assert len(engine.store["main.o2"]) == 3 and other.rows_written == 3  # per target
 
 
 def test_sql_over_inputs(engine: MemoryEngine) -> None:
