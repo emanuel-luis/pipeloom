@@ -38,7 +38,7 @@ def validate(
         project_dir=project_dir, target=target, vars=vars_, plugins=plugins, env=os.environ
     )
     inv = Invocation("validate", log_format)
-    project = Project(opts)
+    project = Project(opts, invocation_id=inv.invocation_id)
     outcome = project.validate()
     bound = project.bind().value
     errors = sum(1 for d in outcome.diagnostics if d.severity is Severity.ERROR)

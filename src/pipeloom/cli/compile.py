@@ -83,7 +83,7 @@ def compile_(
         env=os.environ,
     )
     inv = Invocation("compile", log_format)
-    project = Project(opts)
+    project = Project(opts, invocation_id=inv.invocation_id)
     outcome = project.compile(Selection(select, exclude))
     bound = project.bind().value
     diags = outcome.diagnostics

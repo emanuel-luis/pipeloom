@@ -153,3 +153,12 @@ def test_plugin_and_vars_flags(tmp_path: Path) -> None:
     )
     assert result.exit_code == 0
     assert manifest(out)["metadata"]["vars"] == {"region": "BR"}
+
+
+def test_manifest_and_events_share_the_invocation_id(tmp_path: Path) -> None:
+    out = tmp_path / "m.json"
+    result = compile_([*SHOP, "--out", str(out), "--log-format", "json"])
+    assert result.exit_code == 0
+    ids = {json.loads(line)["invocation_id"] for line in result.stderr.splitlines()}
+    assert len(ids) == 1
+    assert manifest(out)["metadata"]["invocation_id"] == ids.pop()
