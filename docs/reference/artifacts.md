@@ -26,7 +26,7 @@ Each unit writes `units/<unit_id>/attempt-<n>.json` when the attempt ends, whate
 The file holds one results row, the same object that appears in `run_results.json`. The runner
 writes it, so it exists for a unit that ran in a child process too. A reused run id keeps counting:
 the next attempt is one above the highest file. A unit that started under `boundary: task` and
-left no attempt file is reported as failed with PLX101, with the end of its log as the excerpt.
+left no attempt file is reported as failed with PLX106, with the end of its log as the excerpt.
 
 ## run_results.json
 

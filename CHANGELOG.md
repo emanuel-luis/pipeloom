@@ -37,7 +37,7 @@ pipeloom 0.2 runs plans: a scheduler, thread and process executors, polars and p
 - PLC503: `boundary: task` with a state store that is not shared.
 - `pipeloom.testing.contract.state.StateStoreContract`, a pytest suite state store plugins subclass.
 - Import contracts (layers, `pipeloom.testing` isolation, no dataframe or SQL parsing library in the core) checked by `uv run lint-imports` in the `lint` CI job and `make lint`.
-- Unit state machine with a checked transition table, and a ready-queue scheduler with skip-downstream, `--fail-fast` and stop requests (not wired to the CLI yet).
+- Unit state machine with a checked transition table, and a ready-queue scheduler with skip-downstream, `--fail-fast` and stop requests.
 - Thread executor and a simulated executor for tests; `unit.queued`, `unit.skipped` and `unit.cancelled` event payloads.
 - ADR-0020, the execution model for 0.2.
 - Model runner: `pipeloom.runtime.runner.ModelRunner` runs one unit (reads inputs, runs a SQL or Python body, writes a table or creates a view, records the attempt). `ModelContext`, `CallableLoader` (puts `python_paths` on `sys.path` for the run only), `EphemeralMemo` (an ephemeral model shared by several units is computed once) and `ErrorInfo` with a trace excerpt and a transient or permanent category.
