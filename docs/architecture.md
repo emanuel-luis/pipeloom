@@ -405,11 +405,11 @@ incremental: {input: orders, column: updated_at, lookback: 2d, watermark_source:
 
 **Algorithm per unit:**
 1. `is_incremental` is true when the materialization is `incremental`, the target exists, the run is not a full refresh, and a watermark exists.
-2. Read `w = state.get_watermark(project, target, model)`. With `watermark_source: target`, read `max(column)` of the target instead.
-3. The input relation becomes `filter_since(input, column, w - lookback)`. The body sees `ctx.is_incremental`, `ctx.watermark` and `ctx.lower_bound`.
-4. Write, then `cas_watermark(expected=w, new=max_value(filtered input))`. A CAS failure is PLM203.
+2. Read `w = state.get_watermark(project, target, model)`. With no stored watermark and an existing target, seed `w` from `max(column)` of the target and record a warning. With `watermark_source: target`, read `max(column)` of the target instead and never write the state.
+3. The input relation becomes `filter_since(input, column, w, inclusive=False)`, or with a lookback `filter_since(input, column, w - lookback)` on timestamps and dates (PLM205 on other types). The body sees `ctx.is_incremental`, `ctx.watermark` and `ctx.lower_bound`.
+4. Write, storing the intended watermark `max(w, max_value(filtered input))` in the write's commit metadata, then `cas_watermark(expected=w, new=...)`. A CAS failure is PLM203.
 
-The watermark is committed after the write. A crash between the two reprocesses at most the lookback window plus the batch. That is safe for merge, overwrite and replace_partitions, and for append only when the engine has idempotent writes (otherwise PLC505 forbids retries).
+The watermark is committed after the write, and a retry with the same token replays the stored value instead of reading the input again (ADR-0027). A crash between the two commits exactly the original batch's watermark on retry. Append is safe only when the engine has idempotent writes (otherwise PLC505 forbids retries).
 
 **State stores:**
 - `sqlite`: core, local, single host.

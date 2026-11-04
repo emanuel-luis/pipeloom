@@ -10,6 +10,12 @@ from pipeloom.config.models import ResolvedModelConfig
 from pipeloom.engine.types import TargetRef
 
 
+def default_strategy(materialized: str) -> str:
+    """The write strategy a persisted model uses when it sets none."""
+    # Mirrors validate.semantics.effective_strategy: validate sits below plan in the layers.
+    return "append" if materialized == "incremental" else "overwrite"
+
+
 class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid", protected_namespaces=())
 

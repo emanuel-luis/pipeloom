@@ -30,18 +30,21 @@ from pipeloom.events.model import (
     ModelLog,
     ModelSchemaChanged,
     ModelWritten,
+    StateWatermarkCommitted,
     UnitFailed,
     UnitStarted,
     UnitSucceeded,
 )
-from pipeloom.plan.model import Plan, PlanNode, PlanSource, PythonBody, SqlBody
+from pipeloom.plan.model import Plan, PlanNode, PlanSource, PythonBody, SqlBody, default_strategy
+from pipeloom.runtime import incremental
 from pipeloom.runtime.context import ModelContext, RuntimeContext
 from pipeloom.runtime.errors import ErrorInfo, Phase, build_error, full_traceback
 from pipeloom.runtime.executors import UnitCompletion
+from pipeloom.runtime.incremental import IncrementalError, IncrementalState, WatermarkConflict
 from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.schema_policy import SchemaRejected, changes_json, resolve_columns
-from pipeloom.state.types import StateStore, UnitRecord
+from pipeloom.state.types import StateKey, StateStore, UnitRecord
 
 DEFAULT_SCHEMA = "main"
 
@@ -84,6 +87,17 @@ def _target_ref(dotted: str) -> TargetRef:
     if len(parts) == 2:
         return TargetRef(None, parts[0], parts[1])
     return TargetRef(parts[0], parts[1], ".".join(parts[2:]))
+
+
+@dataclass
+class _Inc:
+    """The incremental input of one attempt and what was resolved for it."""
+
+    alias: str
+    column: str
+    state: IncrementalState | None = None
+    batch: Relation | None = None
+    """The filtered input: the rows this attempt processes."""
 
 
 async def _await(awaitable: Awaitable[Any]) -> Any:
@@ -244,10 +258,11 @@ class ModelRunner:
 
     def _strategy(self, node: PlanNode) -> str | None:
         """Read from the plan: it stores the effective strategy. Only tables use one."""
-        if node.materialized != "table":
+        if node.materialized not in ("table", "incremental") or node.relation is None:
             return None
-        strategy = node.config.write.strategy or "overwrite"
-        # A full refresh rebuilds the table instead of adding to it.
+        strategy = node.config.write.strategy or default_strategy(node.materialized)
+        # A full refresh rebuilds the table instead of adding to it. A first build keeps its
+        # strategy: into an absent table it writes the same rows, and merge still checks the keys.
         keeps = strategy in ("append", "merge", "replace_partitions")
         return "overwrite" if self._rt.full_refresh and keeps else strategy
 
@@ -264,21 +279,118 @@ class ModelRunner:
         if node.materialized == "view":
             assert target is not None and isinstance(node.body, SqlBody)
             result = self._create_view(node, target, node.body)
-        elif node.materialized == "table" and strategy is not None:
+        elif node.materialized in ("table", "incremental") and strategy is not None:
             assert target is not None
+            token = f"{self._rt.run_id}:{node.name}"
+            # Step 1: a token already applied means a finished write; skip everything but the
+            # watermark, which the write stored with the token.
+            replay = self._replayed(target, token)
+            if replay is not None:
+                self._written(node, target, strategy, replay, self._rt.clock.monotonic())
+                self._fill(row, replay)
+                self._finish_replay(node, replay, row)
+                return
             rows_read: dict[str, int | None] = {}
             local: dict[str, Relation] = {}
-            rel = self._compute(node, unit_id, attempt, started, local, rows_read)
+            cfg = node.config.incremental
+            inc = (
+                _Inc(cfg.input, cfg.column)
+                if node.materialized == "incremental" and cfg is not None and cfg.column
+                else None
+            )
+            rel = self._compute(node, unit_id, attempt, started, local, rows_read, inc)
             row["rows_read"] = rows_read
-            result = self._write(node, target, strategy, rel, row)
+            # Step 9: the batch watermark, from the rows the body was given.
+            meta: dict[str, JsonValue] = {}
+            after: Any = None
+            if inc is not None and inc.state is not None:
+                batch_max = (
+                    None if inc.batch is None else self._session.max_value(inc.batch, inc.column)
+                )
+                after = incremental.next_watermark(inc.state, batch_max)
+                meta["watermark"] = incremental.to_meta(inc.state, after, inc.column)
+                self._note_incremental(inc.state, after, row)
+            result = self._write(node, target, strategy, rel, row, meta)
+            self._fill(row, result)
+            if inc is not None and inc.state is not None:
+                self._commit_watermark(node, inc.state, after, inc.column)
+            return
         else:  # L5 rejects the rest (PLC509) before a run starts
             raise ValueError(f"cannot run materialization '{node.materialized}'")
+        self._fill(row, result)
+
+    @staticmethod
+    def _fill(row: dict[str, Any], result: WriteResult) -> None:
         row.update(
             rows_written=result.rows_written,
             rows_inserted=result.rows_inserted,
+            rows_updated=result.rows_updated,
+            rows_deleted=result.rows_deleted,
             bytes_written=result.bytes_written,
             target_version=result.target_version,
         )
+
+    # -- idempotency token and watermark ------------------------------------------------------
+
+    def _replayed(self, target: TargetRef, token: str) -> WriteResult | None:
+        if not self._engine.capabilities.idempotent_writes:
+            return None
+        return self._session.applied_token(target, token)
+
+    def _finish_replay(self, node: PlanNode, replay: WriteResult, row: dict[str, Any]) -> None:
+        """Rebuild the result row from the stored commit metadata and commit its watermark."""
+        meta = replay.commit_meta
+        row["schema_hash"] = meta.get("schema_hash")
+        row["schema_changes"] = meta.get("schema_changes") or []
+        stored = meta.get("watermark")
+        if isinstance(stored, dict):
+            st, after, column = incremental.from_meta(stored)
+            self._note_incremental(st, after, row)
+            self._commit_watermark(node, st, after, column)
+
+    def _key(self, node: PlanNode) -> StateKey:
+        return StateKey(self._rt.project, self._rt.target, node.name)
+
+    def _note_incremental(self, st: IncrementalState, after: Any, row: dict[str, Any]) -> None:
+        row.update(
+            is_incremental=st.is_incremental,
+            watermark_before=incremental.encode(st.watermark),
+            watermark_after=incremental.encode(after),
+        )
+        if st.seeded:
+            row["warnings"].append("watermark_seeded: target")
+
+    def _commit_watermark(
+        self, node: PlanNode, st: IncrementalState, after: Any, column: str
+    ) -> None:
+        """Step 11: the data is committed, so this never sits behind a cancel checkpoint."""
+        rt = self._rt
+        ok = incremental.commit(
+            st, after, state=self._state, key=self._key(node), run_id=rt.run_id, clock=rt.clock
+        )
+        if not ok:
+            message = f"the watermark of model '{node.name}' changed while the unit ran"
+            self._fail(
+                "PLM203",
+                "write",
+                WatermarkConflict(message),
+                f"{message}; the data was already written",
+                "another run on the same target is the likely cause; run again, "
+                "or avoid --no-lock with concurrent runs",
+            )
+        if st.source == "state" and after is not None:
+            self._bus.emit(
+                StateWatermarkCommitted(
+                    column=column,
+                    dtype=st.dtype,
+                    before=incremental.encode(st.watermark),
+                    after=incremental.encode(after),
+                    source=st.source,
+                    seeded=st.seeded,
+                ),
+                unit_id=node.name,
+                model=node.name,
+            )
 
     # -- reading and the body -----------------------------------------------------------------
 
@@ -290,16 +402,19 @@ class ModelRunner:
         started: datetime,
         local: dict[str, Relation],
         rows_read: dict[str, int | None] | None,
+        inc: _Inc | None = None,
     ) -> Relation:
         """Read the node's inputs and run its body."""
         inputs: dict[str, Relation] = {}
         for alias, uid in node.inputs.items():
             inputs[alias] = self._input(alias, uid, node, unit_id, attempt, started, local)
+            if inc is not None and alias == inc.alias:
+                inputs[alias] = self._incremental_input(node, inputs[alias], inc)
             if rows_read is not None:
                 rows_read[alias] = (
                     None if inputs[alias].lazy else self._session.count(inputs[alias])
                 )
-        ctx = self._context(node, unit_id, attempt, started)
+        ctx = self._context(node, unit_id, attempt, started, None if inc is None else inc.state)
         failed = f"model '{node.name}' raised"
         try:
             if isinstance(node.body, SqlBody):
@@ -318,6 +433,45 @@ class ModelRunner:
                 f"return the native frame of engine '{self._engine.name}'",
             )
 
+    def _incremental_input(self, node: PlanNode, rel: Relation, inc: _Inc) -> Relation:
+        """Step 2: resolve the watermark, then keep only the rows after it."""
+        rt = self._rt
+        try:
+            st = incremental.resolve(
+                node,
+                session=self._session,
+                catalog=self._catalog,
+                state=self._state,
+                input_schema=self._session.schema(rel),
+                full_refresh=rt.full_refresh,
+                key=self._key(node),
+            )
+        except IncrementalError as exc:
+            self._fail(
+                "PLM205",
+                "read",
+                exc,
+                f"cannot use the watermark of model '{node.name}': {exc}",
+                "check incremental.column and incremental.lookback, or run with --full-refresh",
+            )
+        inc.state = st
+        if st.is_incremental:
+            try:
+                rel = self._session.filter_since(
+                    rel, inc.column, st.lower_bound, inclusive=st.inclusive
+                )
+            except Exception as exc:  # noqa: BLE001 - engines raise their own errors
+                self._fail(
+                    "PLM205",
+                    "read",
+                    exc,
+                    f"cannot filter input '{inc.alias}' of model '{node.name}' by '{inc.column}'",
+                    "check that the column has the type the stored watermark was taken from",
+                )
+        # ponytail: the batch maximum scans a lazy input twice; persist it if that ever hurts
+        inc.batch = rel
+        return rel
+
     def _fail(
         self, code: str, phase: Phase, exc: Exception, message: str, hint: str | None = None
     ) -> NoReturn:
@@ -332,7 +486,12 @@ class ModelRunner:
         return asyncio.run(_await(out)) if inspect.isawaitable(out) else out
 
     def _context(
-        self, node: PlanNode, unit_id: str, attempt: int, started: datetime
+        self,
+        node: PlanNode,
+        unit_id: str,
+        attempt: int,
+        started: datetime,
+        inc: IncrementalState | None = None,
     ) -> ModelContext:
         rt = self._rt
 
@@ -361,6 +520,9 @@ class ModelRunner:
             engine=self._session,
             frame_api=node.config.frame_api,
             started_at=started,
+            is_incremental=inc is not None and inc.is_incremental,
+            watermark=None if inc is None or not inc.is_incremental else inc.watermark,
+            lower_bound=None if inc is None or not inc.is_incremental else inc.lower_bound,
             emit_log=emit_log,
         )
 
@@ -442,7 +604,13 @@ class ModelRunner:
     # -- writing ------------------------------------------------------------------------------
 
     def _write(
-        self, node: PlanNode, target: TargetRef, strategy: str, rel: Relation, row: dict[str, Any]
+        self,
+        node: PlanNode,
+        target: TargetRef,
+        strategy: str,
+        rel: Relation,
+        row: dict[str, Any],
+        meta: Mapping[str, JsonValue],
     ) -> WriteResult:
         write = node.config.write
         token = f"{self._rt.run_id}:{node.name}"
@@ -480,6 +648,11 @@ class ModelRunner:
                 deletes=deletes,
                 columns=None if keep else columns,
                 options=dict(write.options),
+                commit_meta={
+                    **meta,
+                    "schema_hash": row["schema_hash"],
+                    "schema_changes": row["schema_changes"],
+                },
             )
             result = self._session.materializer(strategy).materialize(rel, target, cfg, token)
         except SchemaRejected as exc:
@@ -567,6 +740,7 @@ class ModelRunner:
                 rows_inserted=result.rows_inserted,
                 bytes_written=result.bytes_written,
                 duration_ms=max(0, int((self._rt.clock.monotonic() - t0) * 1000)),
+                skipped=result.skipped,
             ),
             unit_id=node.name,
             model=node.name,

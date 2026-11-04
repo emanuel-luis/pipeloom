@@ -1,0 +1,2 @@
+error PLM205 models/m.yml:2 cannot use the watermark of model 'a': incremental column 'updated_at' is not in input 'raw': pipeloom.runtime.incremental.IncrementalError: incremental column 'updated_at' is not in input 'raw'
+      hint: check incremental.column and incremental.lookback, or run with --full-refresh

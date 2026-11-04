@@ -21,6 +21,16 @@ def effective_strategy(config: ResolvedModelConfig) -> str | None:
     return "append" if config.materialized == "incremental" else "overwrite"
 
 
+def _lookback_append(m: ResolvedModel) -> bool:
+    c = m.config
+    return (
+        c.materialized == "incremental"
+        and effective_strategy(c) == "append"
+        and c.incremental is not None
+        and c.incremental.lookback > 0
+    )
+
+
 def where(project: ResolvedProject, m: ResolvedModel, field: str, sub: str = "") -> Location:
     """The model's own `field` (and `sub` pointer below it) when it sets one, else its name."""
     if field in m.own_fields:
@@ -60,6 +70,14 @@ def _check_model(project: ResolvedProject, m: ResolvedModel, report: Report) -> 
             "incremental",
             f"inputs: {', '.join(m.inputs) or 'none'}",
             "/input",
+        )
+    if _lookback_append(m):
+        err(
+            "PLP410",
+            f"incremental model '{m.name}' appends with a lookback, so it reloads rows it wrote",
+            "incremental",
+            "use write.strategy: merge with a unique_key, or set lookback to 0",
+            "/lookback",
         )
     for i, e in enumerate(c.expectations):
         aggregate = e.check is not None and any(

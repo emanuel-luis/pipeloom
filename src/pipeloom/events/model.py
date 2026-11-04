@@ -275,6 +275,19 @@ class ModelWritten(EventPayload):
     rows_inserted: int | None
     bytes_written: int | None
     duration_ms: int
+    skipped: bool = False
+    """The write token had been applied before: nothing was written."""
+
+
+class StateWatermarkCommitted(EventPayload):
+    TYPE = "state.watermark_committed"
+
+    column: str
+    dtype: str
+    before: JsonValue
+    after: JsonValue
+    source: Literal["state", "target"]
+    seeded: bool
 
 
 class ModelSchemaChanged(EventPayload):

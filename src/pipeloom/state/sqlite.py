@@ -117,6 +117,8 @@ class SqliteStore:
                 (key.project, key.target, key.model),
             ).fetchone()
             current = None if row is None else _watermark(row)
+            if current is not None and codec.value_key(current) == codec.value_key(new):
+                return True  # a replay after a crash between the swap and the attempt file
             if (current is None) != (expected is None) or (
                 current is not None
                 and expected is not None

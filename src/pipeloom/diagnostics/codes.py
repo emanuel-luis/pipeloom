@@ -358,7 +358,7 @@ _ACTIVE_02: Final = (
         "PLC509",
         E,
         "Materialization unsupported by engine",
-        "The materialization is not in the selected engine's capabilities. 0.2 engines do not offer incremental or intermediate.",
+        "The materialization is not in the selected engine's capabilities. No engine offers intermediate yet.",
     ),
     (
         "PLP409",
@@ -424,6 +424,24 @@ _ACTIVE_03: Final = (
         "Write key invalid",
         "A unique_key or partition_by column is missing from the batch, or a merge batch repeats a unique_key.",
     ),
+    (
+        "PLM203",
+        E,
+        "Watermark CAS conflict",
+        "The stored watermark changed while the unit ran, so the new one was not saved. The data was already written. Another run on the same target is the usual cause.",
+    ),
+    (
+        "PLM205",
+        E,
+        "Incremental watermark unusable",
+        "The incremental column is missing from the input, its type differs from the stored watermark, or a lookback is set on a column that is not a timestamp or date.",
+    ),
+    (
+        "PLP410",
+        W,
+        "append with lookback reloads rows",
+        "An incremental model appends with a lookback above zero, so rows inside the window are written again. Use merge with a unique_key.",
+    ),
 )
 
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
@@ -431,15 +449,12 @@ _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
     ("PLF702", E, "Source missing", "0.2"),
     ("PLF703", E, "Target schema drift detected", "0.2"),
-    ("PLM205", E, "Incremental watermark unusable", "0.3"),
     ("PLQ302", E, "Expectation references an unknown column", "0.3"),
-    ("PLP410", W, "append with lookback reloads rows", "0.3"),
     ("PLP411", E, "Expectations on a view or ephemeral model", "0.3"),
     ("PLP412", E, "Quarantine relation collides with a model", "0.3"),
     ("PLC510", E, "Expectations on an engine without quality", "0.3"),
     ("PLX102", E, "Timeout", "0.3"),
     ("PLX104", E, "Cancelled", "0.3"),
-    ("PLM203", E, "Watermark CAS conflict", "0.3"),
     ("PLQ301", E, "Expectation failed", "0.3"),
     ("PLD001", E, "Task limit exceeded", "0.4"),
     ("PLD002", E, "Submit above 100 tasks", "0.4"),

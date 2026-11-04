@@ -1,0 +1,2 @@
+error PLM203 models/m.yml:2 the watermark of model 'a' changed while the unit ran; the data was already written: pipeloom.runtime.incremental.WatermarkConflict: the watermark of model 'a' changed while the unit ran
+      hint: another run on the same target is the likely cause; run again, or avoid --no-lock with concurrent runs

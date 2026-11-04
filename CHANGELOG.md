@@ -20,6 +20,11 @@ All notable changes to this project are documented here. The format follows
 - Filesystem tables v2, ADR-0025: commit files carry per-file row counts and partition values, and a commit takes a lock (30 second lease) and checks an expected version, raising the transient `CommitConflict` on a clash. /1 tables stay readable and upgrade on their next commit.
 - The polars and pandas engines declare `merge` and `replace_partitions`. With `partition_by` every strategy writes one file per partition; replace_partitions swaps files without reading the others; an empty batch still records its token. A merge rewrites the whole table in 0.3.
 - `pipeloom.engine.portable`: `merge_frames`, `replace_partition_frames`, partition value encoding and `empty_like`. `pipeloom.builtins.fs_write` holds the write logic the two engines share, and `FsTable.read_aligned` reads every part file through the commit schema.
+- Incremental models, ADR-0027: `materialized: incremental` runs on the memory, polars and pandas engines. `pipeloom.runtime.incremental` resolves the watermark (seeding it from the target when the state store has none), filters the input with `incremental.lookback` and commits the new watermark after the write with a compare-and-swap. `ctx.is_incremental`, `ctx.watermark` and `ctx.lower_bound` are set for Python models.
+- A write stores its watermark in the token's commit metadata, and the runner checks the token before reading anything: a retry with the same run id commits the original batch's watermark even when new input arrived. Replayed writes emit `model.written` with `skipped: true`.
+- Event `state.watermark_committed`; run_results rows fill `is_incremental`, `watermark_before`, `watermark_after`, `rows_updated`, `rows_deleted` and `target_version`; `warnings[]` records `watermark_seeded: target`.
+- Diagnostics PLM203 (watermark changed while the unit ran), PLM205 (watermark unusable) and PLP410 (append with a lookback) are active, each with a case file.
+- `pipeloom.plan.model.default_strategy`; the sqlite and json state stores treat a stored value equal to `new` as a successful `cas_watermark`, and `StateStoreContract` checks it.
 
 ### Changed
 

@@ -1,0 +1,40 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    targets:
+      dev:
+        engine: {kind: memory, root: store, tables: {main.raw: [{id: 1}]}}
+        catalog: {kind: memory, root: store}
+        naming: {kind: none}
+  models/m.yml: |
+    models:
+      - name: a
+        python: shop.hook:a
+        materialized: incremental
+        inputs: {raw: {source: raw}}
+        incremental: {input: raw, column: id}
+  models/sources.yml: |
+    sources:
+      - {name: raw, table: main.raw}
+  src/shop/__init__.py: ""
+  src/shop/hook.py: |
+    """The model moves its own watermark while it runs, like a concurrent run would."""
+
+    from datetime import UTC, datetime
+    from pathlib import Path
+    from typing import Any
+
+    from pipeloom.state.sqlite import SqliteStore
+    from pipeloom.state.types import StateKey, Watermark
+
+
+    def a(ctx: Any, raw: Any) -> Any:
+        root = Path(__file__).resolve().parents[2]
+        moved = Watermark(99, "int64", "other", datetime(2026, 1, 1, tzinfo=UTC))
+        SqliteStore(root / ".pipeloom" / "state.db").cas_watermark(
+            StateKey("shop", "dev", "a"), None, moved
+        )
+        return raw
+run: true

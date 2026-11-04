@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLP410",
+    "severity": "warning",
+    "message": "incremental model 'a' appends with a lookback, so it reloads rows it wrote",
+    "hint": "use write.strategy: merge with a unique_key, or set lookback to 0",
+    "location": {
+      "file": "models/m.yml",
+      "line": 6,
+      "col": 53,
+      "json_pointer": "/models/0/incremental/lookback"
+    },
+    "context": {
+      "model": "a"
+    }
+  }
+]
