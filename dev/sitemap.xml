@@ -141,6 +141,10 @@
          <lastmod>2026-11-04</lastmod>
     </url>
     <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0031-spark-engine/</loc>
+         <lastmod>2026-11-04</lastmod>
+    </url>
+    <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/incremental/</loc>
          <lastmod>2026-11-04</lastmod>
     </url>
@@ -166,6 +170,10 @@
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/plugins/polars/</loc>
+         <lastmod>2026-11-04</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/plugins/spark/</loc>
          <lastmod>2026-11-04</lastmod>
     </url>
     <url>
