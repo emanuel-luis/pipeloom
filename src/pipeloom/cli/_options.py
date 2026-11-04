@@ -38,6 +38,27 @@ def _parse_vars(ctx: click.Context, param: click.Parameter, value: str | None) -
     return dict(doc.data)
 
 
+def plugin_option(func: F) -> F:
+    """Add a repeatable --plugin MODULE:ATTR."""
+    return click.option(
+        "--plugin",
+        "plugins",
+        multiple=True,
+        metavar="MODULE:ATTR",
+        help="A PluginSpec to load besides the installed plugins. Repeatable.",
+    )(func)
+
+
+def target_option(func: F) -> F:
+    """Add --target."""
+    return click.option(
+        "--target",
+        envvar="PIPELOOM_TARGET",
+        default=None,
+        help="Target to bind; default_target or the only target when omitted.",
+    )(func)
+
+
 def project_options(func: F) -> F:
     """Add --project-dir and --vars."""
     func = click.option(

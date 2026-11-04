@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Annotated, Any
 
-from pydantic import AfterValidator, BeforeValidator, Field, StringConstraints
+from pydantic import AfterValidator, BeforeValidator, Field, StringConstraints, WithJsonSchema
 
 IDENTIFIER_PATTERN = r"^[A-Za-z_][A-Za-z0-9_]*$"
 
@@ -30,7 +30,19 @@ def parse_duration(value: Any) -> Any:
     return value
 
 
-Duration = Annotated[int, BeforeValidator(parse_duration), Field(ge=0)]
+_DURATION_SCHEMA = {
+    "anyOf": [
+        {"type": "integer", "minimum": 0},
+        {
+            "type": "string",
+            "pattern": r"^(?=.)(?:\d+d)?(?:\d+h)?(?:\d+m)?(?:\d+s)?$|^\d+$|^\$\{.+\}$",
+        },
+    ]
+}
+
+Duration = Annotated[
+    int, BeforeValidator(parse_duration), Field(ge=0), WithJsonSchema(_DURATION_SCHEMA)
+]
 """A duration in whole seconds; YAML may write it as 30m, 1h30m, 2d or an integer."""
 
 

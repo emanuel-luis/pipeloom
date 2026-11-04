@@ -3,6 +3,8 @@
 import click
 
 from pipeloom.cli._options import PipeloomGroup
+from pipeloom.cli.plugins import plugins
+from pipeloom.cli.schema import schema
 from pipeloom.cli.validate import validate
 
 
@@ -13,5 +15,7 @@ def main() -> None:
 
 
 main.add_command(validate)
+main.add_command(schema)
+main.add_command(plugins)
 
 __all__ = ["main"]
