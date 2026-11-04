@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pipeloom"
-version = "0.2.0"
+version = "0.3.0"
 description = "Declarative, engine-agnostic data pipelines in YAML."
 readme = "README.pypi.md"
 requires-python = ">=3.11"
@@ -32,8 +32,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-polars = ["pipeloom-polars==0.2.0"]
-pandas = ["pipeloom-pandas==0.2.0"]
+polars = ["pipeloom-polars==0.3.0"]
+pandas = ["pipeloom-pandas==0.3.0"]
 sqlglot = ["sqlglot>=26"]
 
 [project.urls]
