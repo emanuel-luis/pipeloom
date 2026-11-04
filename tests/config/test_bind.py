@@ -123,7 +123,11 @@ def test_defaults_when_nothing_is_set(project_factory: Factory) -> None:
     assert value is not None
     rt = value.runtime
     assert (rt.workers, rt.boundary, rt.naming.kind, rt.engine) == (4, "process", "none", None)
-    assert set(value.plugins) == {"naming"}
+    assert set(value.plugins) == {"naming", "state_stores"}
+    assert value.plugins["state_stores"].kind == "sqlite"
+    assert value.plugins["state_stores"].options.model_dump() == {
+        "path": str(value.loaded.project_dir / ".pipeloom" / "state.db")
+    }
     strategy: Any = value.plugins["naming"].create()
     assert strategy.relation("m", None, Identity("u", "h")) == TargetRef(None, "main", "m")
 
@@ -230,3 +234,17 @@ def test_bind_is_memoized(project_factory: Factory) -> None:
         )
     )
     assert project.bind() is project.bind()
+
+
+def test_state_block_binds_and_resolves_its_path(project_factory: Factory) -> None:
+    text = "config_version: 1\nname: s\nstate: {kind: json, path: st}\ntargets:\n  dev: {}\n"
+    value = bind(project_factory({"pipeloom.yml": text})).value
+    assert value is not None
+    state = value.plugins["state_stores"]
+    assert state.kind == "json" and state.pointer == "/state"
+    assert state.options.model_dump() == {"path": str(value.loaded.project_dir / "st")}
+
+
+def test_unknown_state_kind_is_plr204(project_factory: Factory) -> None:
+    text = "config_version: 1\nname: s\nstate: {kind: nosuch}\ntargets:\n  dev: {}\n"
+    assert only(bind(project_factory({"pipeloom.yml": text})), "PLR204")

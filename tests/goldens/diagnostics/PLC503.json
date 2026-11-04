@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLC503",
+    "severity": "error",
+    "message": "boundary 'task' needs a shared state store, but 'sqlite' is not shared",
+    "hint": "use a shared state store such as json, or boundary: process",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 8,
+      "col": 19,
+      "json_pointer": "/targets/dev/state/kind"
+    },
+    "context": {
+      "state": "sqlite"
+    }
+  }
+]

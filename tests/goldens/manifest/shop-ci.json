@@ -17,6 +17,11 @@
         "kind": "none",
         "distribution": "pipeloom",
         "version": "<version>"
+      },
+      "state_stores": {
+        "kind": "sqlite",
+        "distribution": "pipeloom",
+        "version": "<version>"
       }
     },
     "config_version": 1,

@@ -279,6 +279,12 @@ _ACTIVE: Final = (
         "A SQL model targets an engine that cannot run SQL.",
     ),
     (
+        "PLC503",
+        E,
+        "boundary task with a non-shared state store",
+        "Units run as separate tasks, but the state store is local to one process or machine.",
+    ),
+    (
         "PLC504",
         E,
         "Catalog incompatible with engine",
@@ -330,7 +336,6 @@ _ACTIVE: Final = (
 
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
-    ("PLC503", E, "boundary task with a non-shared state store", "0.2"),
     ("PLK603", W, "SQL references undeclared table", "0.2"),
     ("PLF701", E, "Engine unreachable", "0.2"),
     ("PLF702", E, "Source missing", "0.2"),
