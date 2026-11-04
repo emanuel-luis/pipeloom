@@ -34,6 +34,15 @@ jobs:
             name="$(basename "$dir")"
             uv build --package "$name" -o "dist/$name"
           done
+          # every built plugin must have a publish job below
+          known=' pipeloom-polars pipeloom-pandas pipeloom-spark pipeloom-databricks pipeloom-airflow '
+          for dir in dist/pipeloom-*/; do
+            name="$(basename "$dir")"
+            case "$known" in
+              *" $name "*) ;;
+              *) echo "no publish job for $name in release.yml" >&2; exit 1 ;;
+            esac
+          done
           # tell the publish jobs which plugin distributions exist in this release
           for plugin in polars pandas spark databricks airflow; do
             if [ -d "dist/pipeloom-$plugin" ]; then built=true; else built=false; fi
@@ -203,7 +212,9 @@ jobs:
       - publish-pipeloom-spark
       - publish-pipeloom-databricks
       - publish-pipeloom-airflow
-    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
+    if: >-
+      ${{ !cancelled() && needs.publish-pipeloom.result == 'success'
+      && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
