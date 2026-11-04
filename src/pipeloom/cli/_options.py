@@ -79,6 +79,25 @@ def project_options(func: F) -> F:
     return func
 
 
+def select_options(func: F) -> F:
+    """Add repeatable -s/--select and --exclude (selector expressions)."""
+    func = click.option(
+        "--exclude",
+        multiple=True,
+        metavar="SELECTOR",
+        help="Remove the models this selector matches from the selection. Repeatable.",
+    )(func)
+    func = click.option(
+        "-s",
+        "--select",
+        multiple=True,
+        metavar="SELECTOR",
+        help="Models to include: name, tag:x, path:dir, materialized:x, +model, model+, "
+        "N+model, model+N. Space unions, comma intersects. Repeatable, all are unioned.",
+    )(func)
+    return func
+
+
 def log_format_option(func: F) -> F:
     """Add --log-format."""
     return click.option(
