@@ -14,7 +14,14 @@ from pydantic import Field
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.config.types import ProjectPath
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession, Materializer, Reader
-from pipeloom.engine.types import ReadSpec, Relation, TargetRef, WriteConfig, WriteResult
+from pipeloom.engine.types import (
+    IntermediateRef,
+    ReadSpec,
+    Relation,
+    TargetRef,
+    WriteConfig,
+    WriteResult,
+)
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
 from pipeloom.runtime.context import RuntimeContext
 from pipeloom.runtime.run import RunOptions, resolve_run_started_at
@@ -118,6 +125,10 @@ class _RecSession:
         LOG.append("body")
         return self._inner.sql(query, inputs)
 
+    def write_intermediate(self, rel: Relation, ref: IntermediateRef, token: str) -> WriteResult:
+        STARTS.append(ref.run_started_at)
+        return self._inner.write_intermediate(rel, ref, token)
+
     @contextmanager
     def unit_scope(self, unit_id: str) -> Iterator[None]:
         LOG.append("scope+")
@@ -179,8 +190,15 @@ STORE: PluginSpec[Any] = PluginSpec(
 )
 
 
+MODEL_A = "  - {name: a, sql: select x from raw, inputs: {raw: {source: raw}}}\n"
+
+
 @pytest.fixture
 def project(tmp_path: Path) -> Project:
+    return build(tmp_path, MODEL_A)
+
+
+def build(tmp_path: Path, models: str) -> Project:
     LOG.clear()
     CONTEXTS.clear()
     STARTS.clear()
@@ -190,7 +208,7 @@ def project(tmp_path: Path) -> Project:
             "pipeloom.yml": "config_version: 1\nname: p\ntargets:\n  t:\n"
             "    engine: {kind: rec}\n    catalog: {kind: rec}\n    state: {kind: rec}\n",
             "models/m.yml": "sources:\n  - {name: raw, format: memory, location: /raw}\n"
-            "models:\n  - {name: a, sql: select x from raw, inputs: {raw: {source: raw}}}\n",
+            "models:\n" + models,
         },
     )
     here = "tests.runtime.test_api04"
@@ -241,6 +259,17 @@ def test_context_carries_start_and_artifacts_root(project: Project, tmp_path: Pa
     assert STARTS[-1] == given
     clash = project.run(RunOptions(run_id="r1", run_started_at=given + timedelta(hours=1)))
     assert clash.exit_code == 2 and [d.code for d in clash.diagnostics] == ["PLX108"]
+
+
+def test_an_intermediate_write_carries_the_run_start(tmp_path: Path) -> None:
+    models = MODEL_A + (
+        "  - {name: i, materialized: intermediate, sql: select x from raw, "
+        "inputs: {raw: {source: raw}}}\n"
+    )
+    given = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
+    outcome = build(tmp_path, models).run(RunOptions(run_id="r1", run_started_at=given))
+    assert outcome.exit_code == 0, outcome.diagnostics
+    assert STARTS.count(given) == 2  # the table write and the intermediate write
 
 
 def test_a_new_run_without_flag_starts_now(project: Project) -> None:

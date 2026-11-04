@@ -71,6 +71,8 @@ class IntermediateRef:
     model: str
     location: str
     """Absolute POSIX path or URI. `ReadSpec(format="intermediate", location=...)` reads it."""
+    run_started_at: datetime | None = None
+    """The run's start (UTC), for an engine that needs a stable write version."""
 
 
 @dataclass(frozen=True)

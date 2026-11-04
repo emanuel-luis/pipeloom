@@ -421,7 +421,9 @@ class ModelRunner:
         rel = self._compute(node, unit_id, attempt, started, {}, rows_read)
         row["rows_read"] = rows_read
         rel, before_write, finish = self._quality(node, node.relation, unit_id, rel, row)
-        ref = IntermediateRef(self._rt.run_id, node.name, self._location(node.name))
+        ref = IntermediateRef(
+            self._rt.run_id, node.name, self._location(node.name), self._rt.run_started_at
+        )
         t0 = self._rt.clock.monotonic()
         try:
             self._check()

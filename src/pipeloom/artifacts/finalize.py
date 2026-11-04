@@ -71,6 +71,16 @@ def _recorded(run_dir: Path) -> tuple[datetime | None, float | None]:
         return None, None
 
 
+def _resumed(run_dir: Path) -> bool:
+    """The manifest is newer than the results: a later invocation of the run is in progress."""
+    try:
+        return (run_dir / "manifest.json").stat().st_mtime > (
+            run_dir / "run_results.json"
+        ).stat().st_mtime
+    except OSError:
+        return False
+
+
 def cleanup_intermediates(
     root: Path, *, now: datetime, ttl: float, run_id: str, status: RunStatusName
 ) -> list[str]:
@@ -80,7 +90,8 @@ def cleanup_intermediates(
     judged by the TTL it recorded in its own `run_results.json` (a TTL of 0 there counts as one
     hour, since only a failed run is left with data; `ttl` stands in when none is recorded),
     against its last activity: the newest of its `ended_at` and the newest modification time
-    under its intermediate folder. A run without `run_results.json` is still running or
+    under its run folder (the manifest is rewritten at each start, events grow during a run).
+    A run whose manifest is newer than its results is running again and is never deleted. A run without `run_results.json` is still running or
     crashed, so it keeps its folder until it has been idle for `max(ttl, 1h)`. A missing folder
     is fine. Returns one warning per folder that could not be deleted; a deletion error never
     fails the run.
@@ -98,7 +109,9 @@ def cleanup_intermediates(
                 expired = ttl == 0 and status == "succeeded"
             else:
                 ended, own = _recorded(run_dir)
-                active = _newest_mtime(folder)
+                if _resumed(run_dir):
+                    continue  # started again after its last results: it is running
+                active = _newest_mtime(run_dir)  # manifest, events and attempts count too
                 if ended is None:
                     limit = max(ttl, _HOUR)
                 else:

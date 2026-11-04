@@ -38,7 +38,7 @@ def make_run(
     if ended is not None:
         run = {"ended_at": (NOW - ended).isoformat(), "intermediate_ttl": ttl}
         (run_dir / "run_results.json").write_bytes(json.dumps({"run": run}).encode("utf-8"))
-    touch_tree(run_dir / "intermediate", files)
+    touch_tree(run_dir, files)
     return run_dir / "intermediate"
 
 
@@ -136,3 +136,36 @@ def test_a_deletion_error_becomes_a_warning(
     warnings = clean(tmp_path)
     assert len(warnings) == 1 and "stale" in warnings[0] and "locked" in warnings[0]
     assert stale.is_dir()
+
+
+def test_replayed_writes_still_count_as_activity_through_the_rest_of_the_run_folder(
+    tmp_path: Path,
+) -> None:
+    """r1 failed at ttl 0 (counted as 1h); it resumed 10 minutes ago and replayed its writes."""
+    resumed = make_run(tmp_path, "r1", ended=timedelta(hours=2), files=timedelta(hours=2), ttl=0)
+    run_dir = resumed.parent
+    (run_dir / "events").mkdir()
+    events = run_dir / "events" / "inv2.jsonl"
+    events.write_bytes(b"{}")
+    stamp = (NOW - timedelta(minutes=10)).timestamp()
+    os.utime(events, (stamp, stamp))
+    clean(tmp_path)
+    assert resumed.is_dir()
+
+
+def test_a_run_whose_manifest_is_newer_than_its_results_is_running_again(
+    tmp_path: Path,
+) -> None:
+    resumed = make_run(tmp_path, "r1", ended=timedelta(days=3), files=timedelta(days=3), ttl=HOUR)
+    manifest = resumed.parent / "manifest.json"
+    manifest.write_bytes(b"{}")
+    old = (NOW - timedelta(days=3)).timestamp()
+    os.utime(resumed.parent / "run_results.json", (old, old))
+    os.utime(manifest, (old + 10, old + 10))
+    os.utime(resumed.parent, (old, old))  # creating the manifest touched the folder
+    clean(tmp_path)
+    assert resumed.is_dir()
+    os.utime(manifest, (old - 10, old - 10))  # older than the results: finished, so it expires
+    os.utime(resumed.parent, (old, old))  # creating the manifest touched the folder
+    clean(tmp_path)
+    assert not resumed.exists()

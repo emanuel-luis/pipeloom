@@ -109,7 +109,7 @@ def test_another_run_deletes_an_expired_intermediate(tmp_path: Path) -> None:
     old.write_bytes(json.dumps(doc).encode("utf-8"))
     assert doc["run"]["intermediate_ttl"] == 3600
     stamp = datetime(2025, 12, 31, tzinfo=UTC).timestamp()
-    folder = root / "target" / "runs" / "r1" / "intermediate"
+    folder = root / "target" / "runs" / "r1"
     for path in (*folder.rglob("*"), folder):
         os.utime(path, (stamp, stamp))
     assert run(root, "r2").exit_code == 0
