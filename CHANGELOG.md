@@ -15,6 +15,14 @@ All notable changes to this project are documented here. The format follows
 - `run --run-started-at ISO8601` (environment `PIPELOOM_RUN_STARTED_AT`) sets the start time every engine sees. It needs an offset and `--run-id`; a reused run id keeps its recorded start, and a different value is PLX108 (exit 2).
 - The engine session opens before any state-store call and the run lock (so it has no `run_started_at`; engines read `WriteConfig.run_started_at`, new and additive), and `unit_scope` now spans a unit's reads, body, checks and write.
 - PLC507 also fires when the catalog declares no views (`CatalogCapabilities(views=False)`).
+
+## [0.3.0] - 2026-11-04
+
+pipeloom 0.3 adds incremental models, merge and replace_partitions, schema-change policies, expectations with quarantine, retries, timeouts and cancellation, on plugin API (0, 3).
+
+### Added
+
+- Guides for incremental models, merge, replace_partitions and schema changes, data quality, and retries, timeouts and cancellation; architecture sections 5, 7, 8, 9, 10, 11, 15 and 16 describe the 0.3 contract as built, and the state-machine diagram shows `retrying -> cancelled`. ADR-0024 and ADR-0026 now say that the polars and pandas engines implement quality, merge and replace_partitions.
 - Cancellation: the first SIGINT or SIGTERM (Ctrl+C or Ctrl+Break on Windows) stops starting units and gives running ones `cancel_grace` to finish; a second signal kills them at once. The run ends `cancelled` with exit code 130, emits `run.cancel_requested`, and unfinished units report PLX104.
 - `run --cancel-grace DURATION` and the `cancel_grace` setting (default 30s); `Project.run(..., control=RunControl())` stops a run from the API.
 - Plugin API (0, 3), ADR-0024: `EngineSession` gains `filter_since(..., inclusive=)`, `evaluate`, `apply_drops`, `align`, `applied_token`, `unit_scope` and `is_transient`; `cancel` becomes active. `WriteConfig` gains `partition_by`, `update_condition`, `deletes`, `columns` and `commit_meta`; `WriteResult` gains `skipped` and `commit_meta`. `EngineCapabilities.quality` marks engines that implement expectations. Plugins built for (0, 2) fail with PLU001.
@@ -93,7 +101,7 @@ pipeloom 0.2 runs plans: a scheduler, thread and process executors, polars and p
 ### Changed
 
 - Plugin API version is (0, 2): `Engine.version`, `Engine.session(ctx, *, catalog)`, and `EngineSession.relation`, `persist` and `create_view`. Plugins built for (0, 1) fail with PLU001.
-- A model with a materialization the engine does not declare is rejected with PLC509.
+- A model with a materialization the engine does not declare (`incremental`, `intermediate`) is rejected with PLC509.
 - The import-linter layers include `pipeloom.artifacts` next to `pipeloom.state`, and imports under `TYPE_CHECKING` are ignored.
 
 ## [0.1.0] - 2026-11-04
@@ -151,7 +159,8 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.0.2...v0.1.0
 [0.0.2]: https://github.com/emanuel-luis/pipeloom/releases/tag/v0.0.2

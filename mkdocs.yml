@@ -24,6 +24,10 @@ nav:
   - Quickstart: quickstart.md
   - Guide:
       - Running a pipeline: guide/running.md
+      - Incremental models: guide/incremental.md
+      - Merge, replace_partitions and schema changes: guide/write-strategies.md
+      - Data quality: guide/quality.md
+      - Retries, timeouts and cancellation: guide/retries-and-cancellation.md
   - Plugins:
       - Polars: plugins/polars.md
       - pandas: plugins/pandas.md

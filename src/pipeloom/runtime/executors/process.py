@@ -232,11 +232,13 @@ class ProcessExecutor:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         tail: deque[str] = deque(maxlen=LOG_TAIL)
         write_lock = threading.Lock()
-        group: dict[str, Any] = (
-            {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
-            if sys.platform == "win32"
-            else {"start_new_session": True}
-        )
+        # an if statement, not a conditional expression: mypy narrows sys.platform only in
+        # statements, and CREATE_NEW_PROCESS_GROUP exists only in the Windows stubs
+        group: dict[str, Any]
+        if sys.platform == "win32":
+            group = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+        else:
+            group = {"start_new_session": True}
         with log_path.open("w", encoding="utf-8", newline="\n") as log:
 
             def note(line: str) -> None:

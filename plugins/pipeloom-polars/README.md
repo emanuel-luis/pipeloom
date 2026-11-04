@@ -19,8 +19,9 @@ targets:
   `frame_api: narwhals`.
 - SQL models and views run on `pl.SQLContext`.
 - Reads `parquet`, `csv`, `json` and `ndjson` sources. Writes tables through the `filesystem`
-  catalog with the `append` and `overwrite` strategies, and an idempotency token makes a repeated
-  write a no-op.
+  catalog with the `append`, `overwrite`, `merge` and `replace_partitions` strategies, and an
+  idempotency token makes a repeated write a no-op.
+- Supports `incremental` models, the schema-change policy and expectations with quarantine.
 
 Documentation: https://emanuel-luis.github.io/pipeloom/latest/plugins/polars/
 
