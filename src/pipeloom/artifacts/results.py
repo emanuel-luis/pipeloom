@@ -145,7 +145,10 @@ class RunHeader:
 
 
 def build_run_results(
-    header: RunHeader, rows: Sequence[dict[str, Any]], warnings: Sequence[str] = ()
+    header: RunHeader,
+    rows: Sequence[dict[str, Any]],
+    warnings: Sequence[str] = (),
+    intermediate_ttl: float | None = None,
 ) -> dict[str, Any]:
     ordered = sorted(rows, key=lambda r: str(r["unit_id"]))
     status = status_of(ordered)
@@ -180,6 +183,7 @@ def build_run_results(
             "python_version": h.python_version,
             "git_sha": h.git_sha,
             "exit_code": exit_code_of(status),
+            "intermediate_ttl": intermediate_ttl,
             "warnings": list(warnings),
         },
         "results": ordered,

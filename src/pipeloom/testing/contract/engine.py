@@ -778,6 +778,17 @@ class EngineContract:
             assert again.skipped
             assert self.read_intermediate(s, h, ref) == _key([dict(r) for r in ROWS])
 
+    def test_intermediate_a_new_token_replaces_the_data(
+        self, h: EngineHarness, tmp_path: Path
+    ) -> None:
+        requires(h, "materializations", "intermediate")
+        ref = self.intermediate(tmp_path, "r1")
+        with self.session(h, tmp_path) as s:
+            self.put_intermediate(s, h, ref, ROWS, "t1")
+            second = self.put_intermediate(s, h, ref, ROWS[:1], "t2")
+            assert not second.skipped
+            assert self.read_intermediate(s, h, ref) == _key([dict(ROWS[0])])
+
     def test_intermediate_second_run_id_has_its_own_folder(
         self, h: EngineHarness, tmp_path: Path
     ) -> None:

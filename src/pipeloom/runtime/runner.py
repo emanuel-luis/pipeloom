@@ -8,6 +8,7 @@ import threading
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from pathlib import PurePath
 from typing import Any, Literal, NoReturn
 
 from pipeloom.artifacts.io import write_json_once
@@ -390,9 +391,16 @@ class ModelRunner:
         """Where this run keeps the persisted result of an `intermediate` model."""
         return f"{self._rt.artifacts_root}/runs/{self._rt.run_id}/intermediate/{model}"
 
+    def _shown(self, location: str) -> str:
+        """The location for artifacts, events and messages: relative to the project when under it."""
+        try:
+            return PurePath(location).relative_to(self._rt.project_dir).as_posix()
+        except ValueError:
+            return location
+
     def _relation_name(self, node: PlanNode) -> str | None:
         if node.materialized == "intermediate":
-            return self._location(node.name)
+            return self._shown(self._location(node.name))
         return None if node.relation is None else node.relation.relation_name
 
     def _read_spec(self, upstream: PlanNode) -> ReadSpec:
@@ -430,7 +438,7 @@ class ModelRunner:
                 "PLM201",
                 "write",
                 exc,
-                f"cannot write intermediate '{node.name}' to '{ref.location}'",
+                f"cannot write intermediate '{node.name}' to '{self._shown(ref.location)}'",
                 "check that the artifacts root can be written, then run again",
             )
         finally:
@@ -438,7 +446,7 @@ class ModelRunner:
                 finish()
         self._bus.emit(
             ModelWritten(
-                relation=ref.location,
+                relation=self._shown(ref.location),
                 materialization="intermediate",
                 strategy=None,
                 rows_written=result.rows_written,

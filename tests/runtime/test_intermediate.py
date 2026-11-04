@@ -4,6 +4,7 @@ read by its consumer, and deleted by finalize according to `intermediate_ttl`.""
 from __future__ import annotations
 
 import json
+import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,7 @@ from pipeloom.events.bus import EventBus
 from pipeloom.runtime.run import RunOptions, RunOutcome
 from pipeloom.testing.clock import FakeClock
 from pipeloom.testing.memory import JsonTableStore
+from pipeloom.testing.recording import RecordingSink
 
 ORDERS = [{"id": 1, "v": 5}, {"id": 2, "v": -1}, {"id": 3, "v": 7}]
 
@@ -52,10 +54,10 @@ def project(tmp_path: Path, ttl: str | None = None, extra: str = "") -> Path:
     return tmp_path
 
 
-def run(root: Path, run_id: str = "r1") -> RunOutcome:
+def run(root: Path, run_id: str = "r1", sink: RecordingSink | None = None) -> RunOutcome:
     clock = FakeClock(datetime(2026, 1, 1, tzinfo=UTC), step=timedelta(0))
     proj = Project(ProjectOptions(project_dir=root, target="dev", env={}), clock=clock)
-    with EventBus([], clock=clock, invocation_id="inv") as bus:
+    with EventBus([] if sink is None else [(sink, 5)], clock=clock, invocation_id="inv") as bus:
         return proj.run(RunOptions(run_id=run_id, workers=1), bus)
 
 
@@ -76,7 +78,7 @@ def test_an_intermediate_is_written_under_the_run_and_read_by_its_consumer(
     rows = {r["unit_id"]: r for r in doc["results"]}
     place = (root / "target" / "runs" / "r1" / "intermediate" / "stg").resolve().as_posix()
     assert rows["stg"]["materialization"] == "intermediate"
-    assert Path(rows["stg"]["relation_name"]).resolve().as_posix() == place
+    assert rows["stg"]["relation_name"] == "target/runs/r1/intermediate/stg"
     assert rows["stg"]["rows_written"] == 2 and rows["stg"]["idempotency_token"] == "r1:stg"
     assert rows["stg"]["strategy"] is None
     assert JsonTableStore(root / "store")["main.rpt"] == ({"n": 2, "total": 12},)
@@ -105,6 +107,11 @@ def test_another_run_deletes_an_expired_intermediate(tmp_path: Path) -> None:
     doc = json.loads(old.read_bytes())
     doc["run"]["ended_at"] = "2025-12-31T00:00:00+00:00"
     old.write_bytes(json.dumps(doc).encode("utf-8"))
+    assert doc["run"]["intermediate_ttl"] == 3600
+    stamp = datetime(2025, 12, 31, tzinfo=UTC).timestamp()
+    folder = root / "target" / "runs" / "r1" / "intermediate"
+    for path in (*folder.rglob("*"), folder):
+        os.utime(path, (stamp, stamp))
     assert run(root, "r2").exit_code == 0
     assert not (root / "target" / "runs" / "r1" / "intermediate").exists()
     assert (root / "target" / "runs" / "r2" / "intermediate" / "stg").is_dir()
@@ -113,7 +120,11 @@ def test_another_run_deletes_an_expired_intermediate(tmp_path: Path) -> None:
 def test_a_rerun_with_the_same_run_id_replays_the_write(tmp_path: Path) -> None:
     root = project(tmp_path)
     run(root)
-    again = run(root)
+    sink = RecordingSink()
+    again = run(root, sink=sink)
     assert again.exit_code == 0
     stg = next(r for r in results(root)["results"] if r["unit_id"] == "stg")
     assert stg["rows_written"] == 2
+    assert [
+        e.data["skipped"] for e in sink.events if e.type == "model.written" and e.model == "stg"
+    ] == [True]

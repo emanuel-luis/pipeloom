@@ -100,6 +100,7 @@
     "python_version": "<python_version>",
     "git_sha": "<git_sha>",
     "exit_code": 0,
+    "intermediate_ttl": 86400,
     "warnings": []
   },
   "results": [

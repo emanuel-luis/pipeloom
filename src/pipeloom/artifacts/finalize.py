@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from collections.abc import Collection, Mapping
 from dataclasses import dataclass
@@ -12,7 +13,13 @@ from typing import Any
 
 from pipeloom.artifacts.io import write_json_atomic
 from pipeloom.artifacts.layout import RunPaths
-from pipeloom.artifacts.results import RunHeader, build_run_results, result_row, status_of
+from pipeloom.artifacts.results import (
+    RunHeader,
+    RunStatusName,
+    build_run_results,
+    result_row,
+    status_of,
+)
 
 
 @dataclass(frozen=True)
@@ -35,26 +42,48 @@ def latest_attempts(paths: RunPaths) -> dict[str, dict[str, Any]]:
     return out
 
 
-def _ended_at(run_dir: Path) -> datetime:
-    """When a run ended: `ended_at` of its `run_results.json`, else the folder's mtime."""
+_HOUR = 3600.0
+
+
+def _newest_mtime(folder: Path) -> datetime:
+    """The newest modification time of a folder and everything under it."""
+    newest = folder.stat().st_mtime
+    for dirpath, dirnames, filenames in os.walk(folder):
+        for name in (*dirnames, *filenames):
+            try:
+                newest = max(newest, os.stat(os.path.join(dirpath, name)).st_mtime)
+            except OSError:
+                continue  # removed while we looked
+    return datetime.fromtimestamp(newest, UTC)
+
+
+def _recorded(run_dir: Path) -> tuple[datetime | None, float | None]:
+    """`ended_at` and `intermediate_ttl` of the run's `run_results.json`, None where absent."""
     try:
-        doc = json.loads((run_dir / "run_results.json").read_bytes().decode("utf-8"))
-        ended = datetime.fromisoformat(doc["run"]["ended_at"])
-        if ended.tzinfo is not None:
-            return ended
+        run = json.loads((run_dir / "run_results.json").read_bytes().decode("utf-8"))["run"]
+        parsed = datetime.fromisoformat(run["ended_at"])
+        ttl = run.get("intermediate_ttl")
+        return (
+            parsed if parsed.tzinfo is not None else None,
+            float(ttl) if isinstance(ttl, int | float) else None,
+        )
     except (OSError, ValueError, KeyError, TypeError):
-        pass
-    return datetime.fromtimestamp(run_dir.stat().st_mtime, UTC)
+        return None, None
 
 
 def cleanup_intermediates(
-    root: Path, *, now: datetime, ttl: float, run_id: str, status: str
+    root: Path, *, now: datetime, ttl: float, run_id: str, status: RunStatusName
 ) -> list[str]:
-    """Delete `runs/<id>/intermediate/` of runs that ended more than `ttl` seconds before `now`.
+    """Delete the `runs/<id>/intermediate/` folders that nobody needs any more.
 
-    The current run keeps its folder, so a failed run can continue, unless `ttl` is 0 and the
-    run succeeded. A missing folder is fine. Returns one warning per folder that could not be
-    deleted; a deletion error never fails the run.
+    The current run's folder goes only when `ttl` is 0 and the run succeeded. Another run is
+    judged by the TTL it recorded in its own `run_results.json` (a TTL of 0 there counts as one
+    hour, since only a failed run is left with data; `ttl` stands in when none is recorded),
+    against its last activity: the newest of its `ended_at` and the newest modification time
+    under its intermediate folder. A run without `run_results.json` is still running or
+    crashed, so it keeps its folder until it has been idle for `max(ttl, 1h)`. A missing folder
+    is fine. Returns one warning per folder that could not be deleted; a deletion error never
+    fails the run.
     """
     runs = root / "runs"
     if not runs.is_dir():
@@ -68,7 +97,15 @@ def cleanup_intermediates(
             if run_dir.name == run_id:
                 expired = ttl == 0 and status == "succeeded"
             else:
-                expired = (now - _ended_at(run_dir)).total_seconds() > ttl
+                ended, own = _recorded(run_dir)
+                active = _newest_mtime(folder)
+                if ended is None:
+                    limit = max(ttl, _HOUR)
+                else:
+                    active = max(active, ended)
+                    limit = ttl if own is None else own
+                    limit = limit if limit > 0 else _HOUR
+                expired = (now - active).total_seconds() > limit
             if expired:
                 shutil.rmtree(folder)
         except OSError as exc:
@@ -132,7 +169,7 @@ def finalize(
             run_id=header.run_id,
             status=status,
         )
-    results = build_run_results(header, list(rows.values()), cleanup_warnings)
+    results = build_run_results(header, list(rows.values()), cleanup_warnings, intermediate_ttl)
     write_json_atomic(paths.run_results, results)
     written = [paths.run_results]
     if paths.manifest.is_file():
