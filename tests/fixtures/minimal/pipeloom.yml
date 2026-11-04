@@ -1,0 +1,10 @@
+config_version: 1
+name: minimal
+vars:
+  country: BR
+defaults:
+  models: {materialized: table, retries: 1, timeout: 30m}
+targets:
+  dev:
+    engine: {kind: memory}
+    catalog: {kind: memory}
