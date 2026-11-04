@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
+from click.testing import CliRunner
 
 from pipeloom.api import Project, ProjectOptions
+from pipeloom.cli import main
 from pipeloom.diagnostics import format_diagnostic
 from tests.conftest import make_project
 from tests.plugins.fakes import FakeDist, FakeEntryPoint, install_entry_points
@@ -33,6 +36,9 @@ def test_case(
             for e in spec.get("entry_points", [])
         ],
     )
+    if "cli" in spec:
+        run_cli_case(code, spec, project_dir, golden)
+        return
     options = ProjectOptions(
         project_dir=project_dir,
         target=spec.get("target"),
@@ -45,3 +51,34 @@ def test_case(
     as_json = json.dumps([d.to_json() for d in outcome.diagnostics], indent=2, ensure_ascii=True)
     golden(f"diagnostics/{code}.txt", text)
     golden(f"diagnostics/{code}.json", as_json + "\n")
+
+
+VOLATILE = ("id", "ts", "invocation_id")
+
+
+def run_cli_case(
+    code: str, spec: dict[str, Any], project_dir: Path, golden: Callable[[str, str], None]
+) -> None:
+    """Run the CLI and keep the events and text lines that carry the code, without volatile fields."""
+    args = [
+        *spec["cli"],
+        "--project-dir",
+        str(project_dir),
+        *[a for p in spec.get("plugins", ()) for a in ("--plugin", p)],
+    ]
+    env = {"PIPELOOM_TARGET": "", "PIPELOOM_DISABLE_PLUGIN_AUTOLOAD": ""}
+    as_json = CliRunner().invoke(main, [*args, "--log-format", "json"], env=env)
+    events = [json.loads(line) for line in as_json.stderr.splitlines()]
+    kept = [
+        {k: v for k, v in e.items() if k not in VOLATILE}
+        for e in events
+        if e["data"].get("code") == code
+    ]
+    assert kept, as_json.stderr
+    as_text = CliRunner().invoke(main, [*args, "--log-format", "text"], env=env)
+    lines = [ln for ln in as_text.stderr.splitlines() if code in ln]
+    golden(f"diagnostics/{code}.json", json.dumps(kept, indent=2, ensure_ascii=True) + "\n")
+    golden(
+        f"diagnostics/{code}.txt",
+        "".join(re.sub(r"^\d\d:\d\d:\d\d ", "", ln) + "\n" for ln in lines),
+    )

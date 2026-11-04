@@ -1,0 +1,1 @@
+warning PLE401 sink 'boom' disabled after 1 consecutive failure(s): RuntimeError: boom
