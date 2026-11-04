@@ -21,7 +21,10 @@ def classify(exc: BaseException, phase: Phase) -> Literal["transient", "permanen
 
 def _scrub(text: str, project_dir: Path) -> str:
     """Show paths below the project dir as relative ones, so messages do not leak the machine."""
-    for form in {project_dir.as_posix(), str(project_dir)}:
+    forms = {project_dir.as_posix(), str(project_dir)}
+    resolved = project_dir.resolve()
+    forms |= {resolved.as_posix(), str(resolved)}
+    for form in sorted(forms - {"."}, key=len, reverse=True):
         text = text.replace(form + "/", "").replace(form + "\\", "").replace(form, ".")
     return text
 

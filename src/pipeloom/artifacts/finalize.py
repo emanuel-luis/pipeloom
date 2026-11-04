@@ -42,13 +42,15 @@ def finalize(
     skipped: Mapping[str, tuple[str, str | None]],
     cancelled: Collection[str],
     unfinished: Collection[str] = (),
+    crashed: Mapping[str, dict[str, Any]] | None = None,
 ) -> Finalized:
     """Write `run_results.json` into the run folder and copy it, with the manifest, to the root.
 
     `unit_nodes` maps unit id to the unique id of its persisted model. A skipped or cancelled
     verdict of this invocation wins over an attempt file; every other unit uses its newest
     attempt, including units of earlier invocations that reused the run id. `unfinished` units
-    (an internal error stopped the run) are reported as cancelled.
+    (an internal error stopped the run) are reported as cancelled. `crashed` rows replace the
+    attempt of a unit whose runner failed before it could write one.
     """
     rows = latest_attempts(paths)
     for unit_id, (reason, _upstream) in skipped.items():
@@ -59,6 +61,7 @@ def finalize(
         rows[unit_id] = result_row(
             unique_id=unit_nodes[unit_id], unit_id=unit_id, status="cancelled"
         )
+    rows.update(crashed or {})
     results = build_run_results(header, list(rows.values()))
     write_json_atomic(paths.run_results, results)
     written = [paths.run_results]

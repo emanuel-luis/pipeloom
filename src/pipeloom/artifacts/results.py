@@ -125,6 +125,8 @@ class RunHeader:
 
     run_id: str
     invocation_id: str
+    invocation_ids: Sequence[str]
+    """Every invocation that worked on the run, oldest first."""
     project: str
     target: str
     plan_hash: str
@@ -158,7 +160,7 @@ def build_run_results(header: RunHeader, rows: Sequence[dict[str, Any]]) -> dict
         "run": {
             "run_id": h.run_id,
             "parent_run_id": None,
-            "invocation_ids": [h.invocation_id],
+            "invocation_ids": list(h.invocation_ids),
             "project": h.project,
             "target": h.target,
             "plan_hash": h.plan_hash,

@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import pipeloom
 from pipeloom.artifacts.finalize import finalize
 from pipeloom.artifacts.layout import RunPaths
-from pipeloom.artifacts.results import RunHeader, exit_code_of, git_sha
+from pipeloom.artifacts.results import RunHeader, exit_code_of, git_sha, result_row
 from pipeloom.config.bind import BoundProject
 from pipeloom.diagnostics import Diagnostic, JsonValue, Report, Severity
 from pipeloom.engine.protocols import Catalog, Engine
@@ -27,7 +27,7 @@ from pipeloom.graph.selectors import Selection
 from pipeloom.plan.manifest import write_manifest
 from pipeloom.plan.model import Plan
 from pipeloom.runtime.context import RuntimeContext
-from pipeloom.runtime.errors import to_diagnostic
+from pipeloom.runtime.errors import ErrorInfo, to_diagnostic
 from pipeloom.runtime.executors.thread import ThreadExecutor
 from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.memo import EphemeralMemo
@@ -90,9 +90,9 @@ def _workers(opts: RunOptions, bound: BoundProject) -> int:
     return min(MAX_DEFAULT_WORKERS, os.cpu_count() or 1)
 
 
-def _artifacts_root(bound: BoundProject) -> Path:
+def _artifacts_root(bound: BoundProject, project_dir: Path) -> Path:
     root = Path(bound.runtime.artifacts.root or DEFAULT_ARTIFACTS_ROOT)
-    return root if root.is_absolute() else bound.loaded.project_dir / root
+    return root if root.is_absolute() else project_dir / root
 
 
 def _missing(bound: BoundProject, what: str) -> Diagnostic:
@@ -157,8 +157,9 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     started = clock.now()
     run_id = opts.run_id or new_run_id(started)
     bus.set_run_id(run_id)
-    project_dir = bound.loaded.project_dir
-    paths = RunPaths(_artifacts_root(bound), run_id)
+    # Resolved once: sys.path, tracebacks and artifact paths all use absolute forms.
+    project_dir = bound.loaded.project_dir.resolve()
+    paths = RunPaths(_artifacts_root(bound, project_dir), run_id)
     workers = _workers(opts, bound)
     identity = project.identity
     rt = RuntimeContext(
@@ -178,19 +179,25 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     state: StateStore = bound.plugins["state_stores"].create()
     scope = f"{rt.project}/{rt.target}"
     write_manifest(plan, paths.manifest)
+    floor = {u: paths.next_attempt(u) for u in units}
+    """The attempt number each unit gets first in this invocation."""
     schedule: ScheduleResult | None = None
     internal: BaseException | None = None
     try:
         with state.lock(scope, run_id) if opts.lock else nullcontext():
             prior = state.get_run(run_id)
+            run_started = prior.started_at if prior else started
+            invocation_ids = tuple(
+                dict.fromkeys((*(prior.invocation_ids if prior else ()), rt.invocation_id))
+            )
             record = RunRecord(
                 run_id=run_id,
                 project=rt.project,
                 target=rt.target,
                 plan_hash=plan.metadata.plan_hash,
                 status="running",
-                started_at=prior.started_at if prior else started,
-                invocation_ids=(*(prior.invocation_ids if prior else ()), rt.invocation_id),
+                started_at=run_started,
+                invocation_ids=invocation_ids,
             )
             state.record_run(record)
             bus.emit(
@@ -269,8 +276,11 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                 schedule,
                 internal,
                 units,
+                floor,
                 workers,
                 started,
+                run_started,
+                invocation_ids,
                 t0,
                 diags,
             )
@@ -290,13 +300,18 @@ def _finish(
     schedule: ScheduleResult | None,
     internal: BaseException | None,
     units: list[str],
+    floor: dict[str, int],
     workers: int,
     started: datetime,
+    run_started: datetime,
+    invocation_ids: tuple[str, ...],
     t0: float,
     diags: list[Diagnostic],
 ) -> RunOutcome:
     clock = project.clock
     skipped, cancelled, unfinished = _verdict(schedule, units)
+    # A unit the scheduler still saw as running may have finished while the executor shut down.
+    unfinished = [u for u in unfinished if paths.next_attempt(u) == floor.get(u)]
     ended = clock.now()
     duration_ms = max(0, int((clock.monotonic() - t0) * 1000))
     args: dict[str, Any] = {
@@ -313,6 +328,7 @@ def _finish(
     header = RunHeader(
         run_id=rt.run_id,
         invocation_id=rt.invocation_id,
+        invocation_ids=invocation_ids,
         project=rt.project,
         target=rt.target,
         plan_hash=plan.metadata.plan_hash,
@@ -322,7 +338,7 @@ def _finish(
         selector={"select": list(opts.selection.select), "exclude": list(opts.selection.exclude)},
         full_refresh=opts.full_refresh,
         generated_at=_iso(ended),
-        started_at=_iso(started),
+        started_at=_iso(run_started),
         ended_at=_iso(ended),
         duration_ms=duration_ms,
         identity={
@@ -335,6 +351,24 @@ def _finish(
         git_sha=git_sha(rt.project_dir),
     )
     unit_nodes = {u: plan.units[u].nodes[-1] for u in plan.units}
+    crashed: dict[str, dict[str, Any]] = {}
+    if schedule is not None:
+        for unit_id, comp in schedule.completions.items():
+            exc = comp.internal_error
+            if exc is not None and comp.result is None:
+                err = ErrorInfo(
+                    code="PLX101",
+                    category="permanent",
+                    message=f"internal error: {type(exc).__name__}: {exc}",
+                    hint="this is probably a pipeloom bug; report it",
+                    exception_type=type(exc).__name__,
+                )
+                crashed[unit_id] = result_row(
+                    unique_id=unit_nodes[unit_id],
+                    unit_id=unit_id,
+                    status="failed",
+                    error=err.model_dump(mode="json"),
+                )
     done = finalize(
         paths,
         header,
@@ -342,6 +376,7 @@ def _finish(
         skipped=skipped,
         cancelled=cancelled,
         unfinished=unfinished,
+        crashed=crashed,
     )
     run = done.run_results["run"]
     status: RunStatus = run["status"]
@@ -352,9 +387,9 @@ def _finish(
             target=rt.target,
             plan_hash=plan.metadata.plan_hash,
             status=status,
-            started_at=started,
+            started_at=run_started,
             ended_at=ended,
-            invocation_ids=(rt.invocation_id,),
+            invocation_ids=invocation_ids,
             counts=run["counts"],
         )
     )

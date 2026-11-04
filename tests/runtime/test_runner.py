@@ -6,7 +6,7 @@ import json
 import shutil
 import sys
 from collections.abc import Callable, Mapping
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -64,15 +64,17 @@ def run_project(
     full_refresh: bool = False,
     fail_fast: bool = False,
     workers: int = 1,
+    invocation_id: str = "inv",
+    hour: int = 12,
 ) -> tuple[RunOutcome, RecordingSink]:
-    clock = FakeClock(step=timedelta(0))
+    clock = FakeClock(datetime(2026, 1, 1, hour, tzinfo=UTC), step=timedelta(0))
     project = Project(
         ProjectOptions(project_dir=project_dir, target="ci", env={"PIPELOOM_USER": "tester"}),
         clock=clock,
-        invocation_id="inv",
+        invocation_id=invocation_id,
     )
     sink = RecordingSink()
-    with EventBus([(sink, 5)], clock=clock, invocation_id="inv") as bus:
+    with EventBus([(sink, 5)], clock=clock, invocation_id=invocation_id) as bus:
         outcome = project.run(
             RunOptions(
                 Selection(select),

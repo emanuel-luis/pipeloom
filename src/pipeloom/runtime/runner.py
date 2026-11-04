@@ -176,6 +176,9 @@ class ModelRunner:
                 fallback=Location(node.file, node.line),
             )
             trace = full_traceback(fail.cause, rt.project_dir)
+        except Exception as exc:  # noqa: BLE001 - a bug in the runner still ends the unit cleanly
+            error = self._unexpected(exc, node)
+            trace = full_traceback(exc, rt.project_dir)
         finally:
             if self._memo is not None:
                 self._memo.release(unit_id)
@@ -188,12 +191,25 @@ class ModelRunner:
             duration_ms=duration_ms,
             error=None if error is None else error.model_dump(mode="json"),
         )
-        write_json_atomic(self._paths.attempt(unit_id, attempt), row)
-        self._state.record_unit(
-            UnitRecord(
-                rt.run_id, unit_id, attempt, status, rt.invocation_id, started, ended, dict(row)
+        try:
+            write_json_atomic(self._paths.attempt(unit_id, attempt), row)
+            self._state.record_unit(
+                UnitRecord(
+                    rt.run_id, unit_id, attempt, status, rt.invocation_id, started, ended, dict(row)
+                )
             )
-        )
+        except Exception as exc:
+            self._bus.emit(
+                UnitFailed(
+                    error=self._unexpected(exc, node),
+                    duration_ms=duration_ms,
+                    traceback=full_traceback(exc, rt.project_dir),
+                ),
+                unit_id=unit_id,
+                model=node.name,
+                attempt=attempt,
+            )
+            raise
         if error is None:
             self._bus.emit(
                 UnitSucceeded(
@@ -217,6 +233,17 @@ class ModelRunner:
                 attempt=attempt,
             )
         return UnitCompletion(unit_id, status, ModelResult(unit_id, status, attempt, row, error))
+
+    def _unexpected(self, exc: Exception, node: PlanNode) -> ErrorInfo:
+        return build_error(
+            "PLX101",
+            exc,
+            phase="body",
+            message=f"unexpected error while running model '{node.name}'",
+            hint="this is probably a pipeloom bug; report it with the traceback",
+            project_dir=self._rt.project_dir,
+            fallback=Location(node.file, node.line),
+        )
 
     def _strategy(self, node: PlanNode) -> str | None:
         """Read from the plan: it stores the effective strategy. Only tables use one."""

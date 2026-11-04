@@ -115,6 +115,8 @@ class Scheduler:
         self._clock = clock
         self._stop = threading.Event()
         self.result: ScheduleResult | None = None
+        self.interrupted = False
+        """True once a KeyboardInterrupt stopped the run."""
 
     def request_stop(self) -> None:
         """Stop dequeuing; pending and queued units become cancelled. Safe from any thread."""
@@ -137,26 +139,42 @@ class Scheduler:
         for u in g.units:
             if self._waiting[u] == 0:
                 self._queue(u)
-        while True:
-            if not halted and self._stop.is_set():
-                halted = True
-                self._cancel_rest()
-            if not halted:
-                self._fill()
-            if not self._running:
-                break
-            comp = self._executor.wait_any()
-            failure = self._complete(comp)
-            if failure is not None:
-                error = error or failure
-                halted = True
-                self._cancel_rest()
-        self.result = ScheduleResult(
-            states=dict(self._states),
-            skipped=dict(self._skipped),
-            completions=dict(self._completions),
-            trace=tuple(self._trace),
-        )
+        interrupted = False
+        try:
+            while True:
+                if not halted and self._stop.is_set():
+                    halted = True
+                    self._cancel_rest()
+                if not halted:
+                    self._fill()
+                if not self._running:
+                    break
+                try:
+                    comp = self._executor.wait_any()
+                except KeyboardInterrupt:
+                    # The first Ctrl+C stops dequeuing and lets running units finish; a second
+                    # one propagates.
+                    if interrupted:
+                        raise
+                    interrupted = True
+                    self.interrupted = True
+                    if not halted:
+                        halted = True
+                        self._cancel_rest()
+                    continue
+                failure = self._complete(comp)
+                if failure is not None:
+                    error = error or failure
+                    halted = True
+                    self._cancel_rest()
+        finally:
+            # Also set when an exception escapes, so the caller can finalize what happened.
+            self.result = ScheduleResult(
+                states=dict(self._states),
+                skipped=dict(self._skipped),
+                completions=dict(self._completions),
+                trace=tuple(self._trace),
+            )
         if error is not None:
             raise error
         return self.result
