@@ -168,7 +168,133 @@
         "sinks": {
           "description": "Event sinks.",
           "items": {
-            "$ref": "#/$defs/SinkBlock"
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "buffer_size": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "pattern": "^\\$\\{.+\\}$",
+                        "type": "string"
+                      }
+                    ],
+                    "default": 10000,
+                    "description": "Events held by a buffered sink before the oldest is dropped.",
+                    "title": "Buffer Size"
+                  },
+                  "buffered": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "pattern": "^\\$\\{.+\\}$",
+                        "type": "string"
+                      }
+                    ],
+                    "default": false,
+                    "description": "Run the sink on a background thread.",
+                    "title": "Buffered"
+                  },
+                  "failure_budget": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "pattern": "^\\$\\{.+\\}$",
+                        "type": "string"
+                      }
+                    ],
+                    "default": 5,
+                    "description": "Consecutive failures before the sink is disabled.",
+                    "title": "Failure Budget"
+                  },
+                  "kind": {
+                    "const": "console",
+                    "description": "Readable lines on stderr."
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "title": "console",
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "buffer_size": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "pattern": "^\\$\\{.+\\}$",
+                        "type": "string"
+                      }
+                    ],
+                    "default": 10000,
+                    "description": "Events held by a buffered sink before the oldest is dropped.",
+                    "title": "Buffer Size"
+                  },
+                  "buffered": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "pattern": "^\\$\\{.+\\}$",
+                        "type": "string"
+                      }
+                    ],
+                    "default": false,
+                    "description": "Run the sink on a background thread.",
+                    "title": "Buffered"
+                  },
+                  "failure_budget": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "pattern": "^\\$\\{.+\\}$",
+                        "type": "string"
+                      }
+                    ],
+                    "default": 5,
+                    "description": "Consecutive failures before the sink is disabled.",
+                    "title": "Failure Budget"
+                  },
+                  "kind": {
+                    "const": "jsonl",
+                    "description": "One JSON event per line, to stderr or a file under the project."
+                  },
+                  "path": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "description": "File to write, relative to the project directory. Stderr when omitted.",
+                    "title": "Path"
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "title": "jsonl",
+                "type": "object"
+              }
+            ]
           },
           "title": "Sinks",
           "type": "array"

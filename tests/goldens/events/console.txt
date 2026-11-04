@@ -1,0 +1,7 @@
+14:02:11 pipeloom 0.1.0 | command validate | project shop | target dev
+error PLS101 pipeloom.yml:6:1 unknown field 'bogus'
+      hint: did you mean 'name'?
+warning PLR206 gone
+14:02:14 plan: 6 units (3 table, 1 view; 1 ephemeral inlined) | selected 5 | hash abababababab
+14:02:15 artifact: target/manifest.json (manifest, 42 bytes)
+14:02:16 validate finished in 12 ms | exit 1 | 1 error(s), 1 warning(s)

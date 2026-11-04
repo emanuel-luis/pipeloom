@@ -8,9 +8,9 @@ from typing import Any
 
 import click
 
-from pipeloom.cli._options import plugin_option
-from pipeloom.cli._output import print_diagnostics
-from pipeloom.diagnostics import Report
+from pipeloom.cli._events import Invocation
+from pipeloom.cli._options import log_format_option, plugin_option
+from pipeloom.diagnostics import Report, Severity
 from pipeloom.plugins import GROUPS, PluginRegistry
 
 
@@ -30,8 +30,10 @@ def plugins() -> None:
 )
 @click.option("--check", is_flag=True, help="Import each plugin and report its API and status.")
 @plugin_option
-def list_(group: Any, output: str, check: bool, plugins: tuple[str, ...]) -> None:
+@log_format_option
+def list_(group: Any, output: str, check: bool, plugins: tuple[str, ...], log_format: str) -> None:
     """List plugins by group and kind. Nothing is imported unless --check is given."""
+    inv = Invocation("plugins.list", log_format)
     report = Report()
     registry = PluginRegistry.discover(cli_plugins=plugins, env=os.environ, report=report)
     dupes = registry.duplicates()
@@ -69,6 +71,6 @@ def list_(group: Any, output: str, check: bool, plugins: tuple[str, ...]) -> Non
         ]
         for line in [header, *([r[c] for c in columns] for r in rows)]:
             click.echo("  ".join(v.ljust(w) for v, w in zip(line, widths, strict=True)).rstrip())
-    errors, _ = print_diagnostics(report.sorted())
-    if errors:
-        raise SystemExit(1)
+    diagnostics = report.sorted()
+    errors = any(d.severity is Severity.ERROR for d in diagnostics)
+    inv.finish(diagnostics, 1 if errors else 0)

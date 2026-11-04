@@ -77,3 +77,16 @@ def project_options(func: F) -> F:
         help="Directory that holds pipeloom.yml.",
     )(func)
     return func
+
+
+def log_format_option(func: F) -> F:
+    """Add --log-format."""
+    return click.option(
+        "--log-format",
+        "log_format",
+        envvar="PIPELOOM_LOG_FORMAT",
+        type=click.Choice(["text", "json"]),
+        default="text",
+        show_default=True,
+        help="Diagnostics and events on stderr: readable text or one JSON object per line.",
+    )(func)
