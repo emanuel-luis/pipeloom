@@ -230,9 +230,14 @@ class JsonDirStore:
                 # systems without links; then try a rename) and never delete it.
                 try:
                     os.link(stale, path)
+                except FileExistsError:
+                    pass  # a contender already wrote a new lease; never overwrite it
                 except OSError:
-                    with suppress(OSError):
-                        os.rename(stale, path)
+                    # No hard links on this file system. On POSIX a rename replaces an
+                    # existing file, so only rename while the path is still free.
+                    if not path.exists():
+                        with suppress(OSError):
+                            os.rename(stale, path)
                 else:
                     with suppress(OSError):
                         stale.unlink()
