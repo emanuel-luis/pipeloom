@@ -21,19 +21,23 @@ from pipeloom.secrets.interpolation import InterpolationRecord, interpolate
 
 M = TypeVar("M", bound=BaseModel)
 
-_SECRET_WORDS = frozenset(
-    {"password", "passwd", "secret", "token", "credential", "credentials"}
-    | {"apikey", "privatekey", "accesskey"}
-)
+_SECRET_SUBSTRINGS = ("password", "passwd", "secret", "credential")
+_SECRET_SUFFIXES = ("token", "apikey", "privatekey", "accesskey")
 _SECRET_PAIRS = frozenset({("api", "key"), ("private", "key"), ("access", "key")})
 _CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 
 
 def _is_secret_key(key: str) -> bool:
-    """True when the key's words (split on _, - and camelCase) name a secret."""
-    words = [w for w in re.split(r"[_\-]", _CAMEL.sub("_", key).lower()) if w]
-    return any(w in _SECRET_WORDS for w in words) or any(
-        pair in _SECRET_PAIRS for pair in itertools.pairwise(words)
+    """True when the key's words name a secret.
+
+    Words are split on _, -, . and camelCase, lowercased, with trailing digits dropped.
+    """
+    parts = re.split(r"[_.\-]", _CAMEL.sub("_", key).lower())
+    words = [w for w in (p.rstrip("0123456789") for p in parts) if w]
+    return (
+        any(sub in w for w in words for sub in _SECRET_SUBSTRINGS)
+        or any(w.endswith(_SECRET_SUFFIXES) for w in words)
+        or any(pair in _SECRET_PAIRS for pair in itertools.pairwise(words))
     )
 
 

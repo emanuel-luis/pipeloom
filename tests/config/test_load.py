@@ -164,16 +164,37 @@ def test_secret_like_references_pass(project_factory: Factory, value: str) -> No
     assert codes(load(project_factory({"pipeloom.yml": text, "models/.keep": ""}))) == []
 
 
-@pytest.mark.parametrize(
-    "key",
-    ["api_key", "apiKey", "db_password", "token", "access_key", "private_key", "client_secret"],
-)
+MUST_MATCH = [
+    "password",
+    "password2",
+    "passwords",
+    "dbpassword",
+    "db_password",
+    "clientsecret",
+    "client_secret",
+    "secrets",
+    "apiKey",
+    "api_key",
+    "apikey1",
+    "access_key",
+    "private_key",
+    "token",
+    "auth_token",
+    "authtoken",
+    "refreshtoken",
+    "credentials",
+    "db.password",
+]
+MUST_NOT_MATCH = ["max_tokens", "tokens", "tokenizer"]
+
+
+@pytest.mark.parametrize("key", MUST_MATCH)
 def test_secret_key_names_match(project_factory: Factory, key: str) -> None:
     text = BASE + f"    catalog: {{kind: u, {key}: hunter2}}\n"
     assert codes(load(project_factory({"pipeloom.yml": text, "models/.keep": ""}))) == ["PLS104"]
 
 
-@pytest.mark.parametrize("key", ["max_tokens", "tokenizer", "secretary_name"])
+@pytest.mark.parametrize("key", MUST_NOT_MATCH)
 @pytest.mark.parametrize("value", ["100", "hunter2", "true"])
 def test_non_secret_key_names_pass(project_factory: Factory, key: str, value: str) -> None:
     text = BASE + f"    catalog: {{kind: u, {key}: {value}}}\n"

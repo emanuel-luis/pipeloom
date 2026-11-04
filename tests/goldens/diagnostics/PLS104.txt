@@ -12,3 +12,21 @@ error PLS104 pipeloom.yml:8:11 literal value in secret-like field 'apiKey'
       hint: use ${secret:provider/path} or ${env:NAME}
 error PLS104 pipeloom.yml:8:31 literal value in secret-like field 'client_secret'
       hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:8:47 literal value in secret-like field 'password2'
+      hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:8:62 literal value in secret-like field 'dbpassword'
+      hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:9:17 literal value in secret-like field 'clientsecret'
+      hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:9:31 literal value in secret-like field 'authtoken'
+      hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:9:48 literal value in secret-like field 'refreshtoken'
+      hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:9:60 literal value in secret-like field 'apikey1'
+      hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:9:74 literal value in secret-like field 'passwords'
+      hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:9:86 literal value in secret-like field 'secrets'
+      hint: use ${secret:provider/path} or ${env:NAME}
+error PLS104 pipeloom.yml:10:16 literal value in secret-like field 'credentials'
+      hint: use ${secret:provider/path} or ${env:NAME}
