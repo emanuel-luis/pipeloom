@@ -42,6 +42,7 @@ def harness(tmp_path: Path) -> EngineHarness:
         return session.relation(pd.DataFrame({"a": [object()]}))  # parquet cannot store it
 
     return EngineHarness(
+        schema_on_read=True,
         engine=PandasEngine(),
         catalog=FilesystemCatalog(tmp_path / "wh"),
         make_native=_frame,
