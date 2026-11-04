@@ -1,0 +1,2 @@
+error PLS103 pipeloom.yml:1:1 config_version is missing or not 1
+      hint: start the file with 'config_version: 1'

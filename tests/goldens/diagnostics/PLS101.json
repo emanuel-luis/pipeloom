@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLS101",
+    "severity": "error",
+    "message": "unknown field 'model_pths'",
+    "hint": "did you mean 'model_paths'?",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 6,
+      "col": 1,
+      "json_pointer": "/model_pths"
+    },
+    "context": {
+      "pydantic_type": "extra_forbidden"
+    }
+  }
+]

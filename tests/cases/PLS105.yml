@@ -1,0 +1,5 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    targets:
+      dev: {}

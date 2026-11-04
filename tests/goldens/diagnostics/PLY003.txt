@@ -1,0 +1,2 @@
+error PLY003 pipeloom.yml:2 file is not valid UTF-8
+      hint: save the file as UTF-8 (UTF-16 is not supported)

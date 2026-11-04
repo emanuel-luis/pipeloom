@@ -1,0 +1,12 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine: {kind: memory}
+    model_paths: [models, missing_dir]
+  models/m.yml: |
+    models:
+      - name: m
+        sql: select 1

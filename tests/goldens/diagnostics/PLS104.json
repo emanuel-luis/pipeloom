@@ -1,0 +1,28 @@
+[
+  {
+    "code": "PLR206",
+    "severity": "warning",
+    "message": "model_paths entry 'models' does not exist",
+    "hint": "create the directory or remove the entry",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 1,
+      "col": 1,
+      "json_pointer": "/model_paths/0"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLS104",
+    "severity": "error",
+    "message": "literal value in secret-like field 'token'",
+    "hint": "use ${secret:provider/path} or ${env:NAME}",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 6,
+      "col": 35,
+      "json_pointer": "/targets/dev/catalog/token"
+    },
+    "context": {}
+  }
+]

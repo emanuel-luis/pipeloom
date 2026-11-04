@@ -1,0 +1,15 @@
+[
+  {
+    "code": "PLY002",
+    "severity": "error",
+    "message": "duplicate key 'name'",
+    "hint": "first defined at line 2",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 6,
+      "col": 1,
+      "json_pointer": null
+    },
+    "context": {}
+  }
+]

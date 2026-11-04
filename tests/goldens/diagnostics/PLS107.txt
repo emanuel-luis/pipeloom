@@ -1,0 +1,4 @@
+warning PLR206 pipeloom.yml:1:1 model_paths entry 'models' does not exist
+      hint: create the directory or remove the entry
+error PLS107 pipeloom.yml:6:39 malformed interpolation '${env:1bad}'
+      hint: use ${env:NAME}, ${env:NAME:-default} or ${var:name}

@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLS108",
+    "severity": "error",
+    "message": "exactly one of sql, python is required",
+    "hint": null,
+    "location": {
+      "file": "models/m.yml",
+      "line": 2,
+      "col": 5,
+      "json_pointer": "/models/0"
+    },
+    "context": {
+      "pydantic_type": "pipeloom_exclusive"
+    }
+  }
+]

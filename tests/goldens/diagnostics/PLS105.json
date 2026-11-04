@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLS105",
+    "severity": "error",
+    "message": "missing required field 'name'",
+    "hint": null,
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 1,
+      "col": 1,
+      "json_pointer": ""
+    },
+    "context": {
+      "pydantic_type": "missing"
+    }
+  }
+]
