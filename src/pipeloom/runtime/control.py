@@ -27,12 +27,16 @@ class CancelToken:
         self._reason: Reason | None = None
         self._lock = threading.Lock()
         self._finished = False
+        self._final = False
 
-    def set(self, reason: Reason) -> bool:
-        """False when a timeout arrives after `finish`: the attempt already has its result."""
+    def set(self, reason: Reason, *, final: bool = False) -> bool:
+        """A `final` set (a timeout, or the end of a stop grace) is the scheduler verdict. It
+        returns False when the runner already passed `finish`: the attempt has its result."""
+        final = final or reason == "timeout"
         with self._lock:
-            if reason == "timeout" and self._finished:
+            if final and self._finished:
                 return False
+            self._final = self._final or final
             if self._reason is None:
                 self._reason = reason
         self._event.set()
@@ -41,7 +45,7 @@ class CancelToken:
     def finish(self) -> bool:
         """The runner's point of no return. False when a timeout won the race first."""
         with self._lock:
-            if self._reason == "timeout":
+            if self._final:
                 return False
             self._finished = True
             return True

@@ -105,6 +105,8 @@ _SLACK = 1e-6
 class _Run:
     handle: UnitHandle
     deadline: float | None
+    finished: bool = False
+    """The runner has its result: a verdict came too late and the completion is on its way."""
 
 
 class Scheduler:
@@ -210,10 +212,10 @@ class Scheduler:
                     self._halt()
                     continue
                 if comp is not None:
-                    failure = self._complete(comp)
-                    if failure is not None:
-                        error = error or failure
-                        self._halt()
+                    error = error or self._take(comp)
+                    # A completion due at the deadline wins over the timeout.
+                    while (more := self._executor.wait_any(0)) is not None:
+                        error = error or self._take(more)
                 self._deadlines(self._clock.monotonic())
         finally:
             self._control.remove_waker(self._executor.wake)
@@ -227,6 +229,12 @@ class Scheduler:
         if error is not None:
             raise error
         return self.result
+
+    def _take(self, comp: UnitCompletion) -> BaseException | None:
+        failure = self._complete(comp)
+        if failure is not None:
+            self._halt()
+        return failure
 
     def _emit(self, unit_id: str, payload: EventPayload) -> None:
         if self._announce:
@@ -280,7 +288,7 @@ class Scheduler:
         self._trim_retry()
         if self._retry:
             due.append(self._retry[0][0])
-        if self._stop_by is not None:
+        if self._stop_by is not None and self._stop_by > now:
             due.append(self._stop_by)
         return max(0.0, min(due) - now)
 
@@ -363,8 +371,12 @@ class Scheduler:
         for u, run in list(self._run_of.items()):
             if run.deadline is None or now + _SLACK < run.deadline:
                 continue
+            if run.finished:
+                continue
             if not self._executor.cancel(run.handle, "timeout"):
-                continue  # finished just in time: its completion decides
+                run.finished = True  # finished just in time: its completion decides
+                run.deadline = None
+                continue
             del self._run_of[u]
             self._verdict(u, run, "timeout")
             self._set(u, UnitState.TIMED_OUT)
@@ -395,12 +407,21 @@ class Scheduler:
         if self._run_of and (
             control.hard or (self._stop_by is not None and now + _SLACK >= self._stop_by)
         ):
+            gone = False
             for u, run in list(self._run_of.items()):
+                if run.finished:
+                    continue
+                if not self._executor.cancel(run.handle, "cancel", final=True):
+                    run.finished = True  # it has its result: keep waiting for it
+                    run.deadline = None
+                    continue
                 del self._run_of[u]
+                gone = True
                 self._verdict(u, run, "cancel")
                 self._set(u, UnitState.CANCELLED)
                 self._emit_attempt(u, UnitCancelled(reason="cancel"), run.handle.attempt)
-            self._executor.shutdown(wait=False)
+            if gone and not self._run_of:
+                self._executor.shutdown(wait=False)
 
     def _open(self) -> list[str]:
         return [

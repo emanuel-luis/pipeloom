@@ -9,6 +9,7 @@ from __future__ import annotations
 import contextlib
 import queue
 import threading
+import time
 from collections.abc import Callable
 from typing import Literal
 
@@ -16,6 +17,8 @@ from pipeloom.engine.protocols import EngineSession
 from pipeloom.runtime.control import CancelToken, Reason
 from pipeloom.runtime.executors import UnitCompletion, UnitHandle
 
+JOIN_TIMEOUT = 30.0
+"""Seconds `shutdown(wait=True)` waits in total for attempt threads."""
 RunUnit = Callable[[UnitHandle, float, CancelToken], UnitCompletion]
 
 
@@ -75,16 +78,17 @@ class ThreadExecutor:
         except queue.Empty:
             return None
 
-    def cancel(self, handle: UnitHandle, reason: Reason) -> bool:
+    def cancel(self, handle: UnitHandle, reason: Reason, *, final: bool = False) -> bool:
+        final = final or reason == "timeout"
         with self._lock:
             token = self._tokens.get(handle)
             if token is None:
                 return True
-            if reason == "timeout" and not token.set("timeout"):
+            if final and not token.set(reason, final=True):
                 return False  # the runner already has its result; its completion is on the way
             first = handle not in self._cancelled
             self._cancelled.add(handle)
-            if reason == "timeout":
+            if final:
                 self._abandoned.add(handle)
         token.set(reason)
         if first and self._session is not None:
@@ -92,7 +96,7 @@ class ThreadExecutor:
                 Exception
             ):  # an engine that cannot cancel must not stop the run
                 self._session.cancel(handle.unit_id)
-        if reason == "timeout" and self._on_interrupt is not None:
+        if final and self._on_interrupt is not None:
             self._on_interrupt(handle, reason)
         return True
 
@@ -122,5 +126,6 @@ class ThreadExecutor:
             return
         with self._lock:
             live = [t for h, t in self._threads.items() if h not in self._abandoned]
-        for thread in live:
-            thread.join()
+        end = time.monotonic() + JOIN_TIMEOUT
+        for thread in live:  # a hung thread must not hang the run: it is a daemon
+            thread.join(max(0.0, end - time.monotonic()))

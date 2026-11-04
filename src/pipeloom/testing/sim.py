@@ -123,11 +123,11 @@ class SimExecutor:
         self._clock.advance(max(0.0, limit - now))
         return None
 
-    def cancel(self, handle: UnitHandle, reason: Reason) -> bool:
+    def cancel(self, handle: UnitHandle, reason: Reason, *, final: bool = False) -> bool:
         live = self._live.get(handle)
         if live is None:
             return True
-        if reason == "timeout":
+        if reason == "timeout" or final:
             del self._live[handle]  # abandoned: its late result is dropped
             return True
         finish, entry, _ = live

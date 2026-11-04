@@ -49,10 +49,11 @@ class Executor(Protocol):
         """Block until a unit completes; None when `timeout` seconds pass or `wake` is called."""
         ...
 
-    def cancel(self, handle: UnitHandle, reason: Reason) -> bool:
-        """Ask a running unit to stop. A `timeout` also abandons it: its completion is dropped.
+    def cancel(self, handle: UnitHandle, reason: Reason, *, final: bool = False) -> bool:
+        """Ask a running unit to stop. A `timeout`, or a `final` cancel (the end of the grace),
+        also abandons it: its completion is dropped.
 
-        False when a timeout came too late: the unit already has its result and its completion
+        False when a final verdict came too late: the unit already has its result and its completion
         is still coming, so the scheduler must wait for it."""
         ...
 

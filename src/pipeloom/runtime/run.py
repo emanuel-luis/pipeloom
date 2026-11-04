@@ -433,7 +433,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                     schedule = scheduler.result
                 finally:
                     abandoned = getattr(executor, "abandoned_threads", 0)
-                    executor.shutdown(wait=True)
+                    executor.shutdown(wait=True)  # joins are bounded
             if unit_mode:
                 return _unit_outcome(schedule, internal, diags)
             return _finish(

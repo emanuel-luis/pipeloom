@@ -11,13 +11,16 @@ child enforces a unit's timeout itself; the parent's own deadline is `timeout + 
 
 from __future__ import annotations
 
+import contextlib
 import json
 import math
+import os
 import queue
 import signal
 import subprocess
 import sys
 import threading
+import time
 from collections import deque
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -37,6 +40,9 @@ from pipeloom.runtime.runner import ModelResult
 PARENT_ENV = "PIPELOOM_PARENT_INVOCATION_ID"
 """Set in the child: it opens no project sinks and reports to the parent only."""
 LOG_TAIL = 20
+KILL_TIMEOUT = 10.0
+JOIN_TIMEOUT = 5.0
+"""Seconds to wait for relay threads and children once a kill was sent."""
 _NOT_RELAYED = ("invocation.",)
 _TERMINAL = frozenset({"unit.succeeded", "unit.failed", "unit.timed_out", "unit.cancelled"})
 
@@ -88,11 +94,22 @@ class ChildCommand:
 
 
 def _kill(proc: subprocess.Popen[str]) -> None:
+    """Kill the child and everything it started: a grandchild would keep the pipes open."""
+    if sys.platform == "win32":
+        if proc.poll() is None:
+            with contextlib.suppress(OSError, subprocess.SubprocessError):
+                subprocess.run(
+                    ["taskkill", "/T", "/F", "/PID", str(proc.pid)],
+                    capture_output=True,
+                    timeout=KILL_TIMEOUT,
+                    check=False,
+                )
+    else:  # the child leads its own session, so its group id is its pid
+        with contextlib.suppress(OSError):
+            os.killpg(proc.pid, signal.SIGKILL)
     if proc.poll() is None:
-        try:
+        with contextlib.suppress(OSError):
             proc.kill()
-        except OSError:
-            pass
 
 
 def _pump(stream: Any, note: Any) -> None:
@@ -160,7 +177,7 @@ class ProcessExecutor:
         with self._lock:
             return (handle.unit_id, handle.attempt) in self._forwarded
 
-    def cancel(self, handle: UnitHandle, reason: Reason) -> bool:
+    def cancel(self, handle: UnitHandle, reason: Reason, *, final: bool = False) -> bool:
         """Ask the child to stop (SIGTERM, CTRL_BREAK on Windows) and kill it after the grace.
 
         A timeout is already past its grace in the scheduler, so the child is killed at once.
@@ -170,7 +187,7 @@ class ProcessExecutor:
             self._stopped.setdefault(handle, reason)
         if proc is None or proc.poll() is not None:
             return True
-        if reason == "timeout":
+        if reason == "timeout" or final:
             _kill(proc)
             return True
         try:
@@ -192,8 +209,12 @@ class ProcessExecutor:
         if not wait:
             for proc in procs:
                 _kill(proc)
+        end = time.monotonic() + (JOIN_TIMEOUT if not wait else 4 * JOIN_TIMEOUT)
         for thread in threads:
-            thread.join()
+            thread.join(max(0.0, end - time.monotonic()))
+        if wait:  # whatever outlived the join is stuck: end it rather than hang the run
+            for proc in procs:
+                _kill(proc)
 
     # -- one child --------------------------------------------------------------------------
 
@@ -240,11 +261,22 @@ class ProcessExecutor:
             assert proc.stdout is not None and proc.stderr is not None
             out_reader = threading.Thread(target=_pump, args=(proc.stdout, note), daemon=True)
             out_reader.start()
-            for line in proc.stderr:
-                self._relay(line.rstrip("\r\n"), note)
+            err_reader = threading.Thread(
+                target=self._pump_events, args=(proc.stderr, note), daemon=True
+            )
+            err_reader.start()
             code = proc.wait()
-            out_reader.join()
+            if sys.platform != "win32":  # sweep what the child left behind in its group
+                with contextlib.suppress(OSError):
+                    os.killpg(proc.pid, signal.SIGKILL)
+            # A grandchild may keep a pipe open after the child is gone: do not wait for it.
+            err_reader.join(JOIN_TIMEOUT)
+            out_reader.join(JOIN_TIMEOUT)
         return self._completion(handle, code, list(tail), log_path)
+
+    def _pump_events(self, stream: Any, note: Any) -> None:
+        for line in stream:
+            self._relay(line.rstrip("\r\n"), note)
 
     def _relay(self, line: str, note: Any) -> None:
         if line.startswith("{"):

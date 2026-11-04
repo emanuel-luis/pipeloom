@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import threading
 import time
 from pathlib import Path
@@ -12,7 +13,7 @@ from pipeloom.api import Project, ProjectOptions
 from pipeloom.events.bus import EventBus
 from pipeloom.graph.selectors import Selection
 from pipeloom.platform import SystemClock
-from pipeloom.runtime.control import CancelToken
+from pipeloom.runtime.control import CancelToken, RunControl
 from pipeloom.runtime.executors import UnitCompletion, UnitHandle
 from pipeloom.runtime.executors.process import ProcessExecutor
 from pipeloom.runtime.executors.thread import ThreadExecutor
@@ -267,3 +268,102 @@ def test_a_unit_that_finishes_at_its_deadline_is_not_also_timed_out() -> None:
     executor.shutdown(wait=True)
     assert result.states == {"a": UnitState.SUCCEEDED}
     assert not [e for e in sink.events if e.type == "unit.timed_out"]
+
+
+def test_waiting_for_a_finished_unit_does_not_spin() -> None:
+    gate = threading.Event()
+    calls: list[float | None] = []
+
+    def run_unit(h: UnitHandle, queued_at: float, token: CancelToken) -> UnitCompletion:
+        assert token.finish()
+        gate.wait(5)
+        return UnitCompletion(h, "succeeded", h.attempt)
+
+    executor = ThreadExecutor(run_unit)
+    real = executor.wait_any
+
+    def counting(timeout: float | None) -> UnitCompletion | None:
+        calls.append(timeout)
+        return real(timeout)
+
+    executor.wait_any = counting  # type: ignore[method-assign]
+    threading.Timer(0.8, gate.set).start()
+    clock = SystemClock()
+    bus = EventBus([], clock=clock, invocation_id="inv")
+    policies = {"a": UnitPolicy(0, 0.0, "transient", 0.1)}
+    Scheduler(
+        UnitGraph.from_parents({"a": ()}, ["a"]),
+        executor,
+        workers=1,
+        fail_fast=False,
+        bus=bus,
+        clock=clock,
+        policies=policies,
+    ).run()
+    assert len(calls) < 40  # a poll interval, not a busy loop
+
+
+def test_a_stop_grace_that_ends_after_the_runner_finished_keeps_its_result() -> None:
+    gate = threading.Event()
+
+    def run_unit(h: UnitHandle, queued_at: float, token: CancelToken) -> UnitCompletion:
+        assert token.finish()
+        gate.wait(5)
+        return UnitCompletion(h, "succeeded", h.attempt)
+
+    executor = ThreadExecutor(run_unit)
+    control = RunControl()
+    threading.Timer(0.1, control.request_stop).start()
+    threading.Timer(0.7, gate.set).start()
+    sink = RecordingSink()
+    clock = SystemClock()
+    bus = EventBus([(sink, 5)], clock=clock, invocation_id="inv")
+    result = Scheduler(
+        UnitGraph.from_parents({"a": ()}, ["a"]),
+        executor,
+        workers=1,
+        fail_fast=False,
+        bus=bus,
+        clock=clock,
+        control=control,
+        cancel_grace=0.3,
+    ).run()
+    assert result.states == {"a": UnitState.SUCCEEDED}
+    assert not [e for e in sink.events if e.type == "unit.cancelled"]
+
+
+STUBBORN = """import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
+
+
+def stubborn(ctx):
+    beat = Path(__file__).parent / "beat.txt"
+    code = (
+        "import time, pathlib; p = pathlib.Path(" + repr(str(beat)) + "); "
+        "exec('while True: p.write_text(str(time.time())); time.sleep(0.1)')"
+    )
+    subprocess.Popen([sys.executable, "-c", code])  # a grandchild that ignores every stop
+    threading.Thread(target=time.sleep, args=(120,)).start()  # keeps the child alive
+    time.sleep(120)
+"""
+
+
+def test_a_grandchild_does_not_survive_or_hold_up_the_run(tmp_path: Path) -> None:
+    models = 'models:\n  - {name: slow, python: "m:stubborn", timeout: 1}\n'
+    root = test_process.project_dir(tmp_path, models, STUBBORN)
+    started = time.monotonic()
+    outcome, _ = test_process.run(root, RunOptions(run_id="r1", workers=1, cancel_grace=1.0))
+    assert time.monotonic() - started < 20
+    assert outcome.exit_code == 1, outcome.diagnostics
+    assert outcome.run_results is not None, outcome.diagnostics
+    assert {r["status"] for r in test_process.results(root, "r1")["results"]} == {"timed_out"}
+    if sys.platform == "win32":
+        return  # no job objects yet: a grandchild of a child that exits on its own survives
+    beat = root / "src" / "beat.txt"
+    time.sleep(0.5)  # a live grandchild would have written by now
+    before = beat.read_text(encoding="utf-8") if beat.exists() else ""
+    time.sleep(0.5)
+    assert (beat.read_text(encoding="utf-8") if beat.exists() else "") == before
