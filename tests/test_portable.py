@@ -207,30 +207,92 @@ def test_replace_partition_frames_treats_null_as_a_value(kind: str) -> None:
         portable.replace_partition_frames(cur, bat, ())
 
 
-def test_split_partitions_keys(kind: str) -> None:
-    frame = _kv(kind, [(1, "a", 1), (2, None, 2), (3, "a", 3)])
-    parts = portable.split_partitions(frame, ("label",))
-    assert [(k, portable.count(f)) for k, f in parts] == [(("a",), 2), ((None,), 1)]
-    assert portable.split_partitions(portable.empty_like(frame), ("label",)) == []
+def _typed(kind: str, case: str) -> Any:
+    """A frame of one partition column `p` (three rows) plus `v`, built natively."""
+    ns = [1767225600000000001, 1767225600000000002, 1767225600000000001]
+    t = datetime(2026, 1, 1, tzinfo=UTC)
+    values: dict[str, Any] = {
+        "float": [1.0, float("nan"), None],
+        "ns": ns,
+        "tz": [t, None, t],
+        "dec": [Decimal("1.50"), Decimal("2.25"), None],
+        "date": [date(2026, 1, 1), date(2026, 1, 2), None],
+    }
+    if kind == "polars":
+        pl = pytest.importorskip("polars")
+        dtypes: dict[str, Any] = {
+            "float": pl.Float64,
+            "ns": pl.Int64,
+            "tz": pl.Datetime("us", "UTC"),
+            "dec": pl.Decimal(10, 2),
+            "date": pl.Date,
+        }
+        col = pl.Series("p", values[case], dtype=dtypes[case])
+        if case == "ns":
+            col = col.cast(pl.Datetime("ns"))
+        return pl.DataFrame({"p": col, "v": [1, 2, 3]})
+    pd = pytest.importorskip("pandas")
+    pa = pytest.importorskip("pyarrow")
+    types: dict[str, Any] = {
+        "float": pa.float64(),
+        "ns": pa.int64(),
+        "tz": pa.timestamp("us", tz="UTC"),
+        "dec": pa.decimal128(10, 2),
+        "date": pa.date32(),
+    }
+    arr = pa.array(values[case], type=types[case])
+    if case == "ns":
+        arr = arr.cast(pa.timestamp("ns"))
+    return pd.DataFrame({"p": pd.Series(arr, dtype=pd.ArrowDtype(arr.type)), "v": [1, 2, 3]})
 
 
-def test_partition_values_round_trip() -> None:
-    values = [
-        (date(2026, 1, 2), "date"),
-        (datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC), "timestamp[us, UTC]"),
-        (datetime(2026, 1, 2, 3, 4, 5), "timestamp[us]"),
-        (Decimal("1.50"), "decimal(10,2)"),
-        (None, "date"),
-        (float("nan"), "float64"),
-        (7, "int64"),
-        ("x", "string"),
-        (True, "boolean"),
-    ]
-    for value, dtype in values:
-        raw = portable.encode_partition_value(value)
-        json.dumps(raw)
-        back = portable.decode_partition_value(dtype, raw)
-        assert back == (None if value != value else value)  # noqa: PLR0124 - NaN is null
+# ns: two distinct values, one repeated; the others: NaN and null (float) or null form one group.
+_GROUPS = {"float": [2, 1], "ns": [2, 1], "tz": [2, 1], "dec": [1, 1, 1], "date": [1, 1, 1]}
+
+
+@pytest.mark.parametrize("case", list(_GROUPS))
+def test_partition_groups_are_exact_for_every_type(kind: str, case: str) -> None:
+    frame = _typed(kind, case)
+    groups = list(portable.partition_groups(frame, ("p",)))
+    counts = sorted((portable.count(f) for _, f in groups), reverse=True)
+    assert counts == sorted(_GROUPS[case], reverse=True) and sum(counts) == 3
+    assert len({k for k, _ in groups}) == len(groups)
+    for key, _ in groups:
+        json.dumps(key)
+    keys = portable.partition_keys(frame, ("p",))
+    assert keys == [k for k, _ in groups]
+    kept, removed = portable.drop_partitions(frame, {keys[0]}, ("p",))
+    assert removed == counts_of(groups, keys[0]) and portable.count(kept) == 3 - removed
+    out, deleted = portable.replace_partition_frames(frame, frame, ("p",))
+    assert deleted == 3 and portable.count(out) == 3
+
+
+def counts_of(groups: list[Any], key: Any) -> int:
+    return next(portable.count(f) for k, f in groups if k == key)
+
+
+def test_ns_keys_keep_nanoseconds(kind: str) -> None:
+    keys = portable.partition_keys(_typed(kind, "ns"), ("p",))
+    assert keys == [("2026-01-01T00:00:00.000000001",), ("2026-01-01T00:00:00.000000002",)]
+
+
+def test_decimal_keys_ignore_scale(kind: str) -> None:
+    assert portable.partition_keys(_typed(kind, "dec"), ("p",))[0] == ("1.5",)
+
+
+def test_partition_groups_of_an_empty_frame(kind: str) -> None:
+    frame = portable.empty_like(_kv(kind, [(1, "a", 1)]))
+    assert list(portable.partition_groups(frame, ("label",))) == []
+
+
+def test_decode_partition_value() -> None:
+    assert portable.decode_partition_value("date", "2026-01-02") == date(2026, 1, 2)
+    assert portable.decode_partition_value("decimal(10,2)", "1.5") == Decimal("1.50")
+    stamp = portable.decode_partition_value(
+        "timestamp[us, UTC]", "2026-01-02T03:04:05.000000000+00:00"
+    )
+    assert stamp == datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
+    assert portable.decode_partition_value("int64", None) is None
 
 
 def test_rewrite_qualified_skips_literals() -> None:

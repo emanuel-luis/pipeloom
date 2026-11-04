@@ -60,11 +60,13 @@ class _Writer:
 
     def put_partitioned(self, frame: Any, partition_by: Sequence[str]) -> None:
         """One file per distinct partition tuple; one (empty) file when there are no rows."""
-        parts = portable.split_partitions(frame, partition_by) if partition_by else []
-        if not parts:
+        wrote = False
+        if partition_by:
+            for key, part in portable.partition_groups(frame, partition_by):
+                self.put(part, key)  # written and released before the next part is built
+                wrote = True
+        if not wrote:
             self.put(frame, None)
-        for key, part in parts:
-            self.put(part, key)
 
 
 def materialize(
@@ -203,8 +205,7 @@ def _replace_partitions(
         )
         return commit.result
     batch = w.ops.align(batch, columns)
-    wanted = portable.distinct_partitions(batch, cfg.partition_by)
-    keys = {portable.partition_key(v) for v in wanted}
+    keys = set(portable.partition_keys(batch, cfg.partition_by))
     same = previous.partition_by == cfg.partition_by
     drop: list[str] = []
     deleted = removed = added = 0
@@ -223,7 +224,7 @@ def _replace_partitions(
                 previous.columns,
             )
         )
-        kept, gone = portable.drop_partitions(frame, wanted, cfg.partition_by)
+        kept, gone = portable.drop_partitions(frame, keys, cfg.partition_by)
         if not gone:
             continue
         drop.append(name)

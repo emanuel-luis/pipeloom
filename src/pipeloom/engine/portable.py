@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Collection, Iterator, Sequence
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Any, Literal
 
@@ -131,25 +131,68 @@ def rewrite_qualified(cond: str) -> str:
 
 
 # -- partition values ---------------------------------------------------------------------------
+#
+# A partition key is computed natively, never from a Python round trip of the values: a timestamp
+# becomes its integer epoch in nanoseconds, a decimal its text, a float its value with NaN as
+# null, a date or time its text. Rows are grouped by those exact native columns. The JSON key
+# stored with a part file is a normalized text of the same value (ISO text for timestamps in UTC
+# with nine fractional digits, a decimal without trailing zeros, null for null and NaN), so a
+# value keeps matching after a lossless widening (decimal scale, timestamp unit, int to float).
+# float32 to float64 is not lossless for most values and keys of those columns do not match.
+
+_NS = {"ns": 1, "us": 1_000, "ms": 1_000_000, "s": 1_000_000_000}
+_EPOCH = datetime(1970, 1, 1)
 
 
-def encode_partition_value(value: Any) -> JsonValue:
-    """A partition value as JSON: ISO text for dates, times and timestamps (aware ones in UTC),
-    a string for a decimal, None for null and NaN."""
-    value = _plain(value)
-    if isinstance(value, datetime):
-        return (value.astimezone(UTC) if value.tzinfo else value).isoformat()
-    if isinstance(value, date | time):
-        return value.isoformat()
-    if isinstance(value, Decimal):
-        return str(value)
-    if value is None or isinstance(value, str | int | float | bool):
-        return value
-    return str(value)
+@dataclass(frozen=True)
+class _PartCol:
+    name: str
+    kind: Literal["ts", "dec", "float", "plain", "str"]
+    scale: int = 1
+    tz: bool = False
+
+
+def _part_col(name: str, dtype: Any) -> _PartCol:
+    if isinstance(dtype, nw.Datetime):
+        return _PartCol(name, "ts", _NS[dtype.time_unit], dtype.time_zone is not None)
+    if isinstance(dtype, nw.Decimal):
+        return _PartCol(name, "dec")
+    if isinstance(dtype, nw.Float32 | nw.Float64):
+        return _PartCol(name, "float")
+    if isinstance(dtype, nw.Boolean | nw.String) or logical_dtype(dtype).startswith(
+        ("int", "uint")
+    ):
+        return _PartCol(name, "plain")
+    return _PartCol(name, "str")
+
+
+def _key_expr(col: _PartCol) -> Any:
+    ref = nw.col(col.name)
+    if col.kind == "ts":
+        return ref.cast(nw.Int64)
+    if col.kind in ("dec", "str"):
+        return ref.cast(nw.String)
+    if col.kind == "float":
+        return ref.fill_nan(None)
+    return ref
+
+
+def _format_key(col: _PartCol, raw: Any) -> JsonValue:
+    value = _plain(raw)
+    if value is None:
+        return None
+    if col.kind == "ts":
+        seconds, nanos = divmod(int(value) * col.scale, 1_000_000_000)
+        text = (_EPOCH + timedelta(seconds=seconds)).isoformat(timespec="seconds")
+        return f"{text}.{nanos:09d}" + ("+00:00" if col.tz else "")
+    if col.kind == "dec":
+        return format(Decimal(str(value)).normalize(), "f")
+    return value  # type: ignore[no-any-return]
 
 
 def decode_partition_value(dtype: str, raw: JsonValue) -> Any:
-    """Read back what `encode_partition_value` wrote, given the column's logical type."""
+    """Read back a stored partition value, given the column's logical type. A timestamp keeps
+    microseconds only (Python datetimes have no nanoseconds)."""
     if raw is None:
         return None
     if dtype.startswith("timestamp"):
@@ -161,10 +204,6 @@ def decode_partition_value(dtype: str, raw: JsonValue) -> Any:
     if dtype.startswith("decimal"):
         return Decimal(str(raw))
     return raw
-
-
-def partition_key(values: Sequence[Any]) -> tuple[JsonValue, ...]:
-    return tuple(encode_partition_value(v) for v in values)
 
 
 def _eager(native: Any) -> Any:
@@ -184,48 +223,76 @@ def check_columns(native: Any, columns: Sequence[str], what: str) -> None:
             raise WriteKeyError(f"{what} column '{column}' is missing")
 
 
-def split_partitions(
-    native: Any, partition_by: Sequence[str]
-) -> list[tuple[tuple[JsonValue, ...], Any]]:
-    """One (encoded partition values, native frame) per distinct tuple of `partition_by`; null is
-    a value. An empty frame gives no parts."""
-    frame = _eager(native)
-    out = []
-    # ponytail: one filter per partition (O(parts x rows)); a group-by split when that hurts.
-    for values in distinct_partitions(frame, partition_by):
-        part = frame.filter(_in_partitions(partition_by, [values]))
-        out.append((partition_key(values), nw.to_native(part)))
-    return out
+def _keyed(
+    frame: Any, partition_by: Sequence[str]
+) -> tuple[Any, list[_PartCol], list[tuple[Any, ...]]]:
+    """The frame plus one native key column per partition column (`__pk<i>`), the column specs
+    and the distinct raw key tuples, in order of first appearance."""
+    schema = frame.schema
+    specs = [_part_col(c, schema[c]) for c in partition_by]
+    names = [f"__pk{i}" for i in range(len(specs))]
+    keyed = frame.with_columns(*(_key_expr(s).alias(n) for s, n in zip(specs, names, strict=True)))
+    raws = [tuple(r) for r in keyed.select(*names).unique(maintain_order=True).iter_rows()]
+    return keyed, specs, raws
 
 
-def distinct_partitions(native: Any, partition_by: Sequence[str]) -> list[tuple[Any, ...]]:
-    """The distinct partition tuples of a frame, as plain Python values."""
-    frame = _eager(native).select(*partition_by).unique(maintain_order=True)
-    return [tuple(_plain(v) for v in row) for row in frame.iter_rows()]
-
-
-def _in_partitions(partition_by: Sequence[str], values: Sequence[tuple[Any, ...]]) -> Any:
-    """Expression: the row's partition is one of `values` (null equals null)."""
-    hit: Any = nw.lit(False)
-    for tup in values:
-        row: Any = nw.lit(True)
-        for column, v in zip(partition_by, tup, strict=True):
-            col = nw.col(column)
-            row = row & (col.is_null() if v is None else (col == v).fill_null(False))
-        hit = hit | row
+def _match(raw: tuple[Any, ...]) -> Any:
+    """Expression: the row's key columns equal `raw` exactly (null equals null)."""
+    hit: Any = nw.lit(True)
+    for i, v in enumerate(raw):
+        ref = nw.col(f"__pk{i}")
+        value = _plain(v)
+        hit = hit & (ref.is_null() if value is None else (ref == value).fill_null(False))
     return hit
 
 
-def drop_partitions(
-    native: Any, values: Sequence[tuple[Any, ...]], partition_by: Sequence[str]
-) -> tuple[Any, int]:
-    """`native` without the rows of the partitions in `values`, and how many rows that removed.
-    ponytail: one predicate per partition value, fine for hundreds, not for many thousands."""
+def _json_key(specs: Sequence[_PartCol], raw: tuple[Any, ...]) -> tuple[JsonValue, ...]:
+    return tuple(_format_key(s, v) for s, v in zip(specs, raw, strict=True))
+
+
+def partition_keys(native: Any, partition_by: Sequence[str]) -> list[tuple[JsonValue, ...]]:
+    """The distinct partition keys of a frame (null is a value), without splitting it."""
+    _, specs, raws = _keyed(_eager(native), partition_by)
+    return list(dict.fromkeys(_json_key(specs, r) for r in raws))
+
+
+def partition_groups(
+    native: Any, partition_by: Sequence[str]
+) -> Iterator[tuple[tuple[JsonValue, ...], Any]]:
+    """Yield (JSON key, native frame) for each distinct partition, one at a time so the caller
+    can write and release it. Raises when the parts do not add up to the frame.
+    ponytail: one equality filter per partition (O(partitions x rows)); Narwhals has no
+    single-pass split, so a group-by index split is the upgrade when that hurts."""
     frame = _eager(native)
-    if not values:
+    cols = list(frame.columns)
+    keyed, specs, raws = _keyed(frame, partition_by)
+    seen = 0
+    for raw in raws:
+        part = keyed.filter(_match(raw)).select(*cols)
+        seen += part.shape[0]
+        yield _json_key(specs, raw), nw.to_native(part)
+    if seen != frame.shape[0]:
+        raise RuntimeError(f"partitioning lost rows: {seen} of {frame.shape[0]}")
+
+
+def drop_partitions(
+    native: Any, wanted: Collection[tuple[JsonValue, ...]], partition_by: Sequence[str]
+) -> tuple[Any, int]:
+    """`native` without the rows whose partition key is in `wanted`, and how many rows that
+    removed."""
+    frame = _eager(native)
+    keyed, specs, raws = _keyed(frame, partition_by)
+    hit: Any = nw.lit(False)
+    found = False
+    for raw in raws:
+        if _json_key(specs, raw) in wanted:
+            hit = hit | _match(raw)
+            found = True
+    if not found:
         return nw.to_native(frame), 0
-    hit = _in_partitions(partition_by, values)
-    return nw.to_native(frame.filter(~hit)), int(frame.filter(hit).shape[0])
+    cols = list(frame.columns)
+    kept = keyed.filter(~hit).select(*cols)
+    return nw.to_native(kept), int(frame.shape[0] - kept.shape[0])
 
 
 def replace_partition_frames(
@@ -237,7 +304,7 @@ def replace_partition_frames(
         raise WriteKeyError("replace_partitions needs partition_by")
     check_columns(batch, partition_by, "partition_by")
     check_columns(current, partition_by, "partition_by")
-    kept, deleted = drop_partitions(current, distinct_partitions(batch, partition_by), partition_by)
+    kept, deleted = drop_partitions(current, set(partition_keys(batch, partition_by)), partition_by)
     cols = list(_eager(current).columns)
     out = nw.concat([nw.from_native(kept), _eager(batch).select(*cols)], how="vertical")
     return nw.to_native(out), deleted

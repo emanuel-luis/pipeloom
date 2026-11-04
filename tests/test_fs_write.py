@@ -304,3 +304,82 @@ def _patched(table: Any, gate: threading.Barrier) -> Any:
 
     table.commit = commit
     return table
+
+
+def _ids(env: Env, s: EngineSession) -> list[int]:
+    return sorted(r["v"] for r in env.table_rows(s))
+
+
+def _check_parts(env: Env, total: int) -> None:
+    c = env.commit()
+    assert sum(c.info(n).rows or 0 for n in c.files) == total == c.rows
+
+
+@pytest.mark.parametrize("strategy", ["append", "overwrite", "merge", "replace_partitions"])
+def test_float_partitions_keep_every_row(env: Env, strategy: str) -> None:
+    schema = (Column("f", "float64"), Column("v", "int64"))
+    nan = float("nan")
+    rows = [{"f": 1.0, "v": 1}, {"f": nan, "v": 2}, {"f": None, "v": 3}, {"f": 2.5, "v": 4}]
+    cfg = WriteConfig(strategy, unique_key=("v",), partition_by=("f",))
+    with env.session() as s:
+        env.put(s, rows, cfg, "t1", schema)
+        assert _ids(env, s) == [1, 2, 3, 4]
+        _check_parts(env, 4)
+        if strategy in ("merge", "replace_partitions"):
+            batch = [{"f": nan, "v": 2}, {"f": 1.0, "v": 9}]
+            env.put(s, batch, cfg, "t2", schema)
+            want = [2, 4, 9] if strategy == "replace_partitions" else [1, 2, 3, 4, 9]
+            assert _ids(env, s) == want
+            _check_parts(env, len(want))
+
+
+@pytest.mark.parametrize("strategy", ["append", "merge", "replace_partitions"])
+def test_timestamp_partitions_with_zone(env: Env, strategy: str) -> None:
+    schema = (Column("t", "timestamp[us, UTC]"), Column("v", "int64"))
+    a, b = datetime(2026, 1, 1, tzinfo=UTC), datetime(2026, 1, 1, 0, 0, 0, 1, tzinfo=UTC)
+    rows = [{"t": a, "v": 1}, {"t": b, "v": 2}, {"t": None, "v": 3}, {"t": a, "v": 4}]
+    cfg = WriteConfig(strategy, unique_key=("v",), partition_by=("t",))
+    with env.session() as s:
+        env.put(s, rows, WriteConfig("overwrite", partition_by=("t",)), "t1", schema)
+        assert len(env.commit().files) == 3
+        env.put(s, [{"t": a, "v": 9}], cfg, "t2", schema)
+        want = {"append": 5, "merge": 5, "replace_partitions": 3}[strategy]
+        assert len(_ids(env, s)) == want
+        _check_parts(env, want)
+
+
+def test_nanosecond_partitions(env: Env) -> None:
+    ns = [1767225600000000001, 1767225600000000002, 1767225600000000001]
+    if env.engine.name == "polars":
+        import polars as pl
+
+        frame: Any = pl.DataFrame({"t": pl.Series(ns).cast(pl.Datetime("ns")), "v": [1, 2, 3]})
+    else:
+        import pandas as pd
+
+        frame = pd.DataFrame({"t": pd.to_datetime(ns, unit="ns"), "v": [1, 2, 3]})
+    env.catalog.ensure_namespace(TARGET.namespace)
+    with env.session() as s:
+        for strategy, token in (("overwrite", "t1"), ("replace_partitions", "t2")):
+            cfg = WriteConfig(strategy, partition_by=("t",))
+            s.materializer(strategy).materialize(s.relation(frame), TARGET, cfg, token)
+            assert _ids(env, s) == [1, 2, 3]
+            _check_parts(env, 3)
+        assert len(env.commit().files) == 2
+
+
+def test_decimal_partitions_match_after_a_scale_widening(env: Env) -> None:
+    narrow = (Column("n", "decimal(10,2)"), Column("v", "int64"))
+    wide = (Column("n", "decimal(12,3)"), Column("v", "int64"))
+    with env.session() as s:
+        env.put(
+            s,
+            [{"n": Decimal("1.50"), "v": 1}],
+            WriteConfig("overwrite", partition_by=("n",)),
+            "t1",
+            narrow,
+        )
+        cfg = WriteConfig("replace_partitions", partition_by=("n",), columns=wide)
+        result = env.put(s, [{"n": Decimal("1.500"), "v": 2}], cfg, "t2", wide)
+        assert result.rows_deleted == 1 and _ids(env, s) == [2]
+        _check_parts(env, 1)
