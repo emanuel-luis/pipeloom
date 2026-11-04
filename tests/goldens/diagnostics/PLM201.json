@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLM201",
+    "severity": "error",
+    "message": "cannot write 'main.a' for model 'a': OSError: disk full",
+    "hint": "check that the target can be written, then run again",
+    "location": {
+      "file": "models/m.yml",
+      "line": 2,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {
+      "unit": "a",
+      "category": "transient"
+    }
+  }
+]

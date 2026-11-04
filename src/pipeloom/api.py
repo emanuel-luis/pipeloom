@@ -9,12 +9,14 @@ from pipeloom.config.bind import BoundProject, bind_project
 from pipeloom.config.load import LoadedProject, ProjectOptions, load_project
 from pipeloom.config.resolve import resolve_project
 from pipeloom.diagnostics import Diagnostic, Outcome, Report
+from pipeloom.events.bus import EventBus
 from pipeloom.graph.dag import ProjectGraph, build_graph
 from pipeloom.graph.selectors import Selection
 from pipeloom.plan.compile import compile_plan
 from pipeloom.plan.model import Plan
 from pipeloom.platform import Clock, Identity, IdentityProvider, LocalIdentity, SystemClock
 from pipeloom.plugins import PluginRegistry
+from pipeloom.runtime.run import RunOptions, RunOutcome, execute_run
 from pipeloom.validate import validate_project
 from pipeloom.validate.references import check_references
 
@@ -133,3 +135,13 @@ class Project:
                 )
                 self._plans[key] = Outcome(plan, report.sorted())
         return self._plans[key]
+
+    def run(self, opts: RunOptions | None = None, bus: EventBus | None = None) -> RunOutcome:
+        """Validate, plan and run the selected units. Events go to `bus`; without one they are dropped."""
+        own = bus is None
+        events = bus or EventBus([], clock=self.clock, invocation_id=self.invocation_id)
+        try:
+            return execute_run(self, opts or RunOptions(), events)
+        finally:
+            if own:
+                events.close()

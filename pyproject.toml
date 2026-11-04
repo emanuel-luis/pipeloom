@@ -79,11 +79,13 @@ testpaths = ["tests"]
 [tool.importlinter]
 root_package = "pipeloom"
 include_external_packages = true
+exclude_type_checking_imports = true
 
 # Top to bottom. A layer may import the ones below it. `:` marks siblings that import each other
 # today (config, secrets and events form a cycle in 0.1). `pipeloom.runtime` is listed before the
 # scheduler lands; `pipeloom.artifacts` joins the `state` layer with the PR that creates it
-# (import-linter rejects a layer whose module does not exist). `pipeloom.testing` is outside the
+# (import-linter rejects a layer whose module does not exist). Imports under TYPE_CHECKING are
+# ignored, so protocols may name runtime types in signatures. `pipeloom.testing` is outside the
 # layers: it may import anything, and the second contract keeps the rest from importing it.
 [[tool.importlinter.contracts]]
 name = "Layers"
@@ -92,7 +94,7 @@ layers = [
     "pipeloom.cli",
     "pipeloom.api",
     "pipeloom.runtime",
-    "pipeloom.state | pipeloom.builtins",
+    "pipeloom.artifacts | pipeloom.state | pipeloom.builtins",
     "pipeloom.plan",
     "pipeloom.validate",
     "pipeloom.graph",
@@ -102,9 +104,6 @@ layers = [
     "pipeloom.diagnostics | pipeloom.platform",
 ]
 exhaustive = false
-# RuntimeContext is a plain dataclass in engine protocol signatures. Moving it into
-# pipeloom.engine is the clean fix; until then this one upward edge is allowed.
-ignore_imports = ["pipeloom.engine.protocols -> pipeloom.runtime.context"]
 
 [[tool.importlinter.contracts]]
 name = "Only pipeloom.testing imports pipeloom.testing"
@@ -113,6 +112,7 @@ type = "forbidden"
 source_modules = [
     "pipeloom.__main__",
     "pipeloom.api",
+    "pipeloom.artifacts",
     "pipeloom.builtins",
     "pipeloom.cli",
     "pipeloom.config",

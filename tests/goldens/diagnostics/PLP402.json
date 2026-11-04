@@ -13,5 +13,21 @@
     "context": {
       "model": "a"
     }
+  },
+  {
+    "code": "PLC509",
+    "severity": "error",
+    "message": "engine 'memory' cannot materialize 'incremental' (model 'a')",
+    "hint": "supported: ephemeral, table, view",
+    "location": {
+      "file": "models/m.yml",
+      "line": 4,
+      "col": 19,
+      "json_pointer": "/models/0/materialized"
+    },
+    "context": {
+      "model": "a",
+      "engine": "memory"
+    }
   }
 ]

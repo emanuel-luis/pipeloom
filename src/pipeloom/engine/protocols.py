@@ -57,6 +57,20 @@ class EngineSession(Protocol):
 
     def filter_since(self, rel: Relation, column: str, lower: Any) -> Relation: ...
 
+    def relation(self, native: Any) -> Relation:
+        """Check a model's return value and wrap it; raise TypeError for a foreign type."""
+        ...
+
+    def persist(self, rel: Relation) -> Relation:
+        """An in-memory copy that later reads reuse, for results shared by several units."""
+        ...
+
+    def create_view(
+        self, target: TargetRef, query: str, inputs: Mapping[str, ReadSpec]
+    ) -> WriteResult:
+        """Create or replace a catalog view over `inputs`, which `query` names by alias."""
+        ...
+
     def max_value(self, rel: Relation, column: str) -> Any: ...
 
     def cancel(self, unit_id: str) -> None:
@@ -70,8 +84,11 @@ class Engine(Protocol):
     version: str
     capabilities: EngineCapabilities
 
-    def session(self, ctx: RuntimeContext) -> AbstractContextManager[EngineSession]:
-        """Open a session. Cleanup is guaranteed when the context exits."""
+    def session(
+        self, ctx: RuntimeContext, *, catalog: Catalog
+    ) -> AbstractContextManager[EngineSession]:
+        """Open a session, one per invocation; it must be thread-safe. Cleanup is guaranteed
+        when the context exits."""
         ...
 
 

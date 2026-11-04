@@ -1,0 +1,2 @@
+error PLM201 models/m.yml:2 cannot write 'main.a' for model 'a': OSError: disk full
+      hint: check that the target can be written, then run again

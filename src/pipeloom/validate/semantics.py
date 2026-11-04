@@ -107,8 +107,29 @@ def _check_model(project: ResolvedProject, m: ResolvedModel, report: Report) -> 
         )
 
 
+def _check_view(
+    project: ResolvedProject, m: ResolvedModel, inlined: list[str], report: Report
+) -> None:
+    """PLP409: a view stores its SQL as written, so it cannot be Python or inline an ephemeral."""
+    if m.entry.sql is None:
+        why = "is a Python model"
+        hint = "write the view as SQL, or materialize it as a table"
+    elif inlined:
+        why = f"reads ephemeral model(s) {', '.join(inlined)}"
+        hint = "make those models tables, or materialize the view as a table"
+    else:
+        return
+    report.add(
+        "PLP409",
+        f"view '{m.name}' {why}",
+        location=where(project, m, "materialized"),
+        hint=hint,
+        context={"model": m.name},
+    )
+
+
 def check_semantics(pg: ProjectGraph, report: Report) -> None:
-    """Report PLP401 to PLP408 for every model."""
+    """Report PLP401 to PLP409 for every model."""
     project, graph = pg.project, pg.graph
     ephemeral = frozenset(
         u for u, m in project.models.items() if m.config.materialized == "ephemeral"
@@ -121,6 +142,13 @@ def check_semantics(pg: ProjectGraph, report: Report) -> None:
     limit = project.bound.loaded.config.ephemeral_fanout_warn
     for uid, m in project.models.items():
         _check_model(project, m, report)
+        if m.config.materialized == "view":
+            _check_view(
+                project,
+                m,
+                sorted(project.models[e].name for e in inlined_ancestors(graph, uid, ephemeral)),
+                report,
+            )
         if uid in ephemeral and fanout[uid] == 0:
             report.add(
                 "PLP408",

@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLM204",
+    "severity": "error",
+    "message": "cannot read input 'raw' of model 'a': KeyError: \"no in-memory table 'raw/missing'\"",
+    "hint": "check that source 'raw' exists and can be read",
+    "location": {
+      "file": "models/m.yml",
+      "line": 4,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {
+      "unit": "a",
+      "category": "permanent"
+    }
+  }
+]

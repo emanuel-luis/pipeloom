@@ -971,6 +971,19 @@
                 "kind": {
                   "const": "memory",
                   "description": "In-memory catalog for tests."
+                },
+                "root": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "The engine's `root`, to see the same tables.",
+                  "title": "Root"
                 }
               },
               "required": [
@@ -993,6 +1006,19 @@
                 "kind": {
                   "const": "memory",
                   "description": "In-memory engine for tests; SQL runs on sqlite3."
+                },
+                "root": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "Keep tables as JSON files in this directory, so other processes see them.",
+                  "title": "Root"
                 },
                 "tables": {
                   "additionalProperties": {
@@ -1375,6 +1401,19 @@
             "kind": {
               "const": "memory",
               "description": "In-memory catalog for tests."
+            },
+            "root": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "The engine's `root`, to see the same tables.",
+              "title": "Root"
             }
           },
           "required": [
@@ -1421,6 +1460,19 @@
             "kind": {
               "const": "memory",
               "description": "In-memory engine for tests; SQL runs on sqlite3."
+            },
+            "root": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Keep tables as JSON files in this directory, so other processes see them.",
+              "title": "Root"
             },
             "tables": {
               "additionalProperties": {

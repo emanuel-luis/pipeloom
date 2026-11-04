@@ -53,6 +53,13 @@ def _check_model(
             "materialized",
             "use table, or an engine with views",
         )
+    if c.materialized != "view" and c.materialized not in caps.materializations:
+        err(
+            "PLC509",
+            f"engine '{engine.kind}' cannot materialize '{c.materialized}' (model '{m.name}')",
+            "materialized",
+            f"supported: {', '.join(sorted(caps.materializations)) or 'none'}",
+        )
     if m.entry.python is not None and c.frame_api == "narwhals" and not caps.portable:
         err(
             "PLC508",
@@ -81,7 +88,7 @@ def _check_state(bound: BoundProject, report: Report) -> None:
 
 
 def check_capabilities(pg: ProjectGraph, report: Report) -> None:
-    """Report PLC501 to PLC508."""
+    """Report PLC501 to PLC509."""
     project = pg.project
     bound = project.bound
     _check_state(bound, report)

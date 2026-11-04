@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLX101",
+    "severity": "error",
+    "message": "model 'a' raised: ValueError: boom",
+    "hint": null,
+    "location": {
+      "file": "src/m.py",
+      "line": 2,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {
+      "unit": "a",
+      "category": "permanent"
+    }
+  }
+]

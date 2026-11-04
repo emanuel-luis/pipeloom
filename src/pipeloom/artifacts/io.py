@@ -1,0 +1,40 @@
+"""Atomic JSON files."""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+import time
+import uuid
+from pathlib import Path
+from typing import Any
+
+REPLACE_RETRIES = 10
+REPLACE_BACKOFF = 0.05
+
+
+def json_bytes(data: Any) -> bytes:
+    """Indented by 2, UTF-8, LF, with a trailing newline."""
+    return (json.dumps(data, indent=2, allow_nan=False, ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def write_json_atomic(path: Path, data: Any) -> int:
+    """Write `data` next to `path`, then replace it. Returns the bytes written."""
+    content = json_bytes(data)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f"{path.name}.{uuid.uuid4().hex}.tmp")
+    tmp.write_bytes(content)
+    try:
+        for attempt in range(REPLACE_RETRIES):
+            try:
+                os.replace(tmp, path)
+                break
+            except PermissionError:  # Windows: a reader holds the file
+                if sys.platform != "win32" or attempt == REPLACE_RETRIES - 1:
+                    raise
+                time.sleep(REPLACE_BACKOFF)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+    return len(content)
