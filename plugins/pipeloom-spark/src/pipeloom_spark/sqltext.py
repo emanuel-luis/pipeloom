@@ -11,6 +11,13 @@ from typing import Any
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 _DECIMAL = re.compile(r"decimal\((\d+),(\d+)\)")
 _INT = re.compile(r"u?int\d+")
+_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]+:")
+
+
+def has_scheme(path: str) -> bool:
+    """True for a URI such as `s3://b/p`, `dbfs:/p` or `file:/p`. One letter before the colon is
+    a Windows drive (C: then a path), which is a local path."""
+    return _SCHEME.match(path) is not None
 
 
 def quote_ident(name: str) -> str:

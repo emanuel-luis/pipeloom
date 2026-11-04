@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import Field
+from pydantic import AfterValidator, Field, ValidationInfo
 
-from pipeloom.config.types import ProjectPath
+from pipeloom.config.types import resolve_project_path
 from pipeloom.engine.protocols import Catalog, Engine
 from pipeloom.engine.types import CatalogCapabilities, EngineCapabilities
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
+from pipeloom_spark.sqltext import has_scheme
 
 CAPABILITIES = EngineCapabilities(
     formats=frozenset({"delta", "parquet", "csv", "json", "ndjson"}),
@@ -45,8 +46,16 @@ class SparkEngineOptions(OptionsModel):
     """Set txnAppId and txnVersion on Delta writes."""
 
 
+def _root(value: str, info: ValidationInfo) -> str:
+    # A URI (s3://, abfss://, dbfs:/ ...) is not under the project directory: keep it as is.
+    return value if has_scheme(value) else resolve_project_path(value, info)
+
+
+RootPath = Annotated[str, AfterValidator(_root)]
+
+
 class DeltaPathOptions(OptionsModel):
-    root: ProjectPath = Field(".", validate_default=True)
+    root: RootPath = Field(".", validate_default=True)
     """Directory under which `<schema>/<name>` Delta tables live."""
 
 

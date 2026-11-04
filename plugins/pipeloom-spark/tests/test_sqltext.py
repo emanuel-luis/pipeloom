@@ -55,3 +55,18 @@ def test_partition_predicate_shapes() -> None:
     assert partition_predicate(["a", "b"], [(1, None), (2, 3)], ["int64", "int64"]) == (
         "(`a` <=> 1 AND `b` <=> NULL) OR (`a` <=> 2 AND `b` <=> 3)"
     )
+
+
+def test_has_scheme() -> None:
+    from pipeloom_spark.sqltext import has_scheme
+
+    for uri in (
+        "s3://b/wh",
+        "abfss://c@a.dfs.core.windows.net/wh",
+        "gs://b/wh",
+        "dbfs:/wh",
+        "file:/x",
+    ):
+        assert has_scheme(uri), uri
+    for local in ("wh", "a/b", "/abs/p", "C:" + chr(92) + "x", "C:/x", "./c:x"):
+        assert not has_scheme(local), local

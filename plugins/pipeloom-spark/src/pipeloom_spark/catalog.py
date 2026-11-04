@@ -94,7 +94,9 @@ class DeltaPathCatalog(_SparkCatalog):
 
     def __init__(self, root: str) -> None:
         super().__init__()
-        self.root = Path(root).resolve().as_posix()
+        self.root = (
+            root.rstrip("/") if sqltext.has_scheme(root) else Path(root).resolve().as_posix()
+        )
 
     def path(self, target: TargetRef) -> str:
         return f"{self.root}/{_segment(target.schema)}/{_segment(target.name)}"
