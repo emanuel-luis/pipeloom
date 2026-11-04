@@ -1299,6 +1299,11 @@ process executor uses it.</p>
                              Default: a timestamp and a suffix.
   --full-refresh BOOLEAN     Rebuild append tables from scratch. Takes an
                              optional true or false.  [default: False]
+  --run-started-at ISO8601   Start time of the run, with a UTC offset (for
+                             example the start of the orchestrator job).
+                             Engines use it to make writes idempotent. Needs
+                             --run-id. A reused run id keeps the start it
+                             recorded.
   --fail-fast                After the first failure, start no more units.
   --no-lock                  Do not take the run lock.
   --workers INTEGER RANGE    Units to run at once. Default: the target's

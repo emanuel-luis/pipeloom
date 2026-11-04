@@ -1014,8 +1014,8 @@ rejected when the session opens.</p>
 </tr>
 </tbody>
 </table>
-<p>A SQL model on this engine is rejected with PLC502, a view with PLC507, and an <code>intermediate</code>
-materialization with PLC509. <code>incremental</code> is supported. SQL on pandas is deferred past 0.2. The supported
+<p>A SQL model on this engine is rejected with PLC502 and a view with PLC507. An <code>intermediate</code>
+materialization is supported (files under the artifacts root). <code>incremental</code> is supported. SQL on pandas is deferred past 0.2. The supported
 versions are <code>pandas&gt;=2.3.3,&lt;4</code> and <code>pyarrow&gt;=22</code>.</p>
 <h2 id="frames">Frames<a class="headerlink" href="#frames" title="Permanent link">&para;</a></h2>
 <p>Relations are eager <code>DataFrame</code>s, so <code>rows_read</code> is filled in <code>run_results.json</code>. A Python model

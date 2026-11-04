@@ -1263,6 +1263,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plp413" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP413
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1766,6 +1777,17 @@
     <span class="md-ellipsis">
       
         PLX107
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx108" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX108
       
     </span>
   </a>
@@ -2410,6 +2432,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plp413" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP413
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2919,6 +2952,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plx108" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX108
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3108,6 +3152,9 @@
 <h3 id="plp412">PLP412<a class="headerlink" href="#plp412" title="Permanent link">&para;</a></h3>
 <p>Quarantine relation collides with a model. Severity: error. Status: active. Since: 0.3.</p>
 <p>A model's quarantine table is named <model>__quarantine, and another model already has that name in the same schema.</p>
+<h3 id="plp413">PLP413<a class="headerlink" href="#plp413" title="Permanent link">&para;</a></h3>
+<p>Intermediate model with a write option. Severity: error. Status: active. Since: 0.3.</p>
+<p>An intermediate model is rewritten whole at a location of its own. It cannot be incremental, use a strategy other than overwrite, or set partition_by.</p>
 <h2 id="l5-capability">L5 capability<a class="headerlink" href="#l5-capability" title="Permanent link">&para;</a></h2>
 <h3 id="plc501">PLC501<a class="headerlink" href="#plc501" title="Permanent link">&para;</a></h3>
 <p>Strategy unsupported by engine. Severity: error. Status: active. Since: 0.1.</p>
@@ -3135,7 +3182,7 @@
 <p>A Python model asks for Narwhals frames on an engine whose frames are not portable.</p>
 <h3 id="plc509">PLC509<a class="headerlink" href="#plc509" title="Permanent link">&para;</a></h3>
 <p>Materialization unsupported by engine. Severity: error. Status: active. Since: 0.2.</p>
-<p>The materialization is not in the selected engine's capabilities. No engine offers intermediate yet.</p>
+<p>The materialization is not in the selected engine's capabilities.</p>
 <h3 id="plc510">PLC510<a class="headerlink" href="#plc510" title="Permanent link">&para;</a></h3>
 <p>Expectations on an engine without quality. Severity: error. Status: active. Since: 0.3.</p>
 <p>The selected engine does not declare the quality capability, so it cannot evaluate expectations.</p>
@@ -3225,6 +3272,9 @@
 <h3 id="plx107">PLX107<a class="headerlink" href="#plx107" title="Permanent link">&para;</a></h3>
 <p>Manifest invalid. Severity: error. Status: active. Since: 0.2.</p>
 <p>The manifest cannot be read, has another schema, was edited after it was written, or belongs to another project or target.</p>
+<h3 id="plx108">PLX108<a class="headerlink" href="#plx108" title="Permanent link">&para;</a></h3>
+<p>Run start time conflict. Severity: error. Status: active. Since: 0.4.</p>
+<p>--run-started-at differs from the start the run recorded when it first ran. A reused run id keeps its recorded start. Exit code 2.</p>
 <h2 id="renderers">Renderers<a class="headerlink" href="#renderers" title="Permanent link">&para;</a></h2>
 <h3 id="pla001">PLA001<a class="headerlink" href="#pla001" title="Permanent link">&para;</a></h3>
 <p>Unsupported execution mode. Severity: error. Status: reserved. Since: 0.4.</p>

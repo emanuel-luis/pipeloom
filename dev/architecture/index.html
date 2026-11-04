@@ -1561,7 +1561,7 @@ class Writer(Protocol):                                           # format-level
 class Materializer(Protocol):                                     # one per strategy
     strategy: str
     def materialize(self, rel: Relation, target: &quot;TargetRef&quot;, cfg: &quot;WriteConfig&quot;,
-                    token: str) -&gt; &quot;WriteResult&quot;: ...             # token = idempotency key
+                    token: str) -&gt; &quot;WriteResult&quot;: ...             # token = idempotency key; cfg.run_started_at = the run's start (the session opens before it is resolved)
 
 class Catalog(Protocol):
     def exists(self, target: &quot;TargetRef&quot;) -&gt; bool: ...

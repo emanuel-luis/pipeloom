@@ -993,6 +993,7 @@ on the target). Paths in artifacts are POSIX.</p>
     events/&lt;invocation_id&gt;.jsonl   events of each invocation
     units/&lt;unit_id&gt;/attempt-&lt;n&gt;.json   one file per attempt of a unit
     logs/&lt;unit_id&gt;-attempt-&lt;n&gt;.log     output of a task-boundary unit
+    intermediate/&lt;model&gt;/          result of an `intermediate` model, deleted after `artifacts.intermediate_ttl`
 </code></pre>
 <p>Finalize writes <code>run_results.json</code> into the run folder, then copies it and the manifest to the
 root. The run folder is the source of truth; the root copies are for convenience.</p>
@@ -1039,8 +1040,10 @@ worked on the run), <code>project</code>, <code>target</code>, <code>plan_hash</
 (<code>succeeded</code>, <code>failed</code> or <code>cancelled</code>), <code>started_at</code>, <code>ended_at</code>, <code>duration_ms</code>, <code>counts</code>
 (<code>total</code> and one number per unit status), <code>totals</code> (<code>rows_written</code> and <code>bytes_written</code> of
 succeeded units), <code>identity</code> (<code>user</code>, <code>host</code>, <code>orchestrator</code>, <code>orchestrator_ids</code>),
-<code>pipeloom_version</code>, <code>plugins</code>, <code>python_version</code>, <code>git_sha</code> (null outside a git repository) and
-<code>exit_code</code>.</p>
+<code>pipeloom_version</code>, <code>plugins</code>, <code>python_version</code>, <code>git_sha</code> (null outside a git repository),
+<code>exit_code</code>, <code>intermediate_ttl</code> (seconds; the TTL this run was finalized with, which other runs
+use to judge its intermediates) and <code>warnings</code> (run-level messages, such as
+<code>intermediate_cleanup_failed: &lt;run_id&gt;: &lt;error&gt;</code> when an expired folder could not be deleted).</p>
 <p>Every row in <code>results</code> has every key. Ephemeral models have no row: they appear in the
 <code>ephemeral_inlined</code> list of the units that inline them.</p>
 <table>
