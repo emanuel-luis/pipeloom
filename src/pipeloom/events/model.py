@@ -139,3 +139,25 @@ class InvocationCompleted(EventPayload):
     exit_code: int
     duration_ms: int
     counts: dict[str, int]
+
+
+class UnitQueued(EventPayload):
+    TYPE = "unit.queued"
+
+    downstream: int
+    """Selected units that depend on this one, transitively."""
+
+
+class UnitSkipped(EventPayload):
+    TYPE = "unit.skipped"
+
+    reason: Literal["upstream_failed", "fail_fast"]
+    upstream: str | None
+    """The failed unit that caused the skip; None for `fail_fast`."""
+
+
+class UnitCancelled(EventPayload):
+    TYPE = "unit.cancelled"
+    LEVEL = Level.WARNING
+
+    reason: Literal["cancel", "timeout"] = "cancel"

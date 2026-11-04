@@ -14,6 +14,9 @@ All notable changes to this project are documented here. The format follows
 - PLC503: `boundary: task` with a state store that is not shared.
 - `pipeloom.testing.contract.state.StateStoreContract`, a pytest suite state store plugins subclass.
 - Import contracts (layers, `pipeloom.testing` isolation, no dataframe or SQL parsing library in the core) checked by `uv run lint-imports` in the `lint` CI job and `make lint`.
+- Unit state machine with a checked transition table, and a ready-queue scheduler with skip-downstream, `--fail-fast` and stop requests (not wired to the CLI yet).
+- Thread executor and a simulated executor for tests; `unit.queued`, `unit.skipped` and `unit.cancelled` event payloads.
+- ADR-0020, the execution model for 0.2.
 
 ## [0.1.0] - 2026-11-04
 
