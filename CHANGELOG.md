@@ -6,8 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-04
+
+pipeloom 0.2 runs plans: a scheduler, thread and process executors, polars and pandas engines, a filesystem catalog, state stores and run artifacts.
+
 ### Added
 
+- PLK603 (SQL reads a table that is not an input alias or a CTE) and PLK605 (SQL not parseable), both warnings. They run only when sqlglot is installed (extra `pipeloom[sqlglot]`); without it nothing is imported or reported.
+- Docs: the guide `Running a pipeline`, the reference `Run artifacts`, a quickstart that runs on polars, and the 0.2 edits of the architecture document and the state machine diagram.
 - `pipeloom-polars`, the first plugin distribution (`plugins/pipeloom-polars/`, install with `pipeloom[polars]`): the polars engine on lazy frames, SQL and views through `pl.SQLContext`, tables on the filesystem catalog with exact token replay. It passes `EngineContract`; see `docs/plugins/polars.md`.
 - `pipeloom-pandas` (`plugins/pipeloom-pandas/`, install with `pipeloom[pandas]`): the pandas engine on eager DataFrames with Arrow-backed reads, tables on the filesystem catalog with exact token replay. No SQL models and no views in 0.2 (PLC502, PLC507). It passes `EngineContract`; see `docs/plugins/pandas.md`.
 - `tests/fixtures/smoke-pandas`: the smoke project on the pandas target (Python models only); CI runs it from the built wheels.
@@ -103,6 +109,7 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.0.2...v0.1.0
 [0.0.2]: https://github.com/emanuel-luis/pipeloom/releases/tag/v0.0.2
