@@ -1,0 +1,9 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine: {kind: memory}
+      prod:
+        engine: {kind: memory}

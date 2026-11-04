@@ -1,0 +1,31 @@
+[
+  {
+    "code": "PLR206",
+    "severity": "warning",
+    "message": "model_paths entry 'models' does not exist",
+    "hint": "create the directory or remove the entry",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 1,
+      "col": 1,
+      "json_pointer": "/model_paths/0"
+    },
+    "context": {}
+  },
+  {
+    "code": "PLR204",
+    "severity": "error",
+    "message": "unknown engine kind 'memry'",
+    "hint": "did you mean 'memory'?",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 5,
+      "col": 20,
+      "json_pointer": "/targets/dev/engine/kind"
+    },
+    "context": {
+      "group": "engines",
+      "kind": "memry"
+    }
+  }
+]

@@ -1,0 +1,9 @@
+entry_points:
+  - {group: engines, name: ghost, value: "no_such_module_xyz:SPEC", dist: pipeloom-ghost, version: "0.1"}
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine: {kind: ghost}
