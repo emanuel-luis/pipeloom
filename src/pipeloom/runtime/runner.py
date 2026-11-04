@@ -372,10 +372,15 @@ class ModelRunner:
         meta = replay.commit_meta
         row["schema_hash"] = meta.get("schema_hash")
         row["schema_changes"] = meta.get("schema_changes") or []
+        row["expectations"] = meta.get("expectations") or []
+        row["rows_dropped"] = meta.get("rows_dropped")
+        row["rows_quarantined"] = meta.get("rows_quarantined")
+        warnings = meta.get("warnings")  # includes watermark_seeded
+        row["warnings"] = list(warnings) if isinstance(warnings, list) else []
         stored = meta.get("watermark")
         if isinstance(stored, dict):
             st, after, column = incremental.from_meta(stored)
-            self._note_incremental(st, after, row)
+            self._note_incremental(st, after, row, warn=False)
             self._commit_watermark(node, st, after, column)
 
     def _key(self, node: PlanNode) -> StateKey:

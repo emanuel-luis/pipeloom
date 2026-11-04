@@ -94,3 +94,17 @@ def test_quarantine_replay_and_append(tmp_path: Path) -> None:
     rows = table(root, "orders__quarantine", "parquet")
     assert [r["_pipeloom_run_id"] for r in rows] == ["r1", "r2"]
     assert rows[0]["_pipeloom_ts"] == datetime(2026, 1, 1, tzinfo=UTC)
+
+
+def test_a_replayed_run_reports_the_same_quality_result(tmp_path: Path) -> None:
+    root = project(tmp_path, "parquet")
+    run(root, "r1")
+    first = reduced(root, "r1")
+    orders = next(r for r in first if r["unit_id"] == "orders")
+    assert orders["rows_dropped"] == 1 and orders["rows_quarantined"] == 1
+    assert orders["expectations"] and orders["warnings"]
+    before = table(root, "orders__quarantine", "parquet")
+    run(root, "r1")  # the token replays: no evaluation, no quarantine write
+    again = next(r for r in reduced(root, "r1") if r["unit_id"] == "orders")
+    assert again == orders
+    assert table(root, "orders__quarantine", "parquet") == before
