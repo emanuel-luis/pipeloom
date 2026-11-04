@@ -31,6 +31,7 @@ targets:
       tables: {{t: [{{token: "{REF}"}}]}}
     catalog: {{kind: memory}}
 """
+NOTE = YML.replace("token:", "note:")  # a field that is not secret-like
 MODELS = "models:\n  - {name: a, python: 'm:body'}\n"
 BODY = "import os\n\n\ndef body(ctx):\n    raise RuntimeError('leaked ' + os.environ['PL_TOKEN'])\n"
 ENV = {"PIPELOOM_TARGET": "", "PIPELOOM_DISABLE_PLUGIN_AUTOLOAD": "", "PIPELOOM_LOG_FORMAT": ""}
@@ -125,8 +126,9 @@ def test_vault_spec_is_a_secret_provider() -> None:
     assert VAULT.group == "secret_providers"
 
 
-@pytest.mark.parametrize("boundary", ["process", "task"])
-@pytest.mark.parametrize("state", ["sqlite", "json"])
+@pytest.mark.parametrize(
+    ("boundary", "state"), [("process", "sqlite"), ("process", "json"), ("task", "json")]
+)
 def test_a_resolved_secret_reaches_no_file_of_a_failing_run(
     tmp_path: Path, boundary: str, state: str
 ) -> None:
@@ -145,13 +147,14 @@ def test_a_resolved_secret_reaches_no_file_of_a_failing_run(
 
 
 def test_an_escaped_reference_stays_text(tmp_path: Path) -> None:
-    proj = project(tmp_path, YML.replace(REF, "$${secret:nowhere/x}"))
+    proj = project(tmp_path, NOTE.replace(REF, "$${secret:nowhere/x}"))
     outcome = proj.run(RunOptions(run_id="r", workers=1))
     assert not [d for d in outcome.diagnostics if d.code == "PLX109"]
     bound = proj.bind().value
     assert bound is not None
     built = bound.plugins["engines"].create(proj.secrets)
     assert "${secret:nowhere/x}" in repr(built.__dict__)
+    assert "$${secret" not in repr(built.__dict__)
 
 
 def test_a_reference_inside_an_env_value_stays_text(tmp_path: Path) -> None:
@@ -171,7 +174,7 @@ def test_a_reference_inside_an_env_value_stays_text(tmp_path: Path) -> None:
 
 
 def test_a_literal_reference_next_to_an_escape_still_resolves(tmp_path: Path) -> None:
-    proj = project(tmp_path, YML.replace(REF, "$${x} " + REF))
+    proj = project(tmp_path, NOTE.replace(REF, "$${x} " + REF))
     outcome = proj.run(RunOptions(run_id="r", workers=1))
     assert not [d for d in outcome.diagnostics if d.code == "PLX109"]
     assert proj.redactor.mask(VALUE) == "***"

@@ -170,7 +170,7 @@ def load_project(opts: ProjectOptions, report: Report) -> LoadedProject | None:
     data, more = interpolate(
         doc, env=env, vars=merged, report=report, skip=lambda p: _in_vars(p) or skip_secret(p)
     )
-    records += more
+    records = list(dict.fromkeys([*records, *more]))  # secret-like values see both passes
     if isinstance(raw_vars, dict):
         data["vars"] = merged
 
