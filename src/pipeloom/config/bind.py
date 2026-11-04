@@ -55,6 +55,8 @@ class RuntimeSettingsResolved:
     workers: int
     boundary: Literal["process", "task"]
     artifacts: ArtifactsConfig
+    cancel_grace: int | None
+    """Seconds; None when no setting names it, so the run uses its default."""
     pointers: Mapping[str, str]
     """Where each explicitly set key came from, as JSON pointers."""
 
@@ -129,6 +131,7 @@ def _resolve_runtime(
         workers=values.get("workers") or DEFAULT_WORKERS,
         boundary=values.get("boundary") or "process",
         artifacts=values.get("artifacts") or ArtifactsConfig(),
+        cancel_grace=values.get("cancel_grace"),
         pointers=pointers,
     )
 

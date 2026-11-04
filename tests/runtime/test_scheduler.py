@@ -10,7 +10,8 @@ from hypothesis import strategies as st
 
 from pipeloom.events.bus import EventBus
 from pipeloom.plan.model import ExecutionUnit, Plan
-from pipeloom.runtime.executors import UnitCompletion
+from pipeloom.runtime.control import CancelToken
+from pipeloom.runtime.executors import UnitCompletion, UnitHandle
 from pipeloom.runtime.executors.thread import ThreadExecutor
 from pipeloom.runtime.scheduler import Scheduler, ScheduleResult, UnitGraph
 from pipeloom.runtime.states import (
@@ -21,7 +22,7 @@ from pipeloom.runtime.states import (
     check_transition,
 )
 from pipeloom.testing import FakeClock, RecordingSink
-from pipeloom.testing.sim import SimExecutor
+from pipeloom.testing.sim import SimExecutor, script_of
 
 S = UnitState
 
@@ -41,7 +42,7 @@ def simulate(
     graph = UnitGraph.from_parents(edges, edges if selected is None else selected)
     sched = Scheduler(
         graph,
-        SimExecutor(durations, failures, clock),
+        SimExecutor(script_of(durations, failures), clock),
         workers=workers,
         fail_fast=fail_fast,
         bus=bus,
@@ -145,11 +146,11 @@ def test_request_stop_cancels_what_has_not_started() -> None:
     graph = UnitGraph.from_parents({"a": (), "b": ("a",), "c": ()}, ["a", "b", "c"])
     holder: list[Scheduler] = []
 
-    def run_unit(unit_id: str, queued_at: float) -> UnitCompletion:
+    def run_unit(h: UnitHandle, queued_at: float, token: CancelToken) -> UnitCompletion:
         holder[0].request_stop()
-        return UnitCompletion(unit_id, "succeeded")
+        return UnitCompletion(h, "succeeded", h.attempt)
 
-    executor = ThreadExecutor(1, run_unit)
+    executor = ThreadExecutor(run_unit)
     holder.append(Scheduler(graph, executor, workers=1, fail_fast=False, bus=bus, clock=clock))
     result = holder[0].run()
     executor.shutdown(wait=True)
@@ -162,12 +163,12 @@ def test_internal_error_drains_then_raises() -> None:
     bus = EventBus([(RecordingSink(), 5)], clock=clock, invocation_id="inv")
     graph = UnitGraph.from_parents({"a": (), "b": ("a",), "c": ()}, ["a", "b", "c"])
 
-    def run_unit(unit_id: str, queued_at: float) -> UnitCompletion:
-        if unit_id == "a":
+    def run_unit(h: UnitHandle, queued_at: float, token: CancelToken) -> UnitCompletion:
+        if h.unit_id == "a":
             raise KeyError("bug")
-        return UnitCompletion(unit_id, "succeeded")
+        return UnitCompletion(h, "succeeded", h.attempt)
 
-    executor = ThreadExecutor(1, run_unit)
+    executor = ThreadExecutor(run_unit)
     sched = Scheduler(graph, executor, workers=1, fail_fast=False, bus=bus, clock=clock)
     with pytest.raises(KeyError):
         sched.run()
@@ -182,7 +183,9 @@ def test_thread_executor_runs_every_unit() -> None:
     edges = {f"u{i}": (f"u{i - 1}",) if i % 3 else () for i in range(12)}
     graph = UnitGraph.from_parents(edges, edges)
     seen: list[str] = []
-    executor = ThreadExecutor(3, lambda u, q: (seen.append(u), UnitCompletion(u, "succeeded"))[1])
+    executor = ThreadExecutor(
+        lambda h, q, t: (seen.append(h.unit_id), UnitCompletion(h, "succeeded", h.attempt))[1]
+    )
     result = Scheduler(graph, executor, workers=3, fail_fast=False, bus=bus, clock=clock).run()
     executor.shutdown(wait=True)
     assert sorted(seen) == sorted(edges)
@@ -196,7 +199,7 @@ def test_workers_must_be_positive() -> None:
     with pytest.raises(ValueError):
         Scheduler(
             graph,
-            SimExecutor({}, frozenset(), clock),
+            SimExecutor({}, clock),
             workers=0,
             fail_fast=False,
             bus=bus,
@@ -210,7 +213,7 @@ def test_workers_must_be_positive() -> None:
 def test_transition_table_covers_section_8_and_the_queued_exits() -> None:
     assert S.SKIPPED in TRANSITIONS[S.QUEUED]
     assert S.CANCELLED in TRANSITIONS[S.QUEUED]
-    assert TRANSITIONS[S.RETRYING] == {S.RUNNING}
+    assert TRANSITIONS[S.RETRYING] == {S.RUNNING, S.CANCELLED}
     assert TERMINAL == {S.SUCCEEDED, S.FAILED, S.TIMED_OUT, S.CANCELLED, S.SKIPPED}
 
 

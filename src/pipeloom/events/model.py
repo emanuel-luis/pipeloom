@@ -163,6 +163,14 @@ class UnitCancelled(EventPayload):
     reason: Literal["cancel", "timeout"] = "cancel"
 
 
+class UnitTimedOut(EventPayload):
+    TYPE = "unit.timed_out"
+    LEVEL = Level.ERROR
+
+    timeout_s: float
+    attempt: int
+
+
 class ErrorInfo(BaseModel):
     """Why a unit failed. `category` tells a retry policy whether trying again can help."""
 
@@ -176,6 +184,17 @@ class ErrorInfo(BaseModel):
     trace_excerpt: list[str] = Field(default_factory=list)
     """Frames under the project dir, then the root cause."""
     location: dict[str, JsonValue] | None = None
+
+
+class UnitRetrying(EventPayload):
+    TYPE = "unit.retrying"
+    LEVEL = Level.WARNING
+
+    attempt: int
+    """The attempt that failed."""
+    next_attempt: int
+    delay_ms: int
+    error: ErrorInfo | None = None
 
 
 class RunStarted(EventPayload):
@@ -206,6 +225,16 @@ class RunCompiled(EventPayload):
     executor: str
 
 
+class RunCancelRequested(EventPayload):
+    TYPE = "run.cancel_requested"
+    LEVEL = Level.WARNING
+
+    signal: str | None
+    """SIGINT, SIGTERM or SIGBREAK when a signal asked for the stop; None for an API call."""
+    grace_s: float
+    """Seconds running units get to finish before they are marked cancelled."""
+
+
 class RunCompleted(EventPayload):
     TYPE = "run.completed"
 
@@ -219,6 +248,8 @@ class RunCompleted(EventPayload):
     """One entry per failed unit: unit id and the diagnostic."""
     artifacts: list[str]
     """POSIX paths of the files the run wrote."""
+    abandoned_threads: int = 0
+    """Timed-out unit threads that were still running when the run ended."""
 
     def event_level(self) -> Level:
         return Level.INFO if self.status == "succeeded" else Level.ERROR

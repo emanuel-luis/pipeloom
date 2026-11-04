@@ -38,3 +38,26 @@ def write_json_atomic(path: Path, data: Any) -> int:
         tmp.unlink(missing_ok=True)
         raise
     return len(content)
+
+
+def write_json_once(path: Path, data: Any) -> bool:
+    """Create `path` with `data` unless it exists; True when this call created it.
+
+    The first terminal attempt file wins: the content goes to a temp file, which is then linked
+    (POSIX) or renamed (Windows) to `path`. Both fail when `path` exists, and the temp file is
+    removed either way.
+    """
+    content = json_bytes(data)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f"{path.name}.{uuid.uuid4().hex}.tmp")
+    tmp.write_bytes(content)
+    try:
+        if sys.platform == "win32":
+            os.rename(tmp, path)
+        else:
+            os.link(tmp, path)
+    except FileExistsError:
+        return False
+    finally:
+        tmp.unlink(missing_ok=True)
+    return True

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -82,6 +83,7 @@ def test_child_command_argv(tmp_path: Path) -> None:
         full_refresh=True,
         vars='{"k":1}',
         plugins=("a:B",),
+        cancel_grace=45,
     )
     argv = cmd.argv("u")
     assert argv[1:5] == ["-m", "pipeloom", "run", "--log-format"]
@@ -90,6 +92,34 @@ def test_child_command_argv(tmp_path: Path) -> None:
     assert argv[argv.index("--vars") + 1] == '{"k":1}'
     assert argv[argv.index("--plugin") + 1] == "a:B"
     assert argv[argv.index("--expect-plan-hash") + 1] == "0" * 64
+    assert argv[argv.index("--cancel-grace") + 1] == "45"
+    assert "--cancel-grace" not in replace(cmd, cancel_grace=None).argv("u")
+    assert replace(cmd, cancel_grace=1.2).argv("u")[argv.index("--cancel-grace") + 1] == "2"
+
+
+def test_children_get_the_parents_grace_even_above_the_setting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = project_dir(tmp_path)
+    yml = root / "pipeloom.yml"
+    yml.write_bytes(
+        yml.read_bytes().replace(b"boundary: task", b"boundary: task\ncancel_grace: 1s")
+    )
+    seen: list[list[str]] = []
+    original = ChildCommand.argv
+
+    def spy(self: ChildCommand, unit_id: str) -> list[str]:
+        out = original(self, unit_id)
+        seen.append(out)
+        return out
+
+    monkeypatch.setattr(ChildCommand, "argv", spy)
+    outcome, _ = run(root, RunOptions(run_id="g1", workers=1, cancel_grace=10))
+    assert outcome.exit_code == 0
+    assert seen and all(a[a.index("--cancel-grace") + 1] == "10" for a in seen)
+    seen.clear()
+    run(root, RunOptions(run_id="g2", workers=1))  # the setting, 1s
+    assert seen and all(a[a.index("--cancel-grace") + 1] == "1" for a in seen)
 
 
 def test_every_unit_runs_in_its_own_process(tmp_path: Path) -> None:

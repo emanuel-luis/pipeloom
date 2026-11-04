@@ -81,6 +81,8 @@ class RuntimeSettings(_Model):
     """Maximum concurrent units."""
     boundary: Literal["process", "task"] | None = None
     """Whether units share a process or run as separate tasks."""
+    cancel_grace: Duration | None = None
+    """Time a stopped or timed-out unit gets to finish before it is killed. Default 30s."""
     artifacts: ArtifactsConfig | None = None
     """Where artifacts go."""
 

@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import threading
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Any, Literal, NoReturn
 
-from pipeloom.artifacts.io import write_json_atomic
+from pipeloom.artifacts.io import write_json_once
 from pipeloom.artifacts.layout import RunPaths
 from pipeloom.artifacts.results import result_row, schema_hash
 from pipeloom.diagnostics import JsonValue, Location
@@ -50,11 +51,13 @@ from pipeloom.quality import (
 )
 from pipeloom.runtime import incremental
 from pipeloom.runtime.context import ModelContext, RuntimeContext
+from pipeloom.runtime.control import CancelToken, Reason, UnitInterrupted, interrupt_error
 from pipeloom.runtime.errors import ErrorInfo, Phase, build_error, full_traceback
-from pipeloom.runtime.executors import UnitCompletion
+from pipeloom.runtime.executors import UnitCompletion, UnitHandle
 from pipeloom.runtime.incremental import IncrementalError, IncrementalState, WatermarkConflict
 from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.memo import EphemeralMemo
+from pipeloom.runtime.retry import NO_POLICY, UnitPolicy
 from pipeloom.runtime.schema_policy import SchemaRejected, changes_json, resolve_columns
 from pipeloom.state.types import StateKey, StateStore, UnitRecord
 
@@ -66,7 +69,7 @@ class ModelResult:
     """What a unit reports to the scheduler: its results row and, on failure, why."""
 
     unit_id: str
-    status: Literal["succeeded", "failed"]
+    status: Literal["succeeded", "failed", "timed_out", "cancelled"]
     attempt: int
     row: Mapping[str, Any]
     error: ErrorInfo | None = None
@@ -149,6 +152,7 @@ class ModelRunner:
         loader: CallableLoader,
         memo: EphemeralMemo | None,
         executor_name: str,
+        policies: Mapping[str, UnitPolicy] | None = None,
     ) -> None:
         self._plan = plan
         self._engine = engine
@@ -161,16 +165,33 @@ class ModelRunner:
         self._loader = loader
         self._memo = memo
         self._executor = executor_name
+        self._policies = policies or {}
+        self._tls = threading.local()
+        self._rows: dict[UnitHandle, tuple[dict[str, Any], datetime]] = {}
+        self._first: dict[str, int] = {}
 
     # -- the unit ---------------------------------------------------------------------------
 
-    def run_unit(self, unit_id: str, queued_at: float) -> UnitCompletion:
+    def attempt_number(self, unit_id: str) -> int:
+        """The attempt number the next submit of `unit_id` writes."""
+        return self._paths.next_attempt(unit_id)
+
+    def _check(self) -> None:
+        """A cancellation checkpoint: raises `UnitInterrupted` once this attempt was stopped."""
+        token: CancelToken | None = getattr(self._tls, "token", None)
+        if token is not None:
+            token.check()
+
+    def run_unit(self, handle: UnitHandle, queued_at: float, token: CancelToken) -> UnitCompletion:
+        self._tls.token = token
+        unit_id = handle.unit_id
         rt = self._rt
         unit = self._plan.units[unit_id]
         node = self._plan.nodes[unit.nodes[-1]]
         started = rt.clock.now()
         t0 = rt.clock.monotonic()
-        attempt = self._paths.next_attempt(unit_id)
+        attempt = handle.attempt
+        first = self._first.setdefault(unit_id, attempt)
         wait_ms = max(0, int((t0 - queued_at) * 1000))
         self._bus.emit(
             UnitStarted(
@@ -196,11 +217,16 @@ class ModelRunner:
             engine_version=self._engine.version,
             executor=self._executor,
             idempotency_token=None if strategy is None else f"{rt.run_id}:{node.name}",
+            retries_used=attempt - first,
         )
+        self._rows[handle] = (row, started)
         error: ErrorInfo | None = None
         trace: str | None = None
+        interrupted: Reason | None = None
         try:
             self._execute(unit_id, node, strategy, attempt, started, row)
+        except UnitInterrupted as stop:
+            interrupted = stop.reason
         except _Fail as fail:
             error = build_error(
                 fail.code,
@@ -210,6 +236,7 @@ class ModelRunner:
                 hint=fail.hint,
                 project_dir=rt.project_dir,
                 fallback=Location(node.file, node.line),
+                session=self._session,
             )
             trace = full_traceback(fail.cause, rt.project_dir)
         except Exception as exc:  # noqa: BLE001 - a bug in the runner still ends the unit cleanly
@@ -218,9 +245,19 @@ class ModelRunner:
         finally:
             if self._memo is not None:
                 self._memo.release(unit_id)
+        if interrupted is None and error is not None and token.is_set():
+            interrupted = token.reason  # the failure is what the stop looked like to the engine
+        status: Literal["succeeded", "failed", "timed_out", "cancelled"] = (
+            "failed" if error else "succeeded"
+        )
+        if interrupted is None and not token.finish():
+            interrupted = token.final_reason or "timeout"  # the scheduler won the race
+        if interrupted is not None:
+            error = interrupt_error(interrupted, unit_id, attempt, self._policy(unit_id).timeout)
+            status = "timed_out" if interrupted == "timeout" else "cancelled"
         ended = rt.clock.now()
         duration_ms = max(0, int((rt.clock.monotonic() - t0) * 1000))
-        status: Literal["succeeded", "failed"] = "failed" if error else "succeeded"
+        self._rows.pop(handle, None)
         row.update(
             status=status,
             ended_at=_iso(ended),
@@ -228,7 +265,17 @@ class ModelRunner:
             error=None if error is None else error.model_dump(mode="json"),
         )
         try:
-            write_json_atomic(self._paths.attempt(unit_id, attempt), row)
+            if not write_json_once(self._paths.attempt(unit_id, attempt), row):
+                # The scheduler gave up on this attempt first; its file stands.
+                self._bus.emit(
+                    ModelLog(message=f"late result discarded: {status}", level="debug"),
+                    unit_id=unit_id,
+                    model=node.name,
+                    attempt=attempt,
+                )
+                return UnitCompletion(
+                    handle, status, attempt, None if error is None else error.category, None
+                )
             self._state.record_unit(
                 UnitRecord(
                     rt.run_id, unit_id, attempt, status, rt.invocation_id, started, ended, dict(row)
@@ -246,7 +293,9 @@ class ModelRunner:
                 attempt=attempt,
             )
             raise
-        if error is None:
+        if interrupted is not None:
+            pass  # the scheduler emits unit.timed_out and unit.cancelled
+        elif error is None:
             self._bus.emit(
                 UnitSucceeded(
                     materialization=node.materialized,
@@ -268,7 +317,47 @@ class ModelRunner:
                 model=node.name,
                 attempt=attempt,
             )
-        return UnitCompletion(unit_id, status, ModelResult(unit_id, status, attempt, row, error))
+        return UnitCompletion(
+            handle,
+            status,
+            attempt,
+            None if error is None else error.category,
+            ModelResult(unit_id, status, attempt, row, error),
+        )
+
+    def _policy(self, unit_id: str) -> UnitPolicy:
+        return self._policies.get(unit_id, NO_POLICY)
+
+    def record_interrupt(self, handle: UnitHandle, reason: Reason) -> None:
+        """Write the attempt file of an attempt the scheduler gave up on, whose thread may never
+        return. The first terminal file wins, so a later result of the thread is discarded."""
+        live = self._rows.get(handle)
+        if live is None:
+            return
+        row, started = live
+        unit_id, attempt = handle.unit_id, handle.attempt
+        error = interrupt_error(reason, unit_id, attempt, self._policy(unit_id).timeout)
+        ended = self._rt.clock.now()
+        final = dict(row)
+        final.update(
+            status="timed_out" if reason == "timeout" else "cancelled",
+            ended_at=_iso(ended),
+            duration_ms=max(0, int((ended - started).total_seconds() * 1000)),
+            error=error.model_dump(mode="json"),
+        )
+        if write_json_once(self._paths.attempt(unit_id, attempt), final):
+            self._state.record_unit(
+                UnitRecord(
+                    self._rt.run_id,
+                    unit_id,
+                    attempt,
+                    str(final["status"]),
+                    self._rt.invocation_id,
+                    started,
+                    ended,
+                    final,
+                )
+            )
 
     def _unexpected(self, exc: Exception, node: PlanNode) -> ErrorInfo:
         return build_error(
@@ -300,6 +389,7 @@ class ModelRunner:
         started: datetime,
         row: dict[str, Any],
     ) -> None:
+        self._check()
         target = node.relation
         if node.materialized == "view":
             assert target is not None and isinstance(node.body, SqlBody)
@@ -454,11 +544,15 @@ class ModelRunner:
         ctx = self._context(node, unit_id, attempt, started, None if inc is None else inc.state)
         failed = f"model '{node.name}' raised"
         try:
-            if isinstance(node.body, SqlBody):
-                return self._session.sql(node.body.sql, inputs)
-            out = self._call(node.body, node, ctx, inputs)
+            with self._session.unit_scope(unit_id):
+                if isinstance(node.body, SqlBody):
+                    sql_out = self._session.sql(node.body.sql, inputs)
+                    self._check()
+                    return sql_out
+                out = self._call(node.body, node, ctx, inputs)
         except Exception as exc:  # noqa: BLE001 - the body is user code
             self._fail("PLX101", "body", exc, failed)
+        self._check()
         try:
             return self._session.relation(portable.from_frame_api(out))
         except TypeError as exc:
@@ -603,6 +697,7 @@ class ModelRunner:
         unit_id: str,
         attempt: int,
     ) -> Relation:
+        self._check()
         t0 = self._rt.clock.monotonic()
         try:
             rel = self._session.reader(spec.format).read(spec)
@@ -860,8 +955,10 @@ class ModelRunner:
                 columns=None if keep else columns,
                 options=dict(write.options),
             )
+            self._check()
             if before_write is not None:
                 before_write()  # step 8: quarantine rows, once the schema policy accepted
+                self._check()
             # Stored with the token after the quarantine, so a replay reports what really ran.
             cfg = replace(cfg, commit_meta=_commit_meta(row, meta))
             result = self._session.materializer(strategy).materialize(rel, target, cfg, token)
