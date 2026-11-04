@@ -6,6 +6,7 @@ import itertools
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
 
+import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -148,7 +149,7 @@ def test_retry_and_timeout_properties(scenario: Scenario) -> None:
         attempts, final = expected_outcome(policies[u], script[u])
         want[u] = final
         runs = [t for t, v, s in result.trace if v == u and s is S.RUNNING]
-        assert len(runs) == attempts <= policies[u].retries + 1 + 0 or final is S.TIMED_OUT
+        assert len(runs) == attempts
         assert len(runs) <= policies[u].retries + 1
     assert result.states == want
 
@@ -313,3 +314,28 @@ def test_a_hard_stop_skips_the_grace() -> None:
     result, _ = simulate(edges, script, policies, control=control, cancel_latency=50)
     assert result.states == {"a": S.CANCELLED}
     assert result.trace[-1][0] == 0.0
+
+
+def test_a_stop_with_a_retrying_unit_does_not_spin(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[float | None] = []
+    real = SimExecutor.wait_any
+
+    def counting(self: SimExecutor, timeout: float | None) -> object:
+        calls.append(timeout)
+        assert len(calls) < 50, "the scheduler is spinning"
+        return real(self, timeout)
+
+    monkeypatch.setattr(SimExecutor, "wait_any", counting)
+    edges = {"a": (), "b": ()}
+    script = {
+        "a": [SimAttempt(1, "failed", "transient"), SimAttempt(1, "succeeded")],
+        "b": [SimAttempt(60, "succeeded")],
+    }
+    policies = {
+        "a": UnitPolicy(2, 10.0, "transient", None),
+        "b": UnitPolicy(0, 0.0, "transient", None),
+    }
+    result, _ = simulate(
+        edges, script, policies, workers=2, control=RunControl(), stop_at=3, cancel_grace=30
+    )
+    assert result.states == {"a": S.CANCELLED, "b": S.CANCELLED}

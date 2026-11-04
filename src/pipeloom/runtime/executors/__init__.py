@@ -49,8 +49,11 @@ class Executor(Protocol):
         """Block until a unit completes; None when `timeout` seconds pass or `wake` is called."""
         ...
 
-    def cancel(self, handle: UnitHandle, reason: Reason) -> None:
-        """Ask a running unit to stop. A `timeout` also abandons it: its completion is dropped."""
+    def cancel(self, handle: UnitHandle, reason: Reason) -> bool:
+        """Ask a running unit to stop. A `timeout` also abandons it: its completion is dropped.
+
+        False when a timeout came too late: the unit already has its result and its completion
+        is still coming, so the scheduler must wait for it."""
         ...
 
     def has_terminal_event(self, handle: UnitHandle) -> bool:

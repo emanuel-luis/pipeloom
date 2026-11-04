@@ -250,11 +250,17 @@ class Scheduler:
         self._emit(unit_id, UnitQueued(downstream=self._downstream[unit_id]))
 
     def _promote(self, now: float) -> None:
+        self._trim_retry()
         while self._retry and self._retry[0][0] <= now + _SLACK:
             _, u = heapq.heappop(self._retry)
             if self._states[u] is UnitState.RETRYING:
                 self._queued_at[u] = now
                 heapq.heappush(self._ready, (-self._downstream[u], u))
+
+    def _trim_retry(self) -> None:
+        """Drop heap heads of units that were cancelled while they waited."""
+        while self._retry and self._states[self._retry[0][1]] is not UnitState.RETRYING:
+            heapq.heappop(self._retry)
 
     def _fill(self, now: float) -> None:
         while len(self._run_of) < self._workers and self._ready:
@@ -271,6 +277,7 @@ class Scheduler:
     def _wait_for(self, now: float) -> float:
         due = [now + self._poll]
         due += [r.deadline for r in self._run_of.values() if r.deadline is not None]
+        self._trim_retry()
         if self._retry:
             due.append(self._retry[0][0])
         if self._stop_by is not None:
@@ -356,7 +363,8 @@ class Scheduler:
         for u, run in list(self._run_of.items()):
             if run.deadline is None or now + _SLACK < run.deadline:
                 continue
-            self._executor.cancel(run.handle, "timeout")
+            if not self._executor.cancel(run.handle, "timeout"):
+                continue  # finished just in time: its completion decides
             del self._run_of[u]
             self._verdict(u, run, "timeout")
             self._set(u, UnitState.TIMED_OUT)

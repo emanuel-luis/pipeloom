@@ -243,3 +243,27 @@ def test_unit_mode_never_retries(tmp_path: Path) -> None:
     assert outcome.exit_code == 1
     folder = root / "target/runs/u1/units/a"
     assert len(list(folder.glob("attempt-*.json"))) == 1
+
+
+def test_a_unit_that_finishes_at_its_deadline_is_not_also_timed_out() -> None:
+    """The runner passed its point of no return before the deadline fired."""
+    gate = threading.Event()
+
+    def run_unit(h: UnitHandle, queued_at: float, token: CancelToken) -> UnitCompletion:
+        assert token.finish()  # it has its result and emitted its own terminal event
+        gate.wait(5)
+        return UnitCompletion(h, "succeeded", h.attempt)
+
+    executor = ThreadExecutor(run_unit)
+    threading.Timer(0.6, gate.set).start()
+    sink = RecordingSink()
+    clock = SystemClock()
+    bus = EventBus([(sink, 5)], clock=clock, invocation_id="inv")
+    graph = UnitGraph.from_parents({"a": ()}, ["a"])
+    policies = {"a": UnitPolicy(0, 0.0, "transient", 0.2)}
+    result = Scheduler(
+        graph, executor, workers=1, fail_fast=False, bus=bus, clock=clock, policies=policies
+    ).run()
+    executor.shutdown(wait=True)
+    assert result.states == {"a": UnitState.SUCCEEDED}
+    assert not [e for e in sink.events if e.type == "unit.timed_out"]

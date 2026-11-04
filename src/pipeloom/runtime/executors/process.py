@@ -155,7 +155,7 @@ class ProcessExecutor:
         with self._lock:
             return (handle.unit_id, handle.attempt) in self._forwarded
 
-    def cancel(self, handle: UnitHandle, reason: Reason) -> None:
+    def cancel(self, handle: UnitHandle, reason: Reason) -> bool:
         """Ask the child to stop (SIGTERM, CTRL_BREAK on Windows) and kill it after the grace.
 
         A timeout is already past its grace in the scheduler, so the child is killed at once.
@@ -164,10 +164,10 @@ class ProcessExecutor:
             proc = self._procs.get(handle)
             self._stopped.setdefault(handle, reason)
         if proc is None or proc.poll() is not None:
-            return
+            return True
         if reason == "timeout":
             _kill(proc)
-            return
+            return True
         try:
             if sys.platform == "win32":
                 proc.send_signal(signal.CTRL_BREAK_EVENT)
@@ -175,10 +175,11 @@ class ProcessExecutor:
                 proc.send_signal(signal.SIGTERM)
         except OSError:
             _kill(proc)
-            return
+            return True
         timer = threading.Timer(self._grace, _kill, args=(proc,))
         timer.daemon = True
         timer.start()
+        return True
 
     def shutdown(self, *, wait: bool) -> None:
         with self._lock:

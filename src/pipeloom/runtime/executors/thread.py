@@ -75,11 +75,13 @@ class ThreadExecutor:
         except queue.Empty:
             return None
 
-    def cancel(self, handle: UnitHandle, reason: Reason) -> None:
+    def cancel(self, handle: UnitHandle, reason: Reason) -> bool:
         with self._lock:
             token = self._tokens.get(handle)
             if token is None:
-                return
+                return True
+            if reason == "timeout" and not token.set("timeout"):
+                return False  # the runner already has its result; its completion is on the way
             first = handle not in self._cancelled
             self._cancelled.add(handle)
             if reason == "timeout":
@@ -92,6 +94,7 @@ class ThreadExecutor:
                 self._session.cancel(handle.unit_id)
         if reason == "timeout" and self._on_interrupt is not None:
             self._on_interrupt(handle, reason)
+        return True
 
     def has_terminal_event(self, handle: UnitHandle) -> bool:
         return False

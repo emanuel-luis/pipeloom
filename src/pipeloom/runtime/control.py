@@ -26,12 +26,25 @@ class CancelToken:
         self._event = threading.Event()
         self._reason: Reason | None = None
         self._lock = threading.Lock()
+        self._finished = False
 
-    def set(self, reason: Reason) -> None:
+    def set(self, reason: Reason) -> bool:
+        """False when a timeout arrives after `finish`: the attempt already has its result."""
         with self._lock:
+            if reason == "timeout" and self._finished:
+                return False
             if self._reason is None:
                 self._reason = reason
         self._event.set()
+        return True
+
+    def finish(self) -> bool:
+        """The runner's point of no return. False when a timeout won the race first."""
+        with self._lock:
+            if self._reason == "timeout":
+                return False
+            self._finished = True
+            return True
 
     def is_set(self) -> bool:
         return self._event.is_set()

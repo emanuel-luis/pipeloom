@@ -123,18 +123,19 @@ class SimExecutor:
         self._clock.advance(max(0.0, limit - now))
         return None
 
-    def cancel(self, handle: UnitHandle, reason: Reason) -> None:
+    def cancel(self, handle: UnitHandle, reason: Reason) -> bool:
         live = self._live.get(handle)
         if live is None:
-            return
+            return True
         if reason == "timeout":
             del self._live[handle]  # abandoned: its late result is dropped
-            return
+            return True
         finish, entry, _ = live
         done = self._clock.monotonic() + self._latency
         if finish is not None and finish <= done:
-            return  # it finishes before the stop could reach it
+            return True  # it finishes before the stop could reach it
         self._live[handle] = (done, entry, True)
+        return True
 
     def has_terminal_event(self, handle: UnitHandle) -> bool:
         return False
