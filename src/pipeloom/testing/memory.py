@@ -151,7 +151,7 @@ class _MemoryMaterializer:
         applied = self._tokens.get((key, token))
         if applied is not None:
             return applied
-        new = _rows(rel)
+        new = tuple(_rows(rel))  # read it all first: a failure must not touch the table
         if self.strategy == "append":
             self._store[key] = (*self._store.get(key, ()), *new)
         else:
