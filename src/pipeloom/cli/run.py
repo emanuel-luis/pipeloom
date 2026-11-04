@@ -131,6 +131,7 @@ def run(
         target=target,
         vars=vars_,
         plugins=plugins,
+        boundary=chosen,
         env=os.environ,
     )
     inv = Invocation("run", log_format)

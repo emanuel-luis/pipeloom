@@ -1,0 +1,10 @@
+14:02:11 run 20261029T140211Z-7f3a9c | engine memory 1
+14:02:11 plan: 4 units (3 table, 1 view) | selected 4 | workers 1 | executor thread
+14:02:11 1/4 OK     stg_customers .......... table/overwrite        2 rows            0.00s
+14:02:11 2/4 FAIL   fct_payments ........... PLX101 KeyError 0.00s
+14:02:11 3/4 SKIP   rpt_revenue ............ upstream fct_payments failed
+14:02:11 4/4 OK     dim_view ............... view                                     0.00s
+14:02:11 finished in 0.00s | OK 2 | FAIL 1 | SKIP 1 | rows written 2
+         fct_payments  PLX101 model 'fct_payments' raised: KeyError: 'amount'
+                       at src/m.py:2 in build
+14:02:11 artifacts: target/runs/20261029T140211Z-7f3a9c/manifest.json, target/runs/20261029T140211Z-7f3a9c/run_results.json, target/manifest.json, target/run_results.json
