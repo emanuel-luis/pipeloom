@@ -23,8 +23,9 @@ All notable changes to this project are documented here. The format follows
 - Model settings resolution: `_defaults.yml` cascades from the model's folder up to its model_paths root, then `defaults.models`; mappings merge deeply, lists replace and `tags` is a deduplicated union. Unique ids `model.<project>.<name>` and `source.<project>.<name>`.
 - L2 reference checks (PLR201, PLR202, PLR203, PLR205) with did-you-mean hints.
 - Dependency graph with deterministic topological order, depth-limited ancestors and descendants, and cycle detection (PLG301, PLG302).
-- Selector engine: space union, comma intersection, `N+` and `+N` graph operators, and the `name`, `tag`, `path` and `materialized` methods (PLG303 to PLG305). No CLI flags yet.
+- Selector engine: space union, comma intersection, `N+` and `+N` graph operators, and the `name`, `tag`, `path` and `materialized` methods (PLG303 to PLG305).
 - `Project.resolve()` in the API runs load, bind, resolve, L2 and graph.
+- `pipeloom ls` (`--output text|json`) and `pipeloom graph` (`--output text|dot|mermaid|json`), both with repeatable `-s/--select` and `--exclude`. A malformed selector (PLG304, PLG305) exits 2; a selector that matches nothing (PLG303) is a warning.
 - Typed events (`pipeloom.event/1`) and a synchronous event bus with failure budgets, redaction and context-manager close; `console`, `jsonl` and buffered sinks; code PLE401 (ADR-0018).
 - `--log-format text|json` (`PIPELOOM_LOG_FORMAT`) on every command; `console` and `jsonl` sinks configurable under `events.sinks`.
 - `pipeloom.testing.RecordingSink` and `FakeClock`.
@@ -35,6 +36,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- `pipeloom validate` now runs L0 to L3: reference checks and the graph.
 - `pipeloom validate` binds the selected target and checks plugin options, and accepts `--target` and `--plugin`.
 - Diagnostics and the run summary go to stderr through the event bus; the summary line now reads `<command> finished in N ms | exit C | E error(s), W warning(s)`. `rich>=13.7` is a new dependency.
 - PLS104 matches secret words in key segments (`max_tokens` is no longer flagged) and ignores booleans.
