@@ -1,0 +1,11 @@
+config_version: 1
+name: smoke_pandas
+python_paths: [src]
+defaults:
+  models: {materialized: table}
+targets:
+  pandas:
+    engine: {kind: pandas}
+    catalog: {kind: filesystem, root: target/warehouse}
+    state: {kind: json, path: .pipeloom/state}
+    naming: {kind: none}

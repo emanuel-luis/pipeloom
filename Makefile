@@ -23,7 +23,7 @@ format: ## apply ruff fixes and formatting
 	uv run ruff format .
 
 typecheck: ## mypy --strict on src and the plugin sources
-	uv run mypy --strict src plugins/pipeloom-polars/src
+	uv run mypy --strict src plugins/pipeloom-polars/src plugins/pipeloom-pandas/src
 
 test: ## pytest, core and plugins
 	uv run pytest -q

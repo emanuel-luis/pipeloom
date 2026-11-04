@@ -22,7 +22,7 @@ jobs:
         run: uv run --no-project python tools/versions.py check --tag "$TAG"
       - name: Build every distribution into dist/<name>/
         run: |
-          for p in pipeloom pipeloom-polars; do
+          for p in pipeloom pipeloom-polars pipeloom-pandas; do
             uv build --package "$p" -o "dist/$p"
           done
       - name: Extract release notes from CHANGELOG.md
@@ -77,6 +77,12 @@ jobs:
         uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: dist/pipeloom-polars/
+          attestations: true
+          skip-existing: true
+      - name: Publish pipeloom-pandas
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          packages-dir: dist/pipeloom-pandas/
           attestations: true
           skip-existing: true
 

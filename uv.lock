@@ -19,6 +19,7 @@ resolution-markers = [
 [manifest]
 members = [
     "pipeloom",
+    "pipeloom-pandas",
     "pipeloom-polars",
 ]
 
@@ -1591,6 +1592,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+pandas = [
+    { name = "pipeloom-pandas" },
+]
 polars = [
     { name = "pipeloom-polars" },
 ]
@@ -1622,12 +1626,13 @@ docs = [
 requires-dist = [
     { name = "click", specifier = ">=8.2" },
     { name = "narwhals", specifier = ">=2.0" },
+    { name = "pipeloom-pandas", marker = "extra == 'pandas'", editable = "plugins/pipeloom-pandas" },
     { name = "pipeloom-polars", marker = "extra == 'polars'", editable = "plugins/pipeloom-polars" },
     { name = "pydantic", specifier = ">=2.12" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "rich", specifier = ">=13.7" },
 ]
-provides-extras = ["polars"]
+provides-extras = ["polars", "pandas"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1650,6 +1655,23 @@ docs = [
     { name = "mkdocs-click" },
     { name = "mkdocs-material" },
     { name = "mkdocstrings", extras = ["python"] },
+]
+
+[[package]]
+name = "pipeloom-pandas"
+version = "0.1.0"
+source = { editable = "plugins/pipeloom-pandas" }
+dependencies = [
+    { name = "pandas" },
+    { name = "pipeloom" },
+    { name = "pyarrow" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pandas", specifier = ">=2.3.3,<4" },
+    { name = "pipeloom", editable = "." },
+    { name = "pyarrow", specifier = ">=22" },
 ]
 
 [[package]]
