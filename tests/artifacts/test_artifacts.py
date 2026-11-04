@@ -62,6 +62,7 @@ def header() -> RunHeader:
     return RunHeader(
         run_id="r",
         invocation_id="i",
+        invocation_ids=("h", "i"),
         project="p",
         target="t",
         plan_hash="h",
@@ -88,6 +89,7 @@ def test_status_and_totals() -> None:
     doc = build_run_results(header(), [result_row(unit_id="b", status="failed"), ok])
     assert [r["unit_id"] for r in doc["results"]] == ["a", "b"]
     assert doc["run"]["totals"] == {"rows_written": 3, "bytes_written": 0}
+    assert doc["run"]["invocation_ids"] == ["h", "i"]
     assert doc["run"]["exit_code"] == 1 and doc["schema"] == "pipeloom.run_results/1"
 
 
