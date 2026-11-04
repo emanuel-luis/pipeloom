@@ -177,4 +177,4 @@ def test_load_all_skips_duplicates_and_reports_failures(monkeypatch: pytest.Monk
     report = Report()
     specs = PluginRegistry.discover(env={}).load_all(report)
     assert sorted(s.kind for s in specs["engines"]) == ["fake"]
-    assert codes(report) == ["PLU001"]
+    assert sorted(codes(report)) == ["PLU001", "PLU002"]

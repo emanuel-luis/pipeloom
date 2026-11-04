@@ -184,3 +184,13 @@ def test_schema_export_reports_plugin_failures(
     install_entry_points(monkeypatch, [ep])
     result = run(["schema", "export", "--out", str(tmp_path / "o")])
     assert result.exit_code == 1 and "PLU001" in result.stderr
+
+
+def test_schema_export_fails_on_duplicate_kinds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dup = FakeEntryPoint("memory", f"{FAKES}:MEMORY_CLONE", "engines", FakeDist("other", "1"))
+    install_entry_points(monkeypatch, [dup])
+    result = run(["schema", "export", "--out", str(tmp_path / "o")])
+    assert result.exit_code == 1 and "PLU002" in result.stderr
+    assert not (tmp_path / "o").exists()

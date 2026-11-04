@@ -285,8 +285,19 @@ class PluginRegistry:
     def load_all(
         self, report: Report, group: Group | None = None
     ) -> dict[Group, list[PluginSpec[Any]]]:
-        """Import every entry that is not a duplicate. Used by schema export."""
+        """Import every entry that is not a duplicate; each duplicate kind is PLU002.
+
+        Used by schema export, which must not drop a kind silently.
+        """
         dupes = self.duplicates()
+        for (grp, kind), found in dupes.items():
+            if group is None or grp == group:
+                where = ", ".join(f"{e.distribution} ({e.value})" for e in found)
+                report.add(
+                    "PLU002",
+                    f"{grp} kind '{kind}' is provided more than once: {where}",
+                    context={"group": grp, "kind": kind},
+                )
         out: dict[Group, list[PluginSpec[Any]]] = {}
         for e in self.entries(group):
             if (e.group, e.kind) in dupes:
