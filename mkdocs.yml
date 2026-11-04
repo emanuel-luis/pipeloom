@@ -7,6 +7,24 @@ exclude_docs: |
   diagrams/*.d2
 theme:
   name: material
+hooks:
+  - tools/docs_hooks.py
 plugins:
   - search
   - mkdocstrings
+markdown_extensions:
+  - attr_list
+  - tables
+  - admonition
+  - toc:
+      permalink: true
+  - mkdocs-click
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Reference:
+      - Command line: reference/cli.md
+      - JSON Schema: reference/schema.md
+      - Error codes: reference/errors.md
+  - Architecture: architecture.md
+  - Decisions: adr/README.md
