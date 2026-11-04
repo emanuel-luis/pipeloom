@@ -26,6 +26,7 @@ from tests.conftest import make_project
 
 LOG: list[str] = []
 CONTEXTS: list[RuntimeContext] = []
+STARTS: list[datetime | None] = []
 NOW = datetime(2026, 11, 4, 9, 30, tzinfo=UTC)
 EARLIER = NOW - timedelta(days=1)
 
@@ -96,6 +97,7 @@ class _RecMaterializer:
         self, rel: Relation, target: TargetRef, cfg: WriteConfig, token: str
     ) -> WriteResult:
         LOG.append("write")
+        STARTS.append(cfg.run_started_at)
         return self._inner.materialize(rel, target, cfg, token)
 
 
@@ -139,6 +141,10 @@ class _RecEngine(MemoryEngine):
 
 
 class _RecStore(SqliteStore):
+    def get_run(self, run_id: str) -> Any:
+        LOG.append("get_run")
+        return super().get_run(run_id)
+
     def lock(self, scope: str, run_id: str) -> AbstractContextManager[LockInfo]:
         LOG.append("lock+")
         inner = super().lock(scope, run_id)
@@ -177,6 +183,7 @@ STORE: PluginSpec[Any] = PluginSpec(
 def project(tmp_path: Path) -> Project:
     LOG.clear()
     CONTEXTS.clear()
+    STARTS.clear()
     make_project(
         tmp_path,
         {
@@ -210,14 +217,28 @@ def test_session_opens_before_the_lock_and_closes_after(project: Project) -> Non
     assert LOG.index("scope-") < LOG.index("lock-") < LOG.index("session-")
 
 
+def test_session_opens_before_any_state_call(project: Project) -> None:
+    assert project.run(RunOptions(run_id="r1")).exit_code == 0
+    assert LOG.index("session+") < LOG.index("get_run") < LOG.index("lock+")
+
+
+def test_run_options_reject_a_naive_start_and_a_start_without_run_id() -> None:
+    naive = datetime(2026, 1, 2, 3, 4, 5)
+    with pytest.raises(ValueError, match="timezone-aware"):
+        RunOptions(run_id="r1", run_started_at=naive)
+    with pytest.raises(ValueError, match="needs run_id"):
+        RunOptions(run_started_at=naive.replace(tzinfo=UTC))
+
+
 def test_context_carries_start_and_artifacts_root(project: Project, tmp_path: Path) -> None:
     given = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
     assert project.run(RunOptions(run_id="r1", run_started_at=given)).exit_code == 0
-    assert CONTEXTS[-1].run_started_at == given
+    assert STARTS[-1] == given
+    assert CONTEXTS[-1].run_started_at is None  # the session opened before the start resolved
     assert CONTEXTS[-1].artifacts_root == (tmp_path / "target").resolve().as_posix()
     # the same run id again keeps the recorded start, with or without the flag
     assert project.run(RunOptions(run_id="r1")).exit_code == 0
-    assert CONTEXTS[-1].run_started_at == given
+    assert STARTS[-1] == given
     clash = project.run(RunOptions(run_id="r1", run_started_at=given + timedelta(hours=1)))
     assert clash.exit_code == 2 and [d.code for d in clash.diagnostics] == ["PLX108"]
 
@@ -225,6 +246,4 @@ def test_context_carries_start_and_artifacts_root(project: Project, tmp_path: Pa
 def test_a_new_run_without_flag_starts_now(project: Project) -> None:
     assert project.run(RunOptions()).exit_code == 0
     ctx = CONTEXTS[-1]  # the generated run id is stamped with the same instant
-    assert ctx.run_started_at == datetime.strptime(ctx.run_id[:16], "%Y%m%dT%H%M%SZ").replace(
-        tzinfo=UTC
-    )
+    assert STARTS[-1] == datetime.strptime(ctx.run_id[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)

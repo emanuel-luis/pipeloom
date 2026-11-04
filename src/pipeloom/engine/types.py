@@ -127,6 +127,10 @@ class WriteConfig:
     options: Mapping[str, JsonValue] = field(default_factory=dict)
     commit_meta: Mapping[str, JsonValue] = field(default_factory=dict)
     """Stored with the idempotency token and echoed when the token is replayed."""
+    run_started_at: datetime | None = None
+    """The run's start (UTC), filled by the runner. An engine that needs a stable write version
+    (a Delta `txnVersion`) reads it here, never from the session context: the session opens
+    before the start time is resolved."""
 
 
 @dataclass(frozen=True)

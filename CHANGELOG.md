@@ -13,7 +13,7 @@ All notable changes to this project are documented here. The format follows
 - `EngineContract` gains the intermediate tests (write then read, repeated token, one folder per run id).
 - Plugin API (0, 4), ADR-0030: `RuntimeContext` gains `run_started_at` and `artifacts_root`; `EngineSession` gains `write_intermediate`; `CatalogCapabilities(views=)` and `IntermediateRef` are new types. Plugins built for (0, 3) fail with PLU001.
 - `run --run-started-at ISO8601` (environment `PIPELOOM_RUN_STARTED_AT`) sets the start time every engine sees. It needs an offset and `--run-id`; a reused run id keeps its recorded start, and a different value is PLX108 (exit 2).
-- The engine session opens before the run lock, and `unit_scope` now spans a unit's reads, body, checks and write.
+- The engine session opens before any state-store call and the run lock (so it has no `run_started_at`; engines read `WriteConfig.run_started_at`, new and additive), and `unit_scope` now spans a unit's reads, body, checks and write.
 - PLC507 also fires when the catalog declares no views (`CatalogCapabilities(views=False)`).
 - Cancellation: the first SIGINT or SIGTERM (Ctrl+C or Ctrl+Break on Windows) stops starting units and gives running ones `cancel_grace` to finish; a second signal kills them at once. The run ends `cancelled` with exit code 130, emits `run.cancel_requested`, and unfinished units report PLX104.
 - `run --cancel-grace DURATION` and the `cancel_grace` setting (default 30s); `Project.run(..., control=RunControl())` stops a run from the API.

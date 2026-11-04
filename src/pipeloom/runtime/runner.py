@@ -956,7 +956,7 @@ class ModelRunner:
             self._session.materializer("append").materialize(
                 self._session.align(rows, columns),
                 qt,
-                WriteConfig("append", columns=columns),
+                WriteConfig("append", columns=columns, run_started_at=self._rt.run_started_at),
                 token,
             )
         except SchemaRejected as exc:
@@ -1027,6 +1027,7 @@ class ModelRunner:
                 deletes=deletes,
                 columns=None if keep else columns,
                 options=dict(write.options),
+                run_started_at=self._rt.run_started_at,
             )
             self._check()
             if before_write is not None:

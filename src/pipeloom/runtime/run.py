@@ -76,6 +76,13 @@ class RunOptions:
     """Timezone-aware start time of the run, for example the start of the orchestrator job.
     Needs `run_id`. A reused run id keeps the start it recorded; a different value is PLX108."""
 
+    def __post_init__(self) -> None:
+        if self.run_started_at is not None:
+            if self.run_started_at.tzinfo is None:
+                raise ValueError("run_started_at must be timezone-aware")
+            if self.run_id is None:
+                raise ValueError("run_started_at needs run_id")
+
 
 @dataclass(frozen=True)
 class RunOutcome:
@@ -320,12 +327,6 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     abandoned = 0
     try:
         with ExitStack() as stack:
-            prior = state.get_run(run_id)
-            run_started_at, conflict = resolve_run_started_at(
-                opts.run_started_at, prior, started, unit_mode=unit_mode
-            )
-            if conflict is not None:
-                return _early(bus, [*diags, conflict])
             rt = RuntimeContext(
                 run_id=run_id,
                 invocation_id=project.invocation_id,
@@ -337,14 +338,21 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                 vars=plan.metadata.vars,
                 full_refresh=opts.full_refresh,
                 orchestrator=dict(identity.orchestrator_ids),
-                run_started_at=run_started_at,
                 artifacts_root=paths.root.as_posix(),
             )
-            # The engine session opens before the lock: a state store that lives in the engine
-            # (a table) needs the session to take the lock, and reuses the engine's own.
+            # The engine session opens before any state-store call: a store that lives in the
+            # engine (a table) reuses the engine's own session. It opens without the start time,
+            # which engines read from `WriteConfig.run_started_at` instead.
             session: EngineSession | None = None
             if not task:
                 session = stack.enter_context(engine.session(rt, catalog=catalog))
+            prior = state.get_run(run_id)
+            run_started_at, conflict = resolve_run_started_at(
+                opts.run_started_at, prior, started, unit_mode=unit_mode
+            )
+            if conflict is not None:
+                return _early(bus, [*diags, conflict])
+            rt = replace(rt, run_started_at=run_started_at)
             if opts.lock and not unit_mode:
                 try:
                     stack.enter_context(state.lock(scope, run_id))

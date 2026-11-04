@@ -229,7 +229,7 @@ class Writer(Protocol):                                           # format-level
 class Materializer(Protocol):                                     # one per strategy
     strategy: str
     def materialize(self, rel: Relation, target: "TargetRef", cfg: "WriteConfig",
-                    token: str) -> "WriteResult": ...             # token = idempotency key
+                    token: str) -> "WriteResult": ...             # token = idempotency key; cfg.run_started_at = the run's start (the session opens before it is resolved)
 
 class Catalog(Protocol):
     def exists(self, target: "TargetRef") -> bool: ...
