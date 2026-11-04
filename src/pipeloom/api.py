@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from pipeloom.config.bind import BoundProject, bind_project
 from pipeloom.config.load import LoadedProject, ProjectOptions, load_project
+from pipeloom.config.resolve import resolve_project
 from pipeloom.diagnostics import Diagnostic, Outcome, Report
+from pipeloom.graph.dag import ProjectGraph, build_graph
 from pipeloom.platform import Clock, Identity, IdentityProvider, LocalIdentity, SystemClock
 from pipeloom.plugins import PluginRegistry
+from pipeloom.validate.references import check_references
 
 __all__ = ["Project", "ProjectOptions"]
 
@@ -29,6 +32,7 @@ class Project:
         self._identity = identity or LocalIdentity(options.env)
         self._loaded: Outcome[LoadedProject] | None = None
         self._bound: Outcome[BoundProject] | None = None
+        self._resolved: Outcome[ProjectGraph] | None = None
 
     @property
     def identity(self) -> Identity:
@@ -67,3 +71,19 @@ class Project:
                 value = bind_project(loaded.value, self.options, registry, report)
                 self._bound = Outcome(value, report.sorted())
         return self._bound
+
+    def resolve(self) -> Outcome[ProjectGraph]:
+        """Bind, apply defaults, check references (L2) and build the graph (L3)."""
+        if self._resolved is None:
+            bound = self.bind()
+            if bound.value is None:
+                self._resolved = Outcome(None, bound.diagnostics)
+            else:
+                report = Report()
+                report.extend(bound.diagnostics)
+                project = resolve_project(bound.value)
+                check_references(project, report)
+                graph = None if report.has_errors else build_graph(project, report)
+                value = None if graph is None else ProjectGraph(project, graph)
+                self._resolved = Outcome(value, report.sorted())
+        return self._resolved

@@ -1,0 +1,19 @@
+[
+  {
+    "code": "PLR201",
+    "severity": "error",
+    "message": "unknown ref 'stg_ordrs' in input 'orders' of model 'report'",
+    "hint": "did you mean 'stg_orders'?",
+    "location": {
+      "file": "models/m.yml",
+      "line": 6,
+      "col": 28,
+      "json_pointer": "/models/1/inputs/orders/ref"
+    },
+    "context": {
+      "model": "report",
+      "input": "orders",
+      "ref": "stg_ordrs"
+    }
+  }
+]

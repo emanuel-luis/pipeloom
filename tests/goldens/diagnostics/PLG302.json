@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLG302",
+    "severity": "error",
+    "message": "model 'loop' references itself through input 'me'",
+    "hint": "a model cannot read its own output",
+    "location": {
+      "file": "models/m.yml",
+      "line": 4,
+      "col": 24,
+      "json_pointer": "/models/0/inputs/me/ref"
+    },
+    "context": {
+      "model": "loop",
+      "input": "me"
+    }
+  }
+]

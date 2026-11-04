@@ -1,0 +1,21 @@
+[
+  {
+    "code": "PLG301",
+    "severity": "error",
+    "message": "cycle in the graph: a -> c -> b -> a",
+    "hint": "remove one of the refs to break the cycle",
+    "location": {
+      "file": "models/m.yml",
+      "line": 2,
+      "col": 11,
+      "json_pointer": "/models/0/name"
+    },
+    "context": {
+      "cycle": [
+        "model.shop.a",
+        "model.shop.c",
+        "model.shop.b"
+      ]
+    }
+  }
+]

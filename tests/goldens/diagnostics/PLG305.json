@@ -1,0 +1,12 @@
+[
+  {
+    "code": "PLG305",
+    "severity": "error",
+    "message": "malformed selector 'stg_orders,,report': cannot read this atom",
+    "hint": "use [N]+[method:]value+[N], joined with commas (and) or spaces (or)",
+    "location": null,
+    "context": {
+      "selector": "stg_orders,,report"
+    }
+  }
+]

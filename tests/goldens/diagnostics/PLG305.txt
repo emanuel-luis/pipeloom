@@ -1,0 +1,2 @@
+error PLG305 malformed selector 'stg_orders,,report': cannot read this atom
+      hint: use [N]+[method:]value+[N], joined with commas (and) or spaces (or)

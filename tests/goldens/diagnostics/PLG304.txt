@@ -1,0 +1,2 @@
+error PLG304 unknown selector method 'nme' in 'nme:stg_orders'
+      hint: did you mean 'name'?

@@ -1,0 +1,2 @@
+error PLG301 models/m.yml:2:11 cycle in the graph: a -> c -> b -> a
+      hint: remove one of the refs to break the cycle

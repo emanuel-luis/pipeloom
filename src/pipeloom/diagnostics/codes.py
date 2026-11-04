@@ -147,6 +147,45 @@ _ACTIVE: Final = (
         ),
     ),
     (
+        "PLR201",
+        E,
+        "Unknown ref",
+        "An input names a model that does not exist. The hint suggests the closest name.",
+    ),
+    ("PLR202", E, "Duplicate model name", "Two models share a name. Names are unique per project."),
+    (
+        "PLR203",
+        E,
+        "Unknown source",
+        "An input names a source that no model file declares.",
+    ),
+    ("PLR205", E, "Duplicate source", "Two sources share a name. Names are unique per project."),
+    (
+        "PLG301",
+        E,
+        "Cycle in the graph",
+        "Models depend on each other in a loop. The message lists the path.",
+    ),
+    ("PLG302", E, "Self-reference", "A model lists itself among its own inputs."),
+    (
+        "PLG303",
+        W,
+        "Selector matched nothing",
+        "A selector atom matched no model. This is a warning, not an error.",
+    ),
+    (
+        "PLG304",
+        E,
+        "Unknown selector method",
+        "A selector uses a method other than name, tag, path or materialized. Exit code 2.",
+    ),
+    (
+        "PLG305",
+        E,
+        "Malformed selector",
+        "A selector cannot be parsed, for example an empty atom or a depth of 0. Exit code 2.",
+    ),
+    (
         "PLU001",
         E,
         "Plugin API mismatch",
@@ -183,15 +222,6 @@ _ACTIVE: Final = (
 
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
-    ("PLR201", E, "Unknown ref", "0.1"),
-    ("PLR202", E, "Duplicate model name", "0.1"),
-    ("PLR203", E, "Unknown source", "0.1"),
-    ("PLR205", E, "Duplicate source", "0.1"),
-    ("PLG301", E, "Cycle in the graph", "0.1"),
-    ("PLG302", E, "Self-reference", "0.1"),
-    ("PLG303", W, "Selector matched nothing", "0.1"),
-    ("PLG304", E, "Unknown selector method", "0.1"),
-    ("PLG305", E, "Malformed selector", "0.1"),
     ("PLP401", E, "merge or scd2 without unique_key", "0.1"),
     ("PLP402", E, "incremental without column", "0.1"),
     ("PLP403", E, "Aggregate expectation with drop", "0.1"),

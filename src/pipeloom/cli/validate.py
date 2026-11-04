@@ -33,16 +33,17 @@ def validate(
     log_format: str,
     warn_error: bool,
 ) -> None:
-    """Check the project: YAML, schema, secrets, target and plugin options (L0 and L1)."""
+    """Check the project: YAML, schema, secrets, target and plugin options (L0 to L3)."""
     opts = ProjectOptions(
         project_dir=project_dir, target=target, vars=vars_, plugins=plugins, env=os.environ
     )
     inv = Invocation("validate", log_format)
-    outcome = Project(opts).bind()
-    bound = outcome.value
+    project = Project(opts)
+    outcome = project.resolve()
+    bound = project.bind().value
     errors = sum(1 for d in outcome.diagnostics if d.severity is Severity.ERROR)
     warnings = sum(1 for d in outcome.diagnostics if d.severity is Severity.WARNING)
-    failed = errors > 0 or bound is None or (warn_error and warnings > 0)
+    failed = errors > 0 or outcome.value is None or (warn_error and warnings > 0)
     if bound is not None and not failed:
         click.echo(f"Project '{bound.loaded.config.name}' is valid.")
     inv.finish(outcome.diagnostics, 1 if failed else 0, bound=bound)

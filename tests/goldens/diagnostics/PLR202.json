@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLR202",
+    "severity": "error",
+    "message": "duplicate model name 'orders'",
+    "hint": "first defined in models/a.yml:2",
+    "location": {
+      "file": "models/b.yml",
+      "line": 2,
+      "col": 11,
+      "json_pointer": "/models/0/name"
+    },
+    "context": {
+      "name": "orders",
+      "first": "models/a.yml"
+    }
+  }
+]
