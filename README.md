@@ -6,17 +6,21 @@ Pipelines are declared in YAML and compiled into an immutable plan. The same pla
 polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG.
 Every run produces a single event stream and artifacts you can query.
 
-**Status: 0.1, alpha.** pipeloom reads a YAML project, validates it in layers (YAML, schema,
+**Status: 0.2, alpha.** pipeloom reads a YAML project, validates it in layers (YAML, schema,
 references, graph, plan semantics, engine capabilities, Python callables), builds the dependency
-graph and compiles the execution plan into a manifest. Running the plan comes in 0.2.
+graph, compiles the execution plan into a manifest and runs it on polars or pandas. Tables are
+written to a filesystem catalog (parquet, csv or ndjson), run state goes to a sqlite or json store,
+and every run writes `run_results.json`. Not yet: incremental and merge writes, expectations,
+retries, Spark and the orchestrator integrations.
 
 ```console
-$ pip install pipeloom
+$ pip install "pipeloom[polars]"   # or pipeloom[pandas]
 $ pipeloom validate
-$ pipeloom compile
+$ pipeloom run
 ```
 
-Commands: `validate`, `compile`, `ls`, `graph`, `schema export` and `plugins list`. See the
+The optional extra `sqlglot` adds warnings for SQL that reads undeclared tables. Commands: `validate`,
+`compile`, `run`, `ls`, `graph`, `schema export` and `plugins list`. See the
 [quickstart](https://emanuel-luis.github.io/pipeloom/latest/quickstart/).
 
 ![Context diagram: users, the YAML project, the CLI and API, engines, catalogs, orchestrators and event consumers.](docs/diagrams/01-context.svg)
@@ -34,14 +38,14 @@ Commands: `validate`, `compile`, `ls`, `graph`, `schema export` and `plugins lis
 
 ## Planned packages
 
-Only `pipeloom` is published today. Plugin names are published with their first functional
-release; the rows below are the plan.
+`pipeloom`, `pipeloom-polars` and `pipeloom-pandas` are published with 0.2. The other rows are the
+plan; a plugin name is published with its first functional release.
 
 | Distribution | Role |
 |---|---|
 | `pipeloom` | Core: config, validation, plan, scheduler, events, CLI |
-| `pipeloom-polars` | polars engine |
-| `pipeloom-pandas` | pandas engine |
+| `pipeloom-polars` | polars engine (published) |
+| `pipeloom-pandas` | pandas engine (published) |
 | `pipeloom-spark` | PySpark engine (Delta and Spark Connect) |
 | `pipeloom-databricks` | Databricks job renderer and runner |
 | `pipeloom-airflow` | Airflow DAG integration |
@@ -49,7 +53,7 @@ release; the rows below are the plan.
 
 ## Documentation
 
-- [Documentation site](https://emanuel-luis.github.io/pipeloom/latest/): quickstart, command line, JSON Schema and error codes
+- [Documentation site](https://emanuel-luis.github.io/pipeloom/latest/): quickstart, running a pipeline, command line, JSON Schema, run artifacts and error codes
 - [Architecture](docs/architecture.md)
 - [Architecture decision records](docs/adr/README.md)
 - [Diagrams](docs/diagrams/)
@@ -60,7 +64,7 @@ release; the rows below are the plan.
 |---|---|
 | 0.0.2 | Reserve the name, skeleton, CI, release, governance, architecture and ADRs |
 | 0.1 | Config models, loader, validation layers, graph, selectors, plan, manifest, event bus; CLI `validate`, `compile`, `ls`, `graph`, `schema`, `plugins` |
-| 0.2 | Scheduler, executors, polars and pandas engines, basic write strategies, state store, contract suite |
+| 0.2 (current) | Scheduler, executors, polars and pandas engines, basic write strategies, state store, contract suite |
 | 0.3 | Incremental, merge, schema-change policy, expectations, retries, timeouts |
 | 0.4 | Spark engine, run metrics, idempotent writes |
 | 0.5 | Databricks renderer, deploy, run, repair |

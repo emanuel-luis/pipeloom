@@ -1,13 +1,15 @@
 # Quickstart
 
-This walks through a small project with one source and two models. In 0.1 pipeloom validates
-and compiles projects; running them comes in 0.2.
+This walks through a small project with one source and two models, then runs it on polars.
 
 ## Install
 
 ```console
-$ pip install pipeloom
+$ pip install "pipeloom[polars]"
 ```
+
+Use `pipeloom[pandas]` for the pandas engine. Add the `sqlglot` extra to get warnings about SQL
+that reads tables you did not declare (`pipeloom[polars,sqlglot]`).
 
 ## Write the project
 
@@ -17,9 +19,20 @@ $ pip install pipeloom
 # yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
 config_version: 1
 name: shop
-engine: {kind: memory}
 targets:
-  dev: {}
+  dev:
+    engine: {kind: polars}
+    catalog: {kind: filesystem, root: target/warehouse}
+    state: {kind: json, path: .pipeloom/state}
+```
+
+`raw/orders.csv`:
+
+```text
+id,customer_id,amount
+1,10,5.0
+2,10,2.5
+3,11,7.0
 ```
 
 `models/orders.yml`:
@@ -27,7 +40,7 @@ targets:
 ```yaml
 # yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json
 sources:
-  - {name: raw_orders, format: memory, location: raw/orders}
+  - {name: raw_orders, format: csv, location: raw/orders.csv}
 models:
   - name: stg_orders
     sql: select id, customer_id, amount from raw_orders
@@ -59,12 +72,24 @@ stg_orders
 orders_by_customer <- stg_orders
 ```
 
-## Compile the plan
+## Run it
 
 ```console
-$ pipeloom compile
-target/manifest.json
+$ pipeloom run
+... 1/2 OK     stg_orders ............. table/overwrite        3 rows ...
+... 2/2 OK     orders_by_customer ..... table/overwrite        2 rows ...
 ```
 
-The manifest lists every model, source and execution unit, with a `plan_hash` that changes when
-the pipeline changes. Compiling the same project twice gives the same hash.
+Each model is now a table under `target/warehouse/main/`. Rerun with the same `--run-id` and the
+data stays byte-identical. See [Running a pipeline](guide/running.md).
+
+## Read the results
+
+```console
+$ ls target
+manifest.json  run_results.json  runs  warehouse
+```
+
+`run_results.json` has one row per model with its status, timing, rows and bytes written and
+schema hash; the manifest lists every model, source and execution unit, with a `plan_hash` that
+changes when the pipeline changes. See [Run artifacts](reference/artifacts.md).

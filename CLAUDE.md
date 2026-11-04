@@ -1,6 +1,6 @@
 # pipeloom
 
-Declarative, engine-agnostic data pipelines in YAML. 0.1 validates and compiles projects (no execution yet; that lands in 0.2).
+Declarative, engine-agnostic data pipelines in YAML. 0.2 validates, compiles and runs projects on polars or pandas.
 
 ## Rules
 
@@ -14,17 +14,19 @@ Declarative, engine-agnostic data pipelines in YAML. 0.1 validates and compiles 
 
 ## Layout
 
-- `src/pipeloom/`: `diagnostics/` (catalog), `config/` (YAML loader, models, bind, resolve, schema), `secrets/`, `plugins/` and `builtins/`, `engine/` (protocols and types), `graph/` (DAG, selectors), `validate/` (L2, L4-L6), `plan/` (units, manifest), `events/` (bus, sinks), `cli/`, `testing/` (MemoryEngine, RecordingSink, FakeClock), `api.py`, `platform.py`
+- `src/pipeloom/`: `diagnostics/` (catalog), `config/` (YAML loader, models, bind, resolve, schema), `secrets/`, `plugins/` and `builtins/` (memory, filesystem catalog, fs_table), `engine/` (protocols, types, portable), `graph/` (DAG, selectors), `validate/` (L2, L4-L6; PLK603 and PLK605 need sqlglot), `plan/` (units, manifest), `runtime/` (scheduler, executors, runner, run), `state/` (sqlite and json stores, lock lease), `artifacts/` (layout, run_results, finalize), `events/` (bus, sinks), `cli/`, `testing/` (MemoryEngine, RecordingSink, FakeClock, contract suites), `api.py`, `platform.py`
+- `plugins/pipeloom-polars/` and `plugins/pipeloom-pandas/`: engine distributions (uv workspace members, sources under `src/`, tests under `tests/`)
 - `tests/`: pytest; `cases/` and `goldens/`; `fixtures/shop` is the reference project
-- `tools/docs_hooks.py`: generates the error-code page and the JSON Schemas for the docs site
+- `tools/docs_hooks.py`: generates the error-code page and the JSON Schemas for the docs site; `tools/versions.py`: `check [--tag vX.Y.Z]` and `bump X.Y.Z` keep every distribution on one version
 - `docs/`: mkdocs site, `architecture.md`, `adr/`, `diagrams/` (D2 sources and committed SVGs)
 - `.github/workflows/`: ci, security, release, docs, dependabot-auto-merge
 
 ## Commands
 
-- `uv sync`, `uv run pytest -q`
-- `uv run ruff check`, `uv run ruff format --check`, `uv run mypy --strict src`
+- `uv sync --locked --all-packages` (the workspace has one lockfile), `uv run pytest -q` (also collects the plugin tests)
+- `uv run ruff check`, `uv run ruff format --check`, `uv run mypy --strict src plugins/pipeloom-polars/src plugins/pipeloom-pandas/src`
+- `uv run lint-imports` (layers, `pipeloom.testing` isolation, no polars, pandas, pyarrow or sqlglot in the core except `validate.static -> sqlglot`)
 - `uv run --group docs mkdocs build --strict`
-- `uv build`
+- `uv build --all-packages`
 - `make help` (diagram targets need Linux or WSL)
 - Commits: Conventional Commits, signed off (`git commit -s`).
