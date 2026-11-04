@@ -780,7 +780,7 @@ Each ADR is Context, Options, Choice, Consequences, as written in the sections a
 pipeloom/
 ├── .github/
 │   ├── workflows/ci.yml            # ruff, mypy --strict, pytest matrix (3.11-3.14 on Ubuntu, Windows and macOS), uv build + wheel smoke, docs --strict, d2 compile
-│   ├── workflows/release.yml       # on tag v*: verify tag==version, uv build, PyPI (env pypi, id-token: write), GitHub release
+│   ├── workflows/release.yml       # on tag v*: verify tag==version, uv build, one PyPI publish job per distribution (env pypi or pypi-<plugin>), GitHub release
 │   ├── workflows/docs.yml          # mkdocs + mike deploy on main and tags
 │   ├── dependabot.yml              # ecosystems: uv, github-actions; weekly; grouped
 │   ├── CODEOWNERS
