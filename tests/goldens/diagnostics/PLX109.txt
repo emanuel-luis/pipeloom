@@ -1,0 +1,2 @@
+error PLX109 cannot resolve a secret reference (provider 'vault', path 'missing': KeyError: 'missing')
+      hint: check the provider name and path in ${secret:provider/path}

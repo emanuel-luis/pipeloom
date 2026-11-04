@@ -1,0 +1,1382 @@
+{
+  "$defs": {
+    "AcceptedValuesCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "title": "Column",
+          "type": "string"
+        },
+        "values": {
+          "items": {},
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "column",
+        "values"
+      ],
+      "title": "AcceptedValuesCheck",
+      "type": "object"
+    },
+    "ArtifactsConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "intermediate_ttl": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            }
+          ],
+          "default": 86400,
+          "description": "How long the persisted results of `intermediate` models are kept after their run ended.\n0 deletes them when a run succeeds. Default 1d.",
+          "title": "Intermediate Ttl"
+        },
+        "root": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Directory or volume path where artifacts are written.",
+          "title": "Root"
+        }
+      },
+      "title": "ArtifactsConfig",
+      "type": "object"
+    },
+    "CheckConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted_values": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AcceptedValuesCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "freshness": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FreshnessCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "not_null": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Not Null"
+        },
+        "range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RangeCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "regex": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RegexCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "row_count": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RowCountCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unique": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unique"
+        }
+      },
+      "title": "CheckConfig",
+      "type": "object"
+    },
+    "DeletesConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "description": "Column that marks a deleted row.",
+          "title": "Column",
+          "type": "string"
+        },
+        "mode": {
+          "default": "hard",
+          "description": "Remove the row, or keep it flagged.",
+          "enum": [
+            "hard",
+            "soft"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "value": {
+          "default": true,
+          "description": "Value of the column that means deleted.",
+          "title": "Value"
+        }
+      },
+      "required": [
+        "column"
+      ],
+      "title": "DeletesConfig",
+      "type": "object"
+    },
+    "EventsConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "sinks": {
+          "description": "Event sinks.",
+          "items": {
+            "$ref": "#/$defs/SinkBlock"
+          },
+          "title": "Sinks",
+          "type": "array"
+        }
+      },
+      "title": "EventsConfig",
+      "type": "object"
+    },
+    "ExpectationConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "check": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CheckConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A portable check."
+        },
+        "expr": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An engine-dialect predicate.",
+          "title": "Expr"
+        },
+        "name": {
+          "description": "Name shown in results.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "on_violation": {
+          "default": "fail",
+          "description": "What happens to rows or runs that violate it.",
+          "enum": [
+            "warn",
+            "drop",
+            "fail"
+          ],
+          "title": "On Violation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ExpectationConfig",
+      "type": "object"
+    },
+    "FreshnessCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "title": "Column",
+          "type": "string"
+        },
+        "max_age": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            }
+          ],
+          "title": "Max Age"
+        }
+      },
+      "required": [
+        "column",
+        "max_age"
+      ],
+      "title": "FreshnessCheck",
+      "type": "object"
+    },
+    "IncrementalConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Column compared with the watermark.",
+          "title": "Column"
+        },
+        "input": {
+          "description": "Alias of the input that is filtered.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Input",
+          "type": "string"
+        },
+        "lookback": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            }
+          ],
+          "default": 0,
+          "description": "Reprocess this much before the watermark.",
+          "title": "Lookback"
+        },
+        "watermark_source": {
+          "default": "state",
+          "description": "Where the watermark is read from.",
+          "enum": [
+            "state",
+            "target"
+          ],
+          "title": "Watermark Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "input"
+      ],
+      "title": "IncrementalConfig",
+      "type": "object"
+    },
+    "ModelSettings": {
+      "additionalProperties": false,
+      "description": "Settings a model may inherit from defaults.",
+      "properties": {
+        "cluster_by": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Clustering columns.",
+          "title": "Cluster By"
+        },
+        "expectations": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ExpectationConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Data quality expectations.",
+          "title": "Expectations"
+        },
+        "frame_api": {
+          "anyOf": [
+            {
+              "enum": [
+                "native",
+                "narwhals"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Frame type passed to Python bodies.",
+          "title": "Frame Api"
+        },
+        "incremental": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IncrementalConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Incremental processing."
+        },
+        "materialized": {
+          "anyOf": [
+            {
+              "enum": [
+                "table",
+                "incremental",
+                "view",
+                "ephemeral",
+                "intermediate"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How the model is stored.",
+          "title": "Materialized"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free-form metadata.",
+          "title": "Meta"
+        },
+        "partition_by": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Partition columns.",
+          "title": "Partition By"
+        },
+        "quality": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QualityConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Quarantine settings."
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Retries after a failure.",
+          "title": "Retries"
+        },
+        "retry_delay": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Base delay between retries.",
+          "title": "Retry Delay"
+        },
+        "retry_on": {
+          "anyOf": [
+            {
+              "enum": [
+                "transient",
+                "any"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Which failures are retried.",
+          "title": "Retry On"
+        },
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Schema (namespace) of the target relation.",
+          "title": "Schema"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tags used by selectors.",
+          "title": "Tags"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time limit per attempt.",
+          "title": "Timeout"
+        },
+        "write": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WriteConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Write behaviour."
+        }
+      },
+      "title": "ModelSettings",
+      "type": "object"
+    },
+    "PluginBlock": {
+      "additionalProperties": true,
+      "description": "A plugin selection: `kind` plus the options of that plugin.",
+      "properties": {
+        "kind": {
+          "description": "Name of the plugin.",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "PluginBlock",
+      "type": "object"
+    },
+    "ProjectDefaults": {
+      "additionalProperties": false,
+      "properties": {
+        "models": {
+          "$ref": "#/$defs/ModelSettings",
+          "description": "Defaults for every model."
+        }
+      },
+      "title": "ProjectDefaults",
+      "type": "object"
+    },
+    "QualityConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "max_drop_ratio": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Fail the unit when more than this share of rows is dropped.",
+          "title": "Max Drop Ratio"
+        },
+        "quarantine": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            }
+          ],
+          "default": false,
+          "description": "Write dropped rows to a quarantine table.",
+          "title": "Quarantine"
+        }
+      },
+      "title": "QualityConfig",
+      "type": "object"
+    },
+    "RangeCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "title": "Column",
+          "type": "string"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min"
+        }
+      },
+      "required": [
+        "column"
+      ],
+      "title": "RangeCheck",
+      "type": "object"
+    },
+    "RegexCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "title": "Column",
+          "type": "string"
+        },
+        "pattern": {
+          "title": "Pattern",
+          "type": "string"
+        }
+      },
+      "required": [
+        "column",
+        "pattern"
+      ],
+      "title": "RegexCheck",
+      "type": "object"
+    },
+    "RowCountCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "max": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min"
+        }
+      },
+      "title": "RowCountCheck",
+      "type": "object"
+    },
+    "SinkBlock": {
+      "additionalProperties": true,
+      "description": "An event sink.",
+      "properties": {
+        "buffer_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            }
+          ],
+          "default": 10000,
+          "description": "Events held by a buffered sink before the oldest is dropped.",
+          "title": "Buffer Size"
+        },
+        "buffered": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            }
+          ],
+          "default": false,
+          "description": "Run the sink on a background thread.",
+          "title": "Buffered"
+        },
+        "failure_budget": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            }
+          ],
+          "default": 5,
+          "description": "Consecutive failures before the sink is disabled.",
+          "title": "Failure Budget"
+        },
+        "kind": {
+          "description": "Name of the plugin.",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "SinkBlock",
+      "type": "object"
+    },
+    "TargetConfig": {
+      "additionalProperties": false,
+      "description": "One deployment target.",
+      "properties": {
+        "artifacts": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactsConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where artifacts go."
+        },
+        "boundary": {
+          "anyOf": [
+            {
+              "enum": [
+                "process",
+                "task"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Whether units share a process or run as separate tasks.",
+          "title": "Boundary"
+        },
+        "cancel_grace": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time a stopped or timed-out unit gets to finish before it is killed. Default 30s.",
+          "title": "Cancel Grace"
+        },
+        "catalog": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PluginBlock"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Catalog plugin."
+        },
+        "deploy": {
+          "description": "How an orchestrator deploys and runs the plan: a `renderers` plugin and its options.",
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "fakejobs"
+                },
+                "pipelines": {
+                  "default": [
+                    "main"
+                  ],
+                  "description": "Pipelines to render.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Pipelines",
+                  "type": "array"
+                },
+                "task_grouping": {
+                  "default": "none",
+                  "description": "How tasks are grouped.",
+                  "enum": [
+                    "none",
+                    "by_tag"
+                  ],
+                  "title": "Task Grouping",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "title": "fakejobs",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "engine": {
+          "description": "Engine plugin.",
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "fake",
+                  "description": "A fake engine."
+                },
+                "path": {
+                  "default": "x",
+                  "description": "Where to put it.",
+                  "title": "Path",
+                  "type": "string"
+                },
+                "size": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "pattern": "^\\$\\{.+\\}$",
+                      "type": "string"
+                    }
+                  ],
+                  "default": 1,
+                  "title": "Size"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "title": "fake",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "naming": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PluginBlock"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Naming strategy plugin."
+        },
+        "state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PluginBlock"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "State store plugin."
+        },
+        "workers": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum concurrent units.",
+          "title": "Workers"
+        }
+      },
+      "title": "TargetConfig",
+      "type": "object"
+    },
+    "WriteConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "deletes": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeletesConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How deleted rows are recognised and applied."
+        },
+        "on_schema_change": {
+          "default": "fail",
+          "description": "Policy when the output schema differs from the target.",
+          "enum": [
+            "fail",
+            "ignore",
+            "append_new_columns",
+            "sync_all_columns"
+          ],
+          "title": "On Schema Change",
+          "type": "string"
+        },
+        "options": {
+          "additionalProperties": true,
+          "description": "Engine-specific write options.",
+          "title": "Options",
+          "type": "object"
+        },
+        "strategy": {
+          "anyOf": [
+            {
+              "enum": [
+                "append",
+                "overwrite",
+                "replace_partitions",
+                "merge",
+                "scd2"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How rows reach the target.",
+          "title": "Strategy"
+        },
+        "table_properties": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Properties set on the target table.",
+          "title": "Table Properties",
+          "type": "object"
+        },
+        "tracked_columns": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Columns whose change opens a new scd2 row; default all.",
+          "title": "Tracked Columns"
+        },
+        "unique_key": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Columns that identify a row (merge and scd2).",
+          "title": "Unique Key"
+        },
+        "update_condition": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Extra condition for updating a matched row (merge).",
+          "title": "Update Condition"
+        }
+      },
+      "title": "WriteConfig",
+      "type": "object"
+    }
+  },
+  "$id": "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The pipeloom.yml file.",
+  "properties": {
+    "artifacts": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactsConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Where artifacts go."
+    },
+    "boundary": {
+      "anyOf": [
+        {
+          "enum": [
+            "process",
+            "task"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Whether units share a process or run as separate tasks.",
+      "title": "Boundary"
+    },
+    "cancel_grace": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Time a stopped or timed-out unit gets to finish before it is killed. Default 30s.",
+      "title": "Cancel Grace"
+    },
+    "catalog": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PluginBlock"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Catalog plugin."
+    },
+    "config_version": {
+      "const": 1,
+      "description": "Schema version of this file.",
+      "title": "Config Version",
+      "type": "integer"
+    },
+    "default_target": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Target used when none is selected.",
+      "title": "Default Target"
+    },
+    "defaults": {
+      "$ref": "#/$defs/ProjectDefaults",
+      "description": "Project-wide defaults."
+    },
+    "deploy": {
+      "description": "How an orchestrator deploys and runs the plan: a `renderers` plugin and its options.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "fakejobs"
+            },
+            "pipelines": {
+              "default": [
+                "main"
+              ],
+              "description": "Pipelines to render.",
+              "items": {
+                "type": "string"
+              },
+              "title": "Pipelines",
+              "type": "array"
+            },
+            "task_grouping": {
+              "default": "none",
+              "description": "How tasks are grouped.",
+              "enum": [
+                "none",
+                "by_tag"
+              ],
+              "title": "Task Grouping",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "title": "fakejobs",
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "engine": {
+      "description": "Engine plugin.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "fake",
+              "description": "A fake engine."
+            },
+            "path": {
+              "default": "x",
+              "description": "Where to put it.",
+              "title": "Path",
+              "type": "string"
+            },
+            "size": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "pattern": "^\\$\\{.+\\}$",
+                  "type": "string"
+                }
+              ],
+              "default": 1,
+              "title": "Size"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "title": "fake",
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ephemeral_fanout_warn": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "pattern": "^\\$\\{.+\\}$",
+          "type": "string"
+        }
+      ],
+      "default": 3,
+      "description": "Warn when an ephemeral model feeds more units than this.",
+      "title": "Ephemeral Fanout Warn"
+    },
+    "events": {
+      "$ref": "#/$defs/EventsConfig",
+      "description": "Event sinks."
+    },
+    "model_paths": {
+      "description": "Directories that hold model files.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Model Paths",
+      "type": "array"
+    },
+    "name": {
+      "description": "Project name.",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "title": "Name",
+      "type": "string"
+    },
+    "naming": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PluginBlock"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Naming strategy plugin."
+    },
+    "python_paths": {
+      "description": "Directories added to sys.path when models run.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Python Paths",
+      "type": "array"
+    },
+    "state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PluginBlock"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "State store plugin."
+    },
+    "targets": {
+      "description": "Deployment targets.",
+      "minProperties": 1,
+      "patternProperties": {
+        "^[A-Za-z_][A-Za-z0-9_]*$": {
+          "$ref": "#/$defs/TargetConfig"
+        }
+      },
+      "title": "Targets",
+      "type": "object"
+    },
+    "vars": {
+      "additionalProperties": true,
+      "description": "Variables for ${var:name}.",
+      "title": "Vars",
+      "type": "object"
+    },
+    "workers": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "pattern": "^\\$\\{.+\\}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Maximum concurrent units.",
+      "title": "Workers"
+    }
+  },
+  "required": [
+    "config_version",
+    "name",
+    "targets"
+  ],
+  "title": "pipeloom project",
+  "type": "object"
+}

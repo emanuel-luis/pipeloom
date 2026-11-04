@@ -1,0 +1,13 @@
+[
+  {
+    "code": "PLX109",
+    "severity": "error",
+    "message": "cannot resolve a secret reference (provider 'vault', path 'missing': KeyError: 'missing')",
+    "hint": "check the provider name and path in ${secret:provider/path}",
+    "location": null,
+    "context": {
+      "provider": "vault",
+      "path": "missing"
+    }
+  }
+]

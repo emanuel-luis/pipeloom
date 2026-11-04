@@ -33,9 +33,17 @@ Group = Literal[
     "executors",
     "renderers",
     "naming",
+    "commands",
 ]
-GROUPS: Final[tuple[Group, ...]] = get_args(Group)
+GROUPS: Final[tuple[Group, ...]] = tuple(g for g in get_args(Group) if g != "commands")
+"""The groups whose entries are PluginSpecs. `commands` (the CLI) has no spec: see cli/_ext.py."""
 DISABLE_AUTOLOAD_ENV: Final = "PIPELOOM_DISABLE_PLUGIN_AUTOLOAD"
+
+
+def autoload_enabled(env: Mapping[str, str]) -> bool:
+    """False when PIPELOOM_DISABLE_PLUGIN_AUTOLOAD is 1, true or yes."""
+    return env.get(DISABLE_AUTOLOAD_ENV, "").lower() not in ("1", "true", "yes")
+
 
 T = TypeVar("T")
 
@@ -47,6 +55,7 @@ __all__ = [
     "PluginEntry",
     "PluginRegistry",
     "PluginSpec",
+    "autoload_enabled",
     "check_api",
 ]
 
@@ -148,7 +157,7 @@ class PluginRegistry:
 
         env = os.environ if env is None else env
         if autoload is None:
-            autoload = env.get(DISABLE_AUTOLOAD_ENV, "").lower() not in ("1", "true", "yes")
+            autoload = autoload_enabled(env)
         report = report if report is not None else Report()
 
         entries: dict[tuple[str, str, str, str], PluginEntry] = {}

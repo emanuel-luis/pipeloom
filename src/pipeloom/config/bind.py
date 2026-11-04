@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, ValidationError
@@ -18,6 +19,7 @@ from pipeloom.config.load import LoadedProject, ProjectOptions
 from pipeloom.config.models import ArtifactsConfig, PluginBlock
 from pipeloom.diagnostics import Report, suggest
 from pipeloom.plugins import Group, PluginRegistry, PluginSpec
+from pipeloom.secrets.resolve import SecretError, SecretResolver, contains_secret
 
 TARGET_ENV = "PIPELOOM_TARGET"
 DEFAULT_WORKERS = 4
@@ -28,6 +30,7 @@ _BLOCK_GROUPS: Mapping[str, Group] = {
     "catalog": "catalogs",
     "naming": "naming",
     "state": "state_stores",
+    "deploy": "renderers",
 }
 
 
@@ -41,9 +44,27 @@ class BoundPlugin:
     options: BaseModel
     pointer: str
     """Where the block sits in pipeloom.yml, as a JSON pointer."""
+    raw: Mapping[str, Any]
+    """The block's options as written, with `${secret:...}` references still in place."""
+    project_dir: Path
 
-    def create(self) -> Any:
-        return self.spec.factory(self.options)
+    def create(self, secrets: SecretResolver | None = None) -> Any:
+        """Build the plugin. With `secrets`, references in the options are resolved first, in
+        memory only: that is the execution path. Raises SecretError."""
+        if secrets is None or not contains_secret(self.raw):
+            return self.spec.factory(self.options)
+        resolved = secrets.resolve(dict(self.raw))
+        assert isinstance(resolved, dict)
+        try:
+            options = self.spec.config_model.model_validate(
+                resolved, context={"project_dir": self.project_dir}
+            )
+        except ValidationError as err:  # never echo the input: it holds the secret
+            fields = ", ".join(sorted({".".join(str(p) for p in e["loc"]) for e in err.errors()}))
+            raise SecretError(
+                "", "", f"{self.group} '{self.kind}' options are invalid once resolved: {fields}"
+            ) from None
+        return self.spec.factory(options)
 
 
 @dataclass(frozen=True)
@@ -52,6 +73,8 @@ class RuntimeSettingsResolved:
     catalog: PluginBlock | None
     naming: PluginBlock
     state: PluginBlock
+    deploy: PluginBlock | None
+    """The orchestrator deployment block; bound against `renderers`, never built by the core."""
     workers: int
     boundary: Literal["process", "task"]
     artifacts: ArtifactsConfig
@@ -67,7 +90,8 @@ class BoundProject:
     target: str
     runtime: RuntimeSettingsResolved
     plugins: Mapping[Group, BoundPlugin]
-    """Engine and catalog when set; naming and the state store always."""
+    """Engine and catalog when set; naming and the state store always; `renderers` when the
+    target has a deploy block (the core never calls its factory)."""
     sinks: tuple[BoundPlugin, ...]
 
 
@@ -128,6 +152,7 @@ def _resolve_runtime(
         catalog=values.get("catalog"),
         naming=values.get("naming") or PluginBlock(kind="none"),
         state=values.get("state") or PluginBlock(kind="sqlite"),
+        deploy=values.get("deploy"),
         workers=values.get("workers") or DEFAULT_WORKERS,
         boundary=values.get("boundary") or "process",
         artifacts=values.get("artifacts") or ArtifactsConfig(),
@@ -166,7 +191,8 @@ def _bind_block(
     except ValidationError as err:
         from_validation_error(err, doc, spec.config_model, report, base_pointer=pointer)
         return None
-    return BoundPlugin(group, block.kind, spec, options, pointer)
+    raw = dict(block.model_extra or {})
+    return BoundPlugin(group, block.kind, spec, options, pointer, raw, loaded.project_dir)
 
 
 def bind_project(

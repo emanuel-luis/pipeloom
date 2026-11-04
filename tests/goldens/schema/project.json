@@ -1041,6 +1041,18 @@
             }
           ]
         },
+        "deploy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PluginBlock"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How an orchestrator deploys and runs the plan: a `renderers` plugin and its options."
+        },
         "engine": {
           "description": "Engine plugin.",
           "oneOf": [
@@ -1523,6 +1535,18 @@
     "defaults": {
       "$ref": "#/$defs/ProjectDefaults",
       "description": "Project-wide defaults."
+    },
+    "deploy": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PluginBlock"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "How an orchestrator deploys and runs the plan: a `renderers` plugin and its options."
     },
     "engine": {
       "description": "Engine plugin.",

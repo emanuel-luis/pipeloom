@@ -2,7 +2,7 @@
 
 import click
 
-from pipeloom.cli._options import PipeloomGroup
+from pipeloom.cli._ext import PipeloomGroup
 from pipeloom.cli.compile import compile_
 from pipeloom.cli.graph import graph
 from pipeloom.cli.ls import ls

@@ -504,6 +504,17 @@ _ACTIVE_04: Final = (
 )
 
 
+# Active since 0.5.
+_ACTIVE_05: Final = (
+    (
+        "PLX109",
+        E,
+        "Secret reference not resolved",
+        "A ${secret:provider/path} reference in a plugin's options could not be resolved when the command executed: the provider is unknown or failed, or the resolved options are invalid. The message names the provider and path, never a value.",
+    ),
+)
+
+
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
@@ -522,6 +533,7 @@ def _build() -> Mapping[str, CodeInfo]:
         ("0.2", _ACTIVE_02),
         ("0.3", _ACTIVE_03),
         ("0.4", _ACTIVE_04),
+        ("0.5", _ACTIVE_05),
     ):
         for code, sev, title, expl in table:
             out[code] = CodeInfo(code, _PREFIX_LAYER[code[:3]], sev, title, expl, "active", since)

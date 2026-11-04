@@ -45,6 +45,7 @@ from pipeloom.runtime.retry import UnitPolicy
 from pipeloom.runtime.runner import ModelRunner
 from pipeloom.runtime.scheduler import Scheduler, ScheduleResult, UnitGraph
 from pipeloom.runtime.states import UnitState
+from pipeloom.secrets.resolve import SecretError, secret_diagnostic
 from pipeloom.state.types import LockHeld, RunRecord, RunStatus, StateStore
 
 if TYPE_CHECKING:
@@ -314,9 +315,13 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     task = plan.metadata.boundary == "task" and not unit_mode
     executor_name = "process" if plan.metadata.boundary == "task" else "thread"
     identity = project.identity
-    engine: Engine = engine_plugin.create()
-    catalog: Catalog = catalog_plugin.create()
-    state: StateStore = bound.plugins["state_stores"].create()
+    secrets = project.secrets  # references resolve here and nowhere earlier
+    try:
+        engine: Engine = engine_plugin.create(secrets)
+        catalog: Catalog = catalog_plugin.create(secrets)
+        state: StateStore = bound.plugins["state_stores"].create(secrets)
+    except SecretError as err:
+        return _early(bus, [*diags, secret_diagnostic(err)])
     scope = f"{plan.metadata.project}/{plan.metadata.target}"
     if not unit_mode:
         write_manifest(plan, paths.manifest)
