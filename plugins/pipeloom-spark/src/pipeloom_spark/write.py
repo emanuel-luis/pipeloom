@@ -236,6 +236,14 @@ class DeltaWriter:
         self, frame: Any, target: TargetRef, ident: str, cfg: WriteConfig, token: str
     ) -> WriteResult:
         existing, adds = self._prepare_schema(frame, target, cfg, token)
+        if existing is None and isinstance(self._host.catalog, SparkSessionCatalog):
+            # A table created by saveAsTable drops the writer's userMetadata: create it empty
+            # first, so the token rides on an ordinary append.
+            create = self._writer(frame.limit(0), "append", {})
+            if cfg.partition_by:
+                create = create.partitionBy(*cfg.partition_by)
+            self._save(create, target)
+            existing = schema_of(frame)
         more = {"mergeSchema": "true"} if adds else {}
         opts = self._options(
             token,

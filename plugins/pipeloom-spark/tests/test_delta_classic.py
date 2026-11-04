@@ -64,7 +64,10 @@ def _write(
 
 def _rows(s: EngineSession, name: str, order: str) -> list[tuple[Any, ...]]:
     frame = s.reader("table").read(ReadSpec("table", table=_target(name))).native
-    return [tuple(r) for r in frame.orderBy(order).collect()]
+    return [
+        tuple(v.astimezone(UTC) if isinstance(v, datetime) else v for v in r)
+        for r in frame.orderBy(order).collect()
+    ]
 
 
 def test_a_later_transaction_version_makes_an_earlier_run_fail_with_plm207(
@@ -164,10 +167,10 @@ def test_replace_where_handles_each_partition_value_type(
         )
         _write(s, classic_spark, "m", [(new, 9)], schema, cfg, "r1:m")
         got = _rows(s, "m", "v")
-        assert sorted(got, key=lambda r: r[1]) == [
-            *[(p, 1) for p in old if p != new],
-            (new, 9),
-        ]
+        want = [*[(p, 1) for p in old if p != new], (new, 9)]
+        assert sorted(got, key=lambda r: (r[1], str(r[0]))) == sorted(
+            want, key=lambda r: (r[1], str(r[0]))
+        )
 
 
 def test_a_removed_column_runs_a_migration_commit_first(classic_spark: Any, tmp_path: Path) -> None:
