@@ -4,16 +4,18 @@ import os
 import threading
 from datetime import timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from pipeloom.platform import Clock
+from pipeloom.state import jsondir
 from pipeloom.state.jsondir import JsonDirStore, _seg
 from pipeloom.state.lease import Heartbeat, held, new_lock_info, new_owner
 from pipeloom.state.sqlite import SqliteStore
 from pipeloom.state.types import LockHeld, StateStore
 from pipeloom.testing.clock import FakeClock
-from pipeloom.testing.contract.state import T0, StateStoreContract, StoreFactory
+from pipeloom.testing.contract.state import KEY, T0, StateStoreContract, StoreFactory, wm
 
 
 class TestSqliteContract(StateStoreContract):
@@ -128,3 +130,22 @@ def test_heartbeat_survives_a_failed_renewal(tmp_path: Path) -> None:
     with held(info, renew, lambda _i: None, 0.01, status):
         assert renewed.wait(5)
     assert isinstance(status.last_error, OSError)
+
+
+def test_a_delete_pending_lease_file_is_retried_on_windows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Windows raises PermissionError from O_EXCL while a releasing contender's unlink is pending."""
+    store = JsonDirStore(tmp_path / "state")
+    real_open, denied = os.open, []
+
+    def flaky(path: str | Path, flags: int, *args: int) -> int:
+        if str(path).endswith(".mutex") and not denied:
+            denied.append(path)
+            raise PermissionError(13, "Permission denied")
+        return real_open(path, flags, *args)
+
+    monkeypatch.setattr(jsondir.os, "open", flaky)
+    monkeypatch.setattr(jsondir, "sys", SimpleNamespace(platform="win32"))
+    assert store.cas_watermark(KEY, None, wm(1))
+    assert denied
