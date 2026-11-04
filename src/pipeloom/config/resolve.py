@@ -3,7 +3,7 @@
 Settings precedence, highest first: the model entry, `_defaults.yml` files from the model's own
 folder up to its model_paths root (nearest wins), `defaults.models` in pipeloom.yml, then the
 built-in defaults of `ResolvedModelConfig`. Mappings merge deeply, lists replace, and `tags` is an
-ordered union without duplicates. An explicit `null` removes a value set by a lower layer.
+ordered union without duplicates. An explicit `null` removes a scalar or mapping set by a lower layer; `tags: null` is ignored.
 """
 
 from __future__ import annotations
@@ -118,14 +118,14 @@ def _chain(
     file: str, roots: Sequence[str], defaults: Mapping[str, Sequence[DefaultsFile]]
 ) -> list[ModelSettings]:
     """Defaults files that apply to a model file, root folder first, nearest last."""
-    under = [r for r in roots if file.startswith(r + "/")]
+    under = [r for r in roots if r == "" or file.startswith(r + "/")]
     if not under:
         return []
     root = max(under, key=len)
     folders = [root]
     for part in posixpath.dirname(file)[len(root) :].split("/"):
         if part:
-            folders.append(f"{folders[-1]}/{part}")
+            folders.append(f"{folders[-1]}/{part}" if folders[-1] else part)
     return [d.models for folder in folders for d in defaults.get(folder, ())]
 
 
@@ -145,7 +145,8 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
     """Apply defaults to every model and assign unique ids. It reports nothing: L2 does."""
     loaded = bound.loaded
     project = loaded.config.name
-    roots = [posixpath.normpath(p) for p in loaded.config.model_paths]
+    # A root of "." is the project dir itself; file paths carry no "./", so it becomes "".
+    roots = [p if p != "." else "" for p in map(posixpath.normpath, loaded.config.model_paths)]
     defaults: dict[str, list[DefaultsFile]] = {}
     for d in loaded.defaults_files:
         defaults.setdefault(posixpath.dirname(d.path), []).append(d.config)

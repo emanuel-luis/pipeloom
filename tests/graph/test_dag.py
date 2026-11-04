@@ -80,3 +80,19 @@ def test_injected_back_edge_yields_a_real_cycle(dag: Dag, data: st.DataObject) -
 
 def test_self_loops_are_not_cycles() -> None:
     assert find_cycles({"a": ("a",)}) == []
+
+
+@settings(deadline=None)
+@given(dags())
+def test_topo_order_is_exact_min_heap_order(dag: Dag) -> None:
+    g = make_graph(*dag)
+    done: list[str] = []
+    for node in g.topo_order():
+        ready = [x for x in g.kinds if x not in done and set(g.parents[x]) <= set(done)]
+        assert node == min(ready)
+        done.append(node)
+
+
+def test_topo_order_example() -> None:
+    g = make_graph(3, {(0, 1)})
+    assert g.topo_order() == ("n00", "n01", "n02")

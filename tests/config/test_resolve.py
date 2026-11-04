@@ -93,3 +93,21 @@ def test_ids_inputs_and_locations(project_factory: Factory) -> None:
 def test_merge_settings_tags_ignore_null() -> None:
     cfg = merge_settings([{"tags": ["a"]}, {"tags": None}, {"tags": ["b", "a"]}])
     assert cfg.tags == ["a", "b"]
+
+
+def test_project_dir_as_model_root(project_factory: Factory) -> None:
+    root = project_factory(
+        {
+            "pipeloom.yml": PROJECT.replace("name: shop", "name: shop\nmodel_paths: ['.']"),
+            "_defaults.yml": "models: {retries: 5, tags: [top]}\n",
+            "sub/_defaults.yml": "models: {timeout: 30}\n",
+            "m.yml": "models:\n  - {name: m, sql: select 1}\n",
+            "sub/n.yml": "models:\n  - {name: n, sql: select 1}\n",
+        }
+    )
+    value = Project(ProjectOptions(project_dir=root, env={})).resolve().value
+    assert value is not None
+    m = value.project.models["model.shop.m"].config
+    n = value.project.models["model.shop.n"].config
+    assert (m.retries, m.timeout, m.tags) == (5, None, ["all", "shared", "top"])
+    assert (n.retries, n.timeout) == (5, 30)
