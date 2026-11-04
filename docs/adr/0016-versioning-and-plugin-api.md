@@ -27,7 +27,7 @@ Several distributions ship from one repository, and several contracts evolve at 
 
 ## Status
 
-Accepted
+Accepted. Amended by [ADR-0017](0017-plugin-spec-and-builtins.md): while the plugin API major is 0 the versions must match exactly.
 
 ## Date
 
