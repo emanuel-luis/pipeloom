@@ -948,9 +948,20 @@
             {
               "additionalProperties": false,
               "properties": {
+                "format": {
+                  "default": "parquet",
+                  "description": "File format of the part files engines write.",
+                  "enum": [
+                    "parquet",
+                    "csv",
+                    "ndjson"
+                  ],
+                  "title": "Format",
+                  "type": "string"
+                },
                 "kind": {
                   "const": "filesystem",
-                  "description": "Tables as files under a directory (implementation in 0.2)."
+                  "description": "Tables as part files under a directory, committed atomically."
                 },
                 "root": {
                   "default": ".",
@@ -1352,9 +1363,20 @@
         {
           "additionalProperties": false,
           "properties": {
+            "format": {
+              "default": "parquet",
+              "description": "File format of the part files engines write.",
+              "enum": [
+                "parquet",
+                "csv",
+                "ndjson"
+              ],
+              "title": "Format",
+              "type": "string"
+            },
             "kind": {
               "const": "filesystem",
-              "description": "Tables as files under a directory (implementation in 0.2)."
+              "description": "Tables as part files under a directory, committed atomically."
             },
             "root": {
               "default": ".",

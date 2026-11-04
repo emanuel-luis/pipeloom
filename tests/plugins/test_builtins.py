@@ -59,7 +59,8 @@ def test_env_secret_provider() -> None:
     assert isinstance(ENV.factory(ENV.config_model()), SecretProvider)
 
 
-def test_filesystem_catalog_is_spec_only() -> None:
+def test_filesystem_catalog_spec() -> None:
     assert FILESYSTEM.group == "catalogs" and FILESYSTEM.config_model(root="data").root == "data"
-    with pytest.raises(NotImplementedError, match="0.2"):
-        FILESYSTEM.factory(FILESYSTEM.config_model())
+    assert FILESYSTEM.config_model().format == "parquet"
+    with pytest.raises(ValueError):
+        FILESYSTEM.config_model(format="avro")
