@@ -28,6 +28,12 @@ class CancelToken:
         self._lock = threading.Lock()
         self._finished = False
         self._final = False
+        self._final_reason: Reason | None = None
+
+    @property
+    def final_reason(self) -> Reason | None:
+        """The reason of the scheduler verdict, once there is one."""
+        return self._final_reason
 
     def set(self, reason: Reason, *, final: bool = False) -> bool:
         """A `final` set (a timeout, or the end of a stop grace) is the scheduler verdict. It
@@ -37,6 +43,8 @@ class CancelToken:
             if final and self._finished:
                 return False
             self._final = self._final or final
+            if final and self._final_reason is None:
+                self._final_reason = reason
             if self._reason is None:
                 self._reason = reason
         self._event.set()

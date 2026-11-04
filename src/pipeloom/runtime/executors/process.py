@@ -95,15 +95,16 @@ class ChildCommand:
 
 def _kill(proc: subprocess.Popen[str]) -> None:
     """Kill the child and everything it started: a grandchild would keep the pipes open."""
+    if proc.poll() is not None:
+        return  # reaped: its pid, and so its group id, may belong to someone else now
     if sys.platform == "win32":
-        if proc.poll() is None:
-            with contextlib.suppress(OSError, subprocess.SubprocessError):
-                subprocess.run(
-                    ["taskkill", "/T", "/F", "/PID", str(proc.pid)],
-                    capture_output=True,
-                    timeout=KILL_TIMEOUT,
-                    check=False,
-                )
+        with contextlib.suppress(OSError, subprocess.SubprocessError):
+            subprocess.run(
+                ["taskkill", "/T", "/F", "/PID", str(proc.pid)],
+                capture_output=True,
+                timeout=KILL_TIMEOUT,
+                check=False,
+            )
     else:  # the child leads its own session, so its group id is its pid
         with contextlib.suppress(OSError):
             os.killpg(proc.pid, signal.SIGKILL)

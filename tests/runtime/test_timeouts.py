@@ -367,3 +367,14 @@ def test_a_grandchild_does_not_survive_or_hold_up_the_run(tmp_path: Path) -> Non
     before = beat.read_text(encoding="utf-8") if beat.exists() else ""
     time.sleep(0.5)
     assert (beat.read_text(encoding="utf-8") if beat.exists() else "") == before
+
+
+def test_a_final_cancel_after_the_runner_passed_its_checkpoint_is_not_a_timeout() -> None:
+    token = CancelToken()
+    assert token.set("cancel", final=True)
+    assert not token.finish()
+    assert token.final_reason == "cancel"
+    other = CancelToken()
+    assert other.finish()
+    assert not other.set("cancel", final=True)  # too late: the runner has its result
+    assert other.final_reason is None

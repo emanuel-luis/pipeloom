@@ -251,7 +251,7 @@ class ModelRunner:
             "failed" if error else "succeeded"
         )
         if interrupted is None and not token.finish():
-            interrupted = "timeout"  # the deadline won the race for the verdict
+            interrupted = token.final_reason or "timeout"  # the scheduler won the race
         if interrupted is not None:
             error = interrupt_error(interrupted, unit_id, attempt, self._policy(unit_id).timeout)
             status = "timed_out" if interrupted == "timeout" else "cancelled"

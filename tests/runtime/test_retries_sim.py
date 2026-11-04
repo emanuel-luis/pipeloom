@@ -339,3 +339,23 @@ def test_a_stop_with_a_retrying_unit_does_not_spin(monkeypatch: pytest.MonkeyPat
         edges, script, policies, workers=2, control=RunControl(), stop_at=3, cancel_grace=30
     )
     assert result.states == {"a": S.CANCELLED, "b": S.CANCELLED}
+
+
+def test_a_unit_with_a_forwarded_terminal_event_is_not_cancelled_at_grace_end(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(SimExecutor, "has_terminal_event", lambda self, handle: True)
+    edges = {"a": ()}
+    script = {"a": [SimAttempt(100, "succeeded")]}
+    policies = {"a": UnitPolicy(0, 0.0, "transient", None)}
+    result, sink = simulate(
+        edges,
+        script,
+        policies,
+        control=RunControl(),
+        stop_at=5,
+        cancel_grace=10,
+        cancel_latency=1000,
+    )
+    assert result.states == {"a": S.SUCCEEDED}
+    assert not [e for e in sink.events if e.type == "unit.cancelled"]

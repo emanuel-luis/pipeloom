@@ -411,7 +411,9 @@ class Scheduler:
             for u, run in list(self._run_of.items()):
                 if run.finished:
                     continue
-                if not self._executor.cancel(run.handle, "cancel", final=True):
+                if self._executor.has_terminal_event(run.handle) or not self._executor.cancel(
+                    run.handle, "cancel", final=True
+                ):
                     run.finished = True  # it has its result: keep waiting for it
                     run.deadline = None
                     continue
