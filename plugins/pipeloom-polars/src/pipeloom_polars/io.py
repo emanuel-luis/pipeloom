@@ -75,25 +75,42 @@ def scan(fmt: str, location: str, options: Mapping[str, Any]) -> pl.LazyFrame:
     raise ValueError(f"polars engine cannot read format '{fmt}'")
 
 
-def scan_parts(fmt: str, files: Sequence[Path], schema: Schema) -> pl.LazyFrame:
-    """A lazy frame over the committed part files of a table.
+def scan_part(fmt: str, path: Path, schema: Schema) -> pl.LazyFrame:
+    """A lazy frame over one committed part file.
 
     csv and ndjson lose type information, so the stored logical types are applied column by
-    column; a column this engine cannot name keeps what polars infers.
+    column; a column this engine cannot name keeps what polars infers. A column the file lacks
+    is ignored here (`align_frame` adds it).
     """
-    paths = [str(f) for f in files]
     if fmt == "parquet":
-        return pl.scan_parquet(paths)
+        return pl.scan_parquet(str(path))
     known = typed_columns(schema)
     if fmt == "csv":
-        return pl.concat([pl.scan_csv(p, schema_overrides=known) for p in paths])
+        return pl.scan_csv(str(path), schema_overrides=known)
     if fmt == "ndjson":
         # A decimal is a JSON number there: read it as text and cast, or the schema fails.
         decimals = {n: t for n, t in known.items() if isinstance(t, pl.Decimal)}
         read = {n: pl.String if n in decimals else t for n, t in known.items()}
-        frames = [pl.scan_ndjson(p, schema_overrides=read) for p in paths]
-        return pl.concat(frames).with_columns(*(pl.col(n).cast(t) for n, t in decimals.items()))
+        frame = pl.scan_ndjson(str(path), schema_overrides=read)
+        have = set(frame.collect_schema().names())
+        return frame.with_columns(*(pl.col(n).cast(t) for n, t in decimals.items() if n in have))
     raise ValueError(f"cannot read a table stored as '{fmt}'")
+
+
+def align_frame(frame: Any, schema: Schema) -> Any:  # LazyFrame or DataFrame, same kind out
+    """Columns in `schema` order; a missing one is a typed null, the others are cast."""
+    have = set(frame.collect_schema().names())
+    exprs = []
+    for col in schema:
+        expr = pl.col(col.name) if col.name in have else pl.lit(None)
+        dtype = polars_dtype(col.dtype)
+        exprs.append((expr if dtype is None else expr.cast(dtype)).alias(col.name))
+    return frame.select(exprs)
+
+
+def concat(frames: Sequence[Any]) -> pl.LazyFrame:
+    out: pl.LazyFrame = pl.concat([f.lazy() for f in frames], how="vertical_relaxed")
+    return out
 
 
 def write(df: pl.DataFrame, fmt: str, path: Path) -> None:

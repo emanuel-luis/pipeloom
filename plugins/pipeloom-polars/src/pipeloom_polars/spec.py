@@ -10,7 +10,7 @@ from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
 
 CAPABILITIES = EngineCapabilities(
     formats=frozenset({"parquet", "csv", "json", "ndjson"}),
-    strategies=frozenset({"append", "overwrite"}),
+    strategies=frozenset({"append", "overwrite", "merge", "replace_partitions"}),
     materializations=frozenset({"table", "view", "ephemeral"}),
     sql_models=True,
     views=True,
