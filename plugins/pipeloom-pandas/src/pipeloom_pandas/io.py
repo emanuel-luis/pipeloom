@@ -64,13 +64,16 @@ def _files(location: str) -> list[str]:
     return found
 
 
-def _read_one(fmt: str, path: str, options: Mapping[str, Any]) -> pd.DataFrame:
+def _read_one(
+    fmt: str, path: str, options: Mapping[str, Any], text_columns: Sequence[str] = ()
+) -> pd.DataFrame:
     # Arrow-backed columns keep nulls in integer columns and keep the logical types.
     kw: dict[str, Any] = {"dtype_backend": "pyarrow", **options}
     if fmt == "parquet":
         return pd.read_parquet(path, **kw)
     if fmt == "csv":
-        return pd.read_csv(path, **kw)
+        # Strings are read as strings: inferring first would turn "007" into 7.
+        return pd.read_csv(path, **{"dtype": dict.fromkeys(text_columns, "string[pyarrow]"), **kw})
     if fmt == "ndjson":
         return pd.read_json(path, lines=True, **{"dtype": False, **kw})
     if fmt == "json":
@@ -87,7 +90,8 @@ def read_parts(fmt: str, files: Sequence[Path], schema: Schema) -> pd.DataFrame:
     """The committed part files of a table, concatenated, with the stored logical types."""
     frames = []
     for path in files:
-        df = _read_one(fmt, str(path), {})
+        text = [c.name for c in schema if c.dtype == "string"]
+        df = _read_one(fmt, str(path), {}, text)
         if fmt != "parquet":  # csv and ndjson lose the types; parquet keeps them
             for col in schema:
                 dtype = arrow_type(col.dtype)
@@ -96,6 +100,10 @@ def read_parts(fmt: str, files: Sequence[Path], schema: Schema) -> pd.DataFrame:
                 series = df[col.name]
                 if pa.types.is_date(dtype) and pd.api.types.is_string_dtype(series):
                     series = series.str.slice(0, 10)  # ndjson writes a date as an ISO datetime
+                if pa.types.is_timestamp(dtype) and pd.api.types.is_string_dtype(series):
+                    # ndjson writes nanosecond ISO text, which a direct Arrow cast rejects
+                    stamps = pd.to_datetime(series, utc=dtype.tz is not None)
+                    series = stamps.dt.tz_convert(dtype.tz) if dtype.tz else stamps
                 df[col.name] = series.astype(pd.ArrowDtype(dtype))
         frames.append(df)
     return _concat(frames)
@@ -107,6 +115,6 @@ def write(df: pd.DataFrame, fmt: str, path: Path) -> None:
     elif fmt == "csv":
         df.to_csv(path, index=False, lineterminator="\n")
     elif fmt == "ndjson":
-        df.to_json(path, orient="records", lines=True, date_format="iso")
+        df.to_json(path, orient="records", lines=True, date_format="iso", date_unit="ns")
     else:
         raise ValueError(f"cannot write format '{fmt}'")

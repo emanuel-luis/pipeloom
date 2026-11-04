@@ -133,6 +133,8 @@ def test_text_formats_restore_each_stored_type_even_beside_an_unknown_one(
             ),
             "n": pa.array([Decimal("12.34"), None], pa.decimal128(18, 2)),
             "i": pa.array([1, None], pa.int64()),
+            "z": pa.array(["007", None], pa.string()),
+            "us": pa.array([datetime(2026, 1, 2, 3, 4, 5, 123456), None], pa.timestamp("us")),
             "u": pa.array([[1], None], pa.list_(pa.int64())),  # a type the engine cannot name
         }
     )
@@ -144,5 +146,9 @@ def test_text_formats_restore_each_stored_type_even_beside_an_unknown_one(
         out = s.reader("table").read(ReadSpec("table", table=T))
         got = {c.name: c.dtype for c in s.schema(out)}
         want = {c.name: c.dtype for c in s.schema(rel)}
-        assert {k: got[k] for k in "dtni"} == {k: want[k] for k in "dtni"}
+        keys = ["d", "t", "n", "i", "z", "us"]
+        assert {k: got[k] for k in keys} == {k: want[k] for k in keys}
+        assert out.native["z"].iloc[0] == "007"
+        assert out.native["us"].iloc[0] == pd.Timestamp("2026-01-02 03:04:05.123456")
+        assert out.native["t"].iloc[0] == pd.Timestamp("2026-01-02 03:04:05", tz="UTC")
         assert out.native["n"].iloc[0] == Decimal("12.34")
