@@ -7,8 +7,11 @@ reports the difference.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Final, Literal
 
+from pipeloom.diagnostics import JsonValue
+from pipeloom.engine.errors import WriteKeyError
 from pipeloom.engine.types import Column, ColumnChange, Schema, SchemaDiff, can_widen, diff_schemas
 
 SchemaAction = Literal["applied", "ignored", "rejected", "replaced", "none"]
@@ -43,6 +46,30 @@ def _kinds(diff: SchemaDiff, kind: str) -> list[ColumnChange]:
     return [c for c in diff.changes if c.kind == kind]
 
 
+def change_action(policy: str, change: ColumnChange, overall: SchemaAction) -> SchemaAction:
+    """What happened to one change. Only `append_new_columns` mixes: it adds columns and leaves
+    removed ones in place."""
+    if policy == "append_new_columns" and overall in ("applied", "ignored"):
+        return "applied" if change.kind == "added" else "ignored"
+    return overall
+
+
+def changes_json(
+    policy: str, diff: SchemaDiff, overall: SchemaAction
+) -> list[dict[str, JsonValue]]:
+    """The diff for `run_results`: each change with its own action."""
+    return [
+        {
+            "kind": c.kind,
+            "column": c.column,
+            "old": c.old,
+            "new": c.new,
+            "action": change_action(policy, c, overall),
+        }
+        for c in diff.changes
+    ]
+
+
 def resolve_columns(
     policy: str,
     target: Schema | None,
@@ -50,10 +77,13 @@ def resolve_columns(
     *,
     strategy: str,
     full_refresh: bool,
+    keys: Sequence[str] = (),
 ) -> tuple[Schema, SchemaDiff, SchemaAction]:
     """The final table schema, the diff from the target to the batch, and what was done.
 
-    Raises `SchemaRejected` when the policy forbids the change.
+    Raises `SchemaRejected` when the policy forbids the change, and `WriteKeyError` when a row
+    keeping write lacks one of `keys` (unique_key and partition_by columns) in the batch: no
+    policy may fill a key with nulls or drop it.
     """
     if policy not in POLICIES:
         raise ValueError(f"unknown on_schema_change policy '{policy}'")
@@ -62,6 +92,9 @@ def resolve_columns(
     diff = diff_schemas(target, batch)
     if full_refresh or strategy not in KEEPS_ROWS:
         return batch, diff, "none" if diff.empty else "replaced"
+    missing = [k for k in keys if k not in {c.name for c in batch}]
+    if missing:
+        raise WriteKeyError(f"the batch lacks key column(s) {', '.join(missing)}")
     if diff.empty:
         return target, diff, "none"  # a narrower batch type is cast up to the target's
     if policy == "fail":

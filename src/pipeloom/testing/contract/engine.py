@@ -595,7 +595,12 @@ class EngineContract:
                     )
                 return
             columns, diff, action = resolve_columns(
-                policy, target_schema, s.schema(batch), strategy=strategy, full_refresh=False
+                policy,
+                target_schema,
+                s.schema(batch),
+                strategy=strategy,
+                full_refresh=False,
+                keys=("id", "part"),
             )
             assert [(c.name, c.dtype) for c in columns] == want_names
             ignored = policy == "ignore" or (
@@ -621,6 +626,30 @@ class EngineContract:
             want = reference.replace_partitions_rows(old, new, ("part",))[0]
         assert got == _key(_norm(want))
         self.assert_schema(h, got_schema, columns, want)
+
+    @pytest.mark.parametrize("strategy", ["append", "merge", "replace_partitions"])
+    @pytest.mark.parametrize("policy", POLICY_NAMES)
+    def test_schema_policy_never_drops_or_nulls_a_key(
+        self, h: EngineHarness, tmp_path: Path, strategy: str, policy: str
+    ) -> None:
+        """A batch without a key column (unique_key or partition_by) is a write key error under
+        every policy, before anything is aligned or written."""
+        requires(h, "strategies", strategy)
+        name = f"t_spk_{strategy}_{policy}"
+        schema, rows = (Column("part", "string"), Column("v", "int64")), ({"part": "c", "v": 1},)
+        with self.session(h, tmp_path) as s:
+            self.put(s, h, name, MATRIX_SEED, MATRIX_SCHEMA, WriteConfig("overwrite"), "seed")
+            batch = s.schema(s.relation(h.make_native(rows, schema)))
+            for keys in (("id",), ("part", "id")):
+                with pytest.raises(WriteKeyError):
+                    resolve_columns(
+                        policy,
+                        h.catalog.table_schema(_target(name)),
+                        batch,
+                        strategy=strategy,
+                        full_refresh=False,
+                        keys=keys,
+                    )
 
     # -- filter_since and max_value ---------------------------------------------------------
 

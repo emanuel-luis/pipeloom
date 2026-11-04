@@ -2,7 +2,7 @@
 
 Architecture: [Section 9, Incremental processing, write strategies, schema change](../architecture.md#9-incremental-processing-write-strategies-schema-change)
 
-Amends [ADR-0008](0008-incremental-key-watermark-strategies.md).
+Amends [ADR-0008](0008-incremental-and-state.md).
 
 ## Context
 
@@ -27,6 +27,8 @@ The policy applies only when the strategy keeps existing rows (append, merge, re
 A batch whose types differ from the target only by a lossless widening of the target type (`diff_schemas` reports no change) is cast up to the target's types under every policy.
 
 Widening follows `can_widen`: integer to a wider integer or to float64, float32 to float64, decimals that keep every digit, finer timestamp units with the same zone, and the null type to anything.
+
+No policy may drop a key or fill it with nulls: a row-keeping write whose batch lacks a `unique_key` or `partition_by` column is a write key error (PLM206) before any alignment. A full refresh turns append, merge and replace_partitions into overwrite.
 
 Every non-empty diff emits `model.schema_changed` with `relation`, `policy`, `action` and `changes`, and is copied to `schema_changes[]` of the unit's `run_results` row (each change carries its action). A rejected change is emitted at warning level before the unit fails. The console prints one line per event. Architecture section 9 named the event `schema.changed`; section 11 and the code use `model.schema_changed`.
 

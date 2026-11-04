@@ -211,3 +211,63 @@ def test_overwrite_reports_replaced(tmp_path: Path) -> None:
     (event,) = [e for e in sink.events if e.type == "model.schema_changed"]
     assert event.data["action"] == "replaced"
     assert list(JsonTableStore(root / "store")["main.a"]) == [{"id": 2, "extra": "n"}]
+
+
+def test_each_change_gets_its_own_action(tmp_path: Path) -> None:
+    root = _project(tmp_path, "append_new_columns", "select 2 as id, 'n' as extra")
+    assert _run(root).exit_code == 0
+    got = {c["column"]: c["action"] for c in _row(root)["schema_changes"]}
+    assert got == {"v": "ignored", "extra": "applied"}
+
+
+@pytest.mark.parametrize("strategy", ["append", "merge", "replace_partitions"])
+def test_full_refresh_replaces_the_table_whatever_the_strategy(
+    tmp_path: Path, strategy: str
+) -> None:
+    root = _project(tmp_path, "fail", "select 2 as id, 'n' as extra", strategy)
+    yml = root / "models" / "m.yml"
+    text = yml.read_text(encoding="utf-8")
+    if strategy == "merge":
+        text = text.replace("on_schema_change", "unique_key: [id], on_schema_change")
+    if strategy == "replace_partitions":
+        text = text.replace("    write:", "    partition_by: [id]\n    write:")
+    yml.write_text(text, encoding="utf-8")
+    clock = FakeClock(datetime(2026, 1, 1, tzinfo=UTC), step=timedelta(0))
+    project = Project(ProjectOptions(project_dir=root, env={}), clock=clock, invocation_id="inv")
+    sink = RecordingSink()
+    with EventBus([(sink, 5)], clock=clock, invocation_id="inv") as bus:
+        outcome = project.run(RunOptions(run_id="r1", workers=1, full_refresh=True), bus)
+    assert outcome.exit_code == 0
+    assert list(JsonTableStore(root / "store")["main.a"]) == [{"id": 2, "extra": "n"}]
+    row = _row(root)
+    assert row["strategy"] == "overwrite"
+    assert {c["action"] for c in row["schema_changes"]} == {"replaced"}
+
+
+@pytest.mark.parametrize("policy", ["ignore", "append_new_columns", "sync_all_columns"])
+def test_a_batch_without_the_merge_key_is_a_write_key_error(tmp_path: Path, policy: str) -> None:
+    root = _project(tmp_path, policy, "select 'n' as extra, 20 as v", "merge")
+    yml = root / "models" / "m.yml"
+    yml.write_text(
+        yml.read_text(encoding="utf-8").replace(
+            "on_schema_change", "unique_key: [id], on_schema_change"
+        ),
+        encoding="utf-8",
+    )
+    assert _run(root).exit_code == 1
+    assert _row(root)["error"]["code"] == "PLM206"
+    assert list(JsonTableStore(root / "store")["main.a"]) == [{"id": 1, "v": 10}]
+
+
+def test_keys_are_checked_before_the_policy() -> None:
+    from pipeloom.engine.errors import WriteKeyError
+
+    for policy in ("fail", "ignore", "append_new_columns", "sync_all_columns"):
+        with pytest.raises(WriteKeyError):
+            resolve_columns(
+                policy, TARGET, REMOVED[1:], strategy="merge", full_refresh=False, keys=("id",)
+            )
+    # not a row keeping write: the keys do not matter
+    resolve_columns(
+        "fail", TARGET, REMOVED[1:], strategy="overwrite", full_refresh=False, keys=("id",)
+    )
