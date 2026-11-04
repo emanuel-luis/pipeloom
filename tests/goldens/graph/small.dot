@@ -1,0 +1,10 @@
+digraph pipeloom {
+  rankdir=LR;
+  "stg_a";
+  "stg_b";
+  "mart";
+  "report";
+  "mart" -> "report";
+  "stg_a" -> "mart";
+  "stg_b" -> "mart";
+}
