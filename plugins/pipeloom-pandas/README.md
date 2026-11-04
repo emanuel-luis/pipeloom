@@ -17,10 +17,11 @@ targets:
 
 - Relations are eager `DataFrame`s. Python models receive `DataFrame` inputs, or Narwhals frames
   with `frame_api: narwhals`.
-- No SQL models and no views in 0.2: validation rejects them (PLC502, PLC507).
+- No SQL models and no views: validation rejects them (PLC502, PLC507).
 - Reads `parquet`, `csv`, `json` and `ndjson` sources. Writes tables through the `filesystem`
-  catalog with the `append` and `overwrite` strategies, and an idempotency token makes a repeated
-  write a no-op.
+  catalog with the `append`, `overwrite`, `merge` and `replace_partitions` strategies, and an
+  idempotency token makes a repeated write a no-op.
+- Supports `incremental` models, the schema-change policy and expectations with quarantine.
 
 Documentation: https://emanuel-luis.github.io/pipeloom/latest/plugins/pandas/
 

@@ -22,9 +22,9 @@ The model above fails once with a `TransientError` and then succeeds:
 
 ```console
 $ pipeloom run
-... 1/2 FAIL   orders ........ PLX101 pipeloom.engine.errors.TransientError
+... 1/1 FAIL   orders ........ PLX101 pipeloom.engine.errors.TransientError
 ... RETRY  orders attempt 1 failed PLX101 (transient), next in 0.7s
-... 1/2 OK     orders ........ table/overwrite   2 rows
+... 1/1 OK     orders ........ table/overwrite   2 rows
 ```
 
 Each attempt writes its own file (`units/orders/attempt-1.json`, `attempt-2.json`), and the result
