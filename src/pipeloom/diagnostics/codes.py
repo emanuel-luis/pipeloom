@@ -510,7 +510,7 @@ _ACTIVE_05: Final = (
         "PLX109",
         E,
         "Secret reference not resolved",
-        "A ${secret:provider/path} reference in a plugin's options could not be resolved when the command executed: the provider is unknown or failed, or the resolved options are invalid. The message names the provider and path, never a value.",
+        "A ${secret:provider/path} reference in a plugin's options could not be resolved when the command executed: the provider is unknown or failed, the resolved options are invalid, or the plugin could not be built with them. The message names the provider and path, never a value.",
     ),
 )
 

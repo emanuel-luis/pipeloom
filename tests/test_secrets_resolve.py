@@ -161,7 +161,7 @@ def test_a_reference_inside_an_env_value_stays_text(tmp_path: Path) -> None:
     root = make_project(
         tmp_path,
         {
-            "pipeloom.yml": YML.replace(REF, "${env:INJECTED}"),
+            "pipeloom.yml": NOTE.replace(REF, "${env:INJECTED}"),  # `note` is not secret-like
             "models/m.yml": MODELS,
             "src/m.py": BODY,
         },
@@ -171,6 +171,32 @@ def test_a_reference_inside_an_env_value_stays_text(tmp_path: Path) -> None:
     outcome = proj.run(RunOptions(run_id="r", workers=1))
     assert not [d for d in outcome.diagnostics if d.code == "PLX109"]
     assert outcome.exit_code == 1
+
+
+@pytest.mark.parametrize("boundary", ["process", "task"])
+def test_a_factory_error_that_repeats_a_resolved_option_leaks_nothing(
+    tmp_path: Path, boundary: str
+) -> None:
+    yml = f"""config_version: 1
+name: shop
+python_paths: [src]
+targets:
+  dev:
+    boundary: {boundary}
+    state: {{kind: leaky, path: "{REF}"}}
+    engine: {{kind: memory}}
+    catalog: {{kind: memory}}
+"""
+    root = make_project(tmp_path, {"pipeloom.yml": yml, "models/m.yml": MODELS, "src/m.py": BODY})
+    plugins = ["--plugin", "tests.plugins.fakes:VAULT", "--plugin", "tests.plugins.fakes:LEAKY"]
+    args = ["run", *plugins, "--project-dir", str(root), "--target", "dev", "--log-format", "json"]
+    run = CliRunner().invoke(main, args, env=ENV)
+    assert run.exit_code == 1, run.stderr
+    assert "PLX109" in run.stderr and "cannot connect to ***" in run.stderr, run.stderr.splitlines()[1][190:600]
+    assert VALUE not in run.stdout and VALUE not in run.stderr
+    assert not isinstance(run.exception, ValueError)  # no raw traceback
+    files = [p for p in root.rglob("*") if p.is_file()]
+    assert [p.relative_to(root).as_posix() for p in files if VALUE.encode() in p.read_bytes()] == []
 
 
 def test_a_literal_reference_next_to_an_escape_still_resolves(tmp_path: Path) -> None:

@@ -137,3 +137,13 @@ class Vault:
 VAULT: PluginSpec[object] = PluginSpec(
     "vault", "vault", "secret_providers", API_VERSION, lambda _o: Vault(), VaultOptions
 )
+
+
+def _leaky(opts: Any) -> object:
+    raise ValueError(f"cannot connect to {opts.path}")
+
+
+LEAKY: PluginSpec[object] = PluginSpec(
+    "leaky", "leaky", "state_stores", API_VERSION, _leaky, FakeOptions
+)
+"""A state store whose factory fails with the option it was given in the message."""

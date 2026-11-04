@@ -67,7 +67,14 @@ class BoundPlugin:
             raise SecretError(
                 "", "", f"{self.group} '{self.kind}' options are invalid once resolved: {fields}"
             ) from None
-        return self.spec.factory(options)
+        try:
+            return self.spec.factory(options)
+        except Exception as exc:  # noqa: BLE001 - plugin code may repeat a resolved option
+            # No chained traceback: its frames and message could hold the resolved value.
+            reason = secrets.redactor.mask(f"{type(exc).__name__}: {exc}")
+            raise SecretError(
+                "", "", f"{self.group} '{self.kind}' could not be built: {reason}"
+            ) from None
 
 
 @dataclass(frozen=True)
