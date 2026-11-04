@@ -15,6 +15,10 @@ All notable changes to this project are documented here. The format follows
 - Diagnostic PLM206 (write key invalid) is emitted by the runner; PLM205, PLQ302, PLP410, PLP411, PLP412 and PLC510 are reserved in the catalog for 0.3.
 - `pipeloom.engine.portable.rewrite_qualified` and an `inclusive` option on `portable.filter_since`.
 
+### Changed
+
+- The release workflow publishes each distribution from its own job and GitHub environment (`pypi` for the core, `pypi-<plugin>` for each plugin), because PyPI accepts only one pending publisher per environment. Plugin jobs run after the core and only when their distribution is in the release.
+
 ## [0.2.0] - 2026-11-04
 
 pipeloom 0.2 runs plans: a scheduler, thread and process executors, polars and pandas engines, a filesystem catalog, state stores and run artifacts.
