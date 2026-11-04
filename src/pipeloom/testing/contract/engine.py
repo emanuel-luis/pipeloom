@@ -67,6 +67,9 @@ class EngineHarness:
     passes, False fails, None passes). Columns: id int64, f float64. Needed for `quality`."""
     update_condition: str = ""
     """An engine-dialect `update_condition` meaning `source.v > target.v` (int64 column v)."""
+    typed_nulls: bool = True
+    """`align` gives a column it adds the declared type, not an untyped null. False only for
+    engines that infer types from values (the memory engine)."""
     slow_relation: Callable[[EngineSession, float], Relation] | None = None
     """Blocks up to the given seconds inside a unit scope and raises once `cancel` fires."""
 
@@ -122,6 +125,7 @@ QUALITY_ROWS = (
     {"id": 3, "f": float("nan"), "s": "xyz", "ts": _T[2]},  # NaN counts as null
     {"id": None, "f": 11.0, "s": None, "ts": None},
     {"id": 2, "f": -1.0, "s": "ab1", "ts": _T[1]},  # duplicate id
+    {"id": None, "f": 3.0, "s": "abx", "ts": _T[0]},  # two null keys are not duplicates
 )
 
 
@@ -214,6 +218,13 @@ class EngineContract:
         with self.session(h, tmp_path) as s:
             rel = s.relation(h.make_native(ROWS, SCHEMA))
             assert [(c.name, c.dtype) for c in s.schema(rel)] == [(c.name, c.dtype) for c in SCHEMA]
+
+    def test_schema_of_typed_columns(self, h: EngineHarness, tmp_path: Path) -> None:
+        with self.session(h, tmp_path) as s:
+            rel = s.relation(h.make_native(TYPED_ROWS, TYPED_SCHEMA))
+            assert [(c.name, c.dtype) for c in s.schema(rel)] == [
+                (c.name, c.dtype) for c in TYPED_SCHEMA
+            ]
 
     # -- SQL --------------------------------------------------------------------------------
 
@@ -349,7 +360,13 @@ class EngineContract:
         return _key(_norm(self.read_table(s, h, name)))
 
     def merge_case(
-        self, h: EngineHarness, tmp_path: Path, name: str, batch: Rows, cfg: WriteConfig
+        self,
+        h: EngineHarness,
+        tmp_path: Path,
+        name: str,
+        batch: Rows,
+        cfg: WriteConfig,
+        seed: Rows = KV_ROWS,
     ) -> tuple[WriteResult, list[dict[str, Any]], reference.MergeResult]:
         """Seed a table, merge `batch`, and return (result, rows read back, reference outcome)."""
         requires(h, "strategies", "merge")
@@ -357,10 +374,10 @@ class EngineContract:
         if cfg.update_condition is not None:
             cond = lambda src, tgt: src["v"] > tgt["v"]
         with self.session(h, tmp_path) as s:
-            self.put(s, h, name, KV_ROWS, KV_SCHEMA, WriteConfig("overwrite"), "seed")
+            self.put(s, h, name, seed, KV_SCHEMA, WriteConfig("overwrite"), "seed")
             result = self.put(s, h, name, batch, KV_SCHEMA, cfg, "r:merge")
             got = self.table_rows(s, h, name)
-        want = reference.merge_rows(KV_ROWS, batch, cfg, condition=cond)
+        want = reference.merge_rows(seed, batch, cfg, condition=cond)
         return result, got, want
 
     def test_merge_inserts_and_updates(self, h: EngineHarness, tmp_path: Path) -> None:
@@ -393,12 +410,40 @@ class EngineContract:
         assert got == _key(_norm(want.rows))
         assert result.rows_deleted == want.deleted == 1
         assert result.rows_inserted == want.inserted == 1
+        assert result.rows_updated == want.updated
+        assert result.rows_written == want.inserted + want.updated + (
+            want.deleted if mode == "soft" else 0
+        )
+
+    @pytest.mark.parametrize("mode", ["hard", "soft"])
+    def test_merge_deletes_obey_the_update_condition(
+        self, h: EngineHarness, tmp_path: Path, mode: str
+    ) -> None:
+        if not h.update_condition:
+            pytest.skip("harness gives no update_condition")
+        batch = (
+            {"id": 1, "label": "gone", "v": 1},  # condition false (1 < 10): the delete is skipped
+            {"id": 2, "label": "gone", "v": 99},  # condition true: deleted
+        )
+        deletes = DeleteSpec("label", "gone", "hard" if mode == "hard" else "soft")
+        cfg = WriteConfig(
+            "merge", unique_key=("id",), deletes=deletes, update_condition=h.update_condition
+        )
+        result, got, want = self.merge_case(h, tmp_path, f"t_mdelc_{mode}", batch, cfg)
+        assert got == _key(_norm(want.rows))
+        assert result.rows_deleted == want.deleted == 1
+        assert result.rows_updated == want.updated
+        assert result.rows_written == want.inserted + want.updated + (
+            want.deleted if mode == "soft" else 0
+        )
 
     def test_merge_null_keys_never_match(self, h: EngineHarness, tmp_path: Path) -> None:
         batch = ({"id": None, "label": "n1", "v": 1}, {"id": None, "label": "n2", "v": 2})
         cfg = WriteConfig("merge", unique_key=("id",))
-        result, got, want = self.merge_case(h, tmp_path, "t_mnull", batch, cfg)
+        seed = (*KV_ROWS, {"id": None, "label": "old", "v": 0})  # a null key in the target too
+        result, got, want = self.merge_case(h, tmp_path, "t_mnull", batch, cfg, seed)
         assert got == _key(_norm(want.rows))
+        assert len(got) == 5  # nothing matched: both batch rows were inserted
         assert result.rows_inserted == 2 and not result.rows_updated
 
     def test_merge_rejects_a_duplicate_key(self, h: EngineHarness, tmp_path: Path) -> None:
@@ -453,11 +498,29 @@ class EngineContract:
         with self.session(h, tmp_path) as s:
             out = s.align(s.relation(h.make_native(rows, source)), target)
             want = reference.align_rows(rows, target)
-            got = s.schema(out)
-            assert [c.name for c in got] == [c.name for c in target]
-            for col, wanted in zip(got, target, strict=True):
-                if any(r[wanted.name] is not None for r in want):  # an all-null column has no type
-                    assert col.dtype == wanted.dtype, col.name
+            self.assert_schema(h, s.schema(out), target, want)
+            assert _key(h.to_rows(out.native)) == _key(want)
+
+    def assert_schema(
+        self, h: EngineHarness, got: Schema, target: Schema, rows: Sequence[Mapping[str, Any]]
+    ) -> None:
+        assert [c.name for c in got] == [c.name for c in target]
+        for col, wanted in zip(got, target, strict=True):
+            if h.typed_nulls or any(r[wanted.name] is not None for r in rows):
+                assert col.dtype == wanted.dtype, col.name
+
+    def test_align_casts_a_null_typed_column(self, h: EngineHarness, tmp_path: Path) -> None:
+        source = (Column("id", "int64"), Column("n", "null"))
+        rows = ({"id": 1, "n": None}, {"id": 2, "n": None})
+        target = (Column("id", "int64"), Column("n", "string"))
+        with self.session(h, tmp_path) as s:
+            try:
+                native = h.make_native(rows, source)
+            except Exception:  # noqa: BLE001 - this engine cannot build a null-typed column
+                pytest.skip("engine cannot build a null-typed column")
+            out = s.align(s.relation(native), target)
+            want = reference.align_rows(rows, target)
+            self.assert_schema(h, s.schema(out), target, want)
             assert _key(h.to_rows(out.native)) == _key(want)
 
     # -- filter_since and max_value ---------------------------------------------------------

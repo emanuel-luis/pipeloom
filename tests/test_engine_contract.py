@@ -49,6 +49,7 @@ def harness(tmp_path: Path) -> EngineHarness:
             ("id > 1", lambda r: None if r["id"] is None else r["id"] > 1),
             ("f < 5.0", lambda r: None if reference.is_null(r["f"]) else r["f"] < 5.0),
         ),
+        typed_nulls=False,
         update_condition="source.v > target.v",
         slow_relation=slow_relation,
     )

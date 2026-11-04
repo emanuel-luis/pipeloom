@@ -73,8 +73,17 @@ class Cancelled(Exception):
 
 
 def _dtype(value: Any) -> str:
+    """The logical type of a Python value. A Decimal is `decimal(18,s)`: the precision is a fixed
+    default and the scale comes from the value."""
     if isinstance(value, bool):
         return "boolean"
+    if isinstance(value, datetime):
+        return "timestamp[us]" if value.tzinfo is None else "timestamp[us, UTC]"
+    if isinstance(value, date):
+        return "date"
+    if isinstance(value, Decimal):
+        exponent = value.as_tuple().exponent
+        return f"decimal(18,{max(0, -exponent) if isinstance(exponent, int) else 0})"
     if isinstance(value, int):
         return "int64"
     if isinstance(value, float):
