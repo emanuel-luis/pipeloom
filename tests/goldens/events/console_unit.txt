@@ -1,0 +1,4 @@
+1 FAIL   bad .................... PLM204 KeyError 0.00s
+         PLM204 cannot read input 'raw' of model 'bad': KeyError: "no in-memory table 'raw/missing'"
+         hint: check that source 'raw' exists and can be read
+         at models/m.yml:6

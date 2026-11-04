@@ -1,15 +1,16 @@
-"""Run a project: the sequence behind `Project.run` (thread executor only in this version)."""
+"""Run a project: the sequence behind `Project.run`."""
 
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import platform
 import secrets
 from collections import Counter
-from collections.abc import Mapping
-from contextlib import nullcontext
-from dataclasses import dataclass, field
+from collections.abc import Iterable, Mapping
+from contextlib import AbstractContextManager, ExitStack, nullcontext
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -17,30 +18,39 @@ from typing import TYPE_CHECKING, Any, Literal
 import pipeloom
 from pipeloom.artifacts.finalize import finalize
 from pipeloom.artifacts.layout import RunPaths
-from pipeloom.artifacts.results import RunHeader, exit_code_of, git_sha, result_row
+from pipeloom.artifacts.results import RunHeader, RunStatusName, exit_code_of, git_sha, result_row
 from pipeloom.config.bind import BoundProject
-from pipeloom.diagnostics import Diagnostic, JsonValue, Report, Severity
+from pipeloom.diagnostics import Diagnostic, JsonValue, Location, Report, Severity
 from pipeloom.engine.protocols import Catalog, Engine
 from pipeloom.events.bus import EventBus
-from pipeloom.events.model import ArtifactWritten, RunCompiled, RunCompleted, RunStarted
-from pipeloom.graph.selectors import Selection
-from pipeloom.plan.manifest import write_manifest
-from pipeloom.plan.model import Plan
+from pipeloom.events.model import (
+    ArtifactWritten,
+    DiagnosticEmitted,
+    RunCompiled,
+    RunCompleted,
+    RunStarted,
+)
+from pipeloom.graph.selectors import Selection, SelectorError, apply_to_plan, is_unit_selection
+from pipeloom.plan.manifest import read_manifest, write_manifest
+from pipeloom.plan.model import Plan, PlanSelection
 from pipeloom.runtime.context import RuntimeContext
 from pipeloom.runtime.errors import ErrorInfo, to_diagnostic
+from pipeloom.runtime.executors import Executor
+from pipeloom.runtime.executors.process import ChildCommand, ProcessExecutor
 from pipeloom.runtime.executors.thread import ThreadExecutor
 from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.runner import ModelRunner
 from pipeloom.runtime.scheduler import Scheduler, ScheduleResult, UnitGraph
 from pipeloom.runtime.states import UnitState
-from pipeloom.state.types import RunRecord, RunStatus, StateStore
+from pipeloom.state.types import LockHeld, RunRecord, RunStatus, StateStore
 
 if TYPE_CHECKING:
     from pipeloom.api import Project
 
 DEFAULT_ARTIFACTS_ROOT = "target"
 MAX_DEFAULT_WORKERS = 4
+USAGE_CODES = frozenset({"PLG304", "PLG305"})
 
 
 @dataclass(frozen=True)
@@ -90,7 +100,7 @@ def _workers(opts: RunOptions, bound: BoundProject) -> int:
     return min(MAX_DEFAULT_WORKERS, os.cpu_count() or 1)
 
 
-def _artifacts_root(bound: BoundProject, project_dir: Path) -> Path:
+def artifacts_root(bound: BoundProject, project_dir: Path) -> Path:
     root = Path(bound.runtime.artifacts.root or DEFAULT_ARTIFACTS_ROOT)
     return root if root.is_absolute() else project_dir / root
 
@@ -128,19 +138,98 @@ def _verdict(
     return skipped, cancelled, unfinished
 
 
+def _lock_held(held: LockHeld) -> Diagnostic:
+    info = held.info
+    return Report().add(
+        "PLX105",
+        f"run lock '{info.scope}' is held by {info.owner} for run {info.run_id}, "
+        f"until {_iso(info.expires_at)}",
+        hint="wait for that run to finish or for its lease to expire; --no-lock skips the lock",
+        context={"owner": info.owner, "run_id": info.run_id, "expires_at": _iso(info.expires_at)},
+    )
+
+
+def _plan_from_manifest(
+    project: Project, opts: RunOptions, report: Report
+) -> tuple[Plan | None, BoundProject | None]:
+    """Load the project for L0 and L1 and binding only, then trust the manifest for the rest."""
+    assert opts.manifest is not None
+    bound_outcome = project.bind()
+    report.extend(bound_outcome.diagnostics)
+    bound = bound_outcome.value
+    if bound is None:
+        return None, None
+    here = _rel(opts.manifest.resolve(), bound.loaded.project_dir.resolve())
+    found = Report()
+    plan = read_manifest(opts.manifest, found)
+    report.extend(replace(d, location=Location(here)) for d in found.sorted())
+    if plan is None:
+        return None, bound
+    meta = plan.metadata
+    if (meta.project, meta.target) != (bound.loaded.config.name, bound.target):
+        report.add(
+            "PLX107",
+            f"manifest is for project '{meta.project}', target '{meta.target}', "
+            f"not '{bound.loaded.config.name}', '{bound.target}'",
+            location=Location(here),
+            hint="compile again for this project and target",
+        )
+        return None, bound
+    sel = opts.selection
+    if sel.select or sel.exclude:
+        try:
+            chosen = apply_to_plan(sel, plan, report)
+        except SelectorError as err:
+            report.extend([err.diagnostic])
+            return None, bound
+        plan = plan.model_copy(
+            update={
+                "selection": PlanSelection(
+                    select=sel.select, exclude=sel.exclude, selected=tuple(sorted(chosen))
+                )
+            }
+        )
+    return plan, bound
+
+
+def _early(bus: EventBus, diags: Iterable[Diagnostic]) -> RunOutcome:
+    """A run that stopped before any unit started: report what was found."""
+    found = tuple(diags)
+    for d in found:
+        bus.emit(DiagnosticEmitted.from_diagnostic(d))
+    usage = any(d.code in USAGE_CODES for d in found)
+    return RunOutcome("failed", 2 if usage else 1, None, found)
+
+
 def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome:
-    """Validate, plan and run the selected units; write the artifacts; report the outcome."""
-    if opts.manifest is not None or opts.expect_plan_hash is not None:
-        raise NotImplementedError("--manifest and --expect-plan-hash arrive with the run command")
-    compiled = project.compile(opts.selection, opts.boundary)
-    diags = list(compiled.diagnostics)
-    plan = compiled.value
-    bound = project.bind().value
+    """Validate, plan and run the selected units; write the artifacts; report the outcome.
+
+    A selection made only of `unit:` atoms is a unit invocation: it runs those units on the thread
+    executor and takes no lock, emits no `run.*` events and writes no results; the invocation
+    that started it (process executor) owns those.
+    """
+    unit_mode = is_unit_selection(opts.selection)
+    report = Report()
+    if opts.manifest is not None:
+        plan, bound = _plan_from_manifest(project, opts, report)
+        diags = list(report.sorted())
+    else:
+        compiled = project.compile(opts.selection, opts.boundary)
+        plan, bound, diags = compiled.value, project.bind().value, list(compiled.diagnostics)
     warned = any(d.severity is Severity.WARNING for d in diags)
     if plan is None or bound is None or (opts.warn_error and warned):
-        return RunOutcome("failed", 1, None, tuple(diags))
-    if plan.metadata.boundary == "task":
-        raise NotImplementedError("boundary 'task' needs the process executor, not built yet")
+        return _early(bus, diags)
+    expected = opts.expect_plan_hash
+    if expected is not None and plan.metadata.plan_hash != expected.lower():
+        found = Report().add(
+            "PLX103",
+            f"plan hash {plan.metadata.plan_hash[:12]} differs from the expected {expected[:12]}",
+            hint="the project or the manifest changed since the hash was taken; compile again",
+            context={"expected": expected.lower(), "actual": plan.metadata.plan_hash},
+        )
+        return _early(bus, [*diags, found])
+    for d in diags:
+        bus.emit(DiagnosticEmitted.from_diagnostic(d))
 
     chosen = set(plan.selection.selected)
     units = [u for u in plan.units if plan.units[u].nodes[-1] in chosen]
@@ -149,7 +238,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     engine_plugin, catalog_plugin = bound.plugins.get("engines"), bound.plugins.get("catalogs")
     for plugin, what in ((engine_plugin, "engine"), (catalog_plugin, "catalog")):
         if plugin is None:
-            return RunOutcome("failed", 1, None, (*diags, _missing(bound, what)))
+            return _early(bus, [*diags, _missing(bound, what)])
     assert engine_plugin is not None and catalog_plugin is not None
 
     clock = project.clock
@@ -159,8 +248,10 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     bus.set_run_id(run_id)
     # Resolved once: sys.path, tracebacks and artifact paths all use absolute forms.
     project_dir = bound.loaded.project_dir.resolve()
-    paths = RunPaths(_artifacts_root(bound, project_dir), run_id)
+    paths = RunPaths(artifacts_root(bound, project_dir), run_id)
     workers = _workers(opts, bound)
+    task = plan.metadata.boundary == "task" and not unit_mode
+    executor_name = "process" if plan.metadata.boundary == "task" else "thread"
     identity = project.identity
     rt = RuntimeContext(
         run_id=run_id,
@@ -178,77 +269,112 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     catalog: Catalog = catalog_plugin.create()
     state: StateStore = bound.plugins["state_stores"].create()
     scope = f"{rt.project}/{rt.target}"
-    write_manifest(plan, paths.manifest)
+    if not unit_mode:
+        write_manifest(plan, paths.manifest)
     floor = {u: paths.next_attempt(u) for u in units}
     """The attempt number each unit gets first in this invocation."""
     schedule: ScheduleResult | None = None
     internal: BaseException | None = None
     try:
-        with state.lock(scope, run_id) if opts.lock else nullcontext():
-            prior = state.get_run(run_id)
+        with ExitStack() as stack:
+            if opts.lock and not unit_mode:
+                try:
+                    stack.enter_context(state.lock(scope, run_id))
+                except LockHeld as held:
+                    return _early(bus, [*diags, _lock_held(held)])
+            prior = None if unit_mode else state.get_run(run_id)
             run_started = prior.started_at if prior else started
             invocation_ids = tuple(
                 dict.fromkeys((*(prior.invocation_ids if prior else ()), rt.invocation_id))
             )
-            record = RunRecord(
-                run_id=run_id,
-                project=rt.project,
-                target=rt.target,
-                plan_hash=plan.metadata.plan_hash,
-                status="running",
-                started_at=run_started,
-                invocation_ids=invocation_ids,
-            )
-            state.record_run(record)
-            bus.emit(
-                RunStarted(
-                    project=rt.project,
-                    target=rt.target,
-                    plan_hash=plan.metadata.plan_hash,
-                    selected=len(units),
+            if not unit_mode:
+                state.record_run(
+                    RunRecord(
+                        run_id=run_id,
+                        project=rt.project,
+                        target=rt.target,
+                        plan_hash=plan.metadata.plan_hash,
+                        status="running",
+                        started_at=run_started,
+                        invocation_ids=invocation_ids,
+                    )
+                )
+                bus.emit(
+                    RunStarted(
+                        project=rt.project,
+                        target=rt.target,
+                        plan_hash=plan.metadata.plan_hash,
+                        selected=len(units),
+                        workers=workers,
+                        boundary=plan.metadata.boundary,
+                        executor=executor_name,
+                        full_refresh=opts.full_refresh,
+                        fail_fast=opts.fail_fast,
+                        engine=engine.name,
+                        engine_version=engine.version,
+                    )
+                )
+                persisted = [plan.nodes[u.nodes[-1]] for u in plan.units.values()]
+                bus.emit(
+                    RunCompiled(
+                        units=len(plan.units),
+                        by_materialization=dict(
+                            sorted(Counter(n.materialized for n in persisted).items())
+                        ),
+                        ephemeral_inlined=sum(
+                            1 for n in plan.nodes.values() if n.materialized == "ephemeral"
+                        ),
+                        selected=len(units),
+                        plan_hash=plan.metadata.plan_hash,
+                        executor=executor_name,
+                    )
+                )
+            executor: Executor
+            session_cm: AbstractContextManager[Any]
+            loader_cm: AbstractContextManager[Any]
+            if task:
+                env = {**os.environ, **(project.options.env or {})}
+                executor = ProcessExecutor(
                     workers=workers,
-                    boundary="process",
-                    executor="thread",
-                    full_refresh=opts.full_refresh,
-                    fail_fast=opts.fail_fast,
-                    engine=engine.name,
-                    engine_version=engine.version,
-                )
-            )
-            persisted = [plan.nodes[u.nodes[-1]] for u in plan.units.values()]
-            bus.emit(
-                RunCompiled(
-                    units=len(plan.units),
-                    by_materialization=dict(
-                        sorted(Counter(n.materialized for n in persisted).items())
+                    command=ChildCommand(
+                        project_dir=project_dir,
+                        target=rt.target,
+                        manifest=paths.manifest,
+                        run_id=run_id,
+                        plan_hash=plan.metadata.plan_hash,
+                        full_refresh=opts.full_refresh,
+                        vars=json.dumps(dict(project.options.vars))
+                        if project.options.vars
+                        else None,
+                        plugins=project.options.plugins,
                     ),
-                    ephemeral_inlined=sum(
-                        1 for n in plan.nodes.values() if n.materialized == "ephemeral"
-                    ),
-                    selected=len(units),
-                    plan_hash=plan.metadata.plan_hash,
-                    executor="thread",
-                )
-            )
-            with (
-                engine.session(rt, catalog=catalog) as session,
-                CallableLoader(project_dir, plan.metadata.python_paths) as loader,
-            ):
-                memo = EphemeralMemo(_consumers(plan, units), persist=session.persist)
-                runner = ModelRunner(
-                    plan=plan,
-                    engine=engine,
-                    session=session,
-                    catalog=catalog,
-                    state=state,
-                    bus=bus,
                     paths=paths,
-                    rt=rt,
-                    loader=loader,
-                    memo=memo,
-                    executor_name="thread",
+                    bus=bus,
+                    env=env,
+                    unit_nodes={u: plan.units[u].nodes[-1] for u in plan.units},
                 )
-                executor = ThreadExecutor(workers, runner.run_unit)
+                session_cm, loader_cm = nullcontext(), nullcontext()
+            else:
+                session_cm = engine.session(rt, catalog=catalog)
+                loader_cm = CallableLoader(project_dir, plan.metadata.python_paths)
+            with session_cm as session, loader_cm as loader:
+                if not task:
+                    assert session is not None and loader is not None
+                    memo = EphemeralMemo(_consumers(plan, units), persist=session.persist)
+                    runner = ModelRunner(
+                        plan=plan,
+                        engine=engine,
+                        session=session,
+                        catalog=catalog,
+                        state=state,
+                        bus=bus,
+                        paths=paths,
+                        rt=rt,
+                        loader=loader,
+                        memo=memo,
+                        executor_name=executor_name,
+                    )
+                    executor = ThreadExecutor(workers, runner.run_unit)
                 scheduler = Scheduler(
                     UnitGraph.from_plan(plan, units),
                     executor,
@@ -256,6 +382,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                     fail_fast=opts.fail_fast,
                     bus=bus,
                     clock=clock,
+                    announce=not unit_mode,
                 )
                 try:
                     schedule = scheduler.run()
@@ -264,6 +391,8 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                     schedule = scheduler.result
                 finally:
                     executor.shutdown(wait=True)
+            if unit_mode:
+                return _unit_outcome(schedule, internal, diags)
             return _finish(
                 project,
                 opts,
@@ -286,6 +415,27 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
             )
     finally:
         state.close()
+
+
+def _unit_outcome(
+    schedule: ScheduleResult | None, internal: BaseException | None, diags: list[Diagnostic]
+) -> RunOutcome:
+    """The outcome of a unit invocation: no artifacts, only a status and the failures."""
+    if internal is not None:
+        raise internal
+    found = list(diags)
+    states = schedule.states.values() if schedule else ()
+    if schedule is not None:
+        for unit_id in sorted(schedule.completions):
+            result = schedule.completions[unit_id].result
+            if result is not None and result.error is not None:
+                found.append(to_diagnostic(result.error, unit_id=unit_id))
+    status: RunStatusName = "succeeded"
+    if UnitState.FAILED in states:
+        status = "failed"
+    elif UnitState.CANCELLED in states:
+        status = "cancelled"
+    return RunOutcome(status, exit_code_of(status), None, tuple(found))
 
 
 def _finish(
@@ -317,12 +467,14 @@ def _finish(
     args: dict[str, Any] = {
         "select": list(opts.selection.select),
         "exclude": list(opts.selection.exclude),
-        "manifest": None,
+        "manifest": None
+        if opts.manifest is None
+        else _rel(opts.manifest.resolve(), rt.project_dir),
         "run_id": rt.run_id,
         "full_refresh": opts.full_refresh,
         "fail_fast": opts.fail_fast,
         "workers": workers,
-        "boundary": "process",
+        "boundary": plan.metadata.boundary,
         "lock": opts.lock,
     }
     header = RunHeader(
@@ -414,7 +566,13 @@ def _finish(
             if result is not None and result.error is not None:
                 d = to_diagnostic(result.error, unit_id=unit_id)
                 unit_diags.append(d)
-                failures.append({"unit_id": unit_id, **d.to_json()})
+                failures.append(
+                    {
+                        "unit_id": unit_id,
+                        **d.to_json(),
+                        "trace_excerpt": list[JsonValue](result.error.trace_excerpt),
+                    }
+                )
     bus.emit(
         RunCompleted(
             status=run["status"],

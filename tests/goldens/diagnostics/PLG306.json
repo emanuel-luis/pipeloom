@@ -1,0 +1,23 @@
+[
+  {
+    "schema": "pipeloom.event/1",
+    "run_id": null,
+    "seq": 2,
+    "type": "diagnostic",
+    "level": "error",
+    "unit_id": null,
+    "model": null,
+    "attempt": null,
+    "data": {
+      "code": "PLG306",
+      "severity": "error",
+      "message": "selector 'unit:nope' names no unit",
+      "hint": "units are the persisted models",
+      "location": null,
+      "context": {
+        "selector": "unit:nope"
+      }
+    },
+    "context": {}
+  }
+]

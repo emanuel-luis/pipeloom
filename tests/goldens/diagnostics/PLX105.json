@@ -1,0 +1,14 @@
+[
+  {
+    "code": "PLX105",
+    "severity": "error",
+    "message": "run lock 'shop/dev' is held by <owner> for run other, until <time>",
+    "hint": "wait for that run to finish or for its lease to expire; --no-lock skips the lock",
+    "location": null,
+    "context": {
+      "owner": "<owner>",
+      "run_id": "other",
+      "expires_at": "<time>"
+    }
+  }
+]

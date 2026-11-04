@@ -1,0 +1,1 @@
+error PLX107 bad.json manifest is not usable: expected schema 'pipeloom.manifest/1'

@@ -1,0 +1,2 @@
+error PLX106 the process of unit 'a' exited with code 3 and wrote no result
+      hint: read its log, runs/case/logs/a-attempt-1.log, under the artifacts folder

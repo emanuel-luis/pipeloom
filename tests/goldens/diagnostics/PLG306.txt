@@ -1,0 +1,1 @@
+error PLG306 selector 'unit:nope' names no unit

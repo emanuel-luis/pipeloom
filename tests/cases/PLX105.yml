@@ -1,0 +1,12 @@
+run: {hold_lock: true}
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine: {kind: memory}
+        catalog: {kind: memory}
+  models/m.yml: |
+    models:
+      - {name: a, sql: select 1 as x}

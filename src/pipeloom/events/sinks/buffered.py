@@ -22,6 +22,7 @@ class BufferedSink:
             raise ValueError("maxsize must be at least 1")
         self.name: str = getattr(inner, "name", type(inner).__name__)
         self._inner = inner
+        self.forwarded: bool = getattr(inner, "forwarded", True)
         self._max = maxsize
         self._queue: deque[Event] = deque()
         self._cond = threading.Condition()

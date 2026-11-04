@@ -104,6 +104,7 @@ class Scheduler:
         fail_fast: bool,
         bus: EventBus,
         clock: Clock,
+        announce: bool = True,
     ) -> None:
         if workers < 1:
             raise ValueError("workers must be at least 1")
@@ -113,6 +114,8 @@ class Scheduler:
         self._fail_fast = fail_fast
         self._bus = bus
         self._clock = clock
+        self._announce = announce
+        """False in unit mode: the invocation that owns the run emits the scheduler events."""
         self._stop = threading.Event()
         self.result: ScheduleResult | None = None
         self.interrupted = False
@@ -180,7 +183,8 @@ class Scheduler:
         return self.result
 
     def _emit(self, unit_id: str, payload: EventPayload) -> None:
-        self._bus.emit(payload, unit_id=unit_id, model=unit_id)
+        if self._announce:
+            self._bus.emit(payload, unit_id=unit_id, model=unit_id)
 
     def _set(self, unit_id: str, new: UnitState) -> None:
         check_transition(self._states[unit_id], new)

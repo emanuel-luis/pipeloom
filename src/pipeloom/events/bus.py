@@ -18,7 +18,11 @@ from pipeloom.secrets.redaction import Redactor
 
 
 class EventSink(Protocol):
-    """Receives every event. `emit` raises to signal a failure; the bus counts it."""
+    """Receives every event. `emit` raises to signal a failure; the bus counts it.
+
+    A sink may set a class attribute `forwarded = False` to skip events that `EventBus.forward`
+    relays from another process. The default is to receive them.
+    """
 
     def emit(self, event: Event) -> None: ...
 
@@ -35,6 +39,7 @@ class _Slot:
     failures: int = 0
     disabled: bool = False
     last_error: str = ""
+    forwarded: bool = True
 
 
 def _emit(event: Event, sink: EventSink) -> None:
@@ -68,7 +73,10 @@ class EventBus:
         redactor: Redactor | None = None,
         context: Mapping[str, str] | None = None,
     ) -> None:
-        self._slots = [_Slot(sink, budget, _sink_name(sink)) for sink, budget in sinks]
+        self._slots = [
+            _Slot(sink, budget, _sink_name(sink), forwarded=getattr(sink, "forwarded", True))
+            for sink, budget in sinks
+        ]
         self._clock = clock
         self._invocation_id = invocation_id
         self._run_id = run_id
@@ -77,6 +85,10 @@ class EventBus:
         self._lock = threading.Lock()
         self._seq = 0
         self._closed = False
+
+    @property
+    def invocation_id(self) -> str:
+        return self._invocation_id
 
     def set_run_id(self, run_id: str) -> None:
         """Stamp the events that follow with `run_id`; the run id is known after the bus is built."""
@@ -125,10 +137,15 @@ class EventBus:
             self._disable(slot, pending)
 
     def _each(
-        self, action: Callable[[EventSink], None], pending: deque[Event], *, resets: bool = False
+        self,
+        action: Callable[[EventSink], None],
+        pending: deque[Event],
+        *,
+        resets: bool = False,
+        relayed: bool = False,
     ) -> None:
         for slot in self._slots:
-            if slot.disabled:
+            if slot.disabled or (relayed and not slot.forwarded):
                 continue
             try:
                 action(slot.sink)
@@ -160,6 +177,16 @@ class EventBus:
             event = self._make(payload, level, unit_id, model, attempt)
             self._drain(deque([event]))
             return event
+
+    def forward(self, event: Event) -> None:
+        """Deliver an event another process emitted, unchanged: its `invocation_id` and `seq`
+        stay. Sinks with `forwarded = False` (a run file of this invocation) do not get it."""
+        with self._lock:
+            if self._closed:
+                raise RuntimeError("the event bus is closed")
+            pending: deque[Event] = deque()
+            self._each(partial(_emit, event), pending, resets=True, relayed=True)
+            self._drain(pending)
 
     def flush(self) -> None:
         with self._lock:
