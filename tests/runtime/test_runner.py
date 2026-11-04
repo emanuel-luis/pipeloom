@@ -10,8 +10,6 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-import pytest
-
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.events.bus import EventBus
 from pipeloom.graph.selectors import Selection
@@ -332,11 +330,3 @@ def test_a_failing_write_is_transient(tmp_path: Path) -> None:
     assert outcome.exit_code == 1
     (row,) = results(tmp_path, "r")["results"]
     assert row["error"]["code"] == "PLM201" and row["error"]["category"] == "transient"
-
-
-@pytest.mark.parametrize("arg", ["manifest", "expect_plan_hash"])
-def test_manifest_options_are_not_available_yet(tmp_path: Path, arg: str) -> None:
-    project = Project(ProjectOptions(project_dir=shop(tmp_path), target="ci", env={}))
-    value: Any = Path("m.json") if arg == "manifest" else "0" * 64
-    with pytest.raises(NotImplementedError):
-        project.run(RunOptions(**{arg: value}))

@@ -1,0 +1,24 @@
+[
+  {
+    "schema": "pipeloom.event/1",
+    "run_id": null,
+    "seq": 2,
+    "type": "diagnostic",
+    "level": "error",
+    "unit_id": null,
+    "model": null,
+    "attempt": null,
+    "data": {
+      "code": "PLX103",
+      "severity": "error",
+      "message": "plan hash 226395c68671 differs from the expected 000000000000",
+      "hint": "the project or the manifest changed since the hash was taken; compile again",
+      "location": null,
+      "context": {
+        "expected": "0000000000000000000000000000000000000000000000000000000000000000",
+        "actual": "226395c68671b755fa4662b20f1425017b39fcf6c33c133ce8f446335a066384"
+      }
+    },
+    "context": {}
+  }
+]

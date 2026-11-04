@@ -98,6 +98,56 @@ class Invocation:
             )
         )
 
+    def open_bus(
+        self,
+        bound: BoundProject | None,
+        *,
+        project_sinks: bool = True,
+        extra: Sequence[tuple[EventSink, int]] = (),
+        context: Mapping[str, str] | None = None,
+    ) -> EventBus:
+        """The bus of this invocation: the terminal sink, the project's sinks, then `extra`."""
+        terminal: EventSink = JsonlSink(None) if self.log_format == "json" else ConsoleSink()
+        sinks = [(terminal, TERMINAL_BUDGET)]
+        if project_sinks:
+            sinks += config_sinks(bound)
+        return EventBus(
+            [*sinks, *extra],
+            clock=self.clock,
+            invocation_id=self.invocation_id,
+            run_id=None,
+            context=context,
+        )
+
+    def started(
+        self, bus: EventBus, bound: BoundProject | None, project: str | None, target: str | None
+    ) -> None:
+        if bound is not None:
+            project, target = bound.loaded.config.name, bound.target
+        bus.emit(
+            InvocationStarted(
+                command=self.command,
+                args=self._args,
+                pipeloom_version=pipeloom.__version__,
+                project=project,
+                target=target,
+            )
+        )
+
+    def completed(self, bus: EventBus, exit_code: int, diagnostics: Sequence[Diagnostic]) -> None:
+        counts = {
+            "errors": sum(1 for d in diagnostics if d.severity is Severity.ERROR),
+            "warnings": sum(1 for d in diagnostics if d.severity is Severity.WARNING),
+        }
+        bus.emit(
+            InvocationCompleted(
+                command=self.command,
+                exit_code=exit_code,
+                duration_ms=int((self.clock.monotonic() - self._t0) * 1000),
+                counts=counts,
+            )
+        )
+
     def finish(
         self,
         diagnostics: Sequence[Diagnostic],

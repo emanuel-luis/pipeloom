@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import tzinfo
 from typing import Any
 
@@ -35,14 +36,55 @@ def _plan_line(d: dict[str, Any]) -> str:
     )
 
 
+_QUIET = frozenset(
+    {"unit.queued", "unit.started", "model.input_read", "model.written", "run.cancel_requested"}
+)
+_NAME_WIDTH = 24
+_INDENT = " " * 9
+_FRAME = re.compile(r"^.+:\d+ in .+$")
+
+
+def _size(n: int) -> str:
+    if n < 1024:
+        return f"{n} B"
+    if n < 1024 * 1024:
+        return f"{round(n / 1024)} KB"
+    return f"{n / (1024 * 1024):.1f} MB"
+
+
+def _secs(ms: int) -> str:
+    return f"{ms / 1000:.2f}s"
+
+
+def _status_counts(counts: dict[str, int]) -> str:
+    parts = [f"OK {counts.get('succeeded', 0)}"]
+    for key, word in (
+        ("failed", "FAIL"),
+        ("skipped", "SKIP"),
+        ("cancelled", "CANCEL"),
+        ("timed_out", "TIMEOUT"),
+    ):
+        if counts.get(key):
+            parts.append(f"{word} {counts[key]}")
+    return " | ".join(parts)
+
+
 class ConsoleSink:
-    """Writes one line per event to stderr. Diagnostics use `format_diagnostic`."""
+    """Writes one line per event to stderr. Diagnostics use `format_diagnostic`.
+
+    A run prints its header, its plan, one line per finished unit and a summary. Unit lines come
+    from the terminal unit events, whether this process or a child process emitted them.
+    """
 
     name = "console"
 
     def __init__(self, console: Console | None = None, tz: tzinfo | None = None) -> None:
         self._console = console or Console(stderr=True)
         self._tz = tz
+        self._total: int | None = None
+        self._workers = 0
+        self._done = 0
+        self._in_run = False
 
     def _stamp(self, event: Event) -> str:
         return event.ts.astimezone(self._tz).strftime("%H:%M:%S")
@@ -65,6 +107,14 @@ class ConsoleSink:
             return f"{stamp} {' | '.join(parts)}", style
         if event.type == "plan.compiled":
             return f"{stamp} {_plan_line(d)}", style
+        if event.type in _QUIET:
+            return "", None
+        if event.type.startswith("run.") or event.type.startswith("unit."):
+            return self._run_line(event, stamp, d), style
+        if event.type == "model.log":
+            return f"{stamp} {event.model or 'model'}: {d['message']}", style
+        if event.type == "artifact.written" and self._in_run:
+            return "", None  # the run summary lists the artifacts
         if event.type == "artifact.written":
             return f"{stamp} artifact: {d['path']} ({d['kind']}, {d['bytes']} bytes)", style
         if event.type == "invocation.completed":
@@ -78,8 +128,74 @@ class ConsoleSink:
             return text, style
         return f"{stamp} {event.type} {d}", style
 
+    def _unit_line(self, event: Event, stamp: str, d: dict[str, Any]) -> str:
+        self._done += 1
+        count = f"{self._done}/{self._total}" if self._total else str(self._done)
+        name = f"{event.model or event.unit_id} "
+        label = name + "." * max(3, _NAME_WIDTH - len(name))
+        head = f"{stamp} {count} "
+        if event.type == "unit.succeeded":
+            kind = (
+                f"{d['materialization']}/{d['strategy']}" if d["strategy"] else d["materialization"]
+            )
+            rows = "" if d["rows_written"] is None else f"{d['rows_written']:,} rows"
+            size = "" if not d["bytes_written"] else _size(d["bytes_written"])
+            return (
+                f"{head}OK     {label} {kind:<16} {rows:>12} {size:>8} {_secs(d['duration_ms']):>7}"
+            )
+        if event.type == "unit.failed":
+            err = d["error"]
+            what = f"{err['code']} {err['exception_type'] or ''}".rstrip()
+            return f"{head}FAIL   {label} {what} {_secs(d['duration_ms'])}"
+        if event.type == "unit.skipped":
+            why = f"upstream {d['upstream']} failed" if d["upstream"] else "stopped by --fail-fast"
+            return f"{head}SKIP   {label} {why}"
+        return f"{head}CANCEL {label} cancelled"
+
+    def _run_line(self, event: Event, stamp: str, d: dict[str, Any]) -> str:
+        if event.type == "run.started":
+            self._in_run = True
+            self._total = d["selected"]
+            self._workers = d["workers"]
+            return f"{stamp} run {event.run_id} | engine {d['engine']} {d['engine_version']}"
+        if event.type == "run.compiled":
+            kinds = ", ".join(f"{n} {k}" for k, n in sorted(d["by_materialization"].items()))
+            inlined = (
+                f"; {d['ephemeral_inlined']} ephemeral inlined" if d["ephemeral_inlined"] else ""
+            )
+            return (
+                f"{stamp} plan: {d['units']} units ({kinds}{inlined}) | selected {d['selected']} "
+                f"| workers {self._workers} | executor {d['executor']}"
+            )
+        if event.type == "run.completed":
+            return self._summary(stamp, d)
+        if event.type in ("unit.succeeded", "unit.failed", "unit.skipped", "unit.cancelled"):
+            return self._unit_line(event, stamp, d)
+        return f"{stamp} {event.type} {d}"
+
+    def _summary(self, stamp: str, d: dict[str, Any]) -> str:
+        head = f"{stamp} finished in {_secs(d['duration_ms'])} | {_status_counts(d['counts'])}"
+        lines = [f"{head} | rows written {d['rows_written']:,}"]
+        for f in d["failures"]:
+            lines.append(f"{_INDENT}{f['unit_id']}  {f['code']} {f['message']}")
+            pad = " " * (len(_INDENT) + len(f["unit_id"]) + 2)
+            if f.get("hint"):
+                lines.append(f"{pad}hint: {f['hint']}")
+            frames = [t for t in f.get("trace_excerpt", [])[:-1] if _FRAME.match(t)]
+            loc = f.get("location") or {}
+            if frames:
+                lines.append(f"{pad}at {frames[-1]}")
+            elif loc.get("file"):
+                at = f"{loc['file']}:{loc['line']}" if loc.get("line") else loc["file"]
+                lines.append(f"{pad}at {at}")
+        if d["artifacts"]:
+            lines.append(f"{stamp} artifacts: {', '.join(d['artifacts'])}")
+        return "\n".join(lines)
+
     def emit(self, event: Event) -> None:
         text, style = self._line(event)
+        if not text:
+            return
         self._console.print(
             Text(text, style=style or ""), soft_wrap=True, highlight=False, markup=False
         )

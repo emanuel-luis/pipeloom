@@ -12,12 +12,16 @@ import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from fnmatch import fnmatchcase
+from typing import TYPE_CHECKING, Literal
 
 from pipeloom.config.resolve import ResolvedProject
 from pipeloom.diagnostics import Diagnostic, Report, suggest
 from pipeloom.graph.dag import Graph
 
-METHODS = ("name", "tag", "path", "materialized")
+if TYPE_CHECKING:
+    from pipeloom.plan.model import Plan
+
+METHODS = ("name", "tag", "path", "materialized", "unit")
 
 _ATOM = re.compile(
     r"^(?:(?P<up>\d*)\+)?(?:(?P<method>[A-Za-z_]\w*):)?(?P<value>[^+:\s,]+)(?:\+(?P<down>\d*))?$"
@@ -128,6 +132,8 @@ def _matches(atom: Atom, node: NodeInfo) -> bool:
         return any(fnmatchcase(t, atom.value) for t in node.tags)
     if atom.method == "materialized":
         return fnmatchcase(node.materialized, atom.value)
+    if atom.method == "unit":  # a unit is named after its persisted model
+        return node.materialized != "ephemeral" and fnmatchcase(node.name, atom.value)
     return _path_matches(atom.value, node.path)
 
 
@@ -135,6 +141,16 @@ def _eval_atom(
     atom: Atom, graph: Graph, nodes: Mapping[str, NodeInfo], report: Report
 ) -> frozenset[str]:
     base = {uid for uid, n in nodes.items() if _matches(atom, n)}
+    if not base and atom.method == "unit":
+        known = sorted(n.name for n in nodes.values() if n.materialized != "ephemeral")
+        raise SelectorError(
+            Report().add(
+                "PLG306",
+                f"selector '{atom.text}' names no unit",
+                hint=suggest(atom.value, known) or "units are the persisted models",
+                context={"selector": atom.text},
+            )
+        )
     if not base:
         report.add(
             "PLG303",
@@ -169,6 +185,18 @@ def select_nodes(
     return chosen - _eval(sel.exclude, graph, nodes, report)
 
 
+def is_unit_selection(sel: Selection) -> bool:
+    """True when every select atom is a plain `unit:` atom: the selection of a unit invocation."""
+    if not sel.select:
+        return False
+    try:
+        terms = [term for expr in sel.select for term in parse(expr)]
+    except SelectorError:
+        return False
+    atoms = [a for term in terms for a in term]
+    return all(a.method == "unit" and not a.up and not a.down for a in atoms)
+
+
 def node_infos(project: ResolvedProject) -> dict[str, NodeInfo]:
     return {
         uid: NodeInfo(uid, m.name, m.file, m.config.materialized, tuple(m.config.tags))
@@ -179,3 +207,17 @@ def node_infos(project: ResolvedProject) -> dict[str, NodeInfo]:
 def apply(sel: Selection, graph: Graph, project: ResolvedProject, report: Report) -> frozenset[str]:
     """Unique ids of the selected models."""
     return select_nodes(sel, graph, node_infos(project), report)
+
+
+def plan_node_infos(plan: Plan) -> dict[str, NodeInfo]:
+    return {
+        uid: NodeInfo(uid, n.name, n.file, n.materialized, n.tags) for uid, n in plan.nodes.items()
+    }
+
+
+def apply_to_plan(sel: Selection, plan: Plan, report: Report) -> frozenset[str]:
+    """Unique ids of the models of a manifest's plan that `sel` selects."""
+    kinds: dict[str, Literal["model", "source"]] = {uid: "model" for uid in plan.nodes}
+    kinds.update(dict.fromkeys(plan.sources, "source"))
+    graph = Graph(plan.parent_map, plan.child_map, kinds)
+    return select_nodes(sel, graph, plan_node_infos(plan), report)

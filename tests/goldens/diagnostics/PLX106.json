@@ -1,0 +1,13 @@
+[
+  {
+    "code": "PLX106",
+    "severity": "error",
+    "message": "the process of unit 'a' exited with code 3 and wrote no result",
+    "hint": "read its log, runs/case/logs/a-attempt-1.log, under the artifacts folder",
+    "location": null,
+    "context": {
+      "unit": "a",
+      "category": "transient"
+    }
+  }
+]

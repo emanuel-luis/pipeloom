@@ -1,0 +1,26 @@
+[
+  {
+    "schema": "pipeloom.event/1",
+    "run_id": null,
+    "seq": 2,
+    "type": "diagnostic",
+    "level": "error",
+    "unit_id": null,
+    "model": null,
+    "attempt": null,
+    "data": {
+      "code": "PLX107",
+      "severity": "error",
+      "message": "manifest is not usable: expected schema 'pipeloom.manifest/1'",
+      "hint": "compile again to write a fresh manifest",
+      "location": {
+        "file": "bad.json",
+        "line": null,
+        "col": null,
+        "json_pointer": null
+      },
+      "context": {}
+    },
+    "context": {}
+  }
+]

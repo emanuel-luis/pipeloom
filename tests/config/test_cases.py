@@ -49,13 +49,7 @@ def test_case(
         env={},
     )
     if spec.get("run"):  # runtime codes: run the project; failed units are diagnostics
-        project = Project(options, clock=FakeClock(), invocation_id="inv")
-        outcome_run = project.run(RunOptions(run_id="case", workers=1))
-        text = "".join(format_diagnostic(d) + "\n" for d in outcome_run.diagnostics)
-        assert code in text
-        as_json = json.dumps([d.to_json() for d in outcome_run.diagnostics], indent=2)
-        golden(f"diagnostics/{code}.txt", text)
-        golden(f"diagnostics/{code}.json", as_json + "\n")
+        run_case(code, spec, options, project_dir, golden)
         return
     outcome = Project(options).validate()
     diagnostics = outcome.diagnostics
@@ -77,6 +71,46 @@ def test_case(
 
 
 VOLATILE = ("id", "ts", "invocation_id")
+_TIME = re.compile(r"\d{4}-\d\d-\d\dT[\d:.]+Z")
+_OWNER = re.compile(r"[^\s'\"]+:\d+:[0-9a-f]{8}")
+
+
+def run_case(
+    code: str,
+    spec: dict[str, Any],
+    options: ProjectOptions,
+    project_dir: Path,
+    golden: Callable[[str, str], None],
+) -> None:
+    """Run the project. `run` may be a mapping: RunOptions fields (`manifest` is relative to the
+    project dir) and `hold_lock`, which takes the run lock first so the run finds it held."""
+    given: dict[str, Any] = dict(spec["run"]) if isinstance(spec["run"], dict) else {}
+    hold = bool(given.pop("hold_lock", False))
+    if "manifest" in given:
+        given["manifest"] = project_dir / given["manifest"]
+    given["selection"] = Selection(tuple(given.pop("select", ())))
+    run_opts = RunOptions(**{"run_id": "case", "workers": 1, **given})
+    project = Project(options, clock=FakeClock(), invocation_id="inv")
+    held = None
+    if hold:
+        bound = Project(options).bind().value
+        assert bound is not None
+        held = bound.plugins["state_stores"].create()
+        lock = held.lock("shop/dev", "other")
+        lock.__enter__()
+    try:
+        outcome = project.run(run_opts)
+    finally:
+        if held is not None:
+            lock.__exit__(None, None, None)
+            held.close()
+    text = "".join(format_diagnostic(d) + "\n" for d in outcome.diagnostics)
+    assert code in text
+    as_json = json.dumps([d.to_json() for d in outcome.diagnostics], indent=2)
+    for pattern, label in ((_TIME, "<time>"), (_OWNER, "<owner>")):
+        text, as_json = pattern.sub(label, text), pattern.sub(label, as_json)
+    golden(f"diagnostics/{code}.txt", text)
+    golden(f"diagnostics/{code}.json", as_json + "\n")
 
 
 def run_cli_case(
@@ -84,7 +118,7 @@ def run_cli_case(
 ) -> None:
     """Run the CLI and keep the events and text lines that carry the code, without volatile fields."""
     args = [
-        *spec["cli"],
+        *[a.replace("{project_dir}", project_dir.as_posix()) for a in spec["cli"]],
         "--project-dir",
         str(project_dir),
         *[a for p in spec.get("plugins", ()) for a in ("--plugin", p)],

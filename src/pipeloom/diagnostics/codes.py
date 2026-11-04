@@ -366,6 +366,36 @@ _ACTIVE_02: Final = (
         "View is not a plain SQL model",
         "A view must be a SQL model that reads no ephemeral model, because its query is stored in the catalog as written.",
     ),
+    (
+        "PLX103",
+        E,
+        "Plan hash mismatch",
+        "The plan hash of the manifest or of the compiled project differs from --expect-plan-hash.",
+    ),
+    (
+        "PLX105",
+        E,
+        "Run lock held",
+        "Another run holds the lock of this project and target. The message names the holder, its run and when its lease expires.",
+    ),
+    (
+        "PLX106",
+        E,
+        "Unit process exited without a result",
+        "A unit started under boundary task exited without writing its attempt file. The excerpt holds the last lines of its log.",
+    ),
+    (
+        "PLX107",
+        E,
+        "Manifest invalid",
+        "The manifest cannot be read, has another schema, was edited after it was written, or belongs to another project or target.",
+    ),
+    (
+        "PLG306",
+        E,
+        "Unknown unit",
+        "A unit: selector names a unit that the project does not have. Ephemeral models are not units.",
+    ),
 )
 
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
@@ -375,9 +405,7 @@ _RESERVED: Final = (
     ("PLF702", E, "Source missing", "0.2"),
     ("PLF703", E, "Target schema drift detected", "0.2"),
     ("PLX102", E, "Timeout", "0.3"),
-    ("PLX103", E, "Plan hash mismatch", "0.3"),
     ("PLX104", E, "Cancelled", "0.3"),
-    ("PLX107", E, "Manifest invalid", "0.2"),
     ("PLM202", E, "Schema change rejected", "0.3"),
     ("PLM203", E, "Watermark CAS conflict", "0.3"),
     ("PLQ301", E, "Expectation failed", "0.3"),
