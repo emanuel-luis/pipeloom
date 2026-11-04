@@ -3,7 +3,7 @@ SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help install lint format typecheck test build docs docs-serve \
+.PHONY: help install lint format typecheck test spark-test build docs docs-serve \
 	d2-install diagrams diagrams-check diagrams-watch
 
 help: ## list the targets
@@ -23,10 +23,17 @@ format: ## apply ruff fixes and formatting
 	uv run ruff format .
 
 typecheck: ## mypy --strict on src and the plugin sources
-	uv run mypy --strict src plugins/pipeloom-polars/src plugins/pipeloom-pandas/src
+	uv run mypy --strict src plugins/pipeloom-polars/src plugins/pipeloom-pandas/src \
+		plugins/pipeloom-spark/src
 
 test: ## pytest, core and plugins
 	uv run pytest -q
+
+spark-test: ## print the WSL recipe for the Spark tests (Spark never runs in Windows Python)
+	@echo "Spark tests need Linux and Java 17 or 21. On Windows, run them in WSL:"
+	@echo "  wsl -d Ubuntu -e bash -lc 'cd /mnt/d/<path>/pipeloom && export UV_PROJECT_ENVIRONMENT=\$$HOME/.venvs/pipeloom-spark && uv sync --locked --all-packages --group spark && PIPELOOM_TEST_SPARK=classic uv run pytest -q -p no:cacheprovider plugins/pipeloom-spark/tests'"
+	@echo "  (then the same with PIPELOOM_TEST_SPARK=connect and -m spark_connect)"
+	@echo "On Linux or macOS with the group installed: PIPELOOM_TEST_SPARK=classic uv run pytest -q plugins/pipeloom-spark/tests"
 
 build: ## build every distribution (core and plugins) into dist/
 	uv build --all-packages

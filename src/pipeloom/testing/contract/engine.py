@@ -309,6 +309,7 @@ class EngineContract:
             assert self.read_table(s, h, "t_keep") == _key([dict(r) for r in ROWS])
 
     def test_metrics(self, h: EngineHarness, tmp_path: Path) -> None:
+        requires(h, "strategies", "overwrite")
         with self.session(h, tmp_path) as s:
             result = self.write(s, h, "t_met", ROWS, "overwrite", "r:1")
             assert result.rows_written == len(ROWS)
@@ -316,6 +317,7 @@ class EngineContract:
                 assert result.bytes_written is not None
 
     def test_two_threads_materialize_at_once(self, h: EngineHarness, tmp_path: Path) -> None:
+        requires(h, "strategies", "overwrite")
         with self.session(h, tmp_path) as s:
             errors: list[BaseException] = []
 

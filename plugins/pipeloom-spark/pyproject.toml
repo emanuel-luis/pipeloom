@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pipeloom-spark"
+version = "0.3.0"
+description = "Spark engine for pipeloom: DataFrames, Spark SQL and Delta tables, local or through Spark Connect."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Emanuel Luis", email = "emanuel.filho08@gmail.com" }]
+keywords = ["pipeloom", "spark", "pyspark", "delta", "data-engineering", "pipelines"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
+# No hard pyspark dependency: Databricks runtimes and Databricks Connect ship their own.
+dependencies = ["pipeloom~=0.3.0"]
+
+[project.optional-dependencies]
+local = ["pyspark[connect]>=4.0.1,<4.3", "delta-spark>=4.1,<4.5"]
+
+[project.urls]
+Repository = "https://github.com/emanuel-luis/pipeloom"
+Documentation = "https://emanuel-luis.github.io/pipeloom/"
+Changelog = "https://github.com/emanuel-luis/pipeloom/blob/main/CHANGELOG.md"
+
+[project.entry-points."pipeloom.engines"]
+spark = "pipeloom_spark.spec:ENGINE_SPEC"
+
+[project.entry-points."pipeloom.catalogs"]
+delta_path = "pipeloom_spark.spec:DELTA_PATH_SPEC"
+spark_catalog = "pipeloom_spark.spec:SPARK_CATALOG_SPEC"
+
+[tool.uv.sources]
+pipeloom = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pipeloom_spark"]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["src", "tests", "LICENSE", "NOTICE", "README.md"]

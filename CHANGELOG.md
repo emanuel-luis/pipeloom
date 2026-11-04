@@ -15,6 +15,10 @@ All notable changes to this project are documented here. The format follows
 - `run --run-started-at ISO8601` (environment `PIPELOOM_RUN_STARTED_AT`) sets the start time every engine sees. It needs an offset and `--run-id`; a reused run id keeps its recorded start, and a different value is PLX108 (exit 2).
 - The engine session opens before any state-store call and the run lock (so it has no `run_started_at`; engines read `WriteConfig.run_started_at`, new and additive), and `unit_scope` now spans a unit's reads, body, checks and write.
 - PLC507 also fires when the catalog declares no views (`CatalogCapabilities(views=False)`).
+- `pipeloom-spark` (ADR-0031): a Spark engine, new in this release, with the `delta_path` and `spark_catalog` catalogs. It reads `delta`, `parquet`, `csv`, `json` and `ndjson`, runs SQL models with DataFrame-bound aliases (no session temp views), cancels through Spark job tags, and opens a `local`, `connect` or `active` session; it never sets conf on a session it did not build. It declares no write strategy yet. pyspark is not a hard dependency: `pipeloom[spark]` pulls `pipeloom-spark[local]` (`pyspark[connect]` 4.0.1 to 4.2, `delta-spark` 4.1 to 4.4).
+- CI has a `spark` job (Java 17, classic then Connect), not yet a required check, and `typecheck` covers the Spark plugin. `make spark-test` prints the WSL recipe. Spark tests opt in with `PIPELOOM_TEST_SPARK=classic|connect`.
+- `tools/versions.py` accepts a root extra that pins a distribution with an extra, as in `pipeloom-spark[local]==X.Y.Z`.
+- `EngineContract`: `test_metrics` and `test_two_threads_materialize_at_once` skip for an engine without the `overwrite` strategy.
 
 ## [0.3.0] - 2026-11-04
 
