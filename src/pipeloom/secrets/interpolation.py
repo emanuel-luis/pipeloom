@@ -3,7 +3,10 @@
 Grammar:
 - `${env:NAME}` and `${env:NAME:-default}`; the default applies only when NAME is unset.
 - `${var:name}`; a value that is exactly one `${var:name}` keeps the variable's type.
-- `${secret:provider/path}` is left as is: it resolves at runtime.
+- `${secret:provider/path}` is left as is: it resolves at runtime. Only references written
+  literally in the YAML count: each is recorded as a `secret` record with its span in the
+  result string, so an escaped `$${secret:...}` or text that came from `${env:...}` or
+  `${var:...}` never resolves.
 - `$${` is an escape for a literal `${`.
 - Any other `${...}` is left alone, so Spark-style `${x}` passes through.
 """
@@ -28,9 +31,11 @@ _WHOLE_VAR = re.compile(r"^\$\{var:([A-Za-z_][A-Za-z0-9_]*)\}$")
 class InterpolationRecord:
     pointer: str
     file: str
-    kind: Literal["env", "var"]
+    kind: Literal["env", "var", "secret"]
     name: str
     default_used: bool
+    span: tuple[int, int] | None = None
+    """For `secret`: where the reference sits in the interpolated string."""
 
 
 def _escape(segment: str) -> str:
@@ -73,7 +78,28 @@ class _Interpolator:
                 return self.malformed(m.group(0), pointer)
             return self.expression(m, pointer)
 
-        return _TOKEN.sub(repl, value)
+        out: list[str] = []
+        pos = size = 0
+        for m in _TOKEN.finditer(value):
+            out.append(value[pos : m.start()])
+            size += m.start() - pos
+            pos = m.end()
+            piece = repl(m)
+            if (m.group(1) or "").startswith("secret:") and piece == m.group(0):
+                self.records.append(
+                    InterpolationRecord(
+                        pointer,
+                        self.doc.path,
+                        "secret",
+                        m.group(1)[7:],
+                        False,
+                        (size, size + len(piece)),
+                    )
+                )
+            out.append(piece)
+            size += len(piece)
+        out.append(value[pos:])
+        return "".join(out)
 
     def expression(self, m: re.Match[str], pointer: str) -> str:
         inner, original = m.group(1), m.group(0)

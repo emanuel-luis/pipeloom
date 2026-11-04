@@ -635,6 +635,7 @@ def _finish(
         crashed=crashed,
         timed_out=timed_out,
         intermediate_ttl=bound.runtime.artifacts.intermediate_ttl,
+        redactor=project.redactor,
     )
     run = done.run_results["run"]
     status: RunStatus = run["status"]

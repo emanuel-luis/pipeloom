@@ -10,7 +10,7 @@ Compile, validate and every other command keep the reference text.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any, Final
 
 from pipeloom.diagnostics import Diagnostic, JsonValue, Report
@@ -41,17 +41,33 @@ def contains_secret(value: Any) -> bool:
     return False
 
 
+def _join(pointer: str, key: str) -> str:
+    return f"{pointer}/{key.replace('~', '~0').replace('/', '~1')}"
+
+
 def resolve_secrets(
-    value: JsonValue, provider: Callable[[str], SecretProvider], redactor: Redactor
+    value: JsonValue,
+    provider: Callable[[str], SecretProvider],
+    redactor: Redactor,
+    *,
+    pointer: str = "",
+    literal: Mapping[str, tuple[tuple[int, int], ...]] | None = None,
 ) -> JsonValue:
     """A copy of `value` with every reference in its strings replaced by the secret.
 
     Each resolved value is registered with `redactor`. `provider(name)` returns the provider for a
     name. Raises SecretError; the error never holds the value.
+
+    `literal` maps JSON pointers (`value` sits at `pointer`) to the spans of the references that
+    were written literally in the YAML. With it, only those references resolve: an escaped
+    `$${secret:...}` or text injected by `${env:...}` stays as it is. Without it, all resolve.
     """
     if isinstance(value, str):
+        spans = None if literal is None else literal.get(pointer, ())
 
         def repl(m: re.Match[str]) -> str:
+            if spans is not None and m.span() not in spans:
+                return m.group(0)
             name, path = m.group(1), m.group(2)
             try:
                 secret = provider(name).resolve(path)
@@ -66,9 +82,15 @@ def resolve_secrets(
 
         return SECRET_REF.sub(repl, value)
     if isinstance(value, list):
-        return [resolve_secrets(v, provider, redactor) for v in value]
+        return [
+            resolve_secrets(v, provider, redactor, pointer=f"{pointer}/{i}", literal=literal)
+            for i, v in enumerate(value)
+        ]
     if isinstance(value, dict):
-        return {k: resolve_secrets(v, provider, redactor) for k, v in value.items()}
+        return {
+            k: resolve_secrets(v, provider, redactor, pointer=_join(pointer, k), literal=literal)
+            for k, v in value.items()
+        }
     return value
 
 
@@ -95,8 +117,16 @@ class SecretResolver:
             self._providers[name] = found
         return found
 
-    def resolve(self, value: JsonValue) -> JsonValue:
-        return resolve_secrets(value, self.provider, self.redactor)
+    def resolve(
+        self,
+        value: JsonValue,
+        *,
+        pointer: str = "",
+        literal: Mapping[str, tuple[tuple[int, int], ...]] | None = None,
+    ) -> JsonValue:
+        return resolve_secrets(
+            value, self.provider, self.redactor, pointer=pointer, literal=literal
+        )
 
 
 def secret_diagnostic(err: SecretError) -> Diagnostic:

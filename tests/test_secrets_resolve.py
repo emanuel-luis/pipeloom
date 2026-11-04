@@ -123,3 +123,55 @@ def test_cli_run_with_an_unresolvable_reference_exits_1(tmp_path: Path) -> None:
 
 def test_vault_spec_is_a_secret_provider() -> None:
     assert VAULT.group == "secret_providers"
+
+
+@pytest.mark.parametrize("boundary", ["process", "task"])
+@pytest.mark.parametrize("state", ["sqlite", "json"])
+def test_a_resolved_secret_reaches_no_file_of_a_failing_run(
+    tmp_path: Path, boundary: str, state: str
+) -> None:
+    yml = YML.replace(REF, "${secret:env/PL_TOKEN}").replace(
+        "    engine:", f"    boundary: {boundary}\n    state: {{kind: {state}}}\n    engine:"
+    )
+    root = make_project(tmp_path, {"pipeloom.yml": yml, "models/m.yml": MODELS, "src/m.py": BODY})
+    args = ["--project-dir", str(root), "--target", "dev", "--log-format", "json"]
+    run = CliRunner().invoke(main, ["run", *args], env={**ENV, "PL_TOKEN": VALUE})
+    assert run.exit_code == 1 and VALUE not in run.stdout and VALUE not in run.stderr
+    files = [p for p in root.rglob("*") if p.is_file()]
+    assert any(p.name == "run_results.json" for p in files)
+    assert any("attempt-" in p.name for p in files)
+    assert [p.relative_to(root).as_posix() for p in files if VALUE.encode() in p.read_bytes()] == []
+    assert "leaked ***" in next(root.rglob("run_results.json")).read_text("utf-8")
+
+
+def test_an_escaped_reference_stays_text(tmp_path: Path) -> None:
+    proj = project(tmp_path, YML.replace(REF, "$${secret:nowhere/x}"))
+    outcome = proj.run(RunOptions(run_id="r", workers=1))
+    assert not [d for d in outcome.diagnostics if d.code == "PLX109"]
+    bound = proj.bind().value
+    assert bound is not None
+    built = bound.plugins["engines"].create(proj.secrets)
+    assert "${secret:nowhere/x}" in repr(built.__dict__)
+
+
+def test_a_reference_inside_an_env_value_stays_text(tmp_path: Path) -> None:
+    root = make_project(
+        tmp_path,
+        {
+            "pipeloom.yml": YML.replace(REF, "${env:INJECTED}"),
+            "models/m.yml": MODELS,
+            "src/m.py": BODY,
+        },
+    )
+    env = {"PL_TOKEN": VALUE, "INJECTED": "${secret:nowhere/x}"}
+    proj = Project(ProjectOptions(project_dir=root, env=env), clock=FakeClock())
+    outcome = proj.run(RunOptions(run_id="r", workers=1))
+    assert not [d for d in outcome.diagnostics if d.code == "PLX109"]
+    assert outcome.exit_code == 1
+
+
+def test_a_literal_reference_next_to_an_escape_still_resolves(tmp_path: Path) -> None:
+    proj = project(tmp_path, YML.replace(REF, "$${x} " + REF))
+    outcome = proj.run(RunOptions(run_id="r", workers=1))
+    assert not [d for d in outcome.diagnostics if d.code == "PLX109"]
+    assert proj.redactor.mask(VALUE) == "***"

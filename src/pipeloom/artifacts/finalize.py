@@ -20,6 +20,7 @@ from pipeloom.artifacts.results import (
     result_row,
     status_of,
 )
+from pipeloom.secrets.redaction import Redactor
 
 
 @dataclass(frozen=True)
@@ -137,6 +138,7 @@ def finalize(
     crashed: Mapping[str, dict[str, Any]] | None = None,
     timed_out: Mapping[str, tuple[int, dict[str, Any]]] | None = None,
     intermediate_ttl: float | None = None,
+    redactor: Redactor | None = None,
 ) -> Finalized:
     """Write `run_results.json` into the run folder and copy it, with the manifest, to the root.
 
@@ -147,7 +149,8 @@ def finalize(
     the late status goes to `warnings` as `late_result: <status>`. `unfinished` units
     (an internal error stopped the run) are reported as cancelled. `crashed` rows replace the
     attempt of a unit whose runner failed before it could write one. With `intermediate_ttl`
-    the run also deletes expired intermediates; failures go to the run's `warnings`.
+    the run also deletes expired intermediates; failures go to the run's `warnings`. `redactor`
+    masks resolved secrets in everything written.
     """
     rows = latest_attempts(paths)
     for unit_id, (reason, _upstream) in skipped.items():
@@ -183,6 +186,8 @@ def finalize(
             status=status,
         )
     results = build_run_results(header, list(rows.values()), cleanup_warnings, intermediate_ttl)
+    if redactor is not None:
+        results = redactor.scrub(results)
     write_json_atomic(paths.run_results, results)
     written = [paths.run_results]
     if paths.manifest.is_file():

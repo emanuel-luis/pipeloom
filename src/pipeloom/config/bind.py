@@ -19,7 +19,7 @@ from pipeloom.config.load import LoadedProject, ProjectOptions
 from pipeloom.config.models import ArtifactsConfig, PluginBlock
 from pipeloom.diagnostics import Report, suggest
 from pipeloom.plugins import Group, PluginRegistry, PluginSpec
-from pipeloom.secrets.resolve import SecretError, SecretResolver, contains_secret
+from pipeloom.secrets.resolve import SecretError, SecretResolver
 
 TARGET_ENV = "PIPELOOM_TARGET"
 DEFAULT_WORKERS = 4
@@ -47,13 +47,16 @@ class BoundPlugin:
     raw: Mapping[str, Any]
     """The block's options as written, with `${secret:...}` references still in place."""
     project_dir: Path
+    literal_refs: Mapping[str, tuple[tuple[int, int], ...]]
+    """Spans of the `${secret:...}` references written literally in the YAML, by JSON pointer,
+    under this block. Only these resolve."""
 
     def create(self, secrets: SecretResolver | None = None) -> Any:
         """Build the plugin. With `secrets`, references in the options are resolved first, in
         memory only: that is the execution path. Raises SecretError."""
-        if secrets is None or not contains_secret(self.raw):
+        if secrets is None or not self.literal_refs:
             return self.spec.factory(self.options)
-        resolved = secrets.resolve(dict(self.raw))
+        resolved = secrets.resolve(dict(self.raw), pointer=self.pointer, literal=self.literal_refs)
         assert isinstance(resolved, dict)
         try:
             options = self.spec.config_model.model_validate(
@@ -192,7 +195,12 @@ def _bind_block(
         from_validation_error(err, doc, spec.config_model, report, base_pointer=pointer)
         return None
     raw = dict(block.model_extra or {})
-    return BoundPlugin(group, block.kind, spec, options, pointer, raw, loaded.project_dir)
+    literal: dict[str, list[tuple[int, int]]] = {}
+    for r in loaded.interpolations:
+        if r.kind == "secret" and r.span is not None and r.pointer.startswith(pointer + "/"):
+            literal.setdefault(r.pointer, []).append(r.span)
+    refs = {p: tuple(s) for p, s in literal.items()}
+    return BoundPlugin(group, block.kind, spec, options, pointer, raw, loaded.project_dir, refs)
 
 
 def bind_project(

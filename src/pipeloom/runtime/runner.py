@@ -31,7 +31,6 @@ from pipeloom.engine.types import (
     WriteResult,
 )
 from pipeloom.events.bus import EventBus
-from pipeloom.secrets.redaction import Redactor
 from pipeloom.events.model import (
     ModelInputRead,
     ModelLog,
@@ -62,6 +61,7 @@ from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.retry import NO_POLICY, UnitPolicy
 from pipeloom.runtime.schema_policy import SchemaRejected, changes_json, resolve_columns
+from pipeloom.secrets.redaction import Redactor
 from pipeloom.state.types import StateKey, StateStore, UnitRecord
 
 DEFAULT_SCHEMA = "main"
