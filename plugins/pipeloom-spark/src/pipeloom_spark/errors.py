@@ -8,6 +8,19 @@ from typing import Final
 _DEPTH: Final = 6
 _TRANSIENT_STATUS: Final = frozenset({"UNAVAILABLE", "DEADLINE_EXCEEDED"})
 _TRANSIENT_CONDITIONS: Final = frozenset({"DELTA_METADATA_CHANGED", "DELTA_PROTOCOL_CHANGED"})
+MISSING: Final = frozenset(
+    {
+        "DELTA_MISSING_DELTA_TABLE",
+        "DELTA_TABLE_NOT_FOUND",
+        "DELTA_PATH_DOES_NOT_EXIST",
+        "DELTA_PATH_EXISTS",
+        "DELTA_TABLE_ONLY_OPERATION",
+        "PATH_NOT_FOUND",
+        "TABLE_OR_VIEW_NOT_FOUND",
+        "SCHEMA_NOT_FOUND",
+    }
+)
+"""Conditions that mean the table or path does not exist."""
 _PERMANENT_CLASSES: Final = frozenset({"AnalysisException", "ParseException"})
 
 

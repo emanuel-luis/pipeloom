@@ -2,21 +2,41 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+
 from pydantic import Field
 
 from pipeloom.config.types import ProjectPath
-from pipeloom.engine.protocols import Catalog, Engine
+from pipeloom.engine.errors import WriteRefusedError
+from pipeloom.engine.protocols import Catalog, Engine, EngineSession, Materializer
 from pipeloom.engine.types import Namespace, StateStoreCapabilities
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
+from pipeloom.runtime.context import RuntimeContext
 from pipeloom.state.sqlite import SqliteStore
 from pipeloom.state.types import StateKey, StateStore, Watermark
 from pipeloom.testing.memory import CAPABILITIES as MEMORY_CAPABILITIES
-from pipeloom.testing.memory import MemoryCatalog, MemoryEngine
+from pipeloom.testing.memory import MemoryCatalog, MemoryEngine, MemorySession
 
 
 class FailingCatalog(MemoryCatalog):
     def ensure_namespace(self, ns: Namespace) -> None:
         raise OSError("disk full")
+
+
+class RefusingSession(MemorySession):
+    """A session whose writes are refused by an idempotency guard, for PLM207."""
+
+    def materializer(self, strategy: str) -> Materializer:
+        raise WriteRefusedError("txnVersion is behind the table's last version for this model")
+
+
+class RefusingEngine(MemoryEngine):
+    name = "refusing"
+
+    @contextmanager
+    def session(self, ctx: RuntimeContext, *, catalog: Catalog) -> Iterator[EngineSession]:
+        yield RefusingSession(self.store, self._tokens)
 
 
 class _Options(OptionsModel):
@@ -31,6 +51,26 @@ FAILING: PluginSpec[Catalog] = PluginSpec(
     lambda _opts: FailingCatalog(),
     _Options,
     compatible_engines=frozenset({"memory"}),
+)
+
+
+REFUSING_ENGINE: PluginSpec[Engine] = PluginSpec(
+    "refusing",
+    "refusing",
+    "engines",
+    API_VERSION,
+    lambda _opts: RefusingEngine(),
+    _Options,
+    capabilities=MEMORY_CAPABILITIES,
+)
+REFUSING_CATALOG: PluginSpec[Catalog] = PluginSpec(
+    "refusing",
+    "refusing",
+    "catalogs",
+    API_VERSION,
+    lambda _opts: MemoryCatalog(),
+    _Options,
+    compatible_engines=frozenset({"refusing"}),
 )
 
 

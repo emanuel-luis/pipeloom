@@ -15,13 +15,13 @@ from pipeloom_spark.sqltext import has_scheme
 
 CAPABILITIES = EngineCapabilities(
     formats=frozenset({"delta", "parquet", "csv", "json", "ndjson"}),
-    strategies=frozenset(),  # the Delta strategies arrive with the write path
-    materializations=frozenset({"table", "ephemeral"}),
+    strategies=frozenset({"append", "overwrite", "merge", "replace_partitions"}),
+    materializations=frozenset({"table", "ephemeral", "view", "incremental", "intermediate"}),
     sql_models=True,
-    views=False,
-    idempotent_writes=False,
+    views=True,
+    idempotent_writes=True,
     cancel=True,
-    bytes_metrics=False,
+    bytes_metrics=True,
     portable=True,
     quality=False,
 )
