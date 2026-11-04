@@ -12,6 +12,7 @@ child enforces a unit's timeout itself; the parent's own deadline is `timeout + 
 from __future__ import annotations
 
 import json
+import math
 import queue
 import signal
 import subprocess
@@ -51,6 +52,8 @@ class ChildCommand:
     vars: str | None
     """`--vars` as given: a JSON mapping, or None."""
     plugins: tuple[str, ...]
+    cancel_grace: float | None = None
+    """The parent's grace in seconds, rounded up: the flag takes whole seconds."""
 
     def argv(self, unit_id: str) -> list[str]:
         out = [
@@ -75,6 +78,8 @@ class ChildCommand:
             "--full-refresh",
             "true" if self.full_refresh else "false",
         ]
+        if self.cancel_grace is not None:
+            out += ["--cancel-grace", str(math.ceil(self.cancel_grace))]
         if self.vars:
             out += ["--vars", self.vars]
         for spec in self.plugins:

@@ -377,6 +377,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                         if project.options.vars
                         else None,
                         plugins=project.options.plugins,
+                        cancel_grace=grace,
                     ),
                     paths=paths,
                     bus=bus,
