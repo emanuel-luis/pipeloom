@@ -1156,7 +1156,10 @@
 </code></pre>
 <h4 id="pipeloom-run">pipeloom run<a class="headerlink" href="#pipeloom-run" title="Permanent link">&para;</a></h4>
 <p>Run the selected models. Exit codes: 0 ok, 1 a unit or a check failed, 2 bad usage, 130 stopped.</p>
-<p><code>-s unit:NAME</code> runs one unit without a lock or run results; the process executor uses it.</p>
+<p>The first Ctrl+C or SIGTERM stops starting units and gives running ones <code>--cancel-grace</code>
+to finish; a second one kills them at once; a third raises KeyboardInterrupt.</p>
+<p><code>-s unit:NAME</code> runs one unit without a lock or run results, and never retries it; the
+process executor uses it.</p>
 <p><strong>Usage:</strong></p>
 <pre><code class="language-text">pipeloom run [OPTIONS]
 </code></pre>
@@ -1192,6 +1195,10 @@
                              each in its own process. Default: the target's
                              boundary.
   --warn-error               Exit 1 on warnings too.
+  --cancel-grace DURATION    After a stop request (Ctrl+C, SIGTERM) or a
+                             timeout, how long running units may finish before
+                             they are killed, as 30s, 2m or 30. Default: the
+                             setting, else 30s.
   --help                     Show this message and exit.
 </code></pre>
 <h4 id="pipeloom-schema">pipeloom schema<a class="headerlink" href="#pipeloom-schema" title="Permanent link">&para;</a></h4>
