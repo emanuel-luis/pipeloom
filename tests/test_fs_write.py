@@ -383,3 +383,45 @@ def test_decimal_partitions_match_after_a_scale_widening(env: Env) -> None:
         result = env.put(s, [{"n": Decimal("1.500"), "v": 2}], cfg, "t2", wide)
         assert result.rows_deleted == 1 and _ids(env, s) == [2]
         _check_parts(env, 1)
+
+
+@pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+@pytest.mark.parametrize("strategy", ["append", "merge", "replace_partitions"])
+def test_missing_timestamps_are_one_null_partition(env: Env, unit: str, strategy: str) -> None:
+    """A pandas NaT must stay null, not become the integer it casts to."""
+    stamps = ["2026-01-01", None, "2026-01-02", None]
+    if env.engine.name == "polars":
+        if unit == "s":
+            pytest.skip("polars has no second unit")
+        import polars as pl
+
+        def make(vals: list[Any], ids: list[int]) -> Any:
+            col = pl.Series([None if v is None else datetime.fromisoformat(v) for v in vals])
+            return pl.DataFrame({"t": col.cast(pl.Datetime(unit)), "v": ids})  # type: ignore[arg-type]
+    else:
+        import pandas as pd
+
+        def make(vals: list[Any], ids: list[int]) -> Any:
+            return pd.DataFrame({"t": pd.to_datetime(vals).astype(f"datetime64[{unit}]"), "v": ids})
+
+    env.catalog.ensure_namespace(TARGET.namespace)
+    with env.session() as s:
+        first = WriteConfig("overwrite", partition_by=("t",))
+        s.materializer("overwrite").materialize(
+            s.relation(make(stamps, [1, 2, 3, 4])), TARGET, first, "t1"
+        )
+        c = env.commit()
+        assert sorted(str(c.info(n).partition) for n in c.files) == sorted(
+            ["('2026-01-01T00:00:00.000000000',)", "('2026-01-02T00:00:00.000000000',)", "(None,)"]
+        )
+        assert _ids(env, s) == [1, 2, 3, 4]
+        cfg = WriteConfig(strategy, unique_key=("v",), partition_by=("t",))
+        batch = make([None, "2026-01-02"], [2, 9])
+        s.materializer(strategy).materialize(s.relation(batch), TARGET, cfg, "t2")
+        want = {
+            "append": [1, 2, 2, 3, 4, 9],
+            "merge": [1, 2, 3, 4, 9],
+            "replace_partitions": [1, 2, 9],
+        }
+        assert _ids(env, s) == want[strategy]
+        _check_parts(env, len(want[strategy]))

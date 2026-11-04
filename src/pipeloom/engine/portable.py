@@ -223,31 +223,49 @@ def check_columns(native: Any, columns: Sequence[str], what: str) -> None:
             raise WriteKeyError(f"{what} column '{column}' is missing")
 
 
+def _null_expr(col: _PartCol) -> Any:
+    """Expression: the partition value is null. Read from the column itself for a timestamp,
+    whose integer cast turns a pandas NaT into a fake number instead of null."""
+    ref = nw.col(col.name)
+    return (ref.fill_nan(None) if col.kind == "float" else ref).is_null()
+
+
 def _keyed(
     frame: Any, partition_by: Sequence[str]
 ) -> tuple[Any, list[_PartCol], list[tuple[Any, ...]]]:
-    """The frame plus one native key column per partition column (`__pk<i>`), the column specs
-    and the distinct raw key tuples, in order of first appearance."""
+    """The frame plus a native key column (`__pk<i>`) and a null flag (`__pn<i>`) per partition
+    column, the column specs and the distinct raw tuples (the n keys, then the n flags), in
+    order of first appearance. The key of a null row is meaningless; the flag decides."""
     schema = frame.schema
     specs = [_part_col(c, schema[c]) for c in partition_by]
-    names = [f"__pk{i}" for i in range(len(specs))]
-    keyed = frame.with_columns(*(_key_expr(s).alias(n) for s, n in zip(specs, names, strict=True)))
-    raws = [tuple(r) for r in keyed.select(*names).unique(maintain_order=True).iter_rows()]
+    keys = [f"__pk{i}" for i in range(len(specs))]
+    flags = [f"__pn{i}" for i in range(len(specs))]
+    keyed = frame.with_columns(
+        *(_key_expr(s).alias(n) for s, n in zip(specs, keys, strict=True)),
+        *(_null_expr(s).alias(n) for s, n in zip(specs, flags, strict=True)),
+    )
+    raws = [tuple(r) for r in keyed.select(*keys, *flags).unique(maintain_order=True).iter_rows()]
     return keyed, specs, raws
 
 
 def _match(raw: tuple[Any, ...]) -> Any:
     """Expression: the row's key columns equal `raw` exactly (null equals null)."""
+    n = len(raw) // 2
     hit: Any = nw.lit(True)
-    for i, v in enumerate(raw):
-        ref = nw.col(f"__pk{i}")
-        value = _plain(v)
-        hit = hit & (ref.is_null() if value is None else (ref == value).fill_null(False))
+    for i in range(n):
+        flag = nw.col(f"__pn{i}")
+        if bool(_plain(raw[n + i])):
+            hit = hit & flag
+        else:
+            hit = hit & ~flag & (nw.col(f"__pk{i}") == _plain(raw[i])).fill_null(False)
     return hit
 
 
 def _json_key(specs: Sequence[_PartCol], raw: tuple[Any, ...]) -> tuple[JsonValue, ...]:
-    return tuple(_format_key(s, v) for s, v in zip(specs, raw, strict=True))
+    n = len(specs)
+    return tuple(
+        None if bool(_plain(raw[n + i])) else _format_key(s, raw[i]) for i, s in enumerate(specs)
+    )
 
 
 def partition_keys(native: Any, partition_by: Sequence[str]) -> list[tuple[JsonValue, ...]]:
