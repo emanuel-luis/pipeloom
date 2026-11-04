@@ -794,7 +794,7 @@
 
 
 <h1 id="adr-0024-plugin-api-0-3">ADR-0024: Plugin API (0, 3)<a class="headerlink" href="#adr-0024-plugin-api-0-3" title="Permanent link">&para;</a></h1>
-<p>Architecture: <a href="../../architecture/#5-engine-and-catalog-contracts">Section 5, Engine and catalog contracts</a></p>
+<p>Architecture: <a href="../../architecture/#5-core-protocols">Section 5, Engine and catalog contracts</a></p>
 <p>Amends <a href="../0002-engine-abstraction/">ADR-0002</a> and <a href="../0021-plugin-api-0-2/">ADR-0021</a>.</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
 <p>0.3 adds incremental models, merge and replace_partitions, schema-change policies, expectations with quarantine, retries, timeouts and cancellation. The (0, 2) contract has no way to filter by a watermark with a strict bound, to count quality violations, to split dropped rows, to align a frame to a chosen schema, to look up an idempotency token before reading anything, to tag work for cancellation, or to classify an error as retryable. It also cannot say what a write changed beyond row counts.</p>
@@ -828,7 +828,7 @@
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
 <p>Accepted</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
-<p>2026-11-05</p>
+<p>2026-11-04</p>
 
 
 

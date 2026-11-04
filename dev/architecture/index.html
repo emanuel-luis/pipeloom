@@ -1690,7 +1690,7 @@ queued  → cancelled (run cancelled)
 - <code>ignore</code>: write the target's columns only.
 - <code>append_new_columns</code>: add new nullable columns.
 - <code>sync_all_columns</code>: add and drop columns, and widen types where the engine can.</p>
-<p>Every detected change emits <code>schema.changed</code> with a diff.</p>
+<p>Every detected change emits <code>model.schema_changed</code> with a diff. The policy applies only to strategies that keep existing rows (append, merge, replace_partitions) on an existing target outside a full refresh; overwrite replaces the schema and reports the diff as <code>replaced</code>. See ADR-0026.</p>
 <p>Table properties, <code>partition_by</code>, clustering and grants are applied by every strategy or rejected (PLP405). Maintenance (<code>optimize</code>, <code>vacuum</code>, clustering changes) runs only from <code>maintenance:</code> blocks with an explicit schedule (<code>every_n_runs</code>), never by default (L8).</p>
 <h2 id="10-data-quality">10. Data quality<a class="headerlink" href="#10-data-quality" title="Permanent link">&para;</a></h2>
 <p><strong>ADR-0009: Expectations.</strong> DLT-style actions plus quarantine, evaluated after the transformation and before the write.</p>
