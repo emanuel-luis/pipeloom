@@ -396,11 +396,22 @@ _ACTIVE_02: Final = (
         "Unknown unit",
         "A unit: selector names a unit that the project does not have. Ephemeral models are not units.",
     ),
+    (
+        "PLK603",
+        W,
+        "SQL references undeclared table",
+        "A model's SQL reads a table that is neither an input alias nor a CTE. Checked only when sqlglot is installed (extra: sqlglot).",
+    ),
+    (
+        "PLK605",
+        W,
+        "SQL not parseable",
+        "sqlglot could not parse the model's SQL, so its tables were not checked. Checked only when sqlglot is installed.",
+    ),
 )
 
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
-    ("PLK603", W, "SQL references undeclared table", "0.2"),
     ("PLF701", E, "Engine unreachable", "0.2"),
     ("PLF702", E, "Source missing", "0.2"),
     ("PLF703", E, "Target schema drift detected", "0.2"),

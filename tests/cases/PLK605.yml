@@ -1,0 +1,10 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine: {kind: memory}
+  models/m.yml: |
+    models:
+      - {name: a, sql: "select * from ("}

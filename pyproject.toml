@@ -34,6 +34,7 @@ dependencies = [
 [project.optional-dependencies]
 polars = ["pipeloom-polars==0.1.0"]
 pandas = ["pipeloom-pandas==0.1.0"]
+sqlglot = ["sqlglot>=26"]
 
 [project.urls]
 Repository = "https://github.com/emanuel-luis/pipeloom"
@@ -58,6 +59,7 @@ dev = [
     "polars>=2.1.0",
     "pandas>=3.1.0",
     "pyarrow>=26.0.1",
+    "sqlglot>=26",
 ]
 docs = ["mkdocs-material", "mkdocstrings[python]", "mkdocs-click", "mike"]
 
@@ -162,6 +164,7 @@ name = "No dataframe or SQL parsing library in the core"
 type = "forbidden"
 source_modules = ["pipeloom"]
 forbidden_modules = ["polars", "pandas", "pyarrow", "sqlglot"]
+ignore_imports = ["pipeloom.validate.static -> sqlglot"]
 
 [[tool.importlinter.contracts]]
 name = "Only pipeloom.engine.portable imports narwhals"

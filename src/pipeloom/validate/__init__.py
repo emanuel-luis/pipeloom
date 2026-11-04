@@ -6,7 +6,7 @@ from pipeloom.diagnostics import Outcome, Report
 from pipeloom.graph.dag import ProjectGraph
 from pipeloom.validate.capabilities import check_capabilities
 from pipeloom.validate.semantics import check_semantics
-from pipeloom.validate.static import check_static
+from pipeloom.validate.static import check_sql, check_static
 
 __all__ = ["validate_project"]
 
@@ -21,6 +21,6 @@ def validate_project(resolved: Outcome[ProjectGraph]) -> Outcome[ProjectGraph]:
         return resolved
     report = Report()
     report.extend(resolved.diagnostics)
-    for check in (check_semantics, check_capabilities, check_static):
+    for check in (check_semantics, check_capabilities, check_static, check_sql):
         check(resolved.value, report)
     return Outcome(None if report.has_errors else resolved.value, report.sorted())
