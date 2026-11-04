@@ -295,14 +295,44 @@ def test_scheduler_properties(
     if not fail_fast:  # skipped iff a selected ancestor failed
         assert result.states == ancestors_failed(edges, failures)
 
-    # work conservation: once all entries at an instant are applied, a queued unit means all
-    # workers are busy
+    # work conservation, derived from the trace alone: once all entries at an instant are
+    # applied, a unit whose parents all succeeded and that has not started means all workers
+    # are busy
     live = dict.fromkeys(edges, S.PENDING)
     for i, (t, u, new) in enumerate(result.trace):
         live[u] = new
-        last_of_instant = i + 1 == len(result.trace) or result.trace[i + 1][0] != t
-        if last_of_instant and any(s is S.QUEUED for s in live.values()):
+        if i + 1 < len(result.trace) and result.trace[i + 1][0] == t:
+            continue
+        ready = [
+            v
+            for v, s in live.items()
+            if s in (S.PENDING, S.QUEUED) and all(live[p] is S.SUCCEEDED for p in edges[v])
+        ]
+        if ready:
             assert sum(s is S.RUNNING for s in live.values()) == workers
+
+    # skip reasons and upstream
+    events = {e.unit_id: e.data for e in sink.events if e.type == "unit.skipped"}
+    assert events == {u: {"reason": r, "upstream": up} for u, (r, up) in result.skipped.items()}
+    assert set(result.skipped) == {u for u, s in result.states.items() if s is S.SKIPPED}
+    ancestors: dict[str, set[str]] = {}
+    for u in edges:
+        ancestors[u] = set(edges[u]).union(*(ancestors[p] for p in edges[u]))
+    at = {(u, st): i for i, (_, u, st) in enumerate(result.trace)}
+    for u, (reason, upstream) in result.skipped.items():
+        failed_anc = {a for a in ancestors[u] if result.states[a] is S.FAILED}
+        if reason == "upstream_failed":
+            assert upstream in failed_anc
+        else:
+            assert fail_fast
+            assert upstream is None
+            # a failed ancestor is only possible if it was still running at the sweep
+            assert all(at[(a, S.FAILED)] > at[(u, S.SKIPPED)] for a in failed_anc)
+    for u in edges:
+        if any(result.states[a] is S.FAILED for a in ancestors[u]):
+            assert result.states[u] is S.SKIPPED
+            if result.skipped[u][0] == "fail_fast":
+                assert fail_fast
 
     # determinism
     again, sink2 = simulate(edges, durations, failures, workers=workers, fail_fast=fail_fast)
