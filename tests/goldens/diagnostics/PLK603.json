@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLK603",
+    "severity": "warning",
+    "message": "SQL of model 'a' reads 'customers', which is not an input alias",
+    "hint": "declare it under inputs, or ignore this warning for an external table",
+    "location": {
+      "file": "models/m.yml",
+      "line": 5,
+      "col": 10,
+      "json_pointer": "/models/0/sql"
+    },
+    "context": {
+      "model": "a",
+      "table": "customers"
+    }
+  }
+]

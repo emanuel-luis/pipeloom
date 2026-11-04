@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import importlib.util
 import posixpath
 from collections.abc import Sequence
 from pathlib import Path
@@ -74,6 +75,49 @@ def _mismatch(fn: _Def, aliases: set[str]) -> str | None:
     if extra:
         bits.append(f"unexpected {sorted(extra)}")
     return ", ".join(bits) or None
+
+
+def check_sql(pg: ProjectGraph, report: Report) -> None:
+    """Report PLK603 and PLK605 for SQL models. Does nothing unless sqlglot is installed."""
+    if importlib.util.find_spec("sqlglot") is None:
+        return
+    from sqlglot import exp, parse
+    from sqlglot.errors import SqlglotError
+
+    project = pg.project
+    for m in project.models.values():
+        if m.entry.sql is None:
+            continue
+        loc = where(project, m, "sql")
+        ctx = {"model": m.name}
+        try:
+            statements = parse(m.entry.sql)
+        except SqlglotError:
+            report.add(
+                "PLK605",
+                f"SQL of model '{m.name}' cannot be parsed, so its tables were not checked",
+                location=loc,
+                hint="sqlglot parses it with its default dialect",
+                context=ctx,
+            )
+            continue
+        unknown: set[str] = set()
+        for tree in statements:
+            if tree is None:
+                continue
+            ctes = {c.alias for c in tree.find_all(exp.CTE)}
+            for table in tree.find_all(exp.Table):
+                name = ".".join(p for p in (table.catalog, table.db, table.name) if p)
+                if table.name and name not in ctes and name not in m.inputs:
+                    unknown.add(name)
+        for name in sorted(unknown):
+            report.add(
+                "PLK603",
+                f"SQL of model '{m.name}' reads '{name}', which is not an input alias",
+                location=loc,
+                hint="declare it under inputs, or ignore this warning for an external table",
+                context={**ctx, "table": name},
+            )
 
 
 def check_static(pg: ProjectGraph, report: Report) -> None:

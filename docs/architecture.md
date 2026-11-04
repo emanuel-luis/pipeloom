@@ -1,6 +1,6 @@
 # pipeloom architecture
 
-> **Status:** 0.1 implements configuration, validation (L0-L6), the graph, selectors, the plan and manifest, the event bus and the CLI commands `validate`, `compile`, `ls`, `graph`, `schema` and `plugins`. Running a plan, the engines other than the in-memory one and the orchestrator integrations are designed here and arrive in later versions (section 16).
+> **Status:** 0.2 implements everything in 0.1 plus `pipeloom run`: the ready-queue scheduler, the thread and process executors, the polars and pandas engines, the filesystem catalog, the sqlite and json state stores, run artifacts and the contract suites. Incremental writes, expectations, retries, timeouts, Spark and the orchestrator integrations are designed here and arrive in later versions (section 16).
 > Decisions are recorded as ADRs in [adr/](adr/README.md). Diagrams are D2 sources in [diagrams/](diagrams/) with committed SVGs.
 
 ## 1. Vision, goals, non-goals, principles
@@ -195,11 +195,16 @@ class EngineCapabilities:
     formats: frozenset[str]; strategies: frozenset[str]
     sql_models: bool; views: bool; idempotent_writes: bool
     cancel: bool; bytes_metrics: bool; portable: bool   # Narwhals-compatible frames
+    materializations: frozenset[str]                    # table, view, ephemeral (0.2)
+
+@dataclass(frozen=True)
+class StateStoreCapabilities: shared: bool              # visible to every process and task of a run
 
 class Engine(Protocol):
     name: str
+    version: str                                       # recorded as engine_version in run_results
     capabilities: EngineCapabilities
-    def session(self, ctx: "RuntimeContext") -> ContextManager["EngineSession"]: ...  # cleanup guaranteed (L10)
+    def session(self, ctx: "RuntimeContext", *, catalog: "Catalog") -> ContextManager["EngineSession"]: ...  # one per invocation, thread-safe, cleanup guaranteed (L10)
 
 class EngineSession(Protocol):
     native: Any                                        # escape hatch
@@ -209,6 +214,9 @@ class EngineSession(Protocol):
     def schema(self, rel: Relation) -> Schema: ...
     def count(self, rel: Relation) -> int: ...
     def filter_since(self, rel: Relation, column: str, lower: Any) -> Relation: ...
+    def relation(self, native: Any) -> Relation: ...   # check a model's return value and wrap it; TypeError for a foreign type
+    def persist(self, rel: Relation) -> Relation: ...  # in-memory copy for results shared by several units
+    def create_view(self, target: "TargetRef", query: str, inputs: Mapping[str, "ReadSpec"]) -> "WriteResult": ...  # catalog view, never a session view
     def max_value(self, rel: Relation, column: str) -> Any: ...
     def evaluate(self, rel: Relation, checks: Sequence["ExpectationSpec"]) -> "QualityOutcome": ...
     def cancel(self, unit_id: str) -> None: ...        # cooperative; no-op if not capable
@@ -237,9 +245,12 @@ class MetricsProvider(Protocol):
 class StateStore(Protocol):
     def get_watermark(self, key: "StateKey") -> "Watermark | None": ...
     def cas_watermark(self, key: "StateKey", expected: "Watermark | None", new: "Watermark") -> bool: ...
-    def record_unit(self, run_id: str, result: "UnitResult") -> None: ...
+    def record_run(self, record: "RunRecord") -> None: ...           # insert or replace
     def get_run(self, run_id: str) -> "RunRecord | None": ...
-    def lock(self, scope: str, run_id: str) -> ContextManager[None]: ...
+    def record_unit(self, record: "UnitRecord") -> None: ...         # keyed by (run_id, unit_id, attempt)
+    def list_units(self, run_id: str) -> tuple["UnitRecord", ...]: ...  # sorted by (unit_id, attempt)
+    def lock(self, scope: str, run_id: str) -> ContextManager["LockInfo"]: ...  # non-blocking; raises LockHeld; 60 s lease renewed every 20 s
+    def close(self) -> None: ...
 
 class EventSink(Protocol):
     name: str
@@ -252,9 +263,12 @@ class Renderer(Protocol):
     def render(self, plan: "Plan", options: Mapping[str, Any]) -> Mapping[str, bytes]: ...  # path -> content
 
 class Executor(Protocol):
+    name: str
     boundary: str                                    # "process" | "task"
-    def submit(self, unit: "ExecutionUnit", ctx: "RuntimeContext") -> "UnitHandle": ...
-    def cancel(self, handle: "UnitHandle") -> None: ...
+    def submit(self, unit_id: str, *, queued_at: float) -> "UnitHandle": ...
+    def wait_any(self) -> "UnitCompletion": ...     # blocks on the completion queue
+    def cancel(self, handle: "UnitHandle") -> bool: ...   # not called before 0.3
+    def shutdown(self, *, wait: bool) -> None: ...
 
 class Clock(Protocol):
     def now(self) -> datetime: ...                   # timezone-aware UTC
@@ -266,6 +280,8 @@ class IdentityProvider(Protocol):
 class SecretProvider(Protocol):
     def resolve(self, path: str) -> str: ...
 ```
+
+In 0.2 the engine protocols above omit `evaluate`, `Writer`, `MetricsProvider`, `Catalog.apply_grants` and `Catalog.maintain`; they arrive with the versions that need them (section 16). `ReadSpec.format` accepts `"table"` to read a catalog table through `ReadSpec.table`. The 0.2 plugin API is (0, 2): [ADR-0021](adr/0021-plugin-api-0-2.md).
 
 **ADR-0002: Engine abstraction.**
 - Context: the spec (section 4) lists coupling in the return type, reads, schema, temporary views, writes, merge, metrics and catalog SQL.
@@ -319,12 +335,12 @@ Each finding is a `Diagnostic(code, severity, message, hint, location{file,line,
 | L0 parse | PLY | PLY001 YAML syntax, several documents or an alias bomb; PLY002 duplicate key; PLY003 not valid UTF-8; PLY004 project or model file missing or unreadable |
 | L1 schema | PLS | PLS101 unknown field (with "did you mean"); PLS102 type mismatch; PLS103 unsupported `config_version`; PLS104 literal value in a secret-like field; PLS105 required field missing; PLS106 `${env:X}` unset or unknown `${var:x}`; PLS107 malformed interpolation; PLS108 exactly one of a set of fields required |
 | L2 references | PLR | PLR201 unknown ref (fuzzy suggestion); PLR202 duplicate model name; PLR203 unknown source; PLR204 unknown target or plugin kind; PLR205 duplicate source; PLR206 a `model_paths` entry does not exist (warning); PLR207 no target selected |
-| L3 graph | PLG | PLG301 cycle (prints the path); PLG302 self-reference; PLG303 selector matched nothing; PLG304 unknown selector method; PLG305 malformed selector |
-| L4 plan semantics | PLP | PLP401 merge or scd2 without `unique_key`; PLP402 incremental without `column`; PLP403 aggregate expectation with `drop`; PLP404 `incremental.input` not in `inputs`; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 `replace_partitions` without `partition_by`; PLP408 ephemeral model with no consumer (warning) |
-| L5 capability | PLC | PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 `boundary: task` with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries > 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 `frame_api: narwhals` without a portable engine |
-| L6 static code | PLK | PLK601 callable file or function not found; PLK602 parameters do not match inputs; PLK603 SQL references undeclared table (warning, opt-in, 0.2); PLK604 callable name bound by something other than a def (warning) |
+| L3 graph | PLG | PLG301 cycle (prints the path); PLG302 self-reference; PLG303 selector matched nothing; PLG304 unknown selector method; PLG305 malformed selector; PLG306 `unit:` selector names an unknown unit (0.2) |
+| L4 plan semantics | PLP | PLP401 merge or scd2 without `unique_key`; PLP402 incremental without `column`; PLP403 aggregate expectation with `drop`; PLP404 `incremental.input` not in `inputs`; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 `replace_partitions` without `partition_by`; PLP408 ephemeral model with no consumer (warning); PLP409 a view needs a SQL model with no inlined ephemerals (0.2) |
+| L5 capability | PLC | PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 `boundary: task` with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries > 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 `frame_api: narwhals` without a portable engine; PLC509 materialization unsupported by the engine (0.2 rejects `incremental` and `intermediate`) |
+| L6 static code | PLK | PLK601 callable file or function not found; PLK602 parameters do not match inputs; PLK603 SQL references undeclared table (warning, active when the `sqlglot` extra is installed, 0.2); PLK604 callable name bound by something other than a def (warning); PLK605 SQL not parseable for that check (warning, 0.2) |
 | L7 preflight (opt-in, connects) | PLF | PLF701 engine unreachable; PLF702 source missing; PLF703 target schema drift detected |
-| Runtime | PLX, PLM, PLQ, PLE, PLU | PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict; PLQ301 expectation failed; PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX107 manifest invalid (0.2) |
+| Runtime | PLX, PLM, PLQ, PLE, PLU | PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict; PLQ301 expectation failed; PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX105 run lock held (0.2); PLX106 unit process exited without a result (0.2); PLX107 manifest invalid (0.2); PLM204 input read failed (0.2) |
 | Renderers | PLD, PLA | PLD001 task limit exceeded; PLD002 submit above 100 tasks; PLA001 unsupported execution mode |
 
 **Commands:**
@@ -345,8 +361,12 @@ Each finding is a `Diagnostic(code, severity, message, hint, location{file,line,
 pending → queued → running → succeeded | failed | timed_out | cancelled
                     running → retrying → running
 pending → skipped   (an upstream is failed, timed_out or skipped)
+queued  → skipped   (fail_fast stopped the run)
 pending → cancelled (run cancelled)
+queued  → cancelled (run cancelled)
 ```
+
+The transition table is checked in code (`pipeloom.runtime.states`). A skipped unit carries a reason: `upstream_failed` (with the failed upstream) or `fail_fast`. In 0.2 `retrying`, `timed_out` and `running → cancelled` are not reachable yet; they arrive in 0.3.
 
 **Run state machine:** `created → compiled → running → succeeded | failed | cancelled`. A run with warnings is still `succeeded`.
 
@@ -362,7 +382,7 @@ Source: [04-state-machines.d2](diagrams/04-state-machines.d2).
   - The process executor kills the child process.
 - **Cancellation:** SIGINT or SIGTERM stops dequeuing, cancels running units, waits `cancel_grace` (default 30 s), then marks the rest `cancelled`. Exit code 130.
 - **Failure isolation:** skip-downstream is the default. Independent branches continue. `--fail-fast` stops dequeuing after the first failure.
-- **Concurrency guard:** `StateStore.lock("<project>/<target>")` blocks a second concurrent run on the same target. `--no-lock` is the escape hatch.
+- **Concurrency guard:** `StateStore.lock("<project>/<target>", run_id)` blocks a second concurrent run on the same target (PLX105). The lock is a 60 s lease that a heartbeat thread renews every 20 s, so a crashed run frees it within a minute. `--no-lock` is the escape hatch. Unit mode (`--select unit:<id>`) takes no lock and does not finalize: the owning invocation does ([ADR-0020](adr/0020-execution-model-0-2.md)).
 
 **ADR-0007: Data handoff.**
 - Context: L7. With `boundary: task`, no in-memory or temporary-view handoff is possible.
@@ -452,6 +472,7 @@ quality: {quarantine: true, max_drop_ratio: 0.05}
 - Model: `model.input_read`, `model.quality_evaluated`, `model.schema_changed`, `model.written`, `model.log` (user `ctx.log`).
 - State: `state.watermark_committed`.
 - Other: `sink.disabled`, `artifact.written`, `diagnostic` (validation warnings).
+- `run.completed` carries the status, exit code, counts, totals, `failures[]` (one entry per failed unit with its diagnostic) and `artifacts[]` (POSIX paths of the files the run wrote), so the console prints the failure block and the artifacts line from it.
 
 **Bus and sinks:**
 - The bus fans out to sinks in the order they are configured.
@@ -510,7 +531,8 @@ Long engine (JVM) traces are trimmed to the first user frame and the root cause.
 - `after_write` reads commit history for versions in (before, after] and sums operation metrics. One model writes one target per run, so no global tag is needed.
 - Engines without history count rows instead: `count` on eager frames, or the writer's return value.
 
-**Artifacts.** Layout: `<artifacts.root>/runs/<run_id>/{manifest.json, run_results.json, events/<invocation_id>.jsonl, units/<unit_id>/attempt-<n>.json}`. Local runs also copy the latest into `target/`.
+**Artifacts.** Layout: `<artifacts.root>/runs/<run_id>/{manifest.json, run_results.json, events/<invocation_id>.jsonl, units/<unit_id>/attempt-<n>.json, logs/<unit_id>-attempt-<n>.log}`. `artifacts.root` defaults to `target`. Finalize copies the run's `manifest.json` and `run_results.json` to the root.
+- `results[]` has one row per persisted model, sorted by unit id; an ephemeral model appears in `ephemeral_inlined` of the units that inline it. Every row has every key, and fields 0.2 does not fill are null or empty.
 - `manifest.json` (`pipeloom.manifest/1`): `metadata{pipeloom_version, plugins, config_version, plan_hash, project, target, boundary, python_paths, vars, env_vars, generated_at, invocation_id}`, `nodes{unique_id: resolved config, body, inputs, relation, unit_ids, checksum}`, `sources`, `units{unit_id: [unique_ids]}`, `unit_parent_map{unit_id: [unit_ids]}`, `parent_map`, `child_map`, `selectors{select, exclude, selected}`.
   - `plan_hash` is the sha256 of the canonical JSON (sorted keys, no spaces) of `nodes`, `sources`, `units`, `unit_parent_map`, `parent_map`, `child_map` and `metadata` reduced to `project`, `target`, `boundary` and `config_version`. Selection, versions, timestamps and ids do not change it. A `per_user` naming strategy puts the user into the relations, so use `none` where the hash must match across machines.
   - A node `checksum` is the sha256 of its canonical config plus its body (the SQL text, or the callable and its file bytes), with CRLF read as LF.
@@ -691,7 +713,7 @@ Catalog, state-store and sink contract suites follow the same pattern.
 
 - **0.0.2:** reserve the name; skeleton (section 18); CI, release, governance; this document and the ADRs.
 - **0.1:** config models, loader with line marks, L0-L6, graph, selectors (`name`, `+name`, `name+`, `tag:`, `path:`, `materialized:`), plan, manifest, schema export, event bus with console and jsonl sinks. CLI: `validate`, `compile`, `ls`, `graph`, `schema`, `plugins`. A `MemoryEngine` for tests. Deferred to 0.2: PLC503 and PLK603, the `~/.pipeloom/profiles.yml` file, `PIPELOOM_*` variables beyond `PIPELOOM_TARGET`, `PIPELOOM_PROJECT_DIR` and `PIPELOOM_LOG_FORMAT`, and Narwhals support.
-- **0.2:** scheduler, thread and process executors, `pipeloom-polars` and `pipeloom-pandas`, table/view/ephemeral, append and overwrite, sqlite and json state, run_results, the contract suite.
+- **0.2:** scheduler, thread and process executors, `pipeloom-polars` and `pipeloom-pandas`, table/view/ephemeral, append and overwrite, sqlite and json state, run_results, the contract suite. pandas has no SQL models or views yet (PLC502, PLC507), so SQL on pandas is deferred. `incremental` and `intermediate` are rejected with PLC509 until their versions. PLK603 and PLK605 need the `sqlglot` extra.
 - **0.3:** incremental, merge, replace_partitions, schema-change policy, expectations and quarantine, retries, timeouts, cancellation.
 - **0.4:** `pipeloom-spark` (Delta and Spark Connect), metrics from commit history, intermediates, idempotent writes, the `table` state store.
 - **0.5:** `pipeloom-databricks`: renderer, bundle YAML, deploy, run, repair, finalize, task values, task grouping.

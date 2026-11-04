@@ -33,42 +33,48 @@ def test_check_the_tag(workspace: Path) -> None:
     ]
 
 
+def _current() -> str:
+    return str(versions._load(REPO / "pyproject.toml")["project"]["version"])
+
+
 def test_check_finds_each_kind_of_drift(workspace: Path) -> None:
+    cur = _current()
+    minor = cur.rsplit(".", 1)[0] + ".0"
     plugin = workspace / "plugins" / "pipeloom-polars" / "pyproject.toml"
     text = plugin.read_text(encoding="utf-8")
     plugin.write_text(
-        text.replace('version = "0.1.0"', 'version = "0.1.1"').replace(
-            "pipeloom~=0.1.0", "pipeloom"
+        text.replace(f'version = "{cur}"', 'version = "0.0.1"').replace(
+            f"pipeloom~={minor}", "pipeloom"
         ),
         encoding="utf-8",
     )
     root = workspace / "pyproject.toml"
     root.write_text(
         root.read_text(encoding="utf-8").replace(
-            "pipeloom-polars==0.1.0", "pipeloom-polars==0.0.9"
+            f"pipeloom-polars=={cur}", "pipeloom-polars==0.0.9"
         ),
         encoding="utf-8",
     )
     assert versions.check(workspace) == [
-        "pipeloom-polars is 0.1.1, the root is 0.1.0",
-        "pipeloom-polars must depend on pipeloom~=0.1.0",
-        "the root extra pins pipeloom-polars==0.0.9, not 0.1.0",
+        f"pipeloom-polars is 0.0.1, the root is {cur}",
+        f"pipeloom-polars must depend on pipeloom~={minor}",
+        f"the root extra pins pipeloom-polars==0.0.9, not {cur}",
     ]
 
 
 def test_a_member_without_an_extra_is_reported(workspace: Path) -> None:
     root = workspace / "pyproject.toml"
     root.write_text(
-        root.read_text(encoding="utf-8").replace('polars = ["pipeloom-polars==0.1.0"]', ""),
+        root.read_text(encoding="utf-8").replace(f'polars = ["pipeloom-polars=={_current()}"]', ""),
         encoding="utf-8",
     )
     assert versions.check(workspace) == ["no root extra pins pipeloom-polars"]
 
 
 def test_bump_rewrites_everything_and_checks(workspace: Path) -> None:
-    assert versions.bump(workspace, "0.2.0", lock=False) == []
-    assert versions.check(workspace, "v0.2.0") == []
-    assert 'dependencies = ["pipeloom~=0.2.0"' in (
+    assert versions.bump(workspace, "7.8.9", lock=False) == []
+    assert versions.check(workspace, "v7.8.9") == []
+    assert 'dependencies = ["pipeloom~=7.8.0"' in (
         workspace / "plugins" / "pipeloom-polars" / "pyproject.toml"
     ).read_text(encoding="utf-8")
     assert versions.bump(workspace, "0.2", lock=False) == ["'0.2' is not X.Y.Z"]

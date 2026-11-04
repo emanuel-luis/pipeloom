@@ -1,6 +1,6 @@
 # ADR-0021: Plugin API (0, 2)
 
-Architecture: [Section 5, Engine and catalog contracts](../architecture.md#5-engine-and-catalog-contracts)
+Architecture: [Section 5, Engine and catalog contracts](../architecture.md#5-core-protocols)
 
 Amends [ADR-0002](0002-engine-abstraction.md) and [ADR-0017](0017-plugin-spec-and-builtins.md).
 
