@@ -80,25 +80,30 @@ def _check_model(project: ResolvedProject, m: ResolvedModel, report: Report) -> 
             "partition_by",
             "set partition_by to the partition columns",
         )
-    unused: list[tuple[str, str]] = []  # (option, field to point at)
-    if c.materialized == "ephemeral" and w.model_fields_set:
-        unused.append(("write", "write"))
-    if strategy is not None:
-        if strategy not in _KEYED:
-            unused += [(n, "write") for n in ("unique_key", "deletes") if getattr(w, n) is not None]
-        if strategy != "merge" and w.update_condition is not None:
-            unused.append(("update_condition", "write"))
-        if strategy != "scd2" and w.tracked_columns is not None:
-            unused.append(("tracked_columns", "write"))
-    if c.incremental is not None and c.materialized != "incremental":
+    # Only what the entry itself declares can be a mistake: defaults reach every model.
+    declared = m.entry.write.model_fields_set if m.entry.write is not None else frozenset[str]()
+    unused: list[tuple[str, str]] = []  # (option, pointer below the model)
+    if strategy is None:  # a view or an ephemeral model: nothing is written by a strategy
+        if m.entry.write is not None:
+            unused.append(("write", "write"))
+        unused += [(n, n) for n in ("partition_by", "cluster_by") if n in m.own_fields]
+    else:
+        keyed: dict[str, tuple[str, ...]] = {"unique_key": _KEYED, "deletes": _KEYED}
+        keyed |= {"update_condition": ("merge",), "tracked_columns": ("scd2",)}
+        unused += [
+            (n, f"write/{n}") for n, ok in keyed.items() if n in declared and strategy not in ok
+        ]
+    if "incremental" in m.own_fields and c.materialized != "incremental":
         unused.append(("incremental", "incremental"))
-    for option, field in unused:
+    for option, pointer in unused:
         what = f"strategy '{strategy}'" if strategy else f"materialized '{c.materialized}'"
+        field, _, sub = pointer.partition("/")
         err(
             "PLP405",
             f"option '{option}' of '{m.name}' is not applied by {what}",
             field,
             f"remove '{option}' or change the strategy or materialization",
+            f"/{sub}" if sub else "",
         )
 
 

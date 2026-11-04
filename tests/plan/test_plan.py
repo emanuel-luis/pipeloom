@@ -197,3 +197,10 @@ def test_bad_selector_returns_diagnostic() -> None:
     project = Project(ProjectOptions(project_dir=SHOP, target="ci", env={}))
     outcome = project.compile(Selection(select=("bogus:x",)))
     assert outcome.value is None and [d.code for d in outcome.diagnostics] == ["PLG304"]
+
+
+def test_effective_strategy_is_stored_in_the_plan() -> None:
+    nodes = compile_shop().nodes
+    assert nodes["model.shop.fct_orders"].config.write.strategy == "append"
+    assert nodes["model.shop.stg_orders"].config.write.strategy == "overwrite"
+    assert nodes["model.shop.orders_enriched"].config.write.strategy is None

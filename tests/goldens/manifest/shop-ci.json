@@ -20,7 +20,7 @@
       }
     },
     "config_version": 1,
-    "plan_hash": "233175015d6c0b639bfd280757aa46790627bd46a0d4a76ea82ce9d3952e9323",
+    "plan_hash": "a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
     "project": "shop",
     "target": "ci",
     "boundary": "process",
@@ -58,7 +58,7 @@
       "config": {
         "materialized": "table",
         "write": {
-          "strategy": null,
+          "strategy": "overwrite",
           "unique_key": null,
           "update_condition": null,
           "deletes": null,
@@ -89,7 +89,7 @@
       "tags": [
         "mart"
       ],
-      "checksum": "59b21f8753de2cbd580bd42474224f1dafa1f3c67eca65315e4b6d38168e519c"
+      "checksum": "87a6a8453d20a4e3420ef68fb90430315685d1c37fc6526213ef646b16422987"
     },
     "model.shop.fct_orders": {
       "unique_id": "model.shop.fct_orders",
@@ -226,7 +226,7 @@
       "config": {
         "materialized": "table",
         "write": {
-          "strategy": null,
+          "strategy": "overwrite",
           "unique_key": null,
           "update_condition": null,
           "deletes": null,
@@ -253,7 +253,7 @@
         "meta": {}
       },
       "tags": [],
-      "checksum": "ac5241ef8486a7f1ef234f09fb8cd6a69beae31f39147deb41c749c4816d05df"
+      "checksum": "de4457035c3b09ed329591d31ea2f3d09f31aa404970dbaacf34c970bb5b524a"
     },
     "model.shop.stg_customers": {
       "unique_id": "model.shop.stg_customers",
@@ -279,7 +279,7 @@
       "config": {
         "materialized": "table",
         "write": {
-          "strategy": null,
+          "strategy": "overwrite",
           "unique_key": null,
           "update_condition": null,
           "deletes": null,
@@ -310,7 +310,7 @@
       "tags": [
         "staging"
       ],
-      "checksum": "7e80d2ca7147e7fd05bd77088feeaffab0e5d2c3e2fcfaa6045c820ea72d4944"
+      "checksum": "699122a6b93645c4a842fefb2f0d0899e218072d0368c30eabcd8cc68456cfb1"
     },
     "model.shop.stg_orders": {
       "unique_id": "model.shop.stg_orders",
@@ -336,7 +336,7 @@
       "config": {
         "materialized": "table",
         "write": {
-          "strategy": null,
+          "strategy": "overwrite",
           "unique_key": null,
           "update_condition": null,
           "deletes": null,
@@ -367,7 +367,7 @@
       "tags": [
         "staging"
       ],
-      "checksum": "8e230aba18dfc63269fdb6dff6c6a3e50ef949729a232b883f130acf3a5fb162"
+      "checksum": "b7175a767ad5ea42955033b9e65d619ed5bca89fbac14e6f14da89f921ad22e7"
     },
     "model.shop.stg_payments": {
       "unique_id": "model.shop.stg_payments",
@@ -393,7 +393,7 @@
       "config": {
         "materialized": "table",
         "write": {
-          "strategy": null,
+          "strategy": "overwrite",
           "unique_key": null,
           "update_condition": null,
           "deletes": null,
@@ -424,7 +424,7 @@
       "tags": [
         "staging"
       ],
-      "checksum": "4a8e5d3c04d66d4bb03f9e5c282614ca46610e82c56f14f2db4441d5f5c9d873"
+      "checksum": "1a37ca14b88e4426c136a5281445ffa75d8df4ea8c778e67d1ad32836e9fb734"
     }
   },
   "sources": {

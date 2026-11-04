@@ -7,8 +7,8 @@
     "location": {
       "file": "models/m.yml",
       "line": 4,
-      "col": 12,
-      "json_pointer": "/models/0/write"
+      "col": 43,
+      "json_pointer": "/models/0/write/unique_key"
     },
     "context": {
       "model": "a"

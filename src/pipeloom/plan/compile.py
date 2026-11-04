@@ -24,6 +24,7 @@ from pipeloom.plan.model import (
 from pipeloom.plan.units import build_units
 from pipeloom.platform import Clock, Identity
 from pipeloom.plugins import PluginRegistry
+from pipeloom.validate.semantics import effective_strategy
 from pipeloom.validate.static import find_module
 
 
@@ -73,6 +74,14 @@ def compile_plan(
             body = PythonBody(callable=ref, file=file)
             raw = ref.encode("utf-8") + b"\0" + (loaded.project_dir / file).read_bytes()
         persisted = m.config.materialized != "ephemeral"
+        # The strategy a run applies is decided here, so later versions only read it.
+        config = m.config.model_copy(
+            update={
+                "write": m.config.write.model_copy(
+                    update={"strategy": effective_strategy(m.config)}
+                )
+            }
+        )
         nodes[uid] = PlanNode(
             unique_id=uid,
             name=m.name,
@@ -83,9 +92,9 @@ def compile_plan(
             inputs={alias: b.unique_id for alias, b in m.inputs.items()},
             relation=naming.relation(m.name, m.config.schema_, identity) if persisted else None,
             unit_ids=tuple(sorted(unit_ids[uid])),
-            config=m.config,
+            config=config,
             tags=tuple(m.config.tags),
-            checksum=node_checksum(m.config, raw),
+            checksum=node_checksum(config, raw),
         )
     sources = {
         uid: PlanSource(
