@@ -75,11 +75,21 @@ def test_select_and_exclude(tmp_path: Path) -> None:
 
 
 def test_boundary_values(tmp_path: Path) -> None:
-    for value in ("process", "task"):
-        out = tmp_path / f"{value}.json"
-        assert compile_([*SHOP, "--boundary", value, "--out", str(out)]).exit_code == 0
-        assert manifest(out)["metadata"]["boundary"] == value
+    out = tmp_path / "process.json"
+    assert compile_([*SHOP, "--boundary", "process", "--out", str(out)]).exit_code == 0
+    assert manifest(out)["metadata"]["boundary"] == "process"
     assert compile_([*SHOP, "--boundary", "bogus"]).exit_code == 2
+
+
+def test_boundary_task_needs_a_shared_state_store(tmp_path: Path) -> None:
+    refused = compile_([*SHOP, "--boundary", "task", "--out", str(tmp_path / "no.json")])
+    assert refused.exit_code == 1 and "PLC503" in refused.stderr
+    shared = BASE.replace("targets:", "state: {kind: json}\ntargets:")
+    project = make_project(tmp_path / "p", {"pipeloom.yml": shared})
+    out = tmp_path / "task.json"
+    args = ["--project-dir", str(project), "--boundary", "task", "--out", str(out)]
+    assert compile_(args).exit_code == 0
+    assert manifest(out)["metadata"]["boundary"] == "task"
 
 
 def test_bad_selector_exits_2() -> None:

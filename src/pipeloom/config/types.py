@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+import os
 import re
+from pathlib import Path
 from typing import Annotated, Any
 
-from pydantic import AfterValidator, BeforeValidator, Field, StringConstraints, WithJsonSchema
+from pydantic import (
+    AfterValidator,
+    BeforeValidator,
+    Field,
+    StringConstraints,
+    ValidationInfo,
+    WithJsonSchema,
+)
 
 IDENTIFIER_PATTERN = r"^[A-Za-z_][A-Za-z0-9_]*$"
 
@@ -57,3 +66,15 @@ def check_relative_posix(value: str) -> str:
 
 
 RelativePosixPath = Annotated[str, AfterValidator(check_relative_posix)]
+
+
+def resolve_project_path(value: str, info: ValidationInfo) -> str:
+    """Join a relative path to `context["project_dir"]`; leave it as is without that context."""
+    base = (info.context or {}).get("project_dir")
+    if base is None or os.path.isabs(value):
+        return value
+    return os.fspath(Path(base) / value)
+
+
+ProjectPath = Annotated[str, AfterValidator(resolve_project_path)]
+"""A path option. Relative paths resolve against the project directory when it is in the context."""

@@ -1132,16 +1132,52 @@
           ]
         },
         "state": {
-          "anyOf": [
+          "description": "State store plugin.",
+          "oneOf": [
             {
-              "$ref": "#/$defs/PluginBlock"
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "json",
+                  "description": "State as JSON files in a directory; safe to share between processes."
+                },
+                "path": {
+                  "default": ".pipeloom/state",
+                  "description": "State directory, relative to the project directory.",
+                  "title": "Path",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "title": "json",
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "sqlite",
+                  "description": "State in one sqlite file on this machine."
+                },
+                "path": {
+                  "default": ".pipeloom/state.db",
+                  "description": "Database file, relative to the project directory.",
+                  "title": "Path",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "title": "sqlite",
+              "type": "object"
             },
             {
               "type": "null"
             }
-          ],
-          "default": null,
-          "description": "State store plugin."
+          ]
         },
         "workers": {
           "anyOf": [
@@ -1564,16 +1600,52 @@
       "type": "array"
     },
     "state": {
-      "anyOf": [
+      "description": "State store plugin.",
+      "oneOf": [
         {
-          "$ref": "#/$defs/PluginBlock"
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "json",
+              "description": "State as JSON files in a directory; safe to share between processes."
+            },
+            "path": {
+              "default": ".pipeloom/state",
+              "description": "State directory, relative to the project directory.",
+              "title": "Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "title": "json",
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "sqlite",
+              "description": "State in one sqlite file on this machine."
+            },
+            "path": {
+              "default": ".pipeloom/state.db",
+              "description": "Database file, relative to the project directory.",
+              "title": "Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "title": "sqlite",
+          "type": "object"
         },
         {
           "type": "null"
         }
-      ],
-      "default": null,
-      "description": "State store plugin."
+      ]
     },
     "targets": {
       "description": "Deployment targets.",

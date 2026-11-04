@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from pipeloom.config.bind import BoundPlugin
+from pipeloom.config.bind import BoundPlugin, BoundProject
 from pipeloom.config.resolve import ResolvedModel, ResolvedProject
 from pipeloom.diagnostics import JsonValue, Report
-from pipeloom.engine.types import EngineCapabilities
+from pipeloom.engine.types import EngineCapabilities, StateStoreCapabilities
 from pipeloom.graph.dag import ProjectGraph
 from pipeloom.validate.semantics import effective_strategy, where
 
@@ -62,10 +62,29 @@ def _check_model(
         )
 
 
+def _check_state(bound: BoundProject, report: Report) -> None:
+    store = bound.plugins.get("state_stores")
+    caps = None if store is None else store.spec.capabilities
+    if store is None or not isinstance(caps, StateStoreCapabilities) or caps.shared:
+        return
+    if bound.runtime.boundary != "task":
+        return
+    pointers = bound.runtime.pointers
+    pointer = f"{store.pointer}/kind" if "state" in pointers else pointers.get("boundary", "")
+    report.add(
+        "PLC503",
+        f"boundary 'task' needs a shared state store, but '{store.kind}' is not shared",
+        location=bound.loaded.project_file.doc.locate(pointer),
+        hint="use a shared state store such as json, or boundary: process",
+        context={"state": store.kind},
+    )
+
+
 def check_capabilities(pg: ProjectGraph, report: Report) -> None:
-    """Report PLC501, PLC502, PLC504, PLC505, PLC506, PLC507 and PLC508."""
+    """Report PLC501 to PLC508."""
     project = pg.project
     bound = project.bound
+    _check_state(bound, report)
     engine, catalog = bound.plugins.get("engines"), bound.plugins.get("catalogs")
     if engine is None:
         return

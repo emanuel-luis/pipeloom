@@ -27,6 +27,7 @@ _BLOCK_GROUPS: Mapping[str, Group] = {
     "engine": "engines",
     "catalog": "catalogs",
     "naming": "naming",
+    "state": "state_stores",
 }
 
 
@@ -50,7 +51,7 @@ class RuntimeSettingsResolved:
     engine: PluginBlock | None
     catalog: PluginBlock | None
     naming: PluginBlock
-    state: PluginBlock | None
+    state: PluginBlock
     workers: int
     boundary: Literal["process", "task"]
     artifacts: ArtifactsConfig
@@ -64,7 +65,7 @@ class BoundProject:
     target: str
     runtime: RuntimeSettingsResolved
     plugins: Mapping[Group, BoundPlugin]
-    """Engine, catalog and naming, when set (naming always is)."""
+    """Engine and catalog when set; naming and the state store always."""
     sinks: tuple[BoundPlugin, ...]
 
 
@@ -124,7 +125,7 @@ def _resolve_runtime(
         engine=values.get("engine"),
         catalog=values.get("catalog"),
         naming=values.get("naming") or PluginBlock(kind="none"),
-        state=values.get("state"),
+        state=values.get("state") or PluginBlock(kind="sqlite"),
         workers=values.get("workers") or DEFAULT_WORKERS,
         boundary=values.get("boundary") or "process",
         artifacts=values.get("artifacts") or ArtifactsConfig(),
@@ -156,7 +157,9 @@ def _bind_block(
     if spec is None:
         return None
     try:
-        options = spec.config_model.model_validate(dict(block.model_extra or {}))
+        options = spec.config_model.model_validate(
+            dict(block.model_extra or {}), context={"project_dir": loaded.project_dir}
+        )
     except ValidationError as err:
         from_validation_error(err, doc, spec.config_model, report, base_pointer=pointer)
         return None
