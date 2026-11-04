@@ -28,7 +28,7 @@ TRANSITIONS: Final[Mapping[UnitState, frozenset[UnitState]]] = {
     _S.PENDING: frozenset({_S.QUEUED, _S.SKIPPED, _S.CANCELLED}),
     _S.QUEUED: frozenset({_S.RUNNING, _S.SKIPPED, _S.CANCELLED}),
     _S.RUNNING: frozenset({_S.SUCCEEDED, _S.FAILED, _S.TIMED_OUT, _S.CANCELLED, _S.RETRYING}),
-    _S.RETRYING: frozenset({_S.RUNNING}),
+    _S.RETRYING: frozenset({_S.RUNNING, _S.CANCELLED}),
     _S.SUCCEEDED: frozenset(),
     _S.FAILED: frozenset(),
     _S.TIMED_OUT: frozenset(),

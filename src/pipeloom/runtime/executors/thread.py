@@ -1,40 +1,114 @@
-"""Run units on a thread pool in the current process (`boundary: process`)."""
+"""Run each attempt on its own daemon thread in the current process (`boundary: process`).
+
+A thread cannot be killed, so a timed-out attempt is abandoned: its `CancelToken` is set, the
+engine session is asked to cancel its work once, and whatever the thread reports later is dropped.
+"""
 
 from __future__ import annotations
 
+import contextlib
 import queue
+import threading
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
 from typing import Literal
 
+from pipeloom.engine.protocols import EngineSession
+from pipeloom.runtime.control import CancelToken, Reason
 from pipeloom.runtime.executors import UnitCompletion, UnitHandle
+
+RunUnit = Callable[[UnitHandle, float, CancelToken], UnitCompletion]
 
 
 class ThreadExecutor:
     name: str = "thread"
     boundary: Literal["process", "task"] = "process"
 
-    def __init__(self, workers: int, run_unit: Callable[[str, float], UnitCompletion]) -> None:
+    def __init__(
+        self,
+        run_unit: RunUnit,
+        *,
+        session: EngineSession | None = None,
+        attempt_of: Callable[[str], int] | None = None,
+        on_interrupt: Callable[[UnitHandle, Reason], None] | None = None,
+    ) -> None:
         self._run_unit = run_unit
-        self._pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="pipeloom-unit")
-        self._done: queue.SimpleQueue[UnitCompletion] = queue.SimpleQueue()
+        self._session = session
+        self._attempt_of = attempt_of or (lambda _unit: 1)
+        self._on_interrupt = on_interrupt
+        """Called once per timed-out attempt, so its attempt file exists even if the thread hangs."""
+        self._done: queue.SimpleQueue[UnitCompletion | None] = queue.SimpleQueue()
+        self._lock = threading.Lock()
+        self._seq = 0
+        self._tokens: dict[UnitHandle, CancelToken] = {}
+        self._threads: dict[UnitHandle, threading.Thread] = {}
+        self._abandoned: set[UnitHandle] = set()
+        self._cancelled: set[UnitHandle] = set()
 
-    def _work(self, unit_id: str, queued_at: float) -> None:
+    def _work(self, handle: UnitHandle, queued_at: float, token: CancelToken) -> None:
         try:
-            completion = self._run_unit(unit_id, queued_at)
+            completion = self._run_unit(handle, queued_at, token)
         except BaseException as exc:  # noqa: BLE001 - a lost completion would hang wait_any
-            completion = UnitCompletion(unit_id, "failed", internal_error=exc)
+            completion = UnitCompletion(handle, "failed", handle.attempt, internal_error=exc)
+        with self._lock:
+            if handle in self._abandoned:
+                return  # late: the scheduler already gave this attempt a verdict
         self._done.put(completion)
 
     def submit(self, unit_id: str, *, queued_at: float) -> UnitHandle:
-        self._pool.submit(self._work, unit_id, queued_at)
-        return UnitHandle(unit_id)
+        with self._lock:
+            self._seq += 1
+            handle = UnitHandle(unit_id, self._seq, self._attempt_of(unit_id))
+            token = self._tokens[handle] = CancelToken()
+            thread = threading.Thread(
+                target=self._work,
+                args=(handle, queued_at, token),
+                name=f"pipeloom-unit-{unit_id}-{handle.seq}",
+                daemon=True,
+            )
+            self._threads[handle] = thread
+        thread.start()
+        return handle
 
-    def wait_any(self) -> UnitCompletion:
-        return self._done.get()
+    def wait_any(self, timeout: float | None) -> UnitCompletion | None:
+        try:
+            return self._done.get(timeout=timeout)
+        except queue.Empty:
+            return None
 
-    def cancel(self, handle: UnitHandle) -> bool:
-        return False  # threads cannot be stopped; cooperative cancellation arrives in 0.3
+    def cancel(self, handle: UnitHandle, reason: Reason) -> None:
+        with self._lock:
+            token = self._tokens.get(handle)
+            if token is None:
+                return
+            first = handle not in self._cancelled
+            self._cancelled.add(handle)
+            if reason == "timeout":
+                self._abandoned.add(handle)
+        token.set(reason)
+        if first and self._session is not None:
+            with contextlib.suppress(
+                Exception
+            ):  # an engine that cannot cancel must not stop the run
+                self._session.cancel(handle.unit_id)
+        if reason == "timeout" and self._on_interrupt is not None:
+            self._on_interrupt(handle, reason)
+
+    def has_terminal_event(self, handle: UnitHandle) -> bool:
+        return False
+
+    def wake(self) -> None:
+        self._done.put(None)
+
+    @property
+    def abandoned_threads(self) -> int:
+        """Abandoned attempts whose thread is still alive."""
+        with self._lock:
+            return sum(1 for h in self._abandoned if self._threads[h].is_alive())
 
     def shutdown(self, *, wait: bool) -> None:
-        self._pool.shutdown(wait=wait, cancel_futures=not wait)
+        if not wait:
+            return
+        with self._lock:
+            live = [t for h, t in self._threads.items() if h not in self._abandoned]
+        for thread in live:
+            thread.join()

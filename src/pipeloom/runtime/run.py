@@ -34,12 +34,14 @@ from pipeloom.graph.selectors import Selection, SelectorError, apply_to_plan, is
 from pipeloom.plan.manifest import read_manifest, write_manifest
 from pipeloom.plan.model import Plan, PlanSelection
 from pipeloom.runtime.context import RuntimeContext
+from pipeloom.runtime.control import RunControl
 from pipeloom.runtime.errors import ErrorInfo, to_diagnostic
 from pipeloom.runtime.executors import Executor
 from pipeloom.runtime.executors.process import ChildCommand, ProcessExecutor
 from pipeloom.runtime.executors.thread import ThreadExecutor
 from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.memo import EphemeralMemo
+from pipeloom.runtime.retry import UnitPolicy
 from pipeloom.runtime.runner import ModelRunner
 from pipeloom.runtime.scheduler import Scheduler, ScheduleResult, UnitGraph
 from pipeloom.runtime.states import UnitState
@@ -49,6 +51,7 @@ if TYPE_CHECKING:
     from pipeloom.api import Project
 
 DEFAULT_ARTIFACTS_ROOT = "target"
+DEFAULT_CANCEL_GRACE = 30.0
 MAX_DEFAULT_WORKERS = 4
 USAGE_CODES = frozenset({"PLG304", "PLG305"})
 
@@ -66,6 +69,9 @@ class RunOptions:
     workers: int | None = None
     boundary: Literal["process", "task"] | None = None
     warn_error: bool = False
+    cancel_grace: float | None = None
+    """Seconds a stopped or timed-out unit gets to finish before it is killed; default 30."""
+    control: RunControl | None = None
 
 
 @dataclass(frozen=True)
@@ -115,6 +121,20 @@ def _missing(bound: BoundProject, what: str) -> Diagnostic:
     )
 
 
+def _policies(plan: Plan, units: list[str], *, unit_mode: bool) -> dict[str, UnitPolicy]:
+    """Retries belong to whoever schedules the unit: a unit invocation never retries."""
+    out: dict[str, UnitPolicy] = {}
+    for u in units:
+        c = plan.nodes[plan.units[u].nodes[-1]].config
+        out[u] = UnitPolicy(
+            retries=0 if unit_mode else c.retries,
+            retry_delay=float(c.retry_delay),
+            retry_on=c.retry_on,
+            timeout=None if c.timeout is None else float(c.timeout),
+        )
+    return out
+
+
 def _consumers(plan: Plan, units: list[str]) -> dict[str, int]:
     count: Counter[str] = Counter()
     for u in units:
@@ -133,7 +153,7 @@ def _verdict(
     unfinished = [
         u
         for u, s in result.states.items()
-        if s in (UnitState.RUNNING, UnitState.PENDING, UnitState.QUEUED)
+        if s in (UnitState.RUNNING, UnitState.PENDING, UnitState.QUEUED, UnitState.RETRYING)
     ]
     return skipped, cancelled, unfinished
 
@@ -250,6 +270,8 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     project_dir = bound.loaded.project_dir.resolve()
     paths = RunPaths(artifacts_root(bound, project_dir), run_id)
     workers = _workers(opts, bound)
+    grace = DEFAULT_CANCEL_GRACE if opts.cancel_grace is None else opts.cancel_grace
+    policies = _policies(plan, units, unit_mode=unit_mode)
     task = plan.metadata.boundary == "task" and not unit_mode
     executor_name = "process" if plan.metadata.boundary == "task" else "thread"
     identity = project.identity
@@ -275,6 +297,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     """The attempt number each unit gets first in this invocation."""
     schedule: ScheduleResult | None = None
     internal: BaseException | None = None
+    abandoned = 0
     try:
         with ExitStack() as stack:
             if opts.lock and not unit_mode:
@@ -352,6 +375,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                     bus=bus,
                     env=env,
                     unit_nodes={u: plan.units[u].nodes[-1] for u in plan.units},
+                    cancel_grace=grace,
                 )
                 session_cm, loader_cm = nullcontext(), nullcontext()
             else:
@@ -373,8 +397,14 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                         loader=loader,
                         memo=memo,
                         executor_name=executor_name,
+                        policies=policies,
                     )
-                    executor = ThreadExecutor(workers, runner.run_unit)
+                    executor = ThreadExecutor(
+                        runner.run_unit,
+                        session=session,
+                        attempt_of=runner.attempt_number,
+                        on_interrupt=runner.record_interrupt,
+                    )
                 scheduler = Scheduler(
                     UnitGraph.from_plan(plan, units),
                     executor,
@@ -382,6 +412,10 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                     fail_fast=opts.fail_fast,
                     bus=bus,
                     clock=clock,
+                    policies=policies,
+                    control=opts.control,
+                    cancel_grace=grace,
+                    run_id=run_id,
                     announce=not unit_mode,
                 )
                 try:
@@ -390,6 +424,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                     internal = exc
                     schedule = scheduler.result
                 finally:
+                    abandoned = getattr(executor, "abandoned_threads", 0)
                     executor.shutdown(wait=True)
             if unit_mode:
                 return _unit_outcome(schedule, internal, diags)
@@ -412,6 +447,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                 invocation_ids,
                 t0,
                 diags,
+                abandoned,
             )
     finally:
         state.close()
@@ -431,7 +467,7 @@ def _unit_outcome(
             if result is not None and result.error is not None:
                 found.append(to_diagnostic(result.error, unit_id=unit_id))
     status: RunStatusName = "succeeded"
-    if UnitState.FAILED in states:
+    if UnitState.FAILED in states or UnitState.TIMED_OUT in states:
         status = "failed"
     elif UnitState.CANCELLED in states:
         status = "cancelled"
@@ -457,6 +493,7 @@ def _finish(
     invocation_ids: tuple[str, ...],
     t0: float,
     diags: list[Diagnostic],
+    abandoned: int,
 ) -> RunOutcome:
     clock = project.clock
     skipped, cancelled, unfinished = _verdict(schedule, units)
@@ -503,6 +540,15 @@ def _finish(
         git_sha=git_sha(rt.project_dir),
     )
     unit_nodes = {u: plan.units[u].nodes[-1] for u in plan.units}
+    timed_out: dict[str, tuple[int, dict[str, Any]]] = {}
+    if schedule is not None:
+        for unit_id, comp in schedule.completions.items():
+            if schedule.states[unit_id] is UnitState.TIMED_OUT and comp.result is not None:
+                err = comp.result.error
+                timed_out[unit_id] = (
+                    comp.attempt,
+                    {} if err is None else err.model_dump(mode="json"),
+                )
     crashed: dict[str, dict[str, Any]] = {}
     if schedule is not None:
         for unit_id, comp in schedule.completions.items():
@@ -529,6 +575,7 @@ def _finish(
         cancelled=cancelled,
         unfinished=unfinished,
         crashed=crashed,
+        timed_out=timed_out,
     )
     run = done.run_results["run"]
     status: RunStatus = run["status"]
@@ -583,6 +630,7 @@ def _finish(
             bytes_written=run["totals"]["bytes_written"],
             failures=failures,
             artifacts=written,
+            abandoned_threads=abandoned,
         )
     )
     if internal is not None:

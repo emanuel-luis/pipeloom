@@ -43,12 +43,15 @@ def finalize(
     cancelled: Collection[str],
     unfinished: Collection[str] = (),
     crashed: Mapping[str, dict[str, Any]] | None = None,
+    timed_out: Mapping[str, tuple[int, dict[str, Any]]] | None = None,
 ) -> Finalized:
     """Write `run_results.json` into the run folder and copy it, with the manifest, to the root.
 
     `unit_nodes` maps unit id to the unique id of its persisted model. A skipped or cancelled
     verdict of this invocation wins over an attempt file; every other unit uses its newest
-    attempt, including units of earlier invocations that reused the run id. `unfinished` units
+    attempt, including units of earlier invocations that reused the run id. A scheduler
+    `timed_out` verdict (attempt number and error) also wins over a result written later;
+    the late status goes to `warnings` as `late_result: <status>`. `unfinished` units
     (an internal error stopped the run) are reported as cancelled. `crashed` rows replace the
     attempt of a unit whose runner failed before it could write one.
     """
@@ -60,6 +63,19 @@ def finalize(
     for unit_id in (*cancelled, *unfinished):
         rows[unit_id] = result_row(
             unique_id=unit_nodes[unit_id], unit_id=unit_id, status="cancelled"
+        )
+    for unit_id, (attempt, error) in (timed_out or {}).items():
+        late = rows.get(unit_id)
+        if late is not None and late["status"] == "timed_out":
+            continue  # the owner already recorded it
+        warnings = [] if late is None else [f"late_result: {late['status']}"]
+        rows[unit_id] = result_row(
+            unique_id=unit_nodes[unit_id],
+            unit_id=unit_id,
+            status="timed_out",
+            attempt=attempt,
+            error=error,
+            warnings=warnings,
         )
     rows.update(crashed or {})
     results = build_run_results(header, list(rows.values()))

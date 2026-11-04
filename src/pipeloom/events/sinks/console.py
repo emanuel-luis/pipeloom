@@ -116,7 +116,7 @@ class ConsoleSink:
         self._tz = tz
         self._total: int | None = None
         self._workers = 0
-        self._done = 0
+        self._finished: set[str] = set()
         self._in_run = False
 
     def _stamp(self, event: Event) -> str:
@@ -166,8 +166,9 @@ class ConsoleSink:
         return f"{stamp} {event.type} {d}", style
 
     def _unit_line(self, event: Event, stamp: str, d: dict[str, Any]) -> str:
-        self._done += 1
-        count = f"{self._done}/{self._total}" if self._total else str(self._done)
+        self._finished.add(event.unit_id or event.model or "")
+        done = len(self._finished)  # a retried unit finishes once
+        count = f"{done}/{self._total}" if self._total else str(done)
         name = f"{event.model or event.unit_id} "
         label = name + "." * max(3, _NAME_WIDTH - len(name))
         head = f"{stamp} {count} "
@@ -202,6 +203,10 @@ class ConsoleSink:
         if event.type == "unit.skipped":
             why = f"upstream {d['upstream']} failed" if d["upstream"] else "stopped by --fail-fast"
             return f"{head}SKIP   {label} {why}"
+        if event.type == "unit.timed_out":
+            return (
+                f"{head}TIMEOUT {label} PLX102 after {d['timeout_s']:g}s (attempt {d['attempt']})"
+            )
         return f"{head}CANCEL {label} cancelled"
 
     def _run_line(self, event: Event, stamp: str, d: dict[str, Any]) -> str:
@@ -221,7 +226,20 @@ class ConsoleSink:
             )
         if event.type == "run.completed":
             return self._summary(stamp, d)
-        if event.type in ("unit.succeeded", "unit.failed", "unit.skipped", "unit.cancelled"):
+        if event.type == "unit.retrying":
+            err = d["error"] or {}
+            what = f"{err.get('code', '')} ({err.get('category', '')})".strip()
+            return (
+                f"{stamp} RETRY  {event.model or event.unit_id} attempt {d['attempt']} failed "
+                f"{what}, next in {d['delay_ms'] / 1000:.1f}s"
+            )
+        if event.type in (
+            "unit.succeeded",
+            "unit.failed",
+            "unit.skipped",
+            "unit.cancelled",
+            "unit.timed_out",
+        ):
             return self._unit_line(event, stamp, d)
         return f"{stamp} {event.type} {d}"
 

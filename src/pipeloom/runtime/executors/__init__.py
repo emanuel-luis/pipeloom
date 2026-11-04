@@ -5,6 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal, Protocol
 
+from pipeloom.runtime.control import Reason
+from pipeloom.runtime.retry import Category
+
 if TYPE_CHECKING:
     from pipeloom.runtime.runner import ModelResult
 
@@ -12,16 +15,26 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class UnitHandle:
     unit_id: str
+    seq: int
+    """Increases with every submit of an executor, so a retry has a new handle."""
+    attempt: int = 1
+    """The attempt number this submit will write."""
 
 
 @dataclass(frozen=True)
 class UnitCompletion:
-    unit_id: str
-    status: Literal["succeeded", "failed"]
+    handle: UnitHandle
+    status: Literal["succeeded", "failed", "timed_out", "cancelled"]
+    attempt: int
+    category: Category | None = None
     result: ModelResult | None = None
     """What the runner reported; None when the completion carries an internal error."""
     internal_error: BaseException | None = None
     """A bug in the runner or executor, not a failed unit. The scheduler stops and re-raises."""
+
+    @property
+    def unit_id(self) -> str:
+        return self.handle.unit_id
 
 
 class Executor(Protocol):
@@ -32,12 +45,20 @@ class Executor(Protocol):
         """Start a unit. `queued_at` is the scheduler clock's monotonic time it became ready."""
         ...
 
-    def wait_any(self) -> UnitCompletion:
-        """Block until one submitted unit completes. Only called while a unit is running."""
+    def wait_any(self, timeout: float | None) -> UnitCompletion | None:
+        """Block until a unit completes; None when `timeout` seconds pass or `wake` is called."""
         ...
 
-    def cancel(self, handle: UnitHandle) -> bool:
-        """Ask a running unit to stop; False when it cannot. Not called before 0.3."""
+    def cancel(self, handle: UnitHandle, reason: Reason) -> None:
+        """Ask a running unit to stop. A `timeout` also abandons it: its completion is dropped."""
+        ...
+
+    def has_terminal_event(self, handle: UnitHandle) -> bool:
+        """True when the unit already emitted its own terminal event (a child process did)."""
+        ...
+
+    def wake(self) -> None:
+        """Make a blocked `wait_any` return. Reentrant: safe from a signal handler."""
         ...
 
     def shutdown(self, *, wait: bool) -> None: ...

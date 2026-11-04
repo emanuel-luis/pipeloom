@@ -413,6 +413,12 @@ _ACTIVE_02: Final = (
 # Active since 0.3.
 _ACTIVE_03: Final = (
     (
+        "PLX102",
+        E,
+        "Timeout",
+        "A unit attempt ran longer than its timeout. A timed-out unit is not retried and its descendants are skipped.",
+    ),
+    (
         "PLM202",
         E,
         "Schema change rejected",
@@ -480,7 +486,6 @@ _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
     ("PLF702", E, "Source missing", "0.2"),
     ("PLF703", E, "Target schema drift detected", "0.2"),
-    ("PLX102", E, "Timeout", "0.3"),
     ("PLX104", E, "Cancelled", "0.3"),
     ("PLD001", E, "Task limit exceeded", "0.4"),
     ("PLD002", E, "Submit above 100 tasks", "0.4"),

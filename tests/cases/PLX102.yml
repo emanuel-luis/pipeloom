@@ -1,0 +1,20 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    targets:
+      dev:
+        engine: {kind: memory}
+        catalog: {kind: memory}
+        naming: {kind: none}
+  models/m.yml: |
+    models:
+      - {name: a, python: "m:hang", timeout: 1}
+      - {name: b, sql: select * from a, inputs: {a: {ref: a}}}
+  src/m.py: |
+    def hang(ctx):
+        import time
+
+        time.sleep(3)
+run: true

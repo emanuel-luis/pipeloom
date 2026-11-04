@@ -4,12 +4,16 @@ Only argv crosses the boundary: the manifest path, the unit id, the run id and t
 The child writes its events as jsonl on stderr; a reader thread relays them to the parent's bus
 with `EventBus.forward`, so they keep the child's invocation id and sequence numbers. The child's
 attempt file is the result. No attempt file means the child died before it could write one.
+
+Every child starts in its own process group, so a terminal Ctrl+C reaches only the owner. The
+child enforces a unit's timeout itself; the parent's own deadline is `timeout + cancel_grace`.
 """
 
 from __future__ import annotations
 
 import json
 import queue
+import signal
 import subprocess
 import sys
 import threading
@@ -20,19 +24,20 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from pipeloom.artifacts.io import write_json_atomic
+from pipeloom.artifacts.io import write_json_once
 from pipeloom.artifacts.layout import RunPaths
 from pipeloom.artifacts.results import result_row
 from pipeloom.events.bus import EventBus
 from pipeloom.events.model import ErrorInfo, Event, UnitFailed
+from pipeloom.runtime.control import Reason, interrupt_error
 from pipeloom.runtime.executors import UnitCompletion, UnitHandle
 from pipeloom.runtime.runner import ModelResult
 
 PARENT_ENV = "PIPELOOM_PARENT_INVOCATION_ID"
 """Set in the child: it opens no project sinks and reports to the parent only."""
 LOG_TAIL = 20
-POLL_SECONDS = 0.2
 _NOT_RELAYED = ("invocation.",)
+_TERMINAL = frozenset({"unit.succeeded", "unit.failed", "unit.timed_out", "unit.cancelled"})
 
 
 @dataclass(frozen=True)
@@ -77,6 +82,19 @@ class ChildCommand:
         return out
 
 
+def _kill(proc: subprocess.Popen[str]) -> None:
+    if proc.poll() is None:
+        try:
+            proc.kill()
+        except OSError:
+            pass
+
+
+def _pump(stream: Any, note: Any) -> None:
+    for line in stream:
+        note(line.rstrip("\r\n"))
+
+
 class ProcessExecutor:
     name: str = "process"
     boundary: Literal["process", "task"] = "task"
@@ -90,6 +108,7 @@ class ProcessExecutor:
         bus: EventBus,
         env: Mapping[str, str],
         unit_nodes: Mapping[str, str],
+        cancel_grace: float = 30.0,
     ) -> None:
         if workers < 1:
             raise ValueError("workers must be at least 1")
@@ -99,58 +118,97 @@ class ProcessExecutor:
         self._env = {**env, "PYTHONIOENCODING": "utf-8", PARENT_ENV: bus.invocation_id}
         self._unit_nodes = unit_nodes
         """Unit id to the unique id of its persisted model, for the row of a crashed unit."""
-        self._done: queue.SimpleQueue[UnitCompletion] = queue.SimpleQueue()
+        self._grace = cancel_grace
+        self._done: queue.SimpleQueue[UnitCompletion | None] = queue.SimpleQueue()
         self._lock = threading.Lock()
-        self._procs: dict[str, subprocess.Popen[str]] = {}
+        self._seq = 0
+        self._procs: dict[UnitHandle, subprocess.Popen[str]] = {}
         self._threads: list[threading.Thread] = []
+        self._stopped: dict[UnitHandle, Reason] = {}
+        self._forwarded: set[tuple[str, int | None]] = set()
+        self.popens: list[subprocess.Popen[str]] = []
+        """Every child ever started, so a test can check that none outlived the run."""
 
     # -- Executor ---------------------------------------------------------------------------
 
     def submit(self, unit_id: str, *, queued_at: float) -> UnitHandle:
-        thread = threading.Thread(
-            target=self._work, args=(unit_id,), name=f"pipeloom-child-{unit_id}", daemon=True
-        )
         with self._lock:
+            self._seq += 1
+            handle = UnitHandle(unit_id, self._seq, self._paths.next_attempt(unit_id))
+            thread = threading.Thread(
+                target=self._work, args=(handle,), name=f"pipeloom-child-{unit_id}", daemon=True
+            )
             self._threads.append(thread)
         thread.start()
-        return UnitHandle(unit_id)
+        return handle
 
-    def wait_any(self) -> UnitCompletion:
-        while True:  # a timeout keeps Ctrl+C deliverable on Windows
-            try:
-                return self._done.get(timeout=POLL_SECONDS)
-            except queue.Empty:
-                continue
+    def wait_any(self, timeout: float | None) -> UnitCompletion | None:
+        try:
+            return self._done.get(timeout=timeout)
+        except queue.Empty:
+            return None
 
-    def cancel(self, handle: UnitHandle) -> bool:
-        return False  # a child cannot be stopped before 0.3
+    def wake(self) -> None:
+        self._done.put(None)
+
+    def has_terminal_event(self, handle: UnitHandle) -> bool:
+        with self._lock:
+            return (handle.unit_id, handle.attempt) in self._forwarded
+
+    def cancel(self, handle: UnitHandle, reason: Reason) -> None:
+        """Ask the child to stop (SIGTERM, CTRL_BREAK on Windows) and kill it after the grace.
+
+        A timeout is already past its grace in the scheduler, so the child is killed at once.
+        """
+        with self._lock:
+            proc = self._procs.get(handle)
+            self._stopped.setdefault(handle, reason)
+        if proc is None or proc.poll() is not None:
+            return
+        if reason == "timeout":
+            _kill(proc)
+            return
+        try:
+            if sys.platform == "win32":
+                proc.send_signal(signal.CTRL_BREAK_EVENT)
+            else:
+                proc.send_signal(signal.SIGTERM)
+        except OSError:
+            _kill(proc)
+            return
+        timer = threading.Timer(self._grace, _kill, args=(proc,))
+        timer.daemon = True
+        timer.start()
 
     def shutdown(self, *, wait: bool) -> None:
         with self._lock:
             threads, procs = list(self._threads), list(self._procs.values())
         if not wait:
             for proc in procs:
-                if proc.poll() is None:
-                    proc.kill()
+                _kill(proc)
         for thread in threads:
             thread.join()
 
     # -- one child --------------------------------------------------------------------------
 
-    def _work(self, unit_id: str) -> None:
+    def _work(self, handle: UnitHandle) -> None:
         try:
-            completion = self._run(unit_id)
+            completion = self._run(handle)
         except BaseException as exc:  # noqa: BLE001 - a lost completion would hang wait_any
-            completion = UnitCompletion(unit_id, "failed", internal_error=exc)
+            completion = UnitCompletion(handle, "failed", handle.attempt, internal_error=exc)
         self._done.put(completion)
 
-    def _run(self, unit_id: str) -> UnitCompletion:
-        paths = self._paths
-        floor = paths.next_attempt(unit_id)
-        log_path = paths.log(unit_id, floor)
+    def _run(self, handle: UnitHandle) -> UnitCompletion:
+        paths, unit_id = self._paths, handle.unit_id
+        log_path = paths.log(unit_id, handle.attempt)
         log_path.parent.mkdir(parents=True, exist_ok=True)
         tail: deque[str] = deque(maxlen=LOG_TAIL)
         write_lock = threading.Lock()
+        group: dict[str, Any] = (
+            {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+            if sys.platform == "win32"
+            else {"start_new_session": True}
+        )
         with log_path.open("w", encoding="utf-8", newline="\n") as log:
 
             def note(line: str) -> None:
@@ -159,18 +217,20 @@ class ProcessExecutor:
                     log.flush()
                     tail.append(line)
 
-            proc = subprocess.Popen(
-                self._cmd.argv(unit_id),
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                env=self._env,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-            )
             with self._lock:
-                self._procs[unit_id] = proc
+                proc = subprocess.Popen(
+                    self._cmd.argv(unit_id),
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    env=self._env,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    **group,
+                )
+                self._procs[handle] = proc
+                self.popens.append(proc)
             assert proc.stdout is not None and proc.stderr is not None
             out_reader = threading.Thread(target=_pump, args=(proc.stdout, note), daemon=True)
             out_reader.start()
@@ -178,7 +238,7 @@ class ProcessExecutor:
                 self._relay(line.rstrip("\r\n"), note)
             code = proc.wait()
             out_reader.join()
-        return self._completion(unit_id, floor, code, list(tail), log_path)
+        return self._completion(handle, code, list(tail), log_path)
 
     def _relay(self, line: str, note: Any) -> None:
         if line.startswith("{"):
@@ -194,50 +254,63 @@ class ProcessExecutor:
                     at = f" ({where['file']}" + (f":{where['line']})" if where.get("line") else ")")
                 note(f"{event.data.get('code')} {event.data.get('message')}{at}")
             elif not event.type.startswith(_NOT_RELAYED):
+                if event.type in _TERMINAL:
+                    with self._lock:
+                        self._forwarded.add((event.unit_id or "", event.attempt))
                 self._bus.forward(event)
             return
         note(line)
 
     def _completion(
-        self, unit_id: str, floor: int, code: int, tail: list[str], log_path: Path
+        self, handle: UnitHandle, code: int, tail: list[str], log_path: Path
     ) -> UnitCompletion:
-        paths = self._paths
+        paths, unit_id, floor = self._paths, handle.unit_id, handle.attempt
         numbers = [n for n in paths.attempt_numbers(unit_id) if n >= floor]
         if numbers:
             raw = paths.attempt(unit_id, numbers[-1]).read_bytes().decode("utf-8")
             row: dict[str, Any] = json.loads(raw)
             error = ErrorInfo.model_validate(row["error"]) if row.get("error") else None
-            status: Literal["succeeded", "failed"] = (
-                "succeeded" if row["status"] == "succeeded" else "failed"
-            )
+            status: Literal["succeeded", "failed", "timed_out", "cancelled"] = row["status"]
             return UnitCompletion(
-                unit_id, status, ModelResult(unit_id, status, numbers[-1], row, error)
+                handle,
+                status,
+                numbers[-1],
+                None if error is None else error.category,
+                ModelResult(unit_id, status, numbers[-1], row, error),
             )
-        error = ErrorInfo(
-            code="PLX106",
-            category="transient",
-            message=f"the process of unit '{unit_id}' exited with code {code} and wrote no result",
-            hint=f"read its log, {log_path.relative_to(paths.root).as_posix()}, under the artifacts folder",
-            trace_excerpt=tail,
-        )
+        with self._lock:
+            stopped = self._stopped.get(handle)
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        if stopped is not None:  # killed by the scheduler: the verdict is the scheduler's
+            error = interrupt_error(stopped, unit_id, floor, None)
+            status = "timed_out" if stopped == "timeout" else "cancelled"
+        else:
+            error = ErrorInfo(
+                code="PLX106",
+                category="transient",
+                message=f"the process of unit '{unit_id}' exited with code {code} and wrote no result",
+                hint=f"read its log, {log_path.relative_to(paths.root).as_posix()}, under the artifacts folder",
+                trace_excerpt=tail,
+            )
+            status = "failed"
         row = result_row(
             unique_id=self._unit_nodes[unit_id],
             unit_id=unit_id,
-            status="failed",
+            status=status,
             attempt=floor,
             started_at=now,
             ended_at=now,
             executor=self.name,
             error=error.model_dump(mode="json"),
         )
-        write_json_atomic(paths.attempt(unit_id, floor), row)
-        self._bus.emit(
-            UnitFailed(error=error, duration_ms=0), unit_id=unit_id, model=unit_id, attempt=floor
+        write_json_once(paths.attempt(unit_id, floor), row)
+        if stopped is None:
+            self._bus.emit(
+                UnitFailed(error=error, duration_ms=0),
+                unit_id=unit_id,
+                model=unit_id,
+                attempt=floor,
+            )
+        return UnitCompletion(
+            handle, status, floor, error.category, ModelResult(unit_id, status, floor, row, error)
         )
-        return UnitCompletion(unit_id, "failed", ModelResult(unit_id, "failed", floor, row, error))
-
-
-def _pump(stream: Any, note: Any) -> None:
-    for line in stream:
-        note(line.rstrip("\r\n"))
