@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Unit state machine with a checked transition table, and a ready-queue scheduler with skip-downstream, `--fail-fast` and stop requests (not wired to the CLI yet).
+- Thread executor and a simulated executor for tests; `unit.queued`, `unit.skipped` and `unit.cancelled` event payloads.
+- ADR-0020, the execution model for 0.2.
+
 ## [0.1.0] - 2026-11-04
 
 First functional release: configuration, layered validation, the dependency graph, selectors,
