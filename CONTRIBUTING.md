@@ -9,7 +9,7 @@ are review comments on the [architecture](docs/architecture.md) and the
 You need [uv](https://docs.astral.sh/uv/).
 
 ```bash
-uv sync
+uv sync --all-packages
 uv run pytest -q
 ```
 
@@ -44,3 +44,13 @@ Discuss it in the pull request.
 ## Releases
 
 CHANGELOG.md keeps `[X.Y.Z] - unreleased` until release day. Set the date (`YYYY-MM-DD`) in a commit just before tagging; the release workflow fails on any other heading.
+
+### Release checklist
+
+Every distribution (`pipeloom` and each plugin under `plugins/`) is released at one version.
+
+1. Bump the versions: `uv run python tools/versions.py bump X.Y.Z`. It rewrites each `pyproject.toml`, checks them and runs `uv lock`.
+2. Set the date of the CHANGELOG.md heading, then merge to main with CI green.
+3. For each distribution with no PyPI project yet, create a pending publisher on PyPI right before tagging (it does not reserve the name): project name as in its `pyproject.toml`, Owner `emanuel-luis`, Repository `pipeloom`, Workflow `release.yml`, Environment `pypi`.
+4. Tag `vX.Y.Z` on main and push the tag.
+5. If a publish step fails with `invalid-pending-publisher`, fix the publisher and use "Re-run failed jobs". Steps that already published stay published, and `skip-existing` makes the rerun safe.

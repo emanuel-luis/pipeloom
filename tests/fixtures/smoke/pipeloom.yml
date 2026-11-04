@@ -1,0 +1,11 @@
+config_version: 1
+name: smoke
+python_paths: [src]
+defaults:
+  models: {materialized: table}
+targets:
+  polars:
+    engine: {kind: polars}
+    catalog: {kind: filesystem, root: target/warehouse}
+    state: {kind: json, path: .pipeloom/state}
+    naming: {kind: none}

@@ -26,7 +26,7 @@ jobs:
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
       - name: Audit the locked dependencies
         run: |
-          uv export --locked --all-groups --no-emit-project --no-hashes -o "$RUNNER_TEMP/requirements.txt"
+          uv export --locked --all-packages --all-groups --no-emit-project --no-emit-workspace --no-hashes -o "$RUNNER_TEMP/requirements.txt"
           uvx pip-audit --requirement "$RUNNER_TEMP/requirements.txt" --no-deps --disable-pip
 
   zizmor:

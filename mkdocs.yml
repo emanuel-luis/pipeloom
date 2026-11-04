@@ -22,6 +22,9 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Quickstart: quickstart.md
+  - Plugins:
+      - Polars: plugins/polars.md
+      - pandas: plugins/pandas.md
   - Reference:
       - Command line: reference/cli.md
       - JSON Schema: reference/schema.md
