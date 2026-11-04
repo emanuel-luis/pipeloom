@@ -46,7 +46,7 @@ def test_case(
         plugins=tuple(spec.get("plugins", ())),
         env={},
     )
-    outcome = Project(options).resolve()
+    outcome = Project(options).validate()
     diagnostics = outcome.diagnostics
     if "select" in spec or "exclude" in spec:
         assert outcome.value is not None

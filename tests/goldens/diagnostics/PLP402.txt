@@ -1,0 +1,2 @@
+error PLP402 models/m.yml:2:11 incremental model 'a' has no incremental.column
+      hint: set incremental.column to the column compared with the watermark

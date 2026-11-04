@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLC508",
+    "severity": "error",
+    "message": "frame_api narwhals needs a portable engine, not 'memory' (model 'a')",
+    "hint": "use frame_api: native",
+    "location": {
+      "file": "models/m.yml",
+      "line": 2,
+      "col": 41,
+      "json_pointer": "/models/0/frame_api"
+    },
+    "context": {
+      "model": "a",
+      "engine": "memory"
+    }
+  }
+]

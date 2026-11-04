@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLC504",
+    "severity": "error",
+    "message": "catalog 'memory' does not work with engine 'nosql'",
+    "hint": "compatible engines: memory",
+    "location": {
+      "file": "pipeloom.yml",
+      "line": 7,
+      "col": 21,
+      "json_pointer": "/targets/dev/catalog/kind"
+    },
+    "context": {
+      "catalog": "memory",
+      "engine": "nosql"
+    }
+  }
+]

@@ -1,0 +1,15 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    targets:
+      dev:
+        engine: {kind: memory}
+  models/m.yml: |
+    models:
+      - {name: e, sql: select 1, materialized: ephemeral}
+      - {name: a, sql: select * from e, inputs: {e: {ref: e}}}
+      - {name: b, sql: select * from e, inputs: {e: {ref: e}}}
+      - {name: c, sql: select * from e, inputs: {e: {ref: e}}}
+      - {name: d, sql: select * from e, inputs: {e: {ref: e}}}

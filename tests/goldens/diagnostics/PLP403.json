@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLP403",
+    "severity": "error",
+    "message": "expectation 'one_row' of 'a' is an aggregate check and cannot drop",
+    "hint": "use on_violation: warn or fail",
+    "location": {
+      "file": "models/m.yml",
+      "line": 5,
+      "col": 69,
+      "json_pointer": "/models/0/expectations/0/on_violation"
+    },
+    "context": {
+      "model": "a"
+    }
+  }
+]

@@ -1,0 +1,15 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    targets:
+      dev:
+        engine: {kind: nosql}
+  models/m.yml: |
+    models:
+      - {name: a, python: "m:a", retries: 2, write: {strategy: append}}
+  src/m.py: |
+    def a(ctx):
+        return None
+plugins: ["tests.plugins.fakes:NOSQL"]

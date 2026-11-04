@@ -1,0 +1,2 @@
+error PLC501 models/m.yml:4:23 engine 'memory' does not support strategy 'merge' (model 'a')
+      hint: supported: append, overwrite

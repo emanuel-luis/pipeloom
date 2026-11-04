@@ -1,0 +1,2 @@
+error PLC504 pipeloom.yml:7:21 catalog 'memory' does not work with engine 'nosql'
+      hint: compatible engines: memory

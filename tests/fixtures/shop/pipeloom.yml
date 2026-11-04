@@ -1,0 +1,12 @@
+config_version: 1
+name: shop
+python_paths: [src]
+engine: {kind: memory}
+catalog: {kind: memory}
+defaults:
+  models: {materialized: table}
+targets:
+  dev:
+    naming: {kind: per_user}
+  ci:
+    naming: {kind: none}
