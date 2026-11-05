@@ -239,8 +239,11 @@ and a trigger serializes only the connection id.
 
 The trigger retries a transient API error (429, 5xx, no answer) up to 5 times in a row, with sleeps
 of one, two and then four intervals, and fails the task on an authentication error or when the
-retries run out. Every deferral stops after `databricks_timeout` (24 hours by default). A wide DAG
-should raise `databricks_poll_interval` or use `shared`.
+retries run out. A transient error on a sensor's first call also defers instead of failing the
+task. After a repair, a sensor with no verdict yet waits until the run reports the repair, so it
+never decides on the failed run from before the repair. Every deferral stops after
+`databricks_timeout` (24 hours by default). A wide DAG should raise `databricks_poll_interval` or
+use `shared`.
 
 ## Limits
 
