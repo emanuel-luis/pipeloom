@@ -26,6 +26,7 @@ from airflow.sdk.exceptions import (
     AirflowFailException,
     AirflowSkipException,
 )
+from airflow.triggers.base import BaseTrigger, TriggerEvent
 
 if TYPE_CHECKING:
     from airflow.sdk import Context
@@ -41,13 +42,31 @@ __all__ = [
     "BaseHook",
     "BaseOperator",
     "BaseSensorOperator",
+    "BaseTrigger",
     "Context",
     "Param",
     "TaskGroup",
+    "TriggerEvent",
     "aget_connection",
     "airflow_version",
+    "get_connection",
     "get_task_states",
+    "mask_secret",
 ]
+
+
+def get_connection(conn_id: str) -> Any:
+    """The connection, from a worker."""
+    return BaseHook.get_connection(conn_id)
+
+
+def mask_secret(value: str) -> None:
+    """Hide `value` in task and triggerer logs."""
+    import airflow.sdk
+
+    masker = getattr(airflow.sdk, "mask_secret", None)
+    if masker is not None:
+        masker(value)
 
 
 def airflow_version() -> str:

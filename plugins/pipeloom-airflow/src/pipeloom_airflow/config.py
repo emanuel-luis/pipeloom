@@ -70,7 +70,8 @@ class ExecutionConfig:
     databricks_conn_id: str = "databricks_default"
     databricks_pipeline: str = "main"
     databricks_ensure_job: bool = False
-    databricks_poll: Literal["per_task", "shared"] = "per_task"
+    databricks_poll: Literal["per_task", "shared"] = "shared"
+    """`shared`: the launch waits for the whole run and the sensors read its snapshot."""
     databricks_poll_interval: float = 30.0
     databricks_client_factory: str | None = None
     """`module:attr`, for tests only."""

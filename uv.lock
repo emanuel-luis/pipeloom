@@ -3797,6 +3797,10 @@ dependencies = [
 airflow = [
     { name = "apache-airflow" },
 ]
+databricks = [
+    { name = "apache-airflow" },
+    { name = "pipeloom-databricks" },
+]
 kubernetes = [
     { name = "apache-airflow" },
     { name = "apache-airflow-providers-cncf-kubernetes" },
@@ -3805,11 +3809,13 @@ kubernetes = [
 [package.metadata]
 requires-dist = [
     { name = "apache-airflow", marker = "extra == 'airflow'", specifier = ">=3.2,<4" },
+    { name = "apache-airflow", marker = "extra == 'databricks'", specifier = ">=3.2,<4" },
     { name = "apache-airflow", marker = "extra == 'kubernetes'", specifier = ">=3.2,<4" },
     { name = "apache-airflow-providers-cncf-kubernetes", marker = "extra == 'kubernetes'", specifier = ">=10.25,<11" },
     { name = "pipeloom", editable = "." },
+    { name = "pipeloom-databricks", marker = "extra == 'databricks'", editable = "plugins/pipeloom-databricks" },
 ]
-provides-extras = ["airflow", "kubernetes"]
+provides-extras = ["airflow", "kubernetes", "databricks"]
 
 [[package]]
 name = "pipeloom-databricks"

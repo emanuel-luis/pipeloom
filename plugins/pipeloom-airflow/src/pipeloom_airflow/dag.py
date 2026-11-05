@@ -71,11 +71,11 @@ def _plan(
     task_plan = None
     if check_airflow_version(airflow_version(), report):
         validate_configs(project, render, execution, operator_args, report)
-        if execution.mode is ExecutionMode.DATABRICKS:
+        if execution.mode is ExecutionMode.DATABRICKS and execution.databricks_poll != "shared":
             report.add(
                 "PLA001",
-                f"execution mode '{execution.mode.value}' is not available in this release",
-                hint="use local, virtualenv or kubernetes",
+                f"databricks_poll '{execution.databricks_poll}' is not available in this release",
+                hint="use databricks_poll 'shared'",
             )
         if execution.mode is ExecutionMode.KUBERNETES and not _k8s_provider_installed():
             report.add(
@@ -115,6 +115,10 @@ def build_tasks(
 ) -> dict[str, BaseOperator]:
     """Create the operators in the current DAG (and task group) context: rendered task id ->
     operator, plus `pipeloom_finalize`. Visual groups nest as `UnitTask.group` says."""
+    if execution.mode is ExecutionMode.DATABRICKS:
+        return _build_databricks(
+            plan, execution, command, group_id=group_id, operator_args=operator_args
+        )
     venv = execution.virtualenv_dir if execution.mode is ExecutionMode.VIRTUALENV else None
     pod: dict[str, Any] | None = None
     python = "python"
@@ -209,6 +213,68 @@ def build_tasks(
             cancel_grace_s=plan.cancel_grace_s,
             **operator_args,
         )
+    for leaf in plan.leaves:
+        ops[leaf] >> finalize
+    ops[naming.FINALIZE_ID] = finalize
+    return ops
+
+
+def _build_databricks(
+    plan: TaskPlan,
+    execution: ExecutionConfig,
+    command: CoreCommand,
+    *,
+    group_id: str | None,
+    operator_args: Mapping[str, Any],
+) -> dict[str, BaseOperator]:
+    """`pipeloom_launch` -> one sensor per Databricks task (plan edges) -> `pipeloom_finalize`,
+    a sensor on the job's finalize task that fails when the pipeloom run failed."""
+    # imported here: pipeloom-databricks is needed only in this mode
+    from pipeloom_airflow.databricks.launch import PipeloomDatabricksRunOperator
+    from pipeloom_airflow.databricks.sensor import PipeloomDatabricksTaskSensor
+    from pipeloom_databricks.api import FINALIZE_KEY
+
+    launch = PipeloomDatabricksRunOperator(
+        task_id=naming.LAUNCH_ID,
+        command=command,
+        pipeline=execution.databricks_pipeline,
+        conn_id=execution.databricks_conn_id,
+        ensure_job=execution.databricks_ensure_job,
+        select=plan.select,
+        exclude=plan.exclude,
+        poll_interval=execution.databricks_poll_interval,
+        client_factory=execution.databricks_client_factory,
+        group_id=group_id,
+        **operator_args,
+    )
+    ops: dict[str, BaseOperator] = {naming.LAUNCH_ID: launch}
+    for t in plan.tasks:
+        assert t.databricks_key is not None
+        extra: dict[str, Any] = {}
+        if t.assets:
+            extra["outlets"] = [Asset(name=uri, uri=uri) for uri in t.assets]
+        ops[t.task_id] = PipeloomDatabricksTaskSensor(
+            task_id=t.task_id,
+            task_key=t.databricks_key,
+            launch_task_id=launch.task_id,
+            max_attempts=t.max_attempts,
+            **extra,
+            **operator_args,
+        )
+    for t in plan.tasks:
+        if not t.upstream:
+            launch >> ops[t.task_id]
+        for up in t.upstream:
+            ops[up] >> ops[t.task_id]
+    finalize = PipeloomDatabricksTaskSensor(
+        task_id=naming.FINALIZE_ID,
+        task_key=FINALIZE_KEY,
+        launch_task_id=launch.task_id,
+        max_attempts=1,
+        trigger_rule="all_done",
+        **operator_args,
+    )
+    launch >> finalize
     for leaf in plan.leaves:
         ops[leaf] >> finalize
     ops[naming.FINALIZE_ID] = finalize

@@ -13,7 +13,7 @@ import importlib
 import tempfile
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, Literal
 
 from pipeloom.secrets.redaction import Redactor
 from pipeloom_databricks.client import ConnectionNotConfigured, DatabricksClient
@@ -61,11 +61,36 @@ def connect(
             "DATABRICKS_HOST with credentials, or run on a Databricks runtime"
         )
 
+    return _build(kwargs, with_file=bool(profile))
+
+
+def connect_explicit(
+    *,
+    host: str,
+    auth_type: Literal["pat", "oauth-m2m"],
+    token: str | None = None,
+    client_id: str | None = None,
+    client_secret: str | None = None,
+) -> DatabricksClient:
+    """A client from explicit credentials only (an orchestrator's connection, ADR-0039).
+
+    The SDK gets the auth type and a `config_file` that does not exist, so neither
+    `~/.databrickscfg` nor a `DATABRICKS_*` variable of the process can change the auth.
+    """
+    kwargs: dict[str, Any] = {"host": host, "auth_type": auth_type}
+    if auth_type == "pat":
+        kwargs["token"] = token
+    else:
+        kwargs.update(client_id=client_id, client_secret=client_secret)
+    return _build(kwargs, with_file=False)
+
+
+def _build(kwargs: dict[str, Any], *, with_file: bool) -> DatabricksClient:
     from databricks.sdk import WorkspaceClient
     from databricks.sdk.core import Config
 
     try:
-        if profile:
+        if with_file:
             config = Config(**kwargs)
         else:
             with tempfile.TemporaryDirectory(prefix="pipeloom-") as folder:

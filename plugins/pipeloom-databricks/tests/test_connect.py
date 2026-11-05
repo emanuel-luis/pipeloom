@@ -154,3 +154,28 @@ def test_factory_skips_every_rule(sdk: Recorder) -> None:
 def test_a_bad_factory_is_pld010(spec: str) -> None:
     with pytest.raises(ConnectionNotConfigured):
         connect(profile=None, env={}, factory=spec)
+
+
+def test_explicit_credentials_ignore_profiles_and_variables(
+    sdk: Recorder, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from pipeloom_databricks.api import connect_explicit
+
+    monkeypatch.setenv("DATABRICKS_CONFIG_PROFILE", "someone-elses")
+    monkeypatch.setenv("DATABRICKS_TOKEN", "env-token")
+    client = connect_explicit(host="https://h.example", auth_type="pat", token="t")
+    connect_explicit(
+        host="https://h.example", auth_type="oauth-m2m", client_id="id", client_secret="s"
+    )
+    first, second = sdk.configs
+    for kwargs in (first, second):
+        cfg = Path(kwargs.pop("config_file"))
+        assert not cfg.exists() and not cfg.parent.exists()
+    assert first == {"host": "https://h.example", "auth_type": "pat", "token": "t"}
+    assert second == {
+        "host": "https://h.example",
+        "auth_type": "oauth-m2m",
+        "client_id": "id",
+        "client_secret": "s",
+    }
+    assert isinstance(client, SdkClient)
