@@ -67,12 +67,13 @@ plan; a plugin name is published with its first functional release.
 | 0.0.2 | Reserve the name, skeleton, CI, release, governance, architecture and ADRs |
 | 0.1 | Config models, loader, validation layers, graph, selectors, plan, manifest, event bus; CLI `validate`, `compile`, `ls`, `graph`, `schema`, `plugins` |
 | 0.2 | Scheduler, executors, polars and pandas engines, basic write strategies, state store, contract suite |
-| 0.3 (current) | Incremental, merge, replace_partitions, schema-change policy, expectations and quarantine, retries, timeouts, cancellation |
+| 0.3 | Incremental, merge, replace_partitions, schema-change policy, expectations and quarantine, retries, timeouts, cancellation |
 | 0.4 | Spark engine, run metrics, idempotent writes |
 | 0.5 | Databricks renderer, deploy, run, repair |
 | 0.6 | Airflow integration |
-| 0.7 | OpenLineage, SCD2, deletes, `pipeloom retry` |
-| 0.8 to 0.9 | Hardening, docs, API freeze candidates |
+| 0.7 (current) | Per-model catalogs, reproducible manifests (`compile --stable`) |
+| 0.8 | OpenLineage, SCD2, deletes, `pipeloom retry` |
+| 0.9 | Hardening, docs, API freeze candidates |
 | 1.0 | Stable config, plugin API and artifact schemas |
 
 ## Contributing

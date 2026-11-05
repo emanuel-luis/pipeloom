@@ -802,8 +802,9 @@ Catalog, state-store and sink contract suites follow the same pattern.
 - **0.4 (delivered):** `pipeloom-spark` (local Spark, Spark Connect and an active session; the `delta_path` and `spark_catalog` catalogs), Delta writes with append, overwrite, merge and replace_partitions, idempotent writes through transaction ids and a token in the commit, metrics from commit history, expectations and quarantine on Spark, the `table` state store, `intermediate` materialization on every engine, `--run-started-at`, plugin API (0, 4). pyspark is an opt-in extra. SCD2 stays planned.
 - **0.5 (delivered):** `pipeloom-databricks`: renderer, bundle YAML, direct deploy, run, repair, finalize with task states, task values, task grouping, compute rules, the `unity` catalog, the `databricks` secret provider and the manual live workflow. The core gained the `deploy` block, `pipeloom.commands`, `--orchestrator-id`, `pipeloom finalize` and runtime secret resolution (ADR-0034 to ADR-0036). Plugin API stays (0, 4).
 - **0.6 (delivered):** `pipeloom-airflow`: LOCAL, VIRTUALENV, KUBERNETES and DATABRICKS modes (live `per_task` and `shared` polling), `PipeloomDag` and `PipeloomTaskGroup`, the PROJECT compile cache, `pipeloom finalize --unit-states-json`, `pipeloom_databricks.api.connect_explicit`, PLA001 to PLA007, the `airflow` CI job. Later: the DOCKER mode and an `airflow` secret provider (connections and variables); a `dag.test()` end-to-end test of DATABRICKS mode needs a file-backed Databricks fake or the live workflow.
-- **0.7:** `pipeloom-openlineage`, SCD2, deletes, `pipeloom retry` (`result:fail+`), `state:modified`.
-- **0.8-0.9:** hardening, performance, docs completeness, API freeze candidates, the deprecation policy.
+- **0.7 (delivered):** a `catalog` setting per model and per folder that wins over the naming strategy's catalog, path catalogs that map a catalog to a leading directory (ADR-0040), and `pipeloom compile --stable` for reproducible manifests. Plugin API stays (0, 4).
+- **0.8:** `pipeloom-openlineage`, SCD2, deletes, `pipeloom retry` (`result:fail+`), `state:modified`.
+- **0.9:** hardening, performance, docs completeness, API freeze candidates, the deprecation policy.
 - **1.0:** `config_version: 1`, plugin API 1.0, manifest, event and run_results schemas v1 all declared stable.
 
 ## 17. ADR list and diagrams
