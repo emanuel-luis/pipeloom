@@ -13,7 +13,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- The `filesystem` and `delta_path` catalogs lay a table out at `<root>/<catalog>/<schema>/<name>/` when the target has a catalog; they used to ignore it. Migration: a project whose naming option `catalog` was set on a path catalog moves its tables under a directory of that name, or removes the option.
+- The `filesystem` and `delta_path` catalogs lay a table out at `<root>/<catalog>/<schema>/<name>/` when the target has a catalog; they used to ignore it. Migration: a project whose naming option `catalog` was set on a path catalog moves its tables under a directory of that name, or removes the option. A source with a three-part `table: a.b.c` now reads `<root>/a/b/c` instead of `<root>/b/c` on these catalogs: move its files under a directory named `a`, or write the table as `b.c`.
 
 ## [0.6.1] - 2026-11-05
 

@@ -32,6 +32,8 @@ A model chooses its schema, but the catalog of its relation comes only from the 
 - A naming strategy that has to rewrite catalogs (for example a per-user catalog) needs the protocol extended and a plugin API bump. It is not needed yet.
 - A local Spark session needs each catalog registered in its conf (`spark.sql.catalog.<name>`) before a run; on Databricks the catalogs and the `USE CATALOG` grants must exist.
 - Layout change on path catalogs: a project whose naming option set a catalog on `filesystem` or `delta_path` now gets that catalog as a directory. It either moves its tables or removes the option. The CHANGELOG carries the migration note.
+- A source with a three-part `table: a.b.c` is split into catalog, schema and name, so on a path catalog it now reads `<root>/a/b/c` instead of `<root>/b/c`. Such a source either moves its files under a directory named after the catalog, or is written as `b.c`.
+- PLP412 compares the effective catalog and schema: the model's own value, else the `catalog` and `schema` options of the naming strategy.
 
 ## Status
 
