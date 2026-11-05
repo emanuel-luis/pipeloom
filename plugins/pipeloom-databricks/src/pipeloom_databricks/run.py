@@ -46,6 +46,10 @@ class SelectionError(Exception):
     """`--select` and `--exclude` are unusable or match no unit of the pipeline (exit 2)."""
 
 
+class WaitTimeout(Exception):
+    """The run did not end within the time the caller allowed (exit 1)."""
+
+
 @dataclass(frozen=True)
 class RunStarted:
     job_id: int | None
@@ -89,8 +93,8 @@ def task_keys_for(
         keys.append(task.key)
         if len(picked) < len(task.units):
             report.add(
-                "PLD004",
-                f"task group '{task.key}' is only partly selected and runs whole",
+                "PLD015",
+                f"the selection covers part of task group '{task.key}'; the whole group runs",
                 severity=Severity.WARNING,
                 context={"group": task.key},
             )
@@ -292,13 +296,20 @@ def wait_for_run(
     say: Callable[[str], None],
     poll: float = POLL_SECONDS,
     repair_id: int | None = None,
+    timeout: float | None = None,
 ) -> RunInfo:
-    """Poll until the run ends, saying every task transition. Raises `ApiError`.
+    """Poll until the run ends, saying every task transition. Raises `ApiError`, and
+    `WaitTimeout` once `timeout` seconds of polling have passed.
 
-    After a repair, `repair_id` keeps the wait going until the run reports that repair, so the
-    terminal state of the run before the repair is not mistaken for its end.
+    After a repair, `repair_id` makes the wait ignore the terminal state the run still shows
+    right after the repair: it ends only when the run reports that repair or a later one
+    (`latest_repair_id >=`) and, for our own repair, when its repair history entry is terminal or
+    the run was seen active at least once. A newer repair by someone else ends the wait, since
+    ours is over. `timeout` is the backstop for a history entry without a usable state.
     """
     seen: dict[str, str] = {}
+    active = False
+    waited = 0.0
     while True:
         run = client.get_run(job_run_id)
         now = {"run": _line(run.life_cycle_state, run.result_state)}
@@ -307,11 +318,20 @@ def wait_for_run(
             if seen.get(key) != state:
                 say(f"{key}: {state}")
         seen = now
-        if run.life_cycle_state in TERMINAL and (
-            repair_id is None or run.latest_repair_id == repair_id
-        ):
+        terminal = run.life_cycle_state in TERMINAL
+        if not terminal:
+            active = True
+        if terminal and repair_id is None:
             return run
+        if terminal and repair_id is not None:
+            latest = run.latest_repair_id or 0
+            ours_done = run.repair_states.get(repair_id) in TERMINAL
+            if latest > repair_id or (latest == repair_id and (ours_done or active)):
+                return run
+        if timeout is not None and waited >= timeout:
+            raise WaitTimeout(f"run {job_run_id} did not end within {timeout:g} seconds")
         sleep(poll)
+        waited += poll
 
 
 def failure_lines(client: DatabricksClient, artifacts_root: str | None, run_id: str) -> list[str]:

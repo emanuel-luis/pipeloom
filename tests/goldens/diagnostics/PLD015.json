@@ -1,0 +1,23 @@
+[
+  {
+    "schema": "pipeloom.event/1",
+    "run_id": null,
+    "seq": 2,
+    "type": "diagnostic",
+    "level": "warning",
+    "unit_id": null,
+    "model": null,
+    "attempt": null,
+    "data": {
+      "code": "PLD015",
+      "severity": "warning",
+      "message": "the selection covers part of task group 'tag_g'; the whole group runs",
+      "hint": null,
+      "location": null,
+      "context": {
+        "group": "tag_g"
+      }
+    },
+    "context": {}
+  }
+]

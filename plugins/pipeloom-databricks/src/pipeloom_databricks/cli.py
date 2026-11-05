@@ -42,6 +42,7 @@ from pipeloom_databricks.render import deploy_options, job_name
 from pipeloom_databricks.repair import repair as repair_run
 from pipeloom_databricks.run import (
     SelectionError,
+    WaitTimeout,
     effective_run_id,
     failure_lines,
     find_run,
@@ -52,6 +53,7 @@ from pipeloom_databricks.run import (
 
 CONNECTION_KEY: Final = "pipeloom_databricks.connection"
 SLEEP_KEY: Final = "pipeloom_databricks.sleep"
+DEFAULT_TIMEOUT: Final = 24 * 3600
 _RUN_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 
 
@@ -160,14 +162,24 @@ def _follow(
     report: Report,
     *,
     repair_id: int | None = None,
+    timeout: int = DEFAULT_TIMEOUT,
 ) -> int:
     """Wait for the run, say what happened to its tasks and units; the exit code of the command."""
     say: Callable[[str], None] = lambda line: click.echo(line, err=True)
     code = 1
     with api_errors(report):
-        run = wait_for_run(
-            client, job_run_id, sleep=ctx.meta[SLEEP_KEY], say=say, repair_id=repair_id
-        )
+        try:
+            run = wait_for_run(
+                client,
+                job_run_id,
+                sleep=ctx.meta[SLEEP_KEY],
+                say=say,
+                repair_id=repair_id,
+                timeout=timeout,
+            )
+        except WaitTimeout as err:
+            say(f"{err}; the run keeps going")
+            return 1
         if run.result_state == "SUCCESS":
             code = 0
         else:
@@ -337,12 +349,24 @@ _PIPELINE_OPTION = click.option(
     default=None,
     help="A pipeline of the deploy block. Default: the only one.",
 )
-_WAIT_OPTION = click.option(
-    "--wait/--no-wait",
-    default=True,
-    show_default=True,
-    help="Wait for the run to end (polling every 15 seconds) and exit 1 unless it succeeded.",
-)
+
+
+def _wait_options(func: Callable[..., Any]) -> Callable[..., Any]:
+    """--wait/--no-wait and --timeout, shared by run and repair."""
+    func = click.option(
+        "--timeout",
+        type=click.IntRange(min=1),
+        default=DEFAULT_TIMEOUT,
+        show_default=True,
+        metavar="SECONDS",
+        help="With --wait, stop waiting after this long and exit 1. The run keeps going.",
+    )(func)
+    return click.option(
+        "--wait/--no-wait",
+        default=True,
+        show_default=True,
+        help="Wait for the run to end (polling every 15 seconds) and exit 1 unless it succeeded.",
+    )(func)
 
 
 @databricks.command()
@@ -371,7 +395,7 @@ _WAIT_OPTION = click.option(
     is_flag=True,
     help="Run once without a job: upload the project and submit the run. Serverless only.",
 )
-@_WAIT_OPTION
+@_wait_options
 @click.pass_context
 def run(
     ctx: click.Context,
@@ -389,6 +413,7 @@ def run(
     ensure: bool,
     ephemeral: bool,
     wait: bool,
+    timeout: int,
 ) -> None:
     """Run the deployed job of a pipeline, or run it once without a job (--ephemeral).
 
@@ -441,7 +466,9 @@ def run(
         _echo_started(started.job_id, started.job_run_id, shown, started.run_page_url)
         code = 0
         if wait:
-            code = _follow(ctx, client, started.job_run_id, started.run_id, runtime, report)
+            code = _follow(
+                ctx, client, started.job_run_id, started.run_id, runtime, report, timeout=timeout
+            )
     inv.finish(report.sorted(), 1 if report.has_errors else code, bound=bound)
 
 
@@ -459,7 +486,7 @@ def run(
     metavar="N",
     help="The job run to repair.",
 )
-@_WAIT_OPTION
+@_wait_options
 @click.pass_context
 def repair(
     ctx: click.Context,
@@ -473,6 +500,7 @@ def repair(
     run_id: str | None,
     job_run_id: int | None,
     wait: bool,
+    timeout: int,
 ) -> None:
     """Rerun the failed, cancelled and skipped tasks of a finished run, and finalize again.
 
@@ -518,7 +546,14 @@ def repair(
             code = 0
             if wait:
                 code = _follow(
-                    ctx, client, target_run, run_id, runtime, report, repair_id=repair_id
+                    ctx,
+                    client,
+                    target_run,
+                    run_id,
+                    runtime,
+                    report,
+                    repair_id=repair_id,
+                    timeout=timeout,
                 )
         elif not report.has_errors:
             click.echo(f"nothing to repair in run {target_run}", err=True)
