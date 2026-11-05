@@ -27,7 +27,7 @@ MAX_TRANSIENT = 5
 """Transient API errors in a row the trigger rides out before it gives up."""
 
 
-def _transient(err: ApiError) -> bool:
+def transient(err: ApiError) -> bool:
     """Throttling, a server error or no HTTP answer at all (status 0); auth errors are final."""
     return err.status in (0, 429) or err.status >= 500
 
@@ -114,7 +114,7 @@ class DatabricksRunTrigger(BaseTrigger):
             try:
                 run = await asyncio.to_thread(client.get_run, self.job_run_id)
             except ApiError as err:
-                if not _transient(err) or failures >= MAX_TRANSIENT:
+                if not transient(err) or failures >= MAX_TRANSIENT:
                     yield _error(f"PLD009 Databricks API request failed (HTTP {err.status}): {err}")
                     return
                 failures += 1
@@ -140,7 +140,9 @@ class DatabricksRunTrigger(BaseTrigger):
                     self.task_key,
                     baseline_attempt=self.baseline_attempt,
                     max_attempts=self.max_attempts,
+                    ended=run_ended(run, self.repair_id, seen_active),
                 )
+                seen_active = seen_active or run.life_cycle_state not in TERMINAL
                 if verdict is not None:
                     yield _event(
                         {

@@ -325,9 +325,59 @@ def test_a_per_task_sensor_reads_the_baseline_and_reports_api_errors(
     with pytest.raises(BaseException) as info:
         dag.get_task("b").execute(context(ti))
     assert type(info.value).__name__ == "TaskDeferred"  # attempt 0 is below the baseline
-    fake.fail["get_run"] = fake_module.ApiError(503, "unavailable")
+    fake.fail["get_run"] = fake_module.ApiError(403, "denied")
     with pytest.raises(_compat.AirflowException, match="PLD009"):
         dag.get_task("b").execute(context(ti))
+    # a throttled or failing API says nothing about the task: the sensor defers instead of failing
+    fake.fail["get_run"] = fake_module.ApiError(503, "unavailable")
+    with pytest.raises(BaseException) as again:
+        dag.get_task("b").execute(context(ti))
+    assert type(again.value).__name__ == "TaskDeferred"
+
+
+def test_after_a_repair_a_stale_poll_does_not_fail_the_sensor(
+    dbx_project: Any, fake: FakeDatabricks, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dag = make_dag(dbx_project, databricks_poll="per_task")
+    ti = FakeTaskInstance(dag_id="d", run_id="r", task_id="b")
+    first = per_task_launch(dag, ti)
+    job_run_id = first["job_run_id"]
+    finish(fake, job_run_id, ("a", "SUCCESS"), ("b", "FAILED"), (FINALIZE_KEY, "FAILED"))
+    fake.stale_polls = 2  # the next two polls after the repair still show the old, failed run
+    doc = per_task_launch(dag, ti)
+    assert doc["action"] == "repaired" and doc["baseline"]["b"] == 1
+    sensor = dag.get_task("b")
+    with pytest.raises(BaseException) as info:
+        sensor.execute(context(ti))
+    deferred = info.value
+    assert type(deferred).__name__ == "TaskDeferred"
+    _, kwargs = deferred.trigger.serialize()
+    assert kwargs["repair_id"] == doc["repair_id"] and kwargs["baseline_attempt"] == 1
+
+    run = fake.runs[job_run_id]
+    polls = {"n": 0}
+
+    async def sleep(seconds: float) -> None:
+        polls["n"] += 1
+        if polls["n"] == 2:  # the repair finishes
+            fake.set_run(
+                job_run_id,
+                job_id=run.job_id,
+                result_state="SUCCESS",
+                tasks=[TaskRunInfo("b", 1, 1, "TERMINATED", "SUCCESS", None, "ok")],
+                latest_repair_id=doc["repair_id"],
+                repair_states={doc["repair_id"]: "TERMINATED"},
+            )
+
+    monkeypatch.setattr(type(deferred.trigger), "sleep", staticmethod(sleep))
+
+    async def first_event() -> Any:
+        async for event in deferred.trigger.run():
+            return event.payload
+        raise AssertionError("no event")
+
+    event = asyncio.run(first_event())
+    assert (event["outcome"], event["attempt"]) == ("success", 1)
 
 
 def test_a_sensor_without_a_snapshot_fails(dbx_project: Any) -> None:
