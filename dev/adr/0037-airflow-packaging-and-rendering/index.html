@@ -622,6 +622,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/airflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Airflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1012,7 +1040,7 @@
 <p>Rendering is a pure function of a loaded plan and the configs. There is one Airflow task per unit; <code>group_by</code> (<code>none</code>, <code>folder</code>, <code>tag</code>) only nests visual task groups. Ids: unsafe characters become <code>_</code>; an id above 200 characters, a colliding id or one equal to a reserved id (<code>pipeloom_finalize</code>, <code>pipeloom_launch</code>) ends in <code>_</code> and 8 hex of the sha256 of the raw name. The run id is <code>af-</code> plus 16 hex of the sha256 of <code>dag_id</code>, <code>run_id</code> and, inside a task group, the group id, separated by NUL, so two inputs never concatenate alike and two groups of one DAG run never share a run. Model retries become Airflow retries; a unit invocation keeps <code>retries=0</code>; <code>max_attempts</code> is <code>retries + 1</code>; the execution timeout is the model timeout plus <code>cancel_grace</code> plus 300 s, with the core default of 30 s for the grace because the manifest does not carry it.</p>
 <p>A plan loads from a stable manifest, or by compiling the project (PROJECT). PROJECT results are cached on disk under a key that is the sha256 of the canonical JSON of the cache schema, the installed <code>pipeloom*</code> versions, the target, the variables and the path, size and mtime of <code>pipeloom.yml</code> and every file under <code>model_paths</code> and <code>python_paths</code> (dot entries, <code>__pycache__</code> and the artifacts root skipped). An entry also stores a fingerprint (sha256 per name) of the environment variables the plan read, and a hit needs equal fingerprints, so a secret value never lands on disk. An entry is two files, <code>&lt;key&gt;.entry.json</code> and <code>&lt;key&gt;.manifest.json</code> (a stable manifest), written to a temporary name and replaced into place; the newest 8 are kept. A cache that cannot be read or written is PLA006 and the project still compiles. Compiling runs no user code (ADR-0003).</p>
 <p>Asset URIs follow a template (default <code>pipeloom://{project}/{target}/{relation}</code>) whose values are percent-encoded. Case files for the PLA codes use a new <code>python:</code> kind (<code>module:function</code> returning diagnostics), so they run without Airflow. Airflow-importing tests will run in a separate <code>airflow</code> CI job on Ubuntu, and DAG-bag parses in a subprocess with an explicit environment and a throwaway <code>AIRFLOW_HOME</code>. The recommended option of the other open questions is recorded here and applies to the later records: a shared POSIX artifact root with a PLA004 sentinel, a deferred launch snapshot for shared polling, the <code>airflow</code> job required after two green runs on main, and no deferrable pods.</p>
-<p>Deviations from the 0.6 plan, all in this first half. PLA004 and PLA005 are active from the start, because pure modules emit them (<code>states</code>, <code>version</code>). A MANIFEST load checks only the target, since the configs carry no expected project name. The cache key reads <code>pipeloom.yml</code> as plain YAML for <code>model_paths</code>, <code>python_paths</code> and artifacts roots, so an interpolated root is not skipped (the key only becomes more sensitive). A cache entry names the sha256 of its manifest, so interleaved writers that share a key cannot pair one writer's entry with another's manifest; a mismatch is a miss. DATABRICKS mode needs <code>pipeloom-databricks</code>, which this distribution does not declare; without it the render reports PLA001. <code>finalize</code> takes its unit states from <code>--unit-states PATH</code>. A <code>--unit-states-json</code> flag for small documents is a possible future core flag and is not emitted.</p>
+<p>Deviations from the 0.6 plan, all in this first half. PLA004 and PLA005 are active from the start, because pure modules emit them (<code>states</code>, <code>version</code>). A MANIFEST load checks only the target, since the configs carry no expected project name. The cache key reads <code>pipeloom.yml</code> as plain YAML for <code>model_paths</code>, <code>python_paths</code> and artifacts roots, so an interpolated root is not skipped (the key only becomes more sensitive). A cache entry names the sha256 of its manifest, so interleaved writers that share a key cannot pair one writer's entry with another's manifest; a mismatch is a miss. DATABRICKS mode needs <code>pipeloom-databricks</code>, which this distribution does not declare; without it the render reports PLA001. <code>finalize</code> takes its unit states from <code>--unit-states PATH</code>. The core flag <code>--unit-states-json</code> for small documents arrived with the Kubernetes mode, which emits it for its finalize pod (see <a href="../0038-airflow-execution-modes-and-artifact-store/">ADR-0038</a>); the LOCAL and VIRTUALENV finalize task still uses <code>--unit-states</code>.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <p>A machine that renders or parses a DAG needs the extra, and the pure code is testable everywhere. Airflow internals drift between minors, so every Airflow import sits in two modules. A project compile can run at task start when the cache misses; the stat-based key keeps that rare. The plugin does not record <code>model_paths</code> in the plan, so folder groups use the folder every rendered model shares as the model path. The DOCKER mode is PLA001 until it exists.</p>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
