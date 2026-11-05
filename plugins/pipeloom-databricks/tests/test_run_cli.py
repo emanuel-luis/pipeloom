@@ -187,6 +187,17 @@ def test_wait_failure_exits_1_and_prints_the_failure_block(
     assert "ended: TERMINATED/FAILED" in r.stderr and "c: X1 bad" in r.stderr
 
 
+def test_timeout_stops_the_wait_with_exit_1_and_a_clear_message(
+    sim: Callable[..., Sim], fake: FakeDatabricks
+) -> None:
+    s = sim()
+    slept: list[float] = []
+    r = invoke(s, "run", "--pipeline", "main", "--ensure", "--timeout", "30", sleep=slept.append)
+    assert r.exit_code == 1 and slept == [15, 15]
+    assert "did not end within 30 seconds; the run keeps going" in r.stderr
+    assert invoke(s, "run", "--pipeline", "main", "--timeout", "0").exit_code == 2
+
+
 def test_wait_api_error_is_pld009(sim: Callable[..., Sim], fake: FakeDatabricks) -> None:
     s = sim()
 

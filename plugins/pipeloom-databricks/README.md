@@ -61,7 +61,8 @@ targets:
   [--run-id RID] [--full-refresh] [--ensure] [--ephemeral] [--wait|--no-wait]` starts the
   deployed job (PLD007 when none is deployed, PLD008 when it differs from the local render,
   unless `--ensure` deploys first). Selected units map to task keys plus finalize (`only`); a
-  partly selected group runs whole, with a warning. `--run-id` names the run and makes the start
+  partly selected group runs whole, with the warning PLD015. `--timeout SECONDS` (default 24
+  hours) bounds `--wait`. `--run-id` names the run and makes the start
   idempotent. `--ephemeral` uploads the project and submits a one-time run on serverless
   compute. It prints one JSON line with the ids and the run page URL, then with `--wait` (the
   default) polls every 15 seconds, reports task transitions and the failed units, and exits 1

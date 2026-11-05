@@ -596,6 +596,12 @@ _ACTIVE_05: Final = (
         "Run is still active",
         "A repair was asked for a Databricks job run that has not ended. Wait for it to finish or cancel it, then repair.",
     ),
+    (
+        "PLD015",
+        W,
+        "Selection covers part of a task group",
+        "With task_grouping set, a task runs every unit of its group, so a selection that names only some of them still runs the whole group. Select the whole group, or turn grouping off, to run exactly the units chosen.",
+    ),
 )
 
 

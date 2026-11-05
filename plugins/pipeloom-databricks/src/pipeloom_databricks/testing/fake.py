@@ -45,6 +45,9 @@ class FakeDatabricks:
         self.calls: list[tuple[str, str]] = []
         """(method, first argument as text), in order."""
         self.fail: dict[str, ApiError] = {}
+        self.stale_polls = 0
+        """After a repair, this many `get_run` calls still show the run as it was before it."""
+        self._stale: dict[int, tuple[RunInfo, int]] = {}
         self._next = 100
         self._tick = 0
 
@@ -158,6 +161,10 @@ class FakeDatabricks:
         self._enter("get_run", run_id)
         if run_id not in self.runs:
             raise ApiError(404, f"Run {run_id} does not exist.", "RESOURCE_DOES_NOT_EXIST")
+        stale = self._stale.get(run_id)
+        if stale is not None and stale[1] > 0:
+            self._stale[run_id] = (stale[0], stale[1] - 1)
+            return stale[0]
         return self.runs[run_id]
 
     def list_runs(self, job_id: int, *, active_only: bool = False) -> Iterator[RunInfo]:
@@ -179,6 +186,9 @@ class FakeDatabricks:
             )
         repair_id = self._id()
         self.repairs.append((run_id, tuple(rerun_tasks), latest_repair_id))
+        if self.stale_polls:
+            before = replace(self.runs[run_id], latest_repair_id=repair_id)
+            self._stale[run_id] = (before, self.stale_polls)
         self.runs[run_id] = replace(
             self.runs[run_id], life_cycle_state="RUNNING", latest_repair_id=repair_id
         )

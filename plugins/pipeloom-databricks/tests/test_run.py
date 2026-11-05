@@ -17,6 +17,7 @@ from pipeloom_databricks.deploy import deploy
 from pipeloom_databricks.keys import FINALIZE_KEY
 from pipeloom_databricks.run import (
     SelectionError,
+    WaitTimeout,
     effective_run_id,
     failure_lines,
     find_run,
@@ -140,7 +141,7 @@ def test_a_partly_selected_group_runs_whole_with_a_warning(sim: Callable[..., Si
     assert started is not None
     assert fake.starts[-1][2] == ("tag_grp", FINALIZE_KEY)
     (warning,) = report.sorted()
-    assert warning.code == "PLD004" and warning.severity is Severity.WARNING
+    assert warning.code == "PLD015" and warning.severity is Severity.WARNING
     assert "tag_grp" in warning.message
     _, whole = go(s, fake, selection=Selection(("a", "b")))
     assert whole.sorted() == ()
@@ -349,17 +350,47 @@ def test_wait_polls_until_the_run_ends_and_says_each_transition() -> None:
     ]
 
 
-def test_wait_after_a_repair_ignores_the_state_from_before_it() -> None:
+def test_wait_after_a_repair_ignores_the_terminal_state_shown_right_after_it() -> None:
     fake = FakeDatabricks()
-    fake.set_run(5, job_id=1, result_state="FAILED", latest_repair_id=10)
+    fake.stale_polls = 2  # the API still shows the old terminal run, with the new repair id
+    fake.set_run(5, job_id=1, result_state="FAILED")
+    repair_id = fake.repair_run(5, rerun_tasks=["a"], latest_repair_id=None)
+    steps = iter([("RUNNING", None), ("TERMINATED", "SUCCESS")])
     polls: list[int] = []
 
     def sleep(seconds: float) -> None:
         polls.append(1)
-        fake.set_run(5, job_id=1, result_state="SUCCESS", latest_repair_id=11)
+        life, result = next(steps)
+        fake.set_run(
+            5, job_id=1, life_cycle_state=life, result_state=result, latest_repair_id=repair_id
+        )
+        fake._stale.clear()
 
-    run = wait_for_run(fake, 5, sleep=sleep, say=lambda _: None, repair_id=11)
-    assert run.result_state == "SUCCESS" and polls == [1]
+    said: list[str] = []
+    run = wait_for_run(fake, 5, sleep=sleep, say=said.append, repair_id=repair_id)
+    assert run.result_state == "SUCCESS" and len(polls) == 2
+    assert said[0] == "run: TERMINATED/FAILED"  # the stale reading was seen, and not believed
+
+
+def test_wait_after_a_repair_ends_when_someone_else_repaired_again() -> None:
+    fake = FakeDatabricks()
+    fake.set_run(5, job_id=1, result_state="FAILED", latest_repair_id=12)
+    # our repair was 11; a later repair (12) exists and the run is terminal: ours is over
+    run = wait_for_run(fake, 5, sleep=lambda _: None, say=lambda _: None, repair_id=11)
+    assert run.latest_repair_id == 12
+
+
+def test_wait_times_out_on_polling_time_not_wall_clock() -> None:
+    fake = FakeDatabricks()
+    fake.set_run(5, job_id=1, life_cycle_state="RUNNING")
+    slept: list[float] = []
+    with pytest.raises(WaitTimeout, match="did not end within 45 seconds"):
+        wait_for_run(fake, 5, sleep=slept.append, say=lambda _: None, timeout=45)
+    assert slept == [15, 15, 15]
+    # a repair that ended between two polls is never seen active: only the timeout ends it
+    fake.set_run(6, job_id=1, result_state="SUCCESS", latest_repair_id=11)
+    with pytest.raises(WaitTimeout):
+        wait_for_run(fake, 6, sleep=lambda _: None, say=lambda _: None, repair_id=11, timeout=30)
 
 
 def test_wait_lets_api_errors_through() -> None:
