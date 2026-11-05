@@ -88,7 +88,8 @@ def test_plugins_list_group_and_json() -> None:
 
 def test_plugins_list_check_imports_and_reports_api() -> None:
     result = run(["plugins", "list", "--check", "--output", "json"])
-    rows = json.loads(result.stdout)
+    # A command entry has no plugin API version, and an installed plugin may add one.
+    rows = [r for r in json.loads(result.stdout) if r["group"] != "commands"]
     assert result.exit_code == 0
     assert {r["api"] for r in rows} == {"0.4"} and {r["status"] for r in rows} == {"ok"}
     text = run(["plugins", "list", "--check"]).stdout.splitlines()[0].split()
