@@ -32,9 +32,11 @@ nav:
       - Polars: plugins/polars.md
       - pandas: plugins/pandas.md
       - Spark: plugins/spark.md
+      - Databricks: plugins/databricks.md
       - Airflow: plugins/airflow.md
   - Reference:
       - Command line: reference/cli.md
+      - Databricks commands: reference/databricks-cli.md
       - JSON Schema: reference/schema.md
       - Run artifacts: reference/artifacts.md
       - Error codes: reference/errors.md
