@@ -79,8 +79,8 @@ class _SparkCatalog:
 
 
 class DeltaPathCatalog(_SparkCatalog):
-    """`<root>/<schema>/<name>`; the target's catalog name is ignored. Needs no metastore and
-    works across processes."""
+    """`<root>/[<catalog>/]<schema>/<name>`; a target's catalog is a leading directory. Needs no
+    metastore and works across processes."""
 
     capabilities = CatalogCapabilities(views=False)
 
@@ -91,7 +91,8 @@ class DeltaPathCatalog(_SparkCatalog):
         )
 
     def path(self, target: TargetRef) -> str:
-        return f"{self.root}/{_segment(target.schema)}/{_segment(target.name)}"
+        parts = (target.catalog, target.schema, target.name)
+        return "/".join([self.root, *(_segment(p) for p in parts if p is not None)])
 
     def ident(self, target: TargetRef) -> str:
         return f"delta.{sqltext.quote_ident(self.path(target))}"

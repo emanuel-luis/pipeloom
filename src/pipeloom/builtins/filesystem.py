@@ -1,4 +1,4 @@
-"""Filesystem catalog: tables are directories under a root, laid out `<root>/<schema>/<name>/`."""
+"""Filesystem catalog: tables are directories under a root, laid out `<root>/[<catalog>/]<schema>/<name>/`."""
 
 from __future__ import annotations
 
@@ -36,22 +36,26 @@ def _segment(value: str) -> str:
 
 
 class FilesystemCatalog:
-    """The target's catalog name, if any, is ignored: the layout has no catalog level."""
+    """A target's catalog, when it has one, is a leading directory: `<root>/<catalog>/<schema>/<name>/`."""
 
     def __init__(self, root: Path, *, format: str = "parquet", clock: Clock | None = None) -> None:
         self.root = root
         self.format = format
         self._clock = clock or SystemClock()
 
+    def _dir(self, catalog: str | None, schema: str) -> Path:
+        base = self.root if catalog is None else self.root / _segment(catalog)
+        return base / _segment(schema)
+
     def table(self, target: TargetRef) -> FsTable:
-        path = self.root / _segment(target.schema) / _segment(target.name)
+        path = self._dir(target.catalog, target.schema) / _segment(target.name)
         return FsTable(path, clock=self._clock)
 
     def exists(self, target: TargetRef) -> bool:
         return self.table(target).current() is not None
 
     def ensure_namespace(self, ns: Namespace) -> None:
-        (self.root / _segment(ns.schema)).mkdir(parents=True, exist_ok=True)
+        self._dir(ns.catalog, ns.schema).mkdir(parents=True, exist_ok=True)
 
     def table_schema(self, target: TargetRef) -> Schema | None:
         commit = self.table(target).current()
