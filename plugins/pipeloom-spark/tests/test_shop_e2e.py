@@ -194,7 +194,7 @@ def test_cancel_stops_a_slow_model(classic_spark: Any, tmp_path: Path) -> None:
     ):
         time.sleep(0.2)
     time.sleep(3)  # the read is done and the endless write job runs
-    assert tracker.getActiveJobIds(), "the slow job never started"
+    assert tracker.getActiveJobsIds(), "the slow job never started"
     control.request_stop()
     worker.join(timeout=120)
     assert not worker.is_alive()
@@ -202,9 +202,9 @@ def test_cancel_stops_a_slow_model(classic_spark: Any, tmp_path: Path) -> None:
     assert outcome.status == "cancelled"
     assert results(root, "c1")["slow"]["status"] == "cancelled"
     deadline = time.monotonic() + 30
-    while tracker.getActiveJobIds() and time.monotonic() < deadline:
+    while tracker.getActiveJobsIds() and time.monotonic() < deadline:
         time.sleep(0.2)
-    assert not tracker.getActiveJobIds()  # interrupted, not left running
+    assert not tracker.getActiveJobsIds()  # interrupted, not left running
     tags = classic_spark.sparkContext.getJobTags()
     assert not [t for t in tags if t.startswith("pipeloom:")]
 
