@@ -78,7 +78,7 @@ touched at parse time unless a load method reads them.
 | --- | --- | --- |
 | `load_method` | `LoadMode.MANIFEST` | `MANIFEST` or `PROJECT`, see below. |
 | `select`, `exclude` | `()` | Selectors applied to the plan. A selection that renders no unit is PLA003. |
-| `group_by` | `"none"` | `none`, `folder` or `tag`: visual task groups only. Every unit is still one task. |
+| `group_by` | `"none"` | `none`, `folder` or `tag`: visual task groups only. Every unit is still one task. Has no effect in DATABRICKS mode. |
 | `emit_assets` | `False` | Each model task declares an `Asset` outlet. |
 | `asset_uri` | `pipeloom://{project}/{target}/{relation}` | Template; placeholders `project`, `target`, `model`, `relation`, `unique_id`. Values are percent-encoded. |
 
@@ -132,13 +132,14 @@ crosses a process boundary. Prefer `MANIFEST` for large projects.
 | `DATABRICKS` | a task of the Databricks job that `pipeloom-databricks` renders | see below |
 
 In LOCAL and VIRTUALENV, killing the task sends SIGTERM to the child's process group and SIGKILL
-after the target's cancel grace. Child events are logged line by line to the task log.
+after the cancel grace. The grace is the core default of 30 seconds, not the target's
+`cancel_grace`, because the manifest does not carry that setting. Child events are logged line by line to the task log.
 
 ### Kubernetes
 
 `image`, `namespace` and `pod_kwargs` go to `KubernetesPodOperator`: volumes, mounts, resources,
-service account. `ExecutionConfig.env` becomes the pod environment, and the cancel grace the pod
-termination grace period. `project_dir` and `manifest_path` of the execution config are paths
+service account. `ExecutionConfig.env` becomes the pod environment, and the cancel grace (the core default of
+30 seconds, not the target's `cancel_grace`) the pod termination grace period. `project_dir` and `manifest_path` of the execution config are paths
 inside the pod. Pods are never deferrable and push no XCom; the keys `cmds`, `arguments`, `image`,
 `name`, `do_xcom_push` and `deferrable` in `pod_kwargs` are PLA002.
 
@@ -187,7 +188,8 @@ DAG id, run id, task id and try number as orchestrator ids.
 | DATABRICKS | Databricks | Sensors have no retries. A sensor fails once the task's last attempt failed or the run is over. The launch retries twice and attaches to the same run. |
 
 The task execution timeout is the model timeout plus the cancel grace plus 300 seconds, so the core
-times a unit out before Airflow does.
+times a unit out before Airflow does. The grace here is the core default of 30 seconds, since the
+manifest does not carry the target's `cancel_grace`.
 
 ## full_refresh
 
@@ -204,7 +206,8 @@ carries them.
 
 ## Finalize and DAG failure
 
-`pipeloom_finalize` runs with trigger rule `all_done` after every leaf task and has one retry. In
+`pipeloom_finalize` runs with trigger rule `all_done` after every leaf task. In LOCAL, VIRTUALENV and KUBERNETES
+it has one retry; in DATABRICKS it is a sensor with no retries. In
 LOCAL and VIRTUALENV it reads the states of the unit tasks from Airflow and passes them to
 `pipeloom finalize --unit-states`. An attempt file always wins. Without one, a task that
 succeeded or failed becomes a failed unit with PLA004, `upstream_failed` becomes skipped, and a
@@ -238,9 +241,9 @@ and a trigger serializes only the connection id.
 | `shared` | The launch defers on one trigger that polls the whole run. Sensors read its final snapshot and make no call. | One call per interval in total, but a task's result shows only when the whole run is over. |
 
 The trigger retries a transient API error (429, 5xx, no answer) up to 5 times in a row, with sleeps
-of one, two and then four intervals, and fails the task on an authentication error or when the
-retries run out. A transient error on a sensor's first call also defers instead of failing the
-task. After a repair, a sensor with no verdict yet waits until the run reports the repair, so it
+of one, two and then four intervals, and fails the task at once on any other API error (an
+authentication error, for example) or when the retries run out. The same holds for a sensor's first
+call, except that a transient error there defers instead of failing the task. After a repair, a sensor with no verdict yet waits until the run reports the repair, so it
 never decides on the failed run from before the repair. Every deferral stops after
 `databricks_timeout` (24 hours by default). A wide DAG should raise `databricks_poll_interval` or
 use `shared`.
@@ -252,6 +255,8 @@ use `shared`.
 - No `DOCKER` mode: it is PLA001.
 - No deferrable pods. `deferrable` is PLA002 for the Kubernetes mode.
 - `retry_on` is enforced only in LOCAL and VIRTUALENV.
+- `group_by` has no effect in DATABRICKS mode.
+- The cancel grace of a unit is the core default (30 seconds), not the target's `cancel_grace`.
 - The artifact root must be shared (see above). There is no fsspec store.
 - The finalize pod takes the unit states inline, capped at 120 KiB because one Linux exec argument
   is limited to 128 KiB. Above that it fails with PLA002; split the project with `select`.

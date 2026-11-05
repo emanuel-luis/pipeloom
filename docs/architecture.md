@@ -637,7 +637,7 @@ shop_daily = PipeloomDag(
     dag_id="shop_daily", schedule="@daily", start_date=datetime(2026, 1, 1),
     project_config=ProjectConfig(project_dir="/opt/pipelines/shop", manifest_path="/opt/pipelines/shop/target/manifest.json"),
     target="prod",
-    render_config=RenderConfig(load_method=LoadMode.MANIFEST, select=("tag:daily",), group_by="folder", emit_assets=True),
+    render_config=RenderConfig(load_method=LoadMode.MANIFEST, select=("tag:daily",), emit_assets=True),
     execution_config=ExecutionConfig(mode=ExecutionMode.DATABRICKS, databricks_conn_id="databricks_default"),
 )
 ```
@@ -669,7 +669,7 @@ shop_daily = PipeloomDag(
 | DATABRICKS | Databricks task retries | Sensors have no retries; the launch retries twice and attaches to its run. |
 
 **Shared behavior:**
-- One Airflow task per unit. `group_by` only nests visual task groups.
+- One Airflow task per unit. `group_by` only nests visual task groups (not in DATABRICKS mode). The cancel grace (SIGKILL delay, pod termination grace, execution timeout slack) is the core default of 30 s, because the manifest does not carry the target's `cancel_grace`.
 - Trigger rule `all_success`, so skip-downstream maps to `upstream_failed`.
 - A `pipeloom_finalize` task runs with `all_done`, reads the Airflow task states and exits 1 when the pipeloom run failed, so the DAG run fails.
 - `rid` is `af-` plus 16 hex characters of sha256 of the NUL-separated dag_id, Airflow run_id and, inside a task group, the group id (ADR-0037), stable across task retries. A clear-and-rerun of failed tasks therefore continues the same pipeloom run.
@@ -693,7 +693,7 @@ Source: [07-airflow-modes.d2](diagrams/07-airflow-modes.d2).
 ## 14. Security and secrets
 
 - Secrets never appear as literals in YAML. Fields whose names match secret patterns accept only `${secret:...}` or `${env:...}` (PLS104).
-- `${secret:<provider>/<path>}` resolves at runtime inside the executing process through the `pipeloom.secret_providers` group. Providers: `env` (core), `file` (core, mode-checked), `databricks` (secret scopes), `airflow` (connections and variables).
+- `${secret:<provider>/<path>}` resolves at runtime inside the executing process through the `pipeloom.secret_providers` group. Providers: `env` (core), `file` (core, mode-checked), `databricks` (secret scopes), `airflow` (connections and variables; later, no plugin registers it yet).
 - Connections. Airflow DATABRICKS mode maps the Airflow connection itself (host; token in the password or `extra.token`; `extra.service_principal_oauth` with the client id as login) and builds the client with `pipeloom_databricks.api.connect_explicit`, so no profile, `~/.databrickscfg` or worker `DATABRICKS_*` variable changes the authentication. Errors name the connection id, never a value (PLD010); secrets pass through Airflow's `mask_secret` and a trigger serializes only the connection id (ADR-0039). The PROJECT compile cache stores a sha256 fingerprint of each environment variable the plan read, never its value (ADR-0037).
 - The manifest, events and artifacts store only the references. Resolved values are registered with the redaction filter.
 - Discovery never imports plugins until a config names them. `PIPELOOM_DISABLE_PLUGIN_AUTOLOAD` exists for locked-down hosts.

@@ -31,7 +31,8 @@ map to unit states. Importing the package never imports `airflow`.
 - Execution modes `local` (the worker's own interpreter) and `virtualenv`
   (`ExecutionConfig.virtualenv_dir`, created on every worker with pipeloom installed). Each task
   runs the core in a child process group; killing the task sends SIGTERM, then SIGKILL after
-  the target's cancel grace. Exit 2, and exit 1 with a permanent error under
+  the cancel grace (the core default of 30 seconds; the manifest does not carry the target's
+  `cancel_grace`, and the same value sets a pod's termination grace). Exit 2, and exit 1 with a permanent error under
   `retry_on: transient`, fail the task without a retry.
 - The finalize task (`pipeloom_finalize`, trigger rule `all_done`, one retry) reads the states
   of the unit tasks and runs `pipeloom finalize --unit-states`; it fails when the run failed, so
@@ -93,7 +94,7 @@ job's finalize task (trigger rule `all_done`) that fails when the pipeloom run f
   run-now or repair, and each sensor makes one `get_run` call. Without a verdict yet it defers on
   its own trigger, which polls every `databricks_poll_interval` seconds (30 by default), rides out
   up to 5 transient API errors in a row (429, 5xx, no answer) with doubling sleeps, and fails the
-  sensor on an auth error or when the retries run out. A sensor gives up after
+  sensor on any other API error or when the retries run out. A sensor gives up after
   `databricks_timeout` seconds (24 hours by default). Cost: one API call per waiting sensor per interval.
 - `databricks_poll="shared"`: the launch defers on one trigger that polls the whole run, keeps
   the final snapshot in its XCom, and the sensors read it without calling the API. One call per
