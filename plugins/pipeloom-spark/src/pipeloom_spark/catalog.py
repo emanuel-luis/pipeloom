@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any
 
 from pipeloom.engine.types import CatalogCapabilities, Column, Namespace, Schema, TargetRef
 from pipeloom_spark import errors, sqltext
@@ -16,18 +16,6 @@ from pipeloom_spark.types import to_logical
 
 if TYPE_CHECKING:
     from pipeloom_spark.session import SessionHandle
-
-_MISSING: Final = frozenset(
-    {
-        "DELTA_MISSING_DELTA_TABLE",
-        "DELTA_TABLE_NOT_FOUND",
-        "DELTA_PATH_DOES_NOT_EXIST",
-        "DELTA_PATH_EXISTS",
-        "PATH_NOT_FOUND",
-        "TABLE_OR_VIEW_NOT_FOUND",
-        "SCHEMA_NOT_FOUND",
-    }
-)
 
 
 def _segment(value: str) -> str:
@@ -82,6 +70,10 @@ class _SparkCatalog:
     def exists(self, target: TargetRef) -> bool:
         raise NotImplementedError
 
+    def save(self, writer: Any, target: TargetRef) -> None:
+        """Run a configured DataFrameWriter against the target."""
+        raise NotImplementedError
+
     def table_schema(self, target: TargetRef) -> Schema | None:
         return schema_of(self.read(target)) if self.exists(target) else None
 
@@ -107,6 +99,9 @@ class DeltaPathCatalog(_SparkCatalog):
     def read(self, target: TargetRef) -> Any:
         return self.spark.read.format("delta").load(self.path(target))
 
+    def save(self, writer: Any, target: TargetRef) -> None:
+        writer.save(self.path(target))
+
     def ensure_namespace(self, ns: Namespace) -> None:
         return None
 
@@ -114,7 +109,7 @@ class DeltaPathCatalog(_SparkCatalog):
         try:
             self.spark.sql(f"DESCRIBE DETAIL {self.ident(target)}").collect()
         except Exception as exc:
-            if errors.condition(exc) in _MISSING:
+            if errors.condition(exc) in errors.MISSING:
                 return False
             raise
         return True
@@ -138,6 +133,9 @@ class SparkSessionCatalog(_SparkCatalog):
 
     def read(self, target: TargetRef) -> Any:
         return self.spark.table(self.ident(target))
+
+    def save(self, writer: Any, target: TargetRef) -> None:
+        writer.saveAsTable(self.ident(target))
 
     def ensure_namespace(self, ns: Namespace) -> None:
         self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {self._parts(ns.catalog, ns.schema)}")
