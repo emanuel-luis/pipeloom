@@ -178,14 +178,14 @@ def check_semantics(pg: ProjectGraph, report: Report) -> None:
             for e in inlined_ancestors(graph, uid, ephemeral):
                 fanout[e] += 1
     limit = project.bound.loaded.config.ephemeral_fanout_warn
-    taken = {(mm.config.schema_, mm.name) for mm in project.models.values()}
+    taken = {(mm.config.catalog, mm.config.schema_, mm.name) for mm in project.models.values()}
     for uid, m in project.models.items():
         _check_model(project, m, report)
         clash = f"{m.name}__quarantine"
         if (
             m.config.quality.quarantine
             and m.config.expectations
-            and (m.config.schema_, clash) in taken
+            and (m.config.catalog, m.config.schema_, clash) in taken
         ):
             report.add(
                 "PLP412",

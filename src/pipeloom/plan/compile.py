@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any, Literal
 
 from pipeloom import __version__
+from pipeloom.config.models import ResolvedModelConfig
 from pipeloom.diagnostics import Report
 from pipeloom.engine.protocols import NamingStrategy
+from pipeloom.engine.types import TargetRef
 from pipeloom.graph.dag import ProjectGraph
 from pipeloom.graph.selectors import Selection, SelectorError, apply
 from pipeloom.plan.manifest import compute_plan_hash, node_checksum
@@ -26,6 +29,14 @@ from pipeloom.platform import Clock, Identity
 from pipeloom.plugins import PluginRegistry
 from pipeloom.validate.semantics import effective_strategy
 from pipeloom.validate.static import find_module
+
+
+def _relation(
+    naming: NamingStrategy, name: str, config: ResolvedModelConfig, identity: Identity
+) -> TargetRef:
+    """The naming strategy's relation; a model catalog replaces the strategy's catalog."""
+    ref = naming.relation(name, config.schema_, identity)
+    return ref if config.catalog is None else replace(ref, catalog=config.catalog)
 
 
 def compile_plan(
@@ -90,7 +101,7 @@ def compile_plan(
             materialized=m.config.materialized,
             body=body,
             inputs={alias: b.unique_id for alias, b in m.inputs.items()},
-            relation=naming.relation(m.name, m.config.schema_, identity) if persisted else None,
+            relation=_relation(naming, m.name, m.config, identity) if persisted else None,
             unit_ids=tuple(sorted(unit_ids[uid])),
             config=config,
             tags=tuple(m.config.tags),
