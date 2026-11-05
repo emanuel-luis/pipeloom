@@ -179,6 +179,9 @@ def test_shop_runs_and_a_rerun_with_the_same_run_id_writes_nothing(
 @pytest.mark.spark
 @pytest.mark.timeout(300)
 def test_cancel_stops_a_slow_model(classic_spark: Any, tmp_path: Path) -> None:
+    """The run ends cancelled and no Spark job is left running. Classic job tags are per
+    thread, so the removal of the unit's tag is covered on one thread by
+    test_engine_classic.py::test_unit_scope_adds_and_removes_its_tag, not here."""
     root = project(tmp_path, SLOW)
     control = RunControl()
     box: list[tuple[RunOutcome, RecordingSink]] = []
@@ -205,8 +208,6 @@ def test_cancel_stops_a_slow_model(classic_spark: Any, tmp_path: Path) -> None:
     while tracker.getActiveJobsIds() and time.monotonic() < deadline:
         time.sleep(0.2)
     assert not tracker.getActiveJobsIds()  # interrupted, not left running
-    tags = classic_spark.sparkContext.getJobTags()
-    assert not [t for t in tags if t.startswith("pipeloom:")]
 
 
 @pytest.mark.spark_connect
