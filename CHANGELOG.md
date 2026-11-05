@@ -11,6 +11,13 @@ All notable changes to this project are documented here. The format follows
 - Orchestration hooks in the core (ADR-0034, plugin API stays (0, 4)): a `deploy` runtime key, bound against the `renderers` group and never built by the core, with its validated options recorded in the manifest as `metadata.deploy` outside the plan hash; `manifest_bytes(plan, stable=True)` and `write_manifest(..., stable=True)` give byte-stable manifests.
 - The `pipeloom.commands` entry-point group adds plugin commands to the CLI. They are discovered from metadata and imported only when invoked; built-in names win, duplicate names resolve by distribution name, a command that cannot be imported exits 1, and `PIPELOOM_DISABLE_PLUGIN_AUTOLOAD` hides them. `plugins list --group commands` lists them.
 - `${secret:provider/path}` references in plugin options resolve at run time (`run`), through the `secret_providers` group, and are masked in events, attempt files, state rows and `run_results.json`, in both boundaries, also under secret-like keys. `$${secret:...}` stays literal text. They are never resolved by compile or validate, and never reach the manifest. PLX109 reports one that cannot be resolved (the blueprint's PLX108 was already taken).
+
+## [0.4.0] - 2026-11-05
+
+pipeloom 0.4 adds the `pipeloom-spark` engine (Spark classic and Spark Connect) with Delta writes, idempotent commits, metrics from the commit history, quality checks and a Delta table state store, plus intermediate models on every engine, on plugin API (0, 4).
+
+### Added
+
 - `intermediate` materialization on the memory, polars and pandas engines (ADR-0030, amends ADR-0007): the result is written to `<artifacts.root>/runs/<run_id>/intermediate/<model>` and read by its consumers; `relation_name` in `run_results` is that location. PLP413 rejects `incremental`, a strategy other than overwrite and `partition_by` on an intermediate.
 - `artifacts.intermediate_ttl` (default 1d; 0 deletes at the end of a succeeded run). Finalize deletes expired intermediates; a deletion error is reported in the new `run.warnings` of `run_results`, never as a failure.
 - `EngineContract` gains the intermediate tests (write then read, repeated token, one folder per run id).
@@ -22,11 +29,18 @@ All notable changes to this project are documented here. The format follows
 - `pipeloom finalize --run-id ID` (`Project.finalize`) merges the unit results of a run an orchestrator drove unit by unit: attempt file, else the state in `--unit-states` (`pipeloom.unit_states/1`), else `skipped`: `upstream_failed` when an upstream failed, otherwise the new reason `not_run`, which does not fail the run; `excluded` drops the unit. It refuses (PLX105, exit 1) while a `pipeloom run` of the same run id is live (its lock is held and its run record is `running`). It records the run, deletes expired intermediates, emits `run.completed` and rewrites the same result when repeated. Exit 0, 1 or 130; a failed unit wins over a cancelled one.
 - `write_json_once` creates the file with an exclusive open when the file system refuses hard links (EPERM, ENOTSUP, EOPNOTSUPP, EXDEV, ENOSYS), such as a network volume.
 - `pipeloom-spark` (ADR-0031): a Spark engine, new in this release, with the `delta_path` and `spark_catalog` catalogs. It reads `delta`, `parquet`, `csv`, `json` and `ndjson`, runs SQL models with DataFrame-bound aliases (no session temp views), cancels through Spark job tags, and opens a `local`, `connect` or `active` session; it never sets conf on a session it did not build. pyspark is not a hard dependency: `pipeloom[spark]` pulls `pipeloom-spark[local]` (`pyspark[connect]` 4.0.1 to 4.2, `delta-spark` 4.1 to 4.4).
-- CI has a `spark` job (Java 17, classic then Connect), not yet a required check, and `typecheck` covers the Spark plugin. `make spark-test` prints the WSL recipe. Spark tests opt in with `PIPELOOM_TEST_SPARK=classic|connect`.
+- CI has a `spark` job (Java 17, three parallel legs: classic contract, classic rest and Connect), not yet a required check, and `typecheck` covers the Spark plugin. `make spark-test` prints the WSL recipe. Spark tests opt in with `PIPELOOM_TEST_SPARK=classic|connect`.
 - `tools/versions.py` accepts a root extra that pins a distribution with an extra, as in `pipeloom-spark[local]==X.Y.Z`.
 - Spark Delta writes (ADR-0032): `append`, `overwrite`, `merge` and `replace_partitions` (`replaceWhere`), the `view`, `incremental` and `intermediate` materializations, idempotent writes (`txnAppId`, `txnVersion` and a token in `userMetadata`; a MERGE is followed by an empty token commit) and row and byte metrics read from the commit history. No Spark conf is set.
 - PLM207: Delta skipped the write because a later transaction version exists for the model (a newer or overlapping run, or clock skew); permanent for retries. `txn_guard: false` turns the guard off.
 - `EngineContract`: `test_metrics` and `test_two_threads_materialize_at_once` skip for an engine without the `overwrite` strategy.
+- Spark expectations and quarantine: the Spark engine declares `quality` and evaluates every count and aggregate of a model's checks in one Spark job; dropped rows go to the quarantine table with the usual `_pipeloom_*` columns.
+- `table` state store in `pipeloom-spark` (ADR-0033): watermarks, runs, units and the run lock in one Delta table, by catalog name (`table`) or by path (`path`). Compare-and-set and the lease lock are single `MERGE` statements, Delta conflicts are retried, and the store reuses the engine's Spark session. It is shared (`shared=True`), so `boundary: task` can use it.
+- Spark tests that start a second JVM opt in with `PIPELOOM_TEST_SPARK_HEAVY=1`. CI does not set it yet: on CI the child JVM stalled while resolving the Delta packages.
+
+### Fixed
+
+- Intermediate cleanup no longer keeps a resumed run that crashed again forever: a run whose manifest is newer than its `run_results.json` is now judged like a run without results (deleted once idle for `max(ttl, 1h)`), so an active resumed run is still kept.
 
 ## [0.3.0] - 2026-11-04
 
@@ -171,7 +185,8 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.0.2...v0.1.0
