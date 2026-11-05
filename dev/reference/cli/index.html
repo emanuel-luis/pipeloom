@@ -744,6 +744,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pipeloom-finalize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        finalize
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pipeloom-graph" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1052,6 +1063,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pipeloom-finalize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        finalize
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pipeloom-graph" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1214,6 +1236,53 @@
   --warn-error               Exit 1 on warnings too.
   --help                     Show this message and exit.
 </code></pre>
+<h4 id="pipeloom-finalize">pipeloom finalize<a class="headerlink" href="#pipeloom-finalize" title="Permanent link">&para;</a></h4>
+<p>Merge the unit results of a run into run_results.json and close the run.</p>
+<p>Units in scope (default: the whole plan) take their attempt file, else the state given with
+--unit-states, else they are skipped as not_run, which does not fail the run. A unit marked
+excluded gets no row. Exit codes: 0 ok, 1 a unit failed, 2 bad usage, 130 cancelled.
+Running it again rewrites the same results.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom finalize [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY      Directory that holds pipeloom.yml.  [default:
+                               .]
+  --vars TEXT                  Variables as a YAML or JSON mapping; they
+                               override the vars block.
+  --target TEXT                Target to bind; default_target or the only
+                               target when omitted.
+  --plugin MODULE:ATTR         A PluginSpec to load besides the installed
+                               plugins. Repeatable.
+  -s, --select SELECTOR        Models to include: name, tag:x, path:dir,
+                               materialized:x, +model, model+, N+model,
+                               model+N. Space unions, comma intersects.
+                               Repeatable, all are unioned.
+  --exclude SELECTOR           Remove the models this selector matches from
+                               the selection. Repeatable.
+  --log-format [text|json]     Diagnostics and events on stderr: readable text
+                               or one JSON object per line.  [default: text]
+  --run-id TEXT                The run to close: the run id every unit
+                               invocation used.  [required]
+  --manifest FILE              Use the plan of this manifest instead of
+                               compiling the project.
+  --expect-plan-hash HEX       Stop with PLX103 unless the plan hash is this
+                               sha256.
+  --unit-states PATH           A JSON file, schema pipeloom.unit_states/1,
+                               with what the orchestrator knows about units
+                               that wrote no attempt file: {unit_id: {status:
+                               skipped|cancelled|failed|excluded, reason,
+                               code, message, orchestrator_ids}}.
+  --orchestrator-id KEY=VALUE  An id the orchestrator gave this run, such as
+                               job_run_id=42. It goes into the attempt files,
+                               the run results and the context of every event.
+                               Repeatable; a later duplicate wins. Key:
+                               [a-z][a-z0-9_]{0,63}; value: 1 to 256 printable
+                               characters.
+  --run-started-at ISO8601     Start time of the run, with a UTC offset. A run
+                               that recorded its start keeps it.
+  --help                       Show this message and exit.
+</code></pre>
 <h4 id="pipeloom-graph">pipeloom graph<a class="headerlink" href="#pipeloom-graph" title="Permanent link">&para;</a></h4>
 <p>Print the graph of the selected models, in dependency order.</p>
 <p><strong>Usage:</strong></p>
@@ -1304,47 +1373,54 @@ process executor uses it.</p>
 <pre><code class="language-text">pipeloom run [OPTIONS]
 </code></pre>
 <p><strong>Options:</strong></p>
-<pre><code class="language-text">  --project-dir DIRECTORY    Directory that holds pipeloom.yml.  [default: .]
-  --vars TEXT                Variables as a YAML or JSON mapping; they
-                             override the vars block.
-  --target TEXT              Target to bind; default_target or the only target
-                             when omitted.
-  --plugin MODULE:ATTR       A PluginSpec to load besides the installed
-                             plugins. Repeatable.
-  -s, --select SELECTOR      Models to include: name, tag:x, path:dir,
-                             materialized:x, +model, model+, N+model, model+N.
-                             Space unions, comma intersects. Repeatable, all
-                             are unioned.
-  --exclude SELECTOR         Remove the models this selector matches from the
-                             selection. Repeatable.
-  --log-format [text|json]   Diagnostics and events on stderr: readable text
-                             or one JSON object per line.  [default: text]
-  --manifest FILE            Run the plan of this manifest instead of
-                             compiling the project.
-  --expect-plan-hash HEX     Stop with PLX103 unless the plan hash is this
-                             sha256.
-  --run-id TEXT              Name of the run. Reusing it continues that run.
-                             Default: a timestamp and a suffix.
-  --full-refresh BOOLEAN     Rebuild append tables from scratch. Takes an
-                             optional true or false.  [default: False]
-  --run-started-at ISO8601   Start time of the run, with a UTC offset (for
-                             example the start of the orchestrator job).
-                             Engines use it to make writes idempotent. Needs
-                             --run-id. A reused run id keeps the start it
-                             recorded.
-  --fail-fast                After the first failure, start no more units.
-  --no-lock                  Do not take the run lock.
-  --workers INTEGER RANGE    Units to run at once. Default: the target's
-                             setting, else min(4, CPUs).  [x&gt;=1]
-  --boundary [process|task]  process runs units on threads here; task runs
-                             each in its own process. Default: the target's
-                             boundary.
-  --warn-error               Exit 1 on warnings too.
-  --cancel-grace DURATION    After a stop request (Ctrl+C, SIGTERM) or a
-                             timeout, how long running units may finish before
-                             they are killed, as 30s, 2m or 30. Default: the
-                             setting, else 30s.
-  --help                     Show this message and exit.
+<pre><code class="language-text">  --project-dir DIRECTORY      Directory that holds pipeloom.yml.  [default:
+                               .]
+  --vars TEXT                  Variables as a YAML or JSON mapping; they
+                               override the vars block.
+  --target TEXT                Target to bind; default_target or the only
+                               target when omitted.
+  --plugin MODULE:ATTR         A PluginSpec to load besides the installed
+                               plugins. Repeatable.
+  -s, --select SELECTOR        Models to include: name, tag:x, path:dir,
+                               materialized:x, +model, model+, N+model,
+                               model+N. Space unions, comma intersects.
+                               Repeatable, all are unioned.
+  --exclude SELECTOR           Remove the models this selector matches from
+                               the selection. Repeatable.
+  --log-format [text|json]     Diagnostics and events on stderr: readable text
+                               or one JSON object per line.  [default: text]
+  --manifest FILE              Run the plan of this manifest instead of
+                               compiling the project.
+  --expect-plan-hash HEX       Stop with PLX103 unless the plan hash is this
+                               sha256.
+  --run-id TEXT                Name of the run. Reusing it continues that run.
+                               Default: a timestamp and a suffix.
+  --full-refresh BOOLEAN       Rebuild append tables from scratch. Takes an
+                               optional true or false.  [default: False]
+  --run-started-at ISO8601     Start time of the run, with a UTC offset (for
+                               example the start of the orchestrator job).
+                               Engines use it to make writes idempotent. Needs
+                               --run-id. A reused run id keeps the start it
+                               recorded.
+  --orchestrator-id KEY=VALUE  An id the orchestrator gave this run, such as
+                               job_run_id=42. It goes into the attempt files,
+                               the run results and the context of every event.
+                               Repeatable; a later duplicate wins. Key:
+                               [a-z][a-z0-9_]{0,63}; value: 1 to 256 printable
+                               characters.
+  --fail-fast                  After the first failure, start no more units.
+  --no-lock                    Do not take the run lock.
+  --workers INTEGER RANGE      Units to run at once. Default: the target's
+                               setting, else min(4, CPUs).  [x&gt;=1]
+  --boundary [process|task]    process runs units on threads here; task runs
+                               each in its own process. Default: the target's
+                               boundary.
+  --warn-error                 Exit 1 on warnings too.
+  --cancel-grace DURATION      After a stop request (Ctrl+C, SIGTERM) or a
+                               timeout, how long running units may finish
+                               before they are killed, as 30s, 2m or 30.
+                               Default: the setting, else 30s.
+  --help                       Show this message and exit.
 </code></pre>
 <h4 id="pipeloom-schema">pipeloom schema<a class="headerlink" href="#pipeloom-schema" title="Permanent link">&para;</a></h4>
 <p>JSON Schemas for the YAML files.</p>

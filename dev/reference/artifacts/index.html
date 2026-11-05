@@ -1105,7 +1105,7 @@ use to judge its intermediates) and <code>warnings</code> (run-level messages, s
 </tr>
 <tr>
 <td><code>skip_reason</code></td>
-<td><code>upstream_failed</code> or <code>fail_fast</code> for a skipped unit, else null.</td>
+<td><code>upstream_failed</code> or <code>fail_fast</code> for a skipped unit; <code>not_run</code> (or the orchestrator's own reason) when <code>pipeloom finalize</code> found no result; else null.</td>
 </tr>
 <tr>
 <td><code>attempt</code>, <code>retries_used</code></td>
@@ -1149,7 +1149,7 @@ use to judge its intermediates) and <code>warnings</code> (run-level messages, s
 <code>is_incremental</code>, <code>watermark_before</code> and <code>watermark_after</code> (ISO text for dates and timestamps),
 and <code>warnings</code> carries <code>watermark_seeded: target</code> when the state store had no watermark.
 Fields that later versions fill stay null or empty: <code>rows_dropped</code>, <code>rows_quarantined</code>,
-<code>bytes_read</code>, <code>schema_changes</code>, <code>expectations</code> and <code>orchestrator_ids</code>.</p>
+<code>bytes_read</code>, <code>schema_changes</code> and <code>expectations</code>. <code>orchestrator_ids</code> holds the ids from <code>--orchestrator-id</code>.</p>
 <p>There is no published JSON Schema for this file yet. It is described here and covered by golden
 tests; a schema under <code>schema/v1/</code> will follow once the field set stops moving.</p>
 <h2 id="events">Events<a class="headerlink" href="#events" title="Permanent link">&para;</a></h2>

@@ -441,6 +441,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Unit mode for orchestrators">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#closing-the-run-pipeloom-finalize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Closing the run: pipeloom finalize
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1019,6 +1036,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Unit mode for orchestrators">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#closing-the-run-pipeloom-finalize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Closing the run: pipeloom finalize
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1131,6 +1165,34 @@ PLX105 and names the holder, its run id and when the lease expires. <code>--no-l
 <code>run.*</code> events, no <code>run_results.json</code>. Use it when an orchestrator owns the schedule and the
 retries. Each invocation writes its own attempt file and event file under the run folder, and
 the invocation that owns the run merges them when it finalizes. The unit ids are in the manifest.</p>
+<p>Pass the ids the orchestrator gave the run with <code>--orchestrator-id KEY=VALUE</code>, repeated as
+needed, for example <code>--orchestrator-id job_run_id=42</code>. Keys match <code>[a-z][a-z0-9_]{0,63}</code> and
+values are 1 to 256 printable characters; a later duplicate wins. The ids go into every attempt
+file, the <code>orchestrator_ids</code> of each result row and of the run, and the <code>context</code> of every event
+as <code>orchestrator_id.&lt;key&gt;</code>.</p>
+<h3 id="closing-the-run-pipeloom-finalize">Closing the run: <code>pipeloom finalize</code><a class="headerlink" href="#closing-the-run-pipeloom-finalize" title="Permanent link">&para;</a></h3>
+<p>When the orchestrator ran each unit itself, nothing merged the results. <code>pipeloom finalize
+--run-id &lt;id&gt;</code> does it as the last task of the job. For each unit in scope (the whole plan, or
+what <code>-s/--select</code> and <code>--exclude</code> leave) it takes, in this order:</p>
+<ol>
+<li>the unit's attempt file;</li>
+<li>else the state the orchestrator reports in <code>--unit-states PATH</code>, a JSON file
+   <code>{"schema": "pipeloom.unit_states/1", "units": {"&lt;unit id&gt;": {"status": "failed", ...}}}</code>.
+   <code>status</code> is <code>skipped</code>, <code>cancelled</code>, <code>failed</code> or <code>excluded</code>; <code>reason</code> (for <code>skipped</code>, default
+   <code>upstream_failed</code>), <code>code</code>, <code>message</code> and <code>orchestrator_ids</code> are optional. <code>excluded</code> drops the
+   unit from the results;</li>
+<li>else the unit is <code>skipped</code> with the reason <code>upstream_failed</code> when one of its upstreams failed, otherwise <code>not_run</code>, which does not fail the run.</li>
+</ol>
+<p>The run is failed when any unit failed, timed out or was skipped as <code>upstream_failed</code>, else
+cancelled when any unit was cancelled, else succeeded. The exit code is 0, 1 or 130. A file that
+cannot be read or does not match the schema is exit 2. Finalize records the run in the state
+store, deletes expired intermediates and emits <code>run.completed</code>. Running it again with the same
+inputs rewrites the same results. It also takes <code>--manifest</code>, <code>--expect-plan-hash</code>,
+<code>--orchestrator-id</code>, <code>--run-started-at</code> and the project options of <code>run</code>.</p>
+<p>Finalize refuses with PLX105 (exit 1, as <code>run</code> does) while a <code>pipeloom run</code> of the same run id is
+still live, that is, its lock is held and its run record says <code>running</code>.</p>
+<p>On a file system without hard links (some network volumes), attempt files are created with an
+exclusive open instead of a link, which is still exclusive but not atomic.</p>
 <h2 id="output">Output<a class="headerlink" href="#output" title="Permanent link">&para;</a></h2>
 <p>The console prints one line per unit, a summary, the failure block for each failed unit and the
 paths of the files written. See <a href="../../reference/artifacts/">Run artifacts</a> for the files.</p>

@@ -1773,7 +1773,7 @@ queued  → skipped   (fail_fast stopped the run)
 pending → cancelled (run cancelled)
 queued  → cancelled (run cancelled)
 </code></pre>
-<p>The transition table is checked in code (<code>pipeloom.runtime.states</code>). <code>retrying -&gt; cancelled</code> is part of it: a stop request, or fail-fast, cancels a unit that waits for its next attempt. A skipped unit carries a reason: <code>upstream_failed</code> (with the failed upstream) or <code>fail_fast</code>.</p>
+<p>The transition table is checked in code (<code>pipeloom.runtime.states</code>). <code>retrying -&gt; cancelled</code> is part of it: a stop request, or fail-fast, cancels a unit that waits for its next attempt. A skipped unit carries a reason: <code>upstream_failed</code> (with the failed upstream) or <code>fail_fast</code>; <code>pipeloom finalize</code> adds <code>not_run</code> for a unit with neither an attempt file nor an orchestrator state (ADR-0034).</p>
 <p><strong>Run state machine:</strong> <code>created → compiled → running → succeeded | failed | cancelled</code>. A run with warnings is still <code>succeeded</code>.</p>
 <p><img alt="The unit and run state machines, including the retry, timeout, skip and cancel transitions." src="../diagrams/04-state-machines.svg" /></p>
 <p>Source: <a href="../diagrams/04-state-machines.d2">04-state-machines.d2</a>.</p>
@@ -1963,7 +1963,7 @@ quality: {quarantine: true, max_drop_ratio: 0.05}
 - Schema: <code>schema_hash</code>, <code>schema_changes[]{kind, column, old, new, action}</code>.
 - Quality: <code>expectations[]{name, kind, action, passed, failed, value}</code> (<code>passed</code> is null and <code>value</code> is set for aggregate checks), <code>warnings[]</code> (expectation warnings and <code>watermark_seeded: target</code>). A replayed unit restores them from the stored commit metadata.
 - Error: <code>{code, category, message, hint, exception_type, trace_excerpt}</code>.
-- Runtime: <code>engine</code>, <code>engine_version</code>, <code>executor</code>, <code>orchestrator_ids</code> (Databricks job, run and task run ids; Airflow dag, run, task and try), <code>idempotency_token</code>.</p>
+- Runtime: <code>engine</code>, <code>engine_version</code>, <code>executor</code>, <code>orchestrator_ids</code> (Databricks job, run and task run ids; Airflow dag, run, task and try; filled from <code>--orchestrator-id</code>, ADR-0034), <code>idempotency_token</code>.</p>
 <p><strong>Per-run metadata (<code>run_results.run</code>):</strong>
 - <code>run_id</code>, <code>parent_run_id</code>, <code>invocation_ids[]</code>, <code>project</code>, <code>target</code>, <code>plan_hash</code>, <code>selector</code>, <code>args</code>, <code>full_refresh</code>.
 - <code>status</code>, <code>started_at</code>, <code>ended_at</code>, <code>duration_ms</code>, <code>counts{status: n}</code>, <code>totals{rows_written, bytes_written}</code>.
