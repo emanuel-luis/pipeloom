@@ -3,7 +3,10 @@ arguments and the errors a broken configuration raises at parse time."""
 
 from __future__ import annotations
 
+import importlib
+import importlib.metadata
 import logging
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -102,6 +105,44 @@ def test_an_old_airflow_is_pla005(af_project: Any, monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(dag_module, "airflow_version", lambda: "3.1.7")
     with pytest.raises(PipeloomAirflowError) as info:
         make_dag(af_project)
+    assert [d.code for d in info.value.diagnostics] == ["PLA005"]
+
+
+def _fake_version(value: str | None) -> Any:
+    def version(name: str) -> str:
+        if name == "apache-airflow":
+            if value is None:
+                raise importlib.metadata.PackageNotFoundError(name)
+            return value
+        return real_version(name)
+
+    real_version = importlib.metadata.version
+    return version
+
+
+@pytest.mark.parametrize(
+    ("installed", "message"),
+    [
+        ("2.10.5", "Airflow 2.10.5 is not supported"),
+        ("3.1.7", "Airflow 3.1.7"),
+        (None, "not installed"),
+    ],
+)
+def test_importing_the_dag_module_with_an_unsupported_airflow_is_pla005(
+    monkeypatch: pytest.MonkeyPatch, installed: str | None, message: str
+) -> None:
+    """The check runs before `_compat` imports `airflow.sdk`, so an old Airflow (whose
+    `airflow.sdk` would not import) gives PLA005 instead of an ImportError."""
+    monkeypatch.setattr(importlib.metadata, "version", _fake_version(installed))
+    for name in (
+        "pipeloom_airflow.dag",
+        "pipeloom_airflow._compat",
+        "pipeloom_airflow.operators",
+        "pipeloom_airflow.operators.local",
+    ):
+        monkeypatch.delitem(sys.modules, name, raising=False)
+    with pytest.raises(PipeloomAirflowError, match=message) as info:
+        importlib.import_module("pipeloom_airflow.dag")
     assert [d.code for d in info.value.diagnostics] == ["PLA005"]
 
 

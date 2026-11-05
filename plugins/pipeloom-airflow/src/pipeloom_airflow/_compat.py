@@ -7,8 +7,25 @@ import asyncio
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
-from airflow.sdk import DAG, Asset, BaseHook, BaseOperator, BaseSensorOperator, Param, TaskGroup
-from airflow.sdk.exceptions import AirflowException, AirflowFailException, AirflowSkipException
+from pipeloom_airflow.version import require_airflow
+
+# Before any Airflow import: an unsupported or missing Airflow is PLA005, not an ImportError.
+require_airflow()
+
+from airflow.sdk import (
+    DAG,
+    Asset,
+    BaseHook,
+    BaseOperator,
+    BaseSensorOperator,
+    Param,
+    TaskGroup,
+)
+from airflow.sdk.exceptions import (
+    AirflowException,
+    AirflowFailException,
+    AirflowSkipException,
+)
 
 if TYPE_CHECKING:
     from airflow.sdk import Context
