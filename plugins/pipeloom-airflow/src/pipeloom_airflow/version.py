@@ -31,9 +31,15 @@ def require_airflow() -> None:
     """Raise `PipeloomAirflowError` (PLA005) unless a supported Airflow is installed. Reads the
     distribution metadata only, so it runs before anything imports `airflow`."""
     report = Report()
-    try:
-        version = importlib.metadata.version("apache-airflow")
-    except importlib.metadata.PackageNotFoundError:
+    version = None
+    # `apache-airflow` is a wrapper over `apache-airflow-core` in Airflow 3; either may be alone
+    for dist in ("apache-airflow-core", "apache-airflow"):
+        try:
+            version = importlib.metadata.version(dist)
+            break
+        except importlib.metadata.PackageNotFoundError:
+            continue
+    if version is None:
         report.add(
             "PLA005",
             "Airflow is not installed",
