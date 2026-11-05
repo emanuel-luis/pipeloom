@@ -116,3 +116,24 @@ def test_inherited_unique_key_on_an_overwrite_model_is_fine(tmp_path: Path) -> N
     assert codes(tmp_path, models, base=with_defaults("{write: {unique_key: [id]}}")) == set()
     declared = "models:\n  - {name: a, sql: select 1, write: {unique_key: [id]}}\n"
     assert codes(tmp_path, declared) == {"PLP405"}
+
+
+def test_plp412_ignores_the_same_schema_in_another_catalog(tmp_path: Path) -> None:
+    q = "quality: {quarantine: true}, expectations: [{name: e, check: {not_null: [x]}, on_violation: drop}]"
+    models = (
+        f"models:\n  - {{name: a, sql: 'select 1 as x', {q}}}\n"
+        "  - {name: a__quarantine, sql: select 1 as x, catalog: other}\n"
+    )
+    assert "PLP412" not in codes(tmp_path, models)
+
+
+def test_plp412_uses_the_effective_catalog_of_the_naming_options(tmp_path: Path) -> None:
+    base = BASE.replace(
+        "engine: {kind: memory}", "engine: {kind: memory}\n    naming: {kind: none, catalog: base}"
+    )
+    q = "quality: {quarantine: true}, expectations: [{name: e, check: {not_null: [x]}, on_violation: drop}]"
+    models = (
+        f"models:\n  - {{name: a, sql: 'select 1 as x', {q}}}\n"
+        "  - {name: a__quarantine, sql: select 1 as x, catalog: base}\n"
+    )
+    assert "PLP412" in codes(tmp_path, models, base=base)

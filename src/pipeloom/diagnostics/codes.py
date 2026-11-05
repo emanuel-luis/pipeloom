@@ -476,7 +476,7 @@ _ACTIVE_03: Final = (
         "PLP412",
         E,
         "Quarantine relation collides with a model",
-        "A model's quarantine table is named <model>__quarantine, and another model already has that name in the same schema.",
+        "A model's quarantine table is named <model>__quarantine, and another model already has that name in the same catalog and schema.",
     ),
     (
         "PLP413",

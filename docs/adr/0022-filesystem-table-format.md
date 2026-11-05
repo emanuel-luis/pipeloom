@@ -32,7 +32,7 @@ The polars and pandas engines write files, and a rerun of the same run id must n
 
 ## Status
 
-Accepted
+Accepted. Amended by [ADR-0040](0040-per-model-catalog.md): a target's catalog is a leading directory, `<root>/<catalog>/<schema>/<name>/`.
 
 ## Date
 

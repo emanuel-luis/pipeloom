@@ -178,14 +178,23 @@ def check_semantics(pg: ProjectGraph, report: Report) -> None:
             for e in inlined_ancestors(graph, uid, ephemeral):
                 fanout[e] += 1
     limit = project.bound.loaded.config.ephemeral_fanout_warn
-    taken = {(mm.config.schema_, mm.name) for mm in project.models.values()}
+    # The effective catalog and schema: the model's own, else the naming options'. Prefix and
+    # per_user transform both sides of a comparison equally, so they need not be applied.
+    naming = project.bound.plugins["naming"].options
+    base_catalog = getattr(naming, "catalog", None)
+    base_schema = getattr(naming, "schema_", None)
+
+    def place(c: ResolvedModelConfig) -> tuple[str | None, str | None]:
+        return (c.catalog or base_catalog, c.schema_ or base_schema)
+
+    taken = {(*place(mm.config), mm.name) for mm in project.models.values()}
     for uid, m in project.models.items():
         _check_model(project, m, report)
         clash = f"{m.name}__quarantine"
         if (
             m.config.quality.quarantine
             and m.config.expectations
-            and (m.config.schema_, clash) in taken
+            and (*place(m.config), clash) in taken
         ):
             report.add(
                 "PLP412",

@@ -518,3 +518,44 @@ def test_manifest_vars_bind_the_project_and_explicit_vars_win(tmp_path: Path) ->
     )
     assert r.exit_code == 0, r.stderr
     assert (root / "x/runs/r2/run_results.json").is_file()
+
+
+def test_a_stable_manifest_runs_every_model(tmp_path: Path) -> None:
+    root = make_project(
+        tmp_path,
+        {"pipeloom.yml": YML, "models/m.yml": "models:\n  - {name: a, sql: select 1 as x}\n"},
+    )
+    out = root / "m.json"
+    compiled = CliRunner().invoke(
+        main,
+        ["compile", "--project-dir", str(root), "--target", "ci", "--stable", "--out", str(out)],
+    )
+    assert compiled.exit_code == 0, compiled.stderr
+    r = pipeloom(root, "--manifest", str(out), "--run-id", "r1")
+    assert r.exit_code == 0, r.stderr
+    assert statuses(root, "r1") == {"a": "succeeded"}
+
+
+def test_a_manifest_whose_selector_matched_nothing_still_runs_nothing(tmp_path: Path) -> None:
+    root = make_project(
+        tmp_path,
+        {"pipeloom.yml": YML, "models/m.yml": "models:\n  - {name: a, sql: select 1 as x}\n"},
+    )
+    out = root / "m.json"
+    compiled = CliRunner().invoke(
+        main,
+        [
+            "compile",
+            "--project-dir",
+            str(root),
+            "--target",
+            "ci",
+            "-s",
+            "tag:none",
+            "--out",
+            str(out),
+        ],
+    )
+    assert compiled.exit_code == 0, compiled.stderr
+    r = pipeloom(root, "--manifest", str(out), "--run-id", "r2")
+    assert r.exit_code == 0 and not (root / "target" / "runs" / "r2" / "run_results.json").exists()

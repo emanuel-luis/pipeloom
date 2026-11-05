@@ -11,12 +11,12 @@
     "data": {
       "code": "PLX103",
       "severity": "error",
-      "message": "plan hash 226395c68671 differs from the expected 000000000000",
+      "message": "plan hash ba6a7ffcd3c7 differs from the expected 000000000000",
       "hint": "the project or the manifest changed since the hash was taken; compile again",
       "location": null,
       "context": {
         "expected": "0000000000000000000000000000000000000000000000000000000000000000",
-        "actual": "226395c68671b755fa4662b20f1425017b39fcf6c33c133ce8f446335a066384"
+        "actual": "ba6a7ffcd3c75f75d53401ed2c0d680c072ccd0b18a77131b5d49a383da0f42d"
       }
     },
     "context": {}

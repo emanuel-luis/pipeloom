@@ -2,8 +2,8 @@
   "name": "pipeloom_shop_main_ci",
   "tags": {
     "pipeloom_job": "shop.main.ci",
-    "pipeloom_plan_hash": "a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
-    "pipeloom_settings_hash": "c34a68f8140da68d14267702fc8854f834d1c2f0521d307b82007c7dc517f404",
+    "pipeloom_plan_hash": "7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6",
+    "pipeloom_settings_hash": "034545979226d2fbe052e6ebcc88b29b35a46a8544664e4b54e677f6b904d886",
     "pipeloom_version": "1.2.3"
   },
   "parameters": [
@@ -51,7 +51,7 @@
           "--target=ci",
           "--pipeline=main",
           "--group=dir_models_marts",
-          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6",
           "--run-id={{job.parameters.pipeloom_run_id}}",
           "--full-refresh={{job.parameters.full_refresh}}",
           "--job-id={{job.id}}",
@@ -77,7 +77,7 @@
           "--target=ci",
           "--pipeline=main",
           "--group=dir_models_staging",
-          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6",
           "--run-id={{job.parameters.pipeloom_run_id}}",
           "--full-refresh={{job.parameters.full_refresh}}",
           "--job-id={{job.id}}",
@@ -108,7 +108,7 @@
           "--manifest=/Workspace/pipeloom/shop/manifest.json",
           "--target=ci",
           "--pipeline=main",
-          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6",
           "--run-id={{job.parameters.pipeloom_run_id}}",
           "--full-refresh={{job.parameters.full_refresh}}",
           "--job-id={{job.id}}",

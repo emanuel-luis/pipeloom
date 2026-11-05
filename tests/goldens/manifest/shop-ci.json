@@ -25,7 +25,7 @@
       }
     },
     "config_version": 1,
-    "plan_hash": "a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+    "plan_hash": "7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6",
     "project": "shop",
     "target": "ci",
     "boundary": "process",
@@ -89,12 +89,13 @@
         "timeout": null,
         "frame_api": "native",
         "schema": null,
+        "catalog": null,
         "meta": {}
       },
       "tags": [
         "mart"
       ],
-      "checksum": "87a6a8453d20a4e3420ef68fb90430315685d1c37fc6526213ef646b16422987"
+      "checksum": "0cf0aa8ab7a19d0538ef6ac149368208e9bb402eddb31d228103462092cbc91d"
     },
     "model.shop.fct_orders": {
       "unique_id": "model.shop.fct_orders",
@@ -148,12 +149,13 @@
         "timeout": null,
         "frame_api": "native",
         "schema": null,
+        "catalog": null,
         "meta": {}
       },
       "tags": [
         "mart"
       ],
-      "checksum": "3c942fed5e62654349b88a8b3fa1ac5ff0c76fcd0949caa85e169b03ce40d06b"
+      "checksum": "3396e268ebdcf0e36dfa891f2b4924bef51914a03650e2e41136344ac4786767"
     },
     "model.shop.orders_enriched": {
       "unique_id": "model.shop.orders_enriched",
@@ -202,10 +204,11 @@
         "timeout": null,
         "frame_api": "native",
         "schema": null,
+        "catalog": null,
         "meta": {}
       },
       "tags": [],
-      "checksum": "9c77f55f1beab7f3e00978de5cf2b6a835bce1ba61437be9fa56f0a6698ee0c6"
+      "checksum": "3dcf0ff22ca555166e2eb2708f889ce23e3244bd34ca404f5e2e7089b1e4203f"
     },
     "model.shop.rpt_revenue": {
       "unique_id": "model.shop.rpt_revenue",
@@ -255,10 +258,11 @@
         "timeout": null,
         "frame_api": "native",
         "schema": null,
+        "catalog": null,
         "meta": {}
       },
       "tags": [],
-      "checksum": "de4457035c3b09ed329591d31ea2f3d09f31aa404970dbaacf34c970bb5b524a"
+      "checksum": "6ffe76faf859bb688547b24e0aa80366fdbc8ccf239f89ee601ed2c54721805b"
     },
     "model.shop.stg_customers": {
       "unique_id": "model.shop.stg_customers",
@@ -310,12 +314,13 @@
         "timeout": null,
         "frame_api": "native",
         "schema": null,
+        "catalog": null,
         "meta": {}
       },
       "tags": [
         "staging"
       ],
-      "checksum": "699122a6b93645c4a842fefb2f0d0899e218072d0368c30eabcd8cc68456cfb1"
+      "checksum": "38027b7032fd520b357f76f2955f2fd04f6761c94a6e641d0dc5968d29123058"
     },
     "model.shop.stg_orders": {
       "unique_id": "model.shop.stg_orders",
@@ -367,12 +372,13 @@
         "timeout": null,
         "frame_api": "native",
         "schema": null,
+        "catalog": null,
         "meta": {}
       },
       "tags": [
         "staging"
       ],
-      "checksum": "b7175a767ad5ea42955033b9e65d619ed5bca89fbac14e6f14da89f921ad22e7"
+      "checksum": "19c9197f9f1924844baa9ab6bb91961197ead5c8ab6d3e086b0f9c4a7c5c16fd"
     },
     "model.shop.stg_payments": {
       "unique_id": "model.shop.stg_payments",
@@ -424,12 +430,13 @@
         "timeout": null,
         "frame_api": "native",
         "schema": null,
+        "catalog": null,
         "meta": {}
       },
       "tags": [
         "staging"
       ],
-      "checksum": "1a37ca14b88e4426c136a5281445ffa75d8df4ea8c778e67d1ad32836e9fb734"
+      "checksum": "df4399649f77deab550d2b302c5328e4404427700b533df2ba97b1c31e53cfa0"
     }
   },
   "sources": {

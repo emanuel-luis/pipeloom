@@ -109,7 +109,7 @@ per run even if the unit is retried. If the model output changes, the quarantine
 table.
 
 A view or an ephemeral model cannot carry expectations (PLP411), and no other model may be called
-`<model>__quarantine` in the same schema (PLP412). An engine that does not declare the `quality`
+`<model>__quarantine` in the same catalog and schema (PLP412). An engine that does not declare the `quality`
 capability is rejected with PLC510.
 
 ## What the run records

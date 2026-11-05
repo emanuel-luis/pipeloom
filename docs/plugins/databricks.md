@@ -209,7 +209,9 @@ naming the path and never the value.
 
 `catalog: {kind: unity, catalog: main}` works with the Spark engine only. Tables and views are
 addressed as `` `catalog`.`schema`.`name` ``; the option fills in the catalog when the target's
-naming leaves it empty. A schema is created only when it does not exist yet, so a principal
+naming leaves it empty. A model's `catalog` setting (or a folder `_defaults.yml`) wins over both,
+so each layer can write to its own catalog. pipeloom never creates a catalog: every catalog a
+model names must exist, and the principal needs `USE CATALOG` on it. A schema is created only when it does not exist yet, so a principal
 without `CREATE SCHEMA` can write to an existing one.
 
 ## Limits and unconfirmed facts
