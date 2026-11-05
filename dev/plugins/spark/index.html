@@ -16,7 +16,7 @@
         <link rel="prev" href="../pandas/">
       
       
-        <link rel="next" href="../../reference/cli/">
+        <link rel="next" href="../databricks/">
       
       
         
@@ -846,6 +846,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../databricks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -915,6 +943,34 @@
     
   
     Command line
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/databricks-cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks commands
   
 
     
@@ -1385,7 +1441,7 @@ connection reset. Install Java and <code>uv</code> in the WSL distribution and r
 </tr>
 <tr>
 <td><code>active</code></td>
-<td>Uses the existing session and never builds, configures or stops anything.</td>
+<td>Uses the existing session and never configures or stops it. On a Databricks runtime with no active session (a wheel task starts without one) it attaches with <code>builder.getOrCreate()</code> and no conf.</td>
 </tr>
 <tr>
 <td><code>auto</code> (default)</td>
