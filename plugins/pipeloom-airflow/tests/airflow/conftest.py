@@ -83,6 +83,41 @@ def af_project(tmp_path: Path) -> tuple[Path, Path, str]:
     return project, manifest, outcome.value.metadata.plan_hash
 
 
+DBX_PROJECT = """config_version: 1
+name: dbx
+engine: {kind: memory}
+catalog: {kind: memory}
+state: {kind: json, path: state}
+artifacts: {root: /Volumes/main/ops/pipeloom}
+deploy: {kind: databricks}
+targets:
+  prod: {boundary: task}
+"""
+DBX_MODELS = """models:
+  - {name: a, sql: select 1 as x}
+  - {name: b, sql: select * from a, inputs: {a: {ref: a}}}
+  - {name: c, sql: select 2 as x}
+"""
+
+
+@pytest.fixture
+def dbx_project(tmp_path: Path) -> tuple[Path, Path, str]:
+    """A project with a databricks deploy block (models a -> b, and c) and its stable manifest:
+    (project dir, manifest, plan hash). Target `prod`."""
+    from pipeloom.api import Project, ProjectOptions
+    from pipeloom.plan.manifest import write_manifest
+
+    project = tmp_path / "dbx"
+    (project / "models").mkdir(parents=True)
+    (project / "pipeloom.yml").write_text(DBX_PROJECT, encoding="utf-8")
+    (project / "models" / "m.yml").write_text(DBX_MODELS, encoding="utf-8")
+    outcome = Project(ProjectOptions(project_dir=project, target="prod", env={})).compile()
+    assert outcome.value is not None, [d.message for d in outcome.diagnostics]
+    manifest = tmp_path / "dbx-manifest.json"
+    write_manifest(outcome.value, manifest, stable=True)
+    return project, manifest, outcome.value.metadata.plan_hash
+
+
 @pytest.fixture
 def af_plan(af_project: tuple[Path, Path, str]) -> tuple[Any, Any]:
     """(TaskPlan, CoreCommand) of the test project in LOCAL mode, loaded from its manifest."""
