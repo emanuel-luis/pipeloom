@@ -35,7 +35,7 @@ winutils.
 | --- | --- |
 | `local` | Builds a session with `master` (default `local[*]`), `app_name` and `conf`, and adds the Delta jars, SQL extension and catalog unless `delta: false`. |
 | `connect` | Builds a Spark Connect session from `remote` or `SPARK_REMOTE`. A URL that starts with `local` starts a local Connect server with the same conf. |
-| `active` | Uses the existing session and never builds, configures or stops anything. |
+| `active` | Uses the existing session and never configures or stops it. On a Databricks runtime with no active session (a wheel task starts without one) it attaches with `builder.getOrCreate()` and no conf. |
 | `auto` (default) | `active` when `DATABRICKS_RUNTIME_VERSION` is set or a session exists, else `connect` when `remote` or `SPARK_REMOTE` is set, else `local`. |
 
 Only a session the engine built is stopped. The engine sets no Spark conf on a session it did not

@@ -1,0 +1,67 @@
+name: databricks-live
+
+# Manual only: checks the Databricks facts that no offline test can confirm (see
+# tools/databricks_live.py). Nothing in the regular CI triggers it, and it runs only in the
+# upstream repository, against the protected environment `databricks-live`.
+on:
+  workflow_dispatch:
+    inputs:
+      catalog:
+        description: Unity Catalog catalog that receives the scratch schema
+        required: true
+        type: string
+      volume:
+        description: Volume path for wheels and artifacts, /Volumes/<catalog>/<schema>/<volume>
+        required: true
+        type: string
+      environment_version:
+        description: Serverless environment version of the job tasks
+        required: false
+        default: "5"
+        type: string
+      keep_job:
+        description: Keep the jobs, uploaded folders and scratch schema for inspection
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: databricks-live
+  cancel-in-progress: false
+
+jobs:
+  live:
+    if: github.repository == 'emanuel-luis/pipeloom'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: databricks-live
+    env:
+      # never fall back to a profile file: authentication comes from the environment secrets
+      DATABRICKS_CONFIG_FILE: /nonexistent
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - run: uv sync --locked --all-packages
+      - run: uv build --all-packages
+      - name: Live checks
+        env:
+          CATALOG: ${{ inputs.catalog }}
+          VOLUME: ${{ inputs.volume }}
+          ENVIRONMENT_VERSION: ${{ inputs.environment_version }}
+          KEEP_JOB: ${{ inputs.keep_job }}
+          SHA: ${{ github.sha }}
+        run: |
+          keep=""
+          if [ "$KEEP_JOB" = "true" ]; then keep="--keep-job"; fi
+          uv run python tools/databricks_live.py \
+            --catalog "$CATALOG" --volume "$VOLUME" \
+            --environment-version "$ENVIRONMENT_VERSION" \
+            --dist dist --sha "$SHA" $keep
