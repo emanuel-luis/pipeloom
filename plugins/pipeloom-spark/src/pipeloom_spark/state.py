@@ -102,9 +102,12 @@ TAKE_LOCK: Final = (
 """Take a free or expired lease; `acquired_us` is the taker's now."""
 
 
-def merge_sql(ident: str, clauses: str) -> str:
+def merge_sql(ident: str, kind: str, clauses: str) -> str:
+    """The literal partition filter keeps Delta from reading, and so conflicting on, the other
+    kinds' partitions."""
     return (
-        f"MERGE INTO {ident} AS t USING {{src}} AS s ON t.kind = s.kind AND t.key = s.key {clauses}"
+        f"MERGE INTO {ident} AS t USING {{src}} AS s ON t.kind = '{kind}' AND t.kind = s.kind "
+        f"AND t.key = s.key {clauses}"
     )
 
 
@@ -221,7 +224,7 @@ class DeltaStateStore:
         """Run one MERGE with `row` as the source; the number of rows it changed."""
         spark = self._spark()
         values = tuple(row.get(n) for n in (*_NAMES, "expected_key"))
-        text = merge_sql(self._ident, clauses)
+        text = merge_sql(self._ident, row["kind"], clauses)
 
         def run() -> int:
             src = spark.createDataFrame([values], _SOURCE_DDL)

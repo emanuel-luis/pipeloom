@@ -11,8 +11,9 @@ from pipeloom_spark.state import CAS, TAKE_LOCK, UPSERT, create_sql, merge_sql, 
 
 
 def test_merge_matches_on_kind_and_key() -> None:
-    assert merge_sql("delta.`/s`", UPSERT).startswith(
-        "MERGE INTO delta.`/s` AS t USING {src} AS s ON t.kind = s.kind AND t.key = s.key "
+    assert merge_sql("delta.`/s`", "run", UPSERT).startswith(
+        "MERGE INTO delta.`/s` AS t USING {src} AS s ON t.kind = 'run' AND t.kind = s.kind "
+        "AND t.key = s.key "
         "WHEN MATCHED THEN UPDATE SET t.kind = s.kind, t.key = s.key,"
     )
     assert "expected_key" not in UPSERT.split("INSERT")[1]
