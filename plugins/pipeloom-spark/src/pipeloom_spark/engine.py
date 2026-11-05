@@ -26,13 +26,15 @@ from pipeloom.engine.types import (
     Relation,
     Schema,
     TargetRef,
+    WriteConfig,
     WriteResult,
 )
-from pipeloom_spark import errors, io, sqltext
+from pipeloom_spark import errors, io, quality, sqltext
 from pipeloom_spark.catalog import DeltaPathCatalog, SparkSessionCatalog, schema_of
 from pipeloom_spark.session import SessionHandle, open_session
 from pipeloom_spark.spec import CAPABILITIES, SparkEngineOptions
 from pipeloom_spark.types import spark_ddl
+from pipeloom_spark.write import DeltaWriter
 
 if TYPE_CHECKING:
     from pipeloom.engine.protocols import Catalog
@@ -71,16 +73,34 @@ class _Reader:
         return _rel(io.read(spark, fmt, spec.location, spec.options))
 
 
+class _Materializer:
+    def __init__(self, writer: DeltaWriter, strategy: str) -> None:
+        self._writer = writer
+        self.strategy = strategy
+
+    def materialize(
+        self, rel: Relation, target: TargetRef, cfg: WriteConfig, token: str
+    ) -> WriteResult:
+        return self._writer.materialize(self.strategy, rel, target, cfg, token)
+
+
 class SparkEngineSession:
     """Thread-safe: `spark` is shared, and a unit's tag and persisted frames are per unit."""
 
     def __init__(
-        self, handle: SessionHandle, catalog: DeltaPathCatalog | SparkSessionCatalog, run_id: str
+        self,
+        handle: SessionHandle,
+        catalog: DeltaPathCatalog | SparkSessionCatalog,
+        run_id: str,
+        project: str = "pipeloom",
+        *,
+        txn_guard: bool = True,
     ) -> None:
         self.handle = handle
         self.spark = handle.spark
         self.native: Any = handle.spark
         self.catalog = catalog
+        self._writer = DeltaWriter(self, project, txn_guard=txn_guard)
         self._run_id = run_id
         # Classic Spark keeps session tags for Connect operations only: its jobs are tagged and
         # cancelled through the SparkContext, which a Connect session does not have.
@@ -97,29 +117,52 @@ class SparkEngineSession:
             raise ValueError(f"spark engine cannot read format '{fmt}'")
         return _Reader(self, fmt)
 
-    # -- writing (the Delta strategies come with the write path) ---------------------------------
+    # -- writing --------------------------------------------------------------------------------
 
     def materializer(self, strategy: str) -> Materializer:
-        raise ValueError(f"spark engine does not support strategy '{strategy}'")
+        if strategy not in CAPABILITIES.strategies:
+            raise ValueError(f"spark engine does not support strategy '{strategy}'")
+        return _Materializer(self._writer, strategy)
 
     def create_view(
         self, target: TargetRef, query: str, inputs: Mapping[str, ReadSpec]
     ) -> WriteResult:
-        raise NotImplementedError("the spark engine does not create views yet")
+        if not isinstance(self.catalog, SparkSessionCatalog):
+            raise TypeError("views need the spark_catalog catalog")
+        ctes = []
+        for alias, spec in inputs.items():
+            if spec.format == "table" and spec.table is not None:
+                physical = self.catalog.ident(spec.table)
+            elif spec.format in ("delta", "parquet") and spec.location is not None:
+                physical = f"{spec.format}.{sqltext.quote_ident(spec.location)}"
+            else:
+                raise ValueError(
+                    f"input '{alias}' ({spec.format}) cannot back a view: use a table, delta or "
+                    "parquet source"
+                )
+            ctes.append(f"{sqltext.quote_ident(alias)} AS (SELECT * FROM {physical})")
+        body = query.strip().rstrip(";").rstrip()
+        with_ = f"WITH {', '.join(ctes)} " if ctes else ""
+        self.spark.sql(
+            f"CREATE OR REPLACE VIEW {self.catalog.ident(target)} AS "
+            f"{with_}SELECT * FROM (\n{body}\n)"
+        )
+        return WriteResult()
 
     def write_intermediate(self, rel: Relation, ref: IntermediateRef, token: str) -> WriteResult:
-        raise NotImplementedError("the spark engine does not write intermediates yet")
+        return self._writer.intermediate(rel, ref.location, ref.model, token, ref.run_started_at)
 
     def applied_token(self, target: TargetRef, token: str) -> WriteResult | None:
-        return None
+        return self._writer.applied(self.catalog.ident(target), token)
 
     def evaluate(self, rel: Relation, checks: Sequence[ExpectationSpec]) -> QualityCounts:
-        raise NotImplementedError("the spark engine does not evaluate expectations yet")
+        return quality.evaluate(rel, checks, self.schema(rel))
 
     def apply_drops(
         self, rel: Relation, checks: Sequence[ExpectationSpec], *, quarantine: QuarantineMeta | None
     ) -> DropResult:
-        raise NotImplementedError("the spark engine does not evaluate expectations yet")
+        kept, dropped = quality.apply_drops(rel, checks, self.schema(rel), quarantine)
+        return DropResult(_rel(kept), None if dropped is None else _rel(dropped))
 
     # -- relations ----------------------------------------------------------------------------
 
@@ -287,7 +330,9 @@ class SparkEngine:
                 f"not {type(catalog).__name__}"
             )
         with open_session(self.opts, os.environ) as handle, catalog.attach(handle):
-            session = SparkEngineSession(handle, catalog, ctx.run_id)
+            session = SparkEngineSession(
+                handle, catalog, ctx.run_id, ctx.project, txn_guard=self.opts.txn_guard
+            )
             try:
                 yield session
             finally:

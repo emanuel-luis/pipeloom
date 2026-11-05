@@ -5,25 +5,26 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Annotated, Any, Literal
 
-from pydantic import AfterValidator, Field, ValidationInfo
+from pydantic import AfterValidator, Field, ValidationInfo, model_validator
 
 from pipeloom.config.types import resolve_project_path
 from pipeloom.engine.protocols import Catalog, Engine
-from pipeloom.engine.types import CatalogCapabilities, EngineCapabilities
+from pipeloom.engine.types import CatalogCapabilities, EngineCapabilities, StateStoreCapabilities
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
+from pipeloom.state.types import StateStore
 from pipeloom_spark.sqltext import has_scheme
 
 CAPABILITIES = EngineCapabilities(
     formats=frozenset({"delta", "parquet", "csv", "json", "ndjson"}),
-    strategies=frozenset(),  # the Delta strategies arrive with the write path
-    materializations=frozenset({"table", "ephemeral"}),
+    strategies=frozenset({"append", "overwrite", "merge", "replace_partitions"}),
+    materializations=frozenset({"table", "ephemeral", "view", "incremental", "intermediate"}),
     sql_models=True,
-    views=False,
-    idempotent_writes=False,
+    views=True,
+    idempotent_writes=True,
     cancel=True,
-    bytes_metrics=False,
+    bytes_metrics=True,
     portable=True,
-    quality=False,
+    quality=True,
 )
 
 
@@ -59,6 +60,21 @@ class DeltaPathOptions(OptionsModel):
     """Directory under which `<schema>/<name>` Delta tables live."""
 
 
+class TableStateOptions(OptionsModel):
+    table: str | None = None
+    """Catalog table name, for example `ops._pipeloom_state`."""
+    path: RootPath | None = None
+    """Directory or URI of a path-based Delta table. Set exactly one of `table` and `path`."""
+    session: SparkEngineOptions = Field(default_factory=SparkEngineOptions)
+    """Used only when no Spark session exists yet; the store reuses the engine's session."""
+
+    @model_validator(mode="after")
+    def _one_location(self) -> TableStateOptions:
+        if (self.table is None) == (self.path is None):
+            raise ValueError("set exactly one of `table` and `path`")
+        return self
+
+
 class SparkCatalogOptions(OptionsModel):
     catalog: str | None = None
     """Spark catalog name; the session's current catalog when unset."""
@@ -80,6 +96,12 @@ def _spark_catalog(opts: Any) -> Catalog:
     from pipeloom_spark.catalog import SparkSessionCatalog
 
     return SparkSessionCatalog(opts.catalog)
+
+
+def _table_state(opts: Any) -> StateStore:
+    from pipeloom_spark.state import DeltaStateStore
+
+    return DeltaStateStore(opts)
 
 
 ENGINE_SPEC: PluginSpec[Engine] = PluginSpec(
@@ -115,4 +137,15 @@ SPARK_CATALOG_SPEC: PluginSpec[Catalog] = PluginSpec(
     compatible_engines=frozenset({"spark"}),
     capabilities=CatalogCapabilities(views=True),
     description="Tables and views by name through the Spark session catalog.",
+)
+
+TABLE_STATE_SPEC: PluginSpec[StateStore] = PluginSpec(
+    "table",
+    "table",
+    "state_stores",
+    API_VERSION,
+    _table_state,
+    TableStateOptions,
+    capabilities=StateStoreCapabilities(shared=True),
+    description="State in one Delta table, shared by every process that can reach it.",
 )
