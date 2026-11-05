@@ -356,7 +356,7 @@ Each finding is a `Diagnostic(code, severity, message, hint, location{file,line,
 | L6 static code | PLK | PLK601 callable file or function not found; PLK602 parameters do not match inputs; PLK603 SQL references undeclared table (warning, active when the `sqlglot` extra is installed, 0.2); PLK604 callable name bound by something other than a def (warning); PLK605 SQL not parseable for that check (warning, 0.2) |
 | L7 preflight (opt-in, connects) | PLF | PLF701 engine unreachable; PLF702 source missing; PLF703 target schema drift detected |
 | Runtime | PLX, PLM, PLQ, PLE, PLU | PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict (data already written; permanent); PLM205 watermark unusable (missing column, family mismatch or a lookback on a non-temporal column, 0.3); PLM206 write key invalid (missing key column or duplicate merge key, 0.3); PLQ301 expectation failed or `max_drop_ratio` exceeded; PLQ302 expectation names an unknown column or an `expr` the engine rejects (0.3); PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX105 run lock held (0.2); PLX106 unit process exited without a result (0.2); PLX107 manifest invalid (0.2); PLM204 input read failed (0.2) |
-| Renderers | PLD, PLA | PLD001 task limit exceeded; PLD002 submit above 100 tasks; PLA001 unsupported execution mode |
+| Renderers | PLD, PLA | PLD001 task limit exceeded; PLD002 submit above 100 tasks; PLA001 unsupported execution mode, or its extra is missing (0.6); PLA002 invalid Airflow plugin configuration (0.6); PLA003 selection renders no unit (warning, 0.6); PLA004 unit task ended without a visible unit result (0.6); PLA005 unsupported Airflow version (0.6); PLA006 PROJECT compile cache unusable (warning, 0.6); PLA007 target boundary is not `task` (warning, 0.6) |
 
 **Commands:**
 - `pipeloom validate` runs L0-L6.
@@ -547,7 +547,7 @@ Long engine (JVM) traces are trimmed to the first user frame and the root cause.
 - Schema: `schema_hash`, `schema_changes[]{kind, column, old, new, action}`.
 - Quality: `expectations[]{name, kind, action, passed, failed, value}` (`passed` is null and `value` is set for aggregate checks), `warnings[]` (expectation warnings and `watermark_seeded: target`). A replayed unit restores them from the stored commit metadata.
 - Error: `{code, category, message, hint, exception_type, trace_excerpt}`.
-- Runtime: `engine`, `engine_version`, `executor`, `orchestrator_ids` (Databricks job, run and task run ids; Airflow dag, run, task and try; filled from `--orchestrator-id`, ADR-0034), `idempotency_token`.
+- Runtime: `engine`, `engine_version`, `executor`, `orchestrator_ids` (Databricks job, run and task run ids; Airflow dag, run, task and try as `airflow_dag_id`, `airflow_run_id`, `airflow_task_id` and `airflow_try_number`; filled from `--orchestrator-id`, ADR-0034), `idempotency_token`.
 
 **Per-run metadata (`run_results.run`):**
 - `run_id`, `parent_run_id`, `invocation_ids[]`, `project`, `target`, `plan_hash`, `selector`, `args`, `full_refresh`.
@@ -630,18 +630,19 @@ Source: [06-databricks.d2](diagrams/06-databricks.d2).
 **`pipeloom-airflow`** supports Airflow 3.2 up to 4.0 (`apache-airflow>=3.2,<4`, installed through the `airflow` extra; the package has no hard Airflow dependency, see [ADR-0037](adr/0037-airflow-packaging-and-rendering.md)). It imports `from airflow.sdk import DAG, TaskGroup, BaseOperator, BaseSensorOperator, Asset`. Triggers come from the Airflow 3 trigger base (verify the module path per minor version).
 
 ```python
-from pipeloom_airflow import PipeloomDag, ProjectConfig, RenderConfig, ExecutionConfig, ExecutionMode, LoadMode
+from pipeloom_airflow.config import ProjectConfig, RenderConfig, ExecutionConfig, ExecutionMode, LoadMode
+from pipeloom_airflow.dag import PipeloomDag
 
 shop_daily = PipeloomDag(
     dag_id="shop_daily", schedule="@daily", start_date=datetime(2026, 1, 1),
     project_config=ProjectConfig(project_dir="/opt/pipelines/shop", manifest_path="/opt/pipelines/shop/target/manifest.json"),
     target="prod",
-    render_config=RenderConfig(load_method=LoadMode.MANIFEST, select=["tag:daily"], group_by="folder", emit_assets=True),
+    render_config=RenderConfig(load_method=LoadMode.MANIFEST, select=("tag:daily",), group_by="folder", emit_assets=True),
     execution_config=ExecutionConfig(mode=ExecutionMode.DATABRICKS, databricks_conn_id="databricks_default"),
 )
 ```
 
-`PipeloomTaskGroup` takes the same configs inside an existing DAG.
+`PipeloomTaskGroup` takes the same configs inside an existing DAG. `ExecutionConfig` fields: `mode`, `project_dir` and `manifest_path` (where units execute, defaulting to `ProjectConfig`'s), `virtualenv_dir`, `kubernetes` (`KubernetesConfig(image, namespace, python, pod_kwargs)`), `env`, and the `databricks_*` fields: `conn_id`, `pipeline`, `ensure_job`, `poll`, `poll_interval`, `timeout` (the user guide, [Airflow](plugins/airflow.md), lists them with defaults). The package has extras `airflow`, `kubernetes` (adds the cncf-kubernetes provider `>=10.25,<11`) and `databricks` (adds `pipeloom-databricks`, not the Databricks provider).
 
 **ADR-0012: Airflow rendering.**
 
@@ -651,16 +652,26 @@ shop_daily = PipeloomDag(
 - Neither imports engines or connects to anything.
 
 **Execution modes:**
-- `LOCAL`: `PipeloomRunOperator` per unit runs `pipeloom run --manifest ... --select unit:<id> --run-id <rid>` in a subprocess.
+- `LOCAL`: `PipeloomRunOperator` per unit runs `pipeloom run --select unit:<id> --run-id <rid>` (with `--manifest` in MANIFEST mode, and always `--expect-plan-hash`) in a child process group.
 - `VIRTUALENV`: the same, using a prebuilt venv path.
-- `KUBERNETES`: wraps `KubernetesPodOperator` from the cncf provider extra with a user image.
+- `KUBERNETES`: `PipeloomKubernetesOperator`, a `KubernetesPodOperator` from the cncf provider extra with a user image. Never deferrable.
 - `DATABRICKS`: described below.
-- `DOCKER`: later.
+- `DOCKER`: later (PLA001 in 0.6).
+
+**Artifact store (ADR-0038).** The target's `artifacts.root` must be one shared POSIX directory for every unit task and the finalize task: any path under the LocalExecutor, NFS, EFS or SMB under Celery, a ReadWriteMany claim or a CSI mount (through `pod_kwargs`) on Kubernetes. fsspec is rejected for 0.6 because create-once files and atomic replace are not portable across its backends, and state stores and filesystem catalogs need shared storage anyway. A unit task that succeeded with no visible attempt file fails finalize with PLA004.
+
+**Retries.**
+
+| Mode | Retries owned by | Notes |
+|---|---|---|
+| LOCAL, VIRTUALENV | Airflow: model `retries` and `retry_delay` | A unit invocation never retries itself. Exit 2: no retry. Exit 130: retry. Exit 1: no retry when the terminal error is permanent and `retry_on` is `transient`. |
+| KUBERNETES | Airflow, same counts | `retry_on` is not enforced: Airflow sees only the pod result. |
+| DATABRICKS | Databricks task retries | Sensors have no retries; the launch retries twice and attaches to its run. |
 
 **Shared behavior:**
-- One Airflow task per unit. Airflow retries own the retry count.
+- One Airflow task per unit. `group_by` only nests visual task groups.
 - Trigger rule `all_success`, so skip-downstream maps to `upstream_failed`.
-- A `pipeloom_finalize` task runs with `all_done`.
+- A `pipeloom_finalize` task runs with `all_done`, reads the Airflow task states and exits 1 when the pipeloom run failed, so the DAG run fails.
 - `rid` is `af-` plus 16 hex characters of sha256 of the NUL-separated dag_id, Airflow run_id and, inside a task group, the group id (ADR-0037), stable across task retries. A clear-and-rerun of failed tasks therefore continues the same pipeloom run.
 - With `emit_assets`, each model task declares `Asset(uri=<target URI>)` outlets.
 
@@ -672,16 +683,18 @@ Source: [07-airflow-modes.d2](diagrams/07-airflow-modes.d2).
 - Options: (a) `DatabricksWorkflowTaskGroup` with `DatabricksTaskOperator` children; (b) one `run-now` of the bundle-deployed job, with per-model status mirroring.
 - Option (a) builds the job spec from Airflow operators at parse time. That duplicates the pipeloom renderer, forces job name `<dag_id>.<group_id>`, fixes `max_concurrent_runs=1`, and disables "Repair All Failed Tasks" on Airflow 3.
 - Choice: (b).
-  - A deferrable `launch` task (`PipeloomDatabricksRunOperator`) finds the job by tag, or creates it from the manifest at run time with `ensure_job=True`. It calls `run-now` with `job_parameters {pipeloom_run_id: rid}` and pushes the Databricks run id to XCom.
-  - If a terminal Databricks run already exists for `rid` and has failures (for example after a cleared `launch`), it calls repair with all failed tasks instead.
-  - Each model gets a deferrable `PipeloomDatabricksTaskSensor` that mirrors the task state of its `task_key`: success, failed (error excerpt from the unit artifact), or skipped (`AirflowSkipException` for upstream-failed or excluded tasks).
+  - A `launch` task (`PipeloomDatabricksRunOperator`) finds the job by tag, or deploys it at run time with `databricks_ensure_job` (PLD007 or PLD008 otherwise). It calls `run-now` with `job_parameters {pipeloom_run_id: rid}` and pushes the Databricks run id to XCom. It compiles the project on the worker and checks the plan hash (PLX103).
+  - If a Databricks run already exists for `rid`, it attaches to it, or repairs it when tasks failed (for example after a cleared `launch`), recording each rerun task's attempt count as a baseline.
+  - Each model gets a `PipeloomDatabricksTaskSensor` that mirrors the task state of its `task_key`: success, failed (`AirflowFailException` with the Databricks task message and the run page URL), or skipped (`AirflowSkipException` for upstream-failed or excluded tasks). A last sensor on the job's finalize task, trigger rule `all_done`, is `pipeloom_finalize`.
   - The sensors keep the plan's dependencies, so the Airflow graph is the pipeline graph.
-- Consequences: one job definition whether the run is triggered by Airflow, the Databricks UI or the CLI, and repair stays in Databricks. Airflow task retries of a sensor only re-poll; reruns go through `launch`. Polling load is about one call per sensor per interval, with a configurable interval and an optional shared poll cache in `launch`'s XCom.
+  - Poll modes (ADR-0039). `per_task` (default): the launch returns after run-now or repair, each sensor makes one `get_run` call and defers on its own `DatabricksRunTrigger` without a verdict. `shared`: the launch defers on one whole-run trigger and the sensors read its final snapshot from XCom, with no call. Every deferral is bounded by `databricks_timeout` (default 24 hours).
+- Consequences: one job definition whether the run is triggered by Airflow, the Databricks UI or the CLI, and repair stays in Databricks. Reruns go through `launch`. Polling load in `per_task` is one call per waiting sensor per interval; `shared` is one call per interval but results show only when the run is over.
 
 ## 14. Security and secrets
 
 - Secrets never appear as literals in YAML. Fields whose names match secret patterns accept only `${secret:...}` or `${env:...}` (PLS104).
 - `${secret:<provider>/<path>}` resolves at runtime inside the executing process through the `pipeloom.secret_providers` group. Providers: `env` (core), `file` (core, mode-checked), `databricks` (secret scopes), `airflow` (connections and variables).
+- Connections. Airflow DATABRICKS mode maps the Airflow connection itself (host; token in the password or `extra.token`; `extra.service_principal_oauth` with the client id as login) and builds the client with `pipeloom_databricks.api.connect_explicit`, so no profile, `~/.databrickscfg` or worker `DATABRICKS_*` variable changes the authentication. Errors name the connection id, never a value (PLD010); secrets pass through Airflow's `mask_secret` and a trigger serializes only the connection id (ADR-0039). The PROJECT compile cache stores a sha256 fingerprint of each environment variable the plan read, never its value (ADR-0037).
 - The manifest, events and artifacts store only the references. Resolved values are registered with the redaction filter.
 - Discovery never imports plugins until a config names them. `PIPELOOM_DISABLE_PLUGIN_AUTOLOAD` exists for locked-down hosts.
 - Supply chain:
@@ -718,7 +731,9 @@ Catalog, state-store and sink contract suites follow the same pattern.
 
 **Renderer tests:**
 - Databricks: snapshot JSON and YAML, the limits, and task-key sanitizing.
-- Airflow: DAG-bag parse with no network access, with a parse-time budget, and per-mode task graphs.
+- Airflow: DAG-bag parse with no network access, with a parse-time budget, and per-mode task graphs. Pure modules (configs, loading, rendering, argv, states) run on every matrix cell with no Airflow installed; a test proves `airflow` stays out of `sys.modules`.
+  - The `airflow` CI job (Ubuntu) runs the Airflow-importing tests against the locked latest Airflow and against the 3.2.2 floor. Tests opt in with `PIPELOOM_TEST_AIRFLOW=1` and refuse to start unless `AIRFLOW_HOME` is a throwaway directory under the temporary directory, the database is a sqlite file under it, and no `AIRFLOW_CONN_*` or `AIRFLOW__SECRETS__*` variable is set.
+  - DAG-bag parses run in a subprocess with an explicit environment, a socket audit hook that forbids connections, and a sqlite file that must never be created. Budgets: 2 seconds for the shop DAGs, 4 for Kubernetes, 8 for 500 units (Airflow parses the file before every task, so this is also task start-up cost).
 - Live Databricks and Airflow tests run only in a manually dispatched workflow.
 
 **CI:**
@@ -745,7 +760,7 @@ Catalog, state-store and sink contract suites follow the same pattern.
 - **0.3 (delivered):** incremental models with watermarks, merge and replace_partitions on filesystem tables (format /2), schema-change policies, expectations and quarantine, retries with backoff, per-attempt timeouts, graceful and hard cancellation, plugin API (0, 3). SCD2 and `intermediate` moved out of 0.3.
 - **0.4:** `pipeloom-spark` (Delta and Spark Connect), metrics from commit history, intermediates, idempotent writes, the `table` state store.
 - **0.5:** `pipeloom-databricks`: renderer, bundle YAML, deploy, run, repair, finalize, task values, task grouping.
-- **0.6:** `pipeloom-airflow`: LOCAL, VIRTUALENV and KUBERNETES modes, then DATABRICKS mode.
+- **0.6 (delivered):** `pipeloom-airflow`: LOCAL, VIRTUALENV, KUBERNETES and DATABRICKS modes (live `per_task` and `shared` polling), `PipeloomDag` and `PipeloomTaskGroup`, the PROJECT compile cache, `pipeloom finalize --unit-states-json`, `pipeloom_databricks.api.connect_explicit`, PLA001 to PLA007, the `airflow` CI job. Later: the DOCKER mode and an `airflow` secret provider (connections and variables); a `dag.test()` end-to-end test of DATABRICKS mode needs a file-backed Databricks fake or the live workflow.
 - **0.7:** `pipeloom-openlineage`, SCD2, deletes, `pipeloom retry` (`result:fail+`), `state:modified`.
 - **0.8-0.9:** hardening, performance, docs completeness, API freeze candidates, the deprecation policy.
 - **1.0:** `config_version: 1`, plugin API 1.0, manifest, event and run_results schemas v1 all declared stable.
@@ -800,7 +815,7 @@ Each ADR is Context, Options, Choice, Consequences, as written in the sections a
 4. `04-state-machines.d2`: unit and run state machines, including retry, timeout, skip and cancel transitions.
 5. `05-events.d2`: event bus fan-out to sinks, redaction, failure budget, buffered sinks, the artifact writer.
 6. `06-databricks.d2`: plan → job settings or bundle YAML; tasks, finalize, run-id propagation, artifacts on the volume, task values.
-7. `07-airflow-modes.d2`: PipeloomDag in LOCAL/KUBERNETES mode (one task per unit) versus DATABRICKS mode (launch, mirror sensors, repair path).
+7. `07-airflow-modes.d2`: PipeloomDag in LOCAL, VIRTUALENV or KUBERNETES mode (one task per unit, shared artifact root) versus DATABRICKS mode (launch, mirror sensors, repair path).
 
 ## 18. Package skeleton for now
 
@@ -868,7 +883,7 @@ The core sits at the repo root so `README` and `LICENSE` ship in the distributio
 ## Risks
 
 - The orchestrator thread executor's timeouts are cooperative. Code that ignores cancellation keeps running until the process ends.
-- In Airflow DATABRICKS mode the sensors poll per model. Large DAGs need a longer poll interval or the shared poll cache.
+- In Airflow DATABRICKS mode the `per_task` sensors poll per model. Large DAGs need a longer poll interval or `databricks_poll="shared"`.
 - Unverified facts are marked inline: serverless `environment_version`, the task-key length limit, whether pending publishers reserve names, pydantic's draft-2020-12 output, whether uv accepts an empty workspace, and the OpenLineage output-statistics facet. Verify each before implementing it.
 - Narwhals stable-API drift: pinning to `stable.v2` limits it.
 - Lockstep versioning means plugin-only fixes still bump every distribution during 0.x.
@@ -879,5 +894,5 @@ The core sits at the repo root so `README` and `LICENSE` ship in the distributio
 2. Only `pipeloom` is published now. Plugin names are published with their first functional release (ADR-0005).
 3. Docs and JSON Schema URLs live at `https://emanuel-luis.github.io/pipeloom/`. The repo has been public since 2026-11-02.
 4. DCO sign-off. The author and CODEOWNERS are Emanuel Luis. Security reports go through GitHub private vulnerability reporting or email.
-5. The shared artifact store for the Airflow LOCAL and KUBERNETES modes is still open, with fsspec as the leading option (decide in 0.6).
+5. The shared artifact store for the Airflow LOCAL and KUBERNETES modes: decided in 0.6 as one shared POSIX `artifacts.root` with a PLA004 sentinel; fsspec is deferred (ADR-0038).
 6. CI runs Python 3.11 to 3.14 on Ubuntu, Windows and macOS. While the repo was private it ran one Windows and one macOS job on 3.12 only, because macOS minutes cost 10x; the full matrix came back when the repo went public on 2026-11-02.

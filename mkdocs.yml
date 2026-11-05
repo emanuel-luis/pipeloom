@@ -32,6 +32,7 @@ nav:
       - Polars: plugins/polars.md
       - pandas: plugins/pandas.md
       - Spark: plugins/spark.md
+      - Airflow: plugins/airflow.md
   - Reference:
       - Command line: reference/cli.md
       - JSON Schema: reference/schema.md
