@@ -1713,6 +1713,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#plm207" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM207
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#plq301" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2882,6 +2893,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#plm207" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM207
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#plq301" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3273,6 +3295,9 @@
 <h3 id="plm206">PLM206<a class="headerlink" href="#plm206" title="Permanent link">&para;</a></h3>
 <p>Write key invalid. Severity: error. Status: active. Since: 0.3.</p>
 <p>A unique_key or partition_by column is missing from the batch, or a merge batch repeats a unique_key.</p>
+<h3 id="plm207">PLM207<a class="headerlink" href="#plm207" title="Permanent link">&para;</a></h3>
+<p>Write refused by the idempotency guard. Severity: error. Status: active. Since: 0.4.</p>
+<p>The engine skipped the write because this model already has a later transaction version: a newer run, an overlapping run started with --no-lock, or a host clock that ran behind. The engine refuses before it changes any data. Wait for the other run, check the clocks, or turn the guard off in the engine options.</p>
 <h3 id="plq301">PLQ301<a class="headerlink" href="#plq301" title="Permanent link">&para;</a></h3>
 <p>Expectation failed. Severity: error. Status: active. Since: 0.3.</p>
 <p>An expectation with on_violation: fail found violating rows, or the share of dropped rows exceeded quality.max_drop_ratio. The unit fails before writing; the counts are still recorded in run_results.</p>
