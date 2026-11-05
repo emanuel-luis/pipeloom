@@ -34,6 +34,8 @@ After a unit task the wrapper sets the task value `pipeloom` (`v`, `run_id`, `st
 
 `pipeloom_databricks.testing.jobsim.simulate_job` runs a rendered job locally: it substitutes the references, runs the tasks in dependency order through the wrapper, and honors `run_if`, `only` and a repair (`rerun`). The Spark engine's `active` mode, when `DATABRICKS_RUNTIME_VERSION` is set and no session is active, attaches with `builder.getOrCreate()` and no conf, because a wheel task starts without a session; it never configures or stops that session.
 
+Run, repair and finalize states (second half). `run` finds the job by tag and compares its `pipeloom_settings_hash` tag with the local render: a missing job is PLD007 and a different hash PLD008, unless `--ensure` deploys first. `--select` and `--exclude` resolve on the plan, intersect the pipeline's units and become `only` (task keys, groups deduplicated, plus finalize); a partly selected group runs whole with a warning, and an empty selection is exit 2. With `--run-id` the start carries `idempotency_token = sha256("<job_id>:<run_id>")`. `--ephemeral` uploads as deploy does and submits with the token `sha256(run_id)`; a selection prunes the submitted tasks and finalize waits for the selection's leaves. A repair of a finished run reruns tasks that ended FAILED, TIMEDOUT, CANCELED, UPSTREAM_FAILED, UPSTREAM_CANCELED or MAXIMUM_CONCURRENT_RUNS_REACHED plus finalize, passes `latest_repair_id` from the run history, and a run still active is PLD014. After a repair `--wait` keeps polling until the run reports the new repair id. The finalize wrapper calls `connect(profile=None, env=os.environ)` and `get_run`, and maps each unit without an attempt file: EXCLUDED to `excluded`, UPSTREAM_FAILED and UPSTREAM_CANCELED to `skipped` (upstream_failed), CANCELED and TIMEDOUT to `cancelled`, FAILED to `failed` with PLD011 and the termination message. The map goes to core as `--unit-states`. A client error prints one warning and passes no states, so those units count as not run. A one-time run has no job run id in its task parameters, so its finalize asks for nothing.
+
 Output is byte-deterministic: JSON with 2-space indent, ASCII only and LF, keys in field order; bundle YAML from `yaml.safe_dump` without key sorting. Environment dependencies default to the pinned distributions (`pipeloom`, `pipeloom-databricks` and every plugin in the plan, `name==version`, sorted).
 
 ## Consequences
@@ -42,7 +44,7 @@ The job is a plain JSON document that a person can read, diff and send to the Jo
 
 ## Status
 
-Accepted (first half: rendering, wrapper and bundle command).
+Accepted (first half: rendering, wrapper and bundle command; second half: run, repair and finalize states).
 
 ## Date
 

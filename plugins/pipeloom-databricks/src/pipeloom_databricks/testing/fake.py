@@ -179,7 +179,9 @@ class FakeDatabricks:
             )
         repair_id = self._id()
         self.repairs.append((run_id, tuple(rerun_tasks), latest_repair_id))
-        self.runs[run_id] = replace(self.runs[run_id], latest_repair_id=repair_id)
+        self.runs[run_id] = replace(
+            self.runs[run_id], life_cycle_state="RUNNING", latest_repair_id=repair_id
+        )
         return repair_id
 
     # workspace
