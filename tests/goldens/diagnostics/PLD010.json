@@ -1,0 +1,21 @@
+[
+  {
+    "schema": "pipeloom.event/1",
+    "run_id": null,
+    "seq": 2,
+    "type": "diagnostic",
+    "level": "error",
+    "unit_id": null,
+    "model": null,
+    "attempt": null,
+    "data": {
+      "code": "PLD010",
+      "severity": "error",
+      "message": "no Databricks connection: pass --profile, set DATABRICKS_CONFIG_PROFILE, set DATABRICKS_HOST with credentials, or run on a Databricks runtime",
+      "hint": null,
+      "location": null,
+      "context": {}
+    },
+    "context": {}
+  }
+]

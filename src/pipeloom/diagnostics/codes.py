@@ -543,6 +543,30 @@ _ACTIVE_05: Final = (
         "No model of the plan matches the select selectors of a compute rule, so the rule never applies.",
     ),
     (
+        "PLD006",
+        E,
+        "More than one job carries the pipeloom_job tag",
+        "Two or more Databricks jobs hold the same pipeloom_job tag, so deploy cannot tell which one it owns. Delete or untag the extra jobs; the message lists their ids.",
+    ),
+    (
+        "PLD009",
+        E,
+        "Databricks API request failed",
+        "A call to the Databricks REST API returned an error. The message carries the HTTP status, the error code and the message of the API, with registered secret values masked. Check the connection, the permissions of the caller and the workspace path.",
+    ),
+    (
+        "PLD010",
+        E,
+        "No Databricks connection configured",
+        "The command needs a workspace and none is configured. Pass --profile, set DATABRICKS_CONFIG_PROFILE, set DATABRICKS_HOST with its credentials, or run on a Databricks runtime. pipeloom never picks a profile by itself.",
+    ),
+    (
+        "PLD012",
+        E,
+        "Project file cannot be uploaded",
+        "A project file is above 10 MB, is a notebook (a Databricks notebook header or an .ipynb file), is unreadable or lies outside the project folder, so it cannot be stored as a plain workspace file.",
+    ),
+    (
         "PLD013",
         E,
         "Dynamic value reference not resolved in a task parameter",

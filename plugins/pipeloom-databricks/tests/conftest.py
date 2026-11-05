@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,6 +30,34 @@ LOCS = Locations(
 )
 
 
+class SdkBuiltError(AssertionError):
+    """A test built a real `WorkspaceClient` or `Config`."""
+
+
+def _refuse(*args: object, **kwargs: object) -> None:
+    raise SdkBuiltError("a test built a Databricks SDK client; use FakeDatabricks or a fake api")
+
+
+@pytest.fixture(autouse=True)
+def no_live_databricks(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """No test may reach a workspace or read ~/.databrickscfg.
+
+    Every DATABRICKS_* variable is dropped, the config file points at nothing, and building a
+    `WorkspaceClient` or a `Config` fails. Only the connect tests put recorders in their place.
+    """
+    for name in [n for n in os.environ if n.upper().startswith("DATABRICKS_")]:
+        monkeypatch.delenv(name)
+    monkeypatch.setenv("DATABRICKS_CONFIG_FILE", str(tmp_path / "missing" / "databrickscfg"))
+    try:
+        from databricks import sdk
+        from databricks.sdk import config, core
+    except ImportError:  # pragma: no cover - the dependency is installed with the plugin
+        return
+    monkeypatch.setattr(sdk, "WorkspaceClient", _refuse)
+    monkeypatch.setattr(core, "Config", _refuse)
+    monkeypatch.setattr(config, "Config", _refuse)
+
+
 Deploy = Callable[..., Plan]
 
 
@@ -42,6 +71,11 @@ def with_deploy(plan: Plan, **options: Any) -> Plan:
     """The plan as if its target had this deploy block (the core records it, never builds it)."""
     deploy = {"kind": "databricks", **options}
     return plan.model_copy(update={"metadata": plan.metadata.model_copy(update={"deploy": deploy})})
+
+
+@pytest.fixture
+def compile_project() -> Callable[..., Plan]:
+    return compile_dir
 
 
 @pytest.fixture
