@@ -34,6 +34,8 @@ def make(cls: str, *, condition: str | None = None, status: str | None = None) -
         (make("E", status="UNAVAILABLE"), True),
         (make("E", status="DEADLINE_EXCEEDED"), True),
         (make("Py4JNetworkError"), True),
+        (make("ConcurrentAppendException"), True),
+        (make("ConcurrentAppendException", condition="INTERNAL_ERROR"), True),
         (make("AnalysisException", condition="TABLE_OR_VIEW_NOT_FOUND"), False),
         (make("E", condition="PARSE_SYNTAX_ERROR"), False),
         (make("ParseException"), False),
