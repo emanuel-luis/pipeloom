@@ -1,8 +1,9 @@
-# Plan to Databricks job settings or bundle YAML; tasks, finalize, run-id propagation, artifacts on
-# the volume, task values. Illustrates section 12 (ADR-0011) in docs/architecture.md.
+# Plan to Databricks job settings or bundle YAML; tasks run the plugin wrapper, finalize reads task
+# states, run-id propagation, artifacts on the volume, task values, repair. Illustrates section 12
+# (ADR-0011, amended by ADR-0035 and ADR-0036) in docs/architecture.md.
 ...@_style
 
-title: "Databricks: one plan, one job" {
+title: "Databricks: one plan, one job per pipeline" {
   shape: text
   near: top-center
   style: {font-size: 24; bold: true}
@@ -10,29 +11,30 @@ title: "Databricks: one plan, one job" {
 
 direction: down
 
-plan: "Plan and manifest.json" {class: process}
-renderer: "databricks-job renderer\nrender(plan) -> JobSettings" {class: process}
-bundle: "resources/pipeloom_<project>.job.yml\npipeloom databricks bundle" {class: source}
-deploy: "pipeloom databricks deploy\nSDK: create, or reset by tag\npipeloom_job=<project>.<pipeline>.<target>" {class: process}
+plan: "Plan and stable manifest.json\ndeploy block: pipelines, compute,\ncompute_rules, task_grouping" {class: process}
+renderer: "databricks renderer (pure)\nplan + options -> job settings JSON" {class: process}
+bundle: "<out>/pipeloom_<project>_<pipeline>_<target>.job.yml\npipeloom databricks bundle" {class: source}
+deploy: "pipeloom databricks deploy\nupload project, then create or reset\nfound by tag pipeloom_job" {class: process}
 
 job: "Databricks saved job\nmax_concurrent_runs 1, queueing on\nparameters: pipeloom_run_id, full_refresh\nempty run id resolves to dbx-<job.run_id>" {class: external}
 
-tasks: "model tasks\none python_wheel_task per unit\npipeloom run --select unit:<id>\n--run-id and --expect-plan-hash\nrun_if ALL_SUCCESS" {class: process}
-fin: "pipeloom__finalize\npipeloom finalize\nrun_if ALL_DONE, after all leaves" {class: process}
+tasks: "model tasks\none python_wheel_task per unit or group\npipeloom_databricks_task unit ...\nrun_if ALL_SUCCESS" {class: process}
+fin: "pipeloom__finalize\nrun_if ALL_DONE, after all leaves\nreads task states, exits 1 on a failed run" {class: process}
 
 volume: "UC Volume (artifacts.root)\nunit files, intermediates,\nrun_results.json" {class: store}
-tv: "task values\ntaskValues.set(pipeloom)\nstatus, rows, duration, error code" {class: serving}
+tv: "task values\ntaskValues.set(pipeloom)\nbest effort, under 32 KiB" {class: serving}
 
 plan -> renderer
 renderer -> bundle: "bundle"
 renderer -> deploy: "direct"
 bundle -> job: "bundle deploy\n(your step)" {class: meta}
 deploy -> job
-job -> tasks: "run-now"
+job -> tasks: "run, --select maps to only"
 tasks -> fin
 tasks -> volume: "unit files"
 tasks -> tv
 fin -> volume: "run_results.json"
+fin -> job: "task states\n(Jobs API)" {class: meta}
 
 legend: Legend {
   class: legend
@@ -42,5 +44,5 @@ legend: Legend {
   external: Databricks {class: [external; legend-item]}
   store: stored data {class: [store; legend-store]}
   serving: task values {class: [serving; legend-item]}
-  edges: "repair keeps the job run id,\nso the pipeloom run_id stays stable" {shape: text; style.font-size: 13}
+  edges: "repair reruns failed tasks and finalize\nunder the same job run id, so the\npipeloom run_id stays stable" {shape: text; style.font-size: 13}
 }

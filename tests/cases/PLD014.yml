@@ -1,0 +1,20 @@
+entry_points:
+  - {group: commands, name: databricks, value: "pipeloom_databricks.cli:databricks", dist: pipeloom-databricks, version: "0.3.0"}
+plugins: ["pipeloom_databricks.spec:RENDERER_SPEC"]
+cli: [databricks, "--client-factory=pipeloom_databricks.testing.fake:active_run", repair, --target=prod, --job-run-id=900, --no-wait]
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    engine: {kind: memory}
+    catalog: {kind: memory}
+    state: {kind: json, path: /Volumes/main/ops/state}
+    artifacts: {root: /Volumes/main/ops/pipeloom}
+    deploy:
+      kind: databricks
+      pipelines: {main: {}}
+    targets:
+      prod: {}
+  models/m.yml: |
+    models:
+      - {name: a, sql: select 1 as x}

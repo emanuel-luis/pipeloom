@@ -40,10 +40,10 @@ build: ## build every distribution (core and plugins) into dist/
 	uv build --all-packages
 
 docs: ## build the docs site, failing on any warning
-	uv run --group docs mkdocs build --strict
+	uv run --all-packages --group docs mkdocs build --strict
 
 docs-serve: ## serve the docs site with live reload
-	uv run --group docs mkdocs serve
+	uv run --all-packages --group docs mkdocs serve
 
 # Diagrams: docs/diagrams/<name>.d2 rendered to <name>.svg (committed). One pinned D2 everywhere.
 # Layout engine, themes and padding live in docs/diagrams/_style.d2 (d2-config), so d2 runs in a

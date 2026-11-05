@@ -1,0 +1,23 @@
+[
+  {
+    "schema": "pipeloom.event/1",
+    "run_id": null,
+    "seq": 2,
+    "type": "diagnostic",
+    "level": "error",
+    "unit_id": null,
+    "model": null,
+    "attempt": null,
+    "data": {
+      "code": "PLD008",
+      "severity": "error",
+      "message": "job 101 was deployed from other settings than the project renders now",
+      "hint": "deploy it again with 'pipeloom databricks deploy', or pass --ensure",
+      "location": null,
+      "context": {
+        "job_id": 101
+      }
+    },
+    "context": {}
+  }
+]

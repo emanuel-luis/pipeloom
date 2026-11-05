@@ -128,12 +128,9 @@ def test_finalize_flags_and_exit_code(sim: Callable[..., Sim]) -> None:
     ok = invoke(fin)
     assert ok.exit_code == 0, ok.stderr
     assert s.results("r1")["run"]["status"] == "succeeded"
-    # one warning per unit without an attempt file; the exit code is not affected
-    warned = sorted(ln for ln in ok.stderr.splitlines() if ln.startswith("warning: no attempt"))
-    assert warned == [
-        f"warning: no attempt recorded for unit {u}; the task may have died before running"
-        for u in ("b", "c", "d", "e")
-    ]
+    # no connection in a test: one warning, and the run is judged by its attempt files alone
+    warned = [ln for ln in ok.stderr.splitlines() if ln.startswith("warning: task states not read")]
+    assert len(warned) == 1 and "ConnectionNotConfigured" in warned[0]
     assert invoke(["finalize", *args[1:], "--pipeline=nope"]).exit_code == 1
     assert invoke(unit_args(s, unit="c", **{"task-key": "c"})).exit_code == 1
     assert invoke(fin).exit_code == 1  # c failed: finalize fails the run

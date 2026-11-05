@@ -26,7 +26,7 @@ Declarative, engine-agnostic data pipelines in YAML. 0.2 validates, compiles and
 - `uv sync --locked --all-packages` (the workspace has one lockfile), `uv run pytest -q` (also collects the plugin tests)
 - `uv run ruff check`, `uv run ruff format --check`, `uv run mypy --strict src plugins/pipeloom-polars/src plugins/pipeloom-pandas/src`
 - `uv run lint-imports` (layers, `pipeloom.testing` isolation, no polars, pandas, pyarrow or sqlglot in the core except `validate.static -> sqlglot`)
-- `uv run --group docs mkdocs build --strict`
+- `uv run --all-packages --group docs mkdocs build --strict`
 - `uv build --all-packages`
 - `make help` (diagram targets need Linux or WSL)
 - Commits: Conventional Commits, signed off (`git commit -s`).

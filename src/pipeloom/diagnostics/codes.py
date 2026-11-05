@@ -543,10 +543,64 @@ _ACTIVE_05: Final = (
         "No model of the plan matches the select selectors of a compute rule, so the rule never applies.",
     ),
     (
+        "PLD006",
+        E,
+        "More than one job carries the pipeloom_job tag",
+        "Two or more Databricks jobs hold the same pipeloom_job tag, so deploy cannot tell which one it owns. Delete or untag the extra jobs; the message lists their ids.",
+    ),
+    (
+        "PLD007",
+        E,
+        "Job or run not found",
+        "No Databricks job carries the pipeloom_job tag of this pipeline, or the run asked for does not exist. Deploy the job first, or pass --ensure to run so it deploys one; check the run id and the pipeline.",
+    ),
+    (
+        "PLD008",
+        E,
+        "Deployed job is out of date",
+        "The job in the workspace was deployed from other settings than the project renders now (its pipeloom_settings_hash tag differs). Deploy again, or pass --ensure to run so it deploys first.",
+    ),
+    (
+        "PLD009",
+        E,
+        "Databricks API request failed",
+        "A call to the Databricks REST API returned an error. The message carries the HTTP status, the error code and the message of the API, with registered secret values masked. Check the connection, the permissions of the caller and the workspace path.",
+    ),
+    (
+        "PLD010",
+        E,
+        "No Databricks connection configured",
+        "The command needs a workspace and none is configured. Pass --profile, set DATABRICKS_CONFIG_PROFILE, set DATABRICKS_HOST with its credentials, or run on a Databricks runtime. pipeloom never picks a profile by itself.",
+    ),
+    (
+        "PLD011",
+        E,
+        "Task ended without a unit result",
+        "A Databricks task failed before its unit wrote an attempt file, for example because the cluster was lost, so the unit has no result of its own. Finalize records the unit as failed with the termination message of the task. Read the task's log on the run page; repair reruns it.",
+    ),
+    (
+        "PLD012",
+        E,
+        "Project file cannot be uploaded",
+        "A project file is above 10 MB, is a notebook (a Databricks notebook header or an .ipynb file), is unreadable or lies outside the project folder, so it cannot be stored as a plain workspace file.",
+    ),
+    (
         "PLD013",
         E,
         "Dynamic value reference not resolved in a task parameter",
         "A parameter of a Databricks task still holds a {{...}} reference, so the platform did not substitute it. The task stops before it runs anything. Check the job's parameters and the Databricks runtime that runs the task.",
+    ),
+    (
+        "PLD014",
+        E,
+        "Run is still active",
+        "A repair was asked for a Databricks job run that has not ended. Wait for it to finish or cancel it, then repair.",
+    ),
+    (
+        "PLD015",
+        W,
+        "Selection covers part of a task group",
+        "With task_grouping set, a task runs every unit of its group, so a selection that names only some of them still runs the whole group. Select the whole group, or turn grouping off, to run exactly the units chosen.",
     ),
 )
 
