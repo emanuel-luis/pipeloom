@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pipeloom-pandas"
-version = "0.6.0"
+version = "0.6.1"
 description = "pandas engine for pipeloom: eager DataFrames and file tables."
 readme = "README.md"
 requires-python = ">=3.11"
