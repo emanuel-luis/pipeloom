@@ -96,10 +96,12 @@ A full refresh and a first build follow the core rules described in the
 ### Schema changes
 
 The core decides the final columns from `on_schema_change`. The engine writes added columns in
-the write itself. When columns were removed or a type was widened, the engine first runs one migration
-commit: it reads the table, aligns it to the final columns and overwrites it with
-`overwriteSchema`, keeping the table's partitioning. The migration commit carries no transaction
-options and no token, so it never uses up the write version and is not counted in the metrics.
+the write itself (`mergeSchema`); a merge first makes an empty `mergeSchema` append instead. When
+columns were removed or a type was widened, the engine first runs one migration commit: it reads
+the table, aligns it to the final columns and overwrites it with `overwriteSchema`, keeping the
+table's partitioning. The migration commit carries no transaction options and no token, so it is
+not counted in the metrics. With the guard on, the claim commit made just before it takes the
+write version (see below).
 
 ### Tables created by `spark_catalog`
 
@@ -122,25 +124,34 @@ Before a write, the engine scans the last 100 commits (`DESCRIBE HISTORY`) for t
 returns the stored result and writes nothing, so rerunning a finished run id changes no data.
 
 For a merge, Delta applies the transaction options to a MERGE only through session conf, which
-would leak into other units of the same session. So the MERGE runs as plain SQL and is followed by
-an empty append that carries the token and the stored result. Running the same MERGE again with the
-same batch converges on the same table, so a crash between the two commits is safe, and the token
-commit is the guard against two writers.
+would leak into other units of the same session. So the MERGE runs as plain SQL, and with the guard
+on it is bracketed by two empty appends:
+
+1. A claim commit before it, with the real transaction app id and version and the metadata
+   `{"pipeloom": {"v": 1, "claim": token}}`. It has no token, so the token scan and the metrics
+   ignore it. Delta refuses it when a later version exists, so PLM207 comes before any data
+   changes. Any write that needs a migration commit makes the same claim first.
+2. A token commit after it, with the token and the stored result. The commits after the claim use
+   the app id `<app id>@<token>` with version 1, which still keeps two attempts of the same token
+   from both committing.
+
+Running the same MERGE again with the same batch converges on the same table, so a crash between
+the commits is safe: the retry finds its own claim and continues. A claim is void once a later run
+of the same model has committed, so such a retry fails with PLM207 instead of merging over that
+run's data.
 
 ### PLM207 and its limits
 
 The transaction version only grows. When Delta skips a write and no commit carries the token, the
 engine looks again (a racing attempt may have won), then through the full history. If the token is
 nowhere, a later version already exists for this model and the write fails with PLM207. Nothing was
-written by append, overwrite or replace_partitions. The causes:
+written, for every strategy: the claim commit makes the check come before any data or schema
+change. The causes:
 
 - a newer run of the same model finished first;
 - an overlapping run started with `--no-lock`;
 - a host clock that is behind, since the version comes from a timestamp. Clock skew between
   machines that write the same model can refuse a legitimate write.
-
-For a merge the guard can only refuse the token commit, so the MERGE itself has already been
-applied when PLM207 is raised.
 
 PLM207 is permanent: `retry_on: transient` does not repeat it. To turn the guard off, set
 `txn_guard: false` on the engine. Then no transaction options are sent and only the history check
