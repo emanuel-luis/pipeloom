@@ -63,7 +63,7 @@ def _summary(plan: Plan) -> PlanCompiled:
     "--stable",
     is_flag=True,
     help="Blank generated_at, invocation_id and the selection so the same project and target "
-    "always give the same bytes.",
+    "always give the same bytes. `run --manifest` then runs every model unless --select is given.",
 )
 @click.option("--warn-error", is_flag=True, help="Exit 1 on warnings too.")
 def compile_(
