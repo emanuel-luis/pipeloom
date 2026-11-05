@@ -426,7 +426,7 @@ Source: [04-state-machines.d2](diagrams/04-state-machines.d2).
 - Options: persisted intermediates everywhere (simple, costs IO); inlining (free IO, recomputes); a hybrid.
 - Choice: the hybrid, decided at compile time.
   - `ephemeral` models are inlined. Their bodies run inside each consuming unit. Under `boundary: process` the result is memoized per run, so it is computed once.
-  - `intermediate` models are persisted to `<artifacts.root>/runs/<run_id>/intermediate/<model>` (a scratch schema the catalog provides is planned for 0.5). Finalize deletes them after `intermediate_ttl` (section 11).
+  - `intermediate` models are persisted to `<artifacts.root>/runs/<run_id>/intermediate/<model>` (a scratch schema the catalog provides is planned). Finalize deletes them after `intermediate_ttl` (section 11).
   - `view` creates a catalog view where the engine supports it, never a session view.
 - Consequences: the same plan runs in one process or many. PLP406 warns when an ephemeral model fans out to more than `ephemeral_fanout_warn` (default 3) units and suggests `intermediate`.
 
