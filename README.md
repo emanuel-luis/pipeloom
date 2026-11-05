@@ -27,6 +27,11 @@ The optional extra `sqlglot` adds warnings for SQL that reads undeclared tables.
 
 ![Context diagram: users, the YAML project, the CLI and API, engines, catalogs, orchestrators and event consumers.](docs/diagrams/01-context.svg)
 
+## Examples
+
+[examples/](examples/README.md) has the same TPC-H pipeline (bronze, silver, gold) on polars,
+pandas, Spark and Databricks, with a data generator.
+
 ## Goals
 
 - Declarative YAML with layered validation and editor completion.
