@@ -135,7 +135,7 @@ jobs:
         if: matrix.leg == 'latest'
         run: |
           uv sync --locked --all-packages --group airflow
-          uv run pytest -q -p no:cacheprovider plugins/pipeloom-airflow/tests --cov=pipeloom_airflow
+          uv run pytest -q -p no:cacheprovider plugins/pipeloom-airflow/tests --cov
       # The floor: the oldest supported Airflow on the oldest supported Python, outside the lock.
       - name: Airflow tests (3.2.2 floor)
         if: matrix.leg == 'floor'
