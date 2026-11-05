@@ -14,3 +14,4 @@ site/
 target/
 .pipeloom/
 .env
+examples/data/

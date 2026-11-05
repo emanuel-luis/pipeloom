@@ -3,7 +3,7 @@ SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help install lint format typecheck test spark-test airflow-test build docs docs-serve \
+.PHONY: help install lint format typecheck test spark-test airflow-test examples-data examples-test build docs docs-serve \
 	d2-install diagrams diagrams-check diagrams-watch
 
 help: ## list the targets
@@ -43,6 +43,12 @@ airflow-test: ## print the recipe for the Airflow tests (Airflow does not run on
 	@echo "Extra arguments go to pytest; PIPELOOM_WSL_VENV picks the virtualenv (default ~/.venvs/pipeloom-airflow);"
 	@echo "PIPELOOM_AIRFLOW_PIN=3.2.2 with its own PIPELOOM_WSL_VENV tests the floor."
 	@echo "On Linux or macOS: bash scripts/wsl-airflow-tests.sh"
+
+examples-data: ## generate the TPC-H parquet files for the examples (DuckDB, scale factor 0.01)
+	uv run examples/tpch_data.py
+
+examples-test: ## polars vs pandas parity test on the generated data (run examples-data first)
+	PIPELOOM_TEST_EXAMPLES=1 uv run pytest -q tests/examples
 
 build: ## build every distribution (core and plugins) into dist/
 	uv build --all-packages
