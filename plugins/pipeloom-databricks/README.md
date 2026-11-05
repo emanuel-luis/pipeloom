@@ -75,4 +75,13 @@ targets:
   run (a failed one is PLD011). If the API cannot be read, finalize prints one warning and judges
   by the attempt files alone. A one-time run has no job run id, so it gets no task states.
 
+- Unity Catalog: `catalog: {kind: unity, catalog: main}` (Spark engine only) addresses tables and
+  views as `` `catalog`.`schema`.`name` ``. The option catalog fills in when the target's naming
+  leaves it empty. A schema is created only when it does not exist yet, so a principal without
+  CREATE SCHEMA can write to an existing one.
+- Secrets: `${secret:databricks/<scope>/<key>}` in plugin options reads a Databricks secret
+  scope at run time, with the connection rules above. The value is masked like any resolved
+  secret. A bad path, a missing connection or an API error is PLX109, naming the path and never
+  the value.
+
 License: Apache-2.0.

@@ -33,6 +33,12 @@ Changelog = "https://github.com/emanuel-luis/pipeloom/blob/main/CHANGELOG.md"
 [project.entry-points."pipeloom.renderers"]
 databricks = "pipeloom_databricks.spec:RENDERER_SPEC"
 
+[project.entry-points."pipeloom.catalogs"]
+unity = "pipeloom_databricks.spec:UNITY_SPEC"
+
+[project.entry-points."pipeloom.secret_providers"]
+databricks = "pipeloom_databricks.spec:SECRETS_SPEC"
+
 [project.entry-points."pipeloom.commands"]
 databricks = "pipeloom_databricks.cli:databricks"
 

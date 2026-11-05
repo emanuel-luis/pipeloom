@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `pipeloom-databricks`: the `unity` catalog (`catalog: {kind: unity, catalog: main}`, Spark engine only; three-part backticked names, the schema is created only when absent) and the `databricks` secret provider (`${secret:databricks/<scope>/<key>}`, no profile auto-selection, failures are PLX109 without the value).
 - Orchestration hooks in the core (ADR-0034, plugin API stays (0, 4)): a `deploy` runtime key, bound against the `renderers` group and never built by the core, with its validated options recorded in the manifest as `metadata.deploy` outside the plan hash; `manifest_bytes(plan, stable=True)` and `write_manifest(..., stable=True)` give byte-stable manifests.
 - The `pipeloom.commands` entry-point group adds plugin commands to the CLI. They are discovered from metadata and imported only when invoked; built-in names win, duplicate names resolve by distribution name, a command that cannot be imported exits 1, and `PIPELOOM_DISABLE_PLUGIN_AUTOLOAD` hides them. `plugins list --group commands` lists them.
 - `${secret:provider/path}` references in plugin options resolve at run time (`run`), through the `secret_providers` group, and are masked in events, attempt files, state rows and `run_results.json`, in both boundaries, also under secret-like keys. `$${secret:...}` stays literal text. They are never resolved by compile or validate, and never reach the manifest. PLX109 reports one that cannot be resolved (the blueprint's PLX108 was already taken).
