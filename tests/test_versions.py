@@ -85,3 +85,20 @@ def test_main_exit_codes(workspace: Path, capsys: pytest.CaptureFixture[str]) ->
     assert versions.main(["check", "--tag", "v9.9.9"], root=workspace) == 1
     assert "does not match" in capsys.readouterr().err
     assert versions.main(["bump", "0.3.0", "--no-lock"], root=workspace) == 0
+
+
+def test_an_extra_on_the_pinned_name_is_accepted(workspace: Path) -> None:
+    cur = _current()
+    root = workspace / "pyproject.toml"
+    text = root.read_text(encoding="utf-8")
+    assert f'"pipeloom-spark[local]=={cur}"' in text
+    assert versions.check(workspace) == []
+    root.write_text(
+        text.replace(f"pipeloom-spark[local]=={cur}", "pipeloom-spark[local]==0.0.9"),
+        encoding="utf-8",
+    )
+    assert versions.check(workspace) == [
+        f"the root extra pins pipeloom-spark==0.0.9, not {cur}",
+    ]
+    assert versions.bump(workspace, "7.8.9", lock=False) == []
+    assert '"pipeloom-spark[local]==7.8.9"' in root.read_text(encoding="utf-8")

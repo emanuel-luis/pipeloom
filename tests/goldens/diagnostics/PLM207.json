@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLM207",
+    "severity": "error",
+    "message": "write refused for model 'a': 'main.a' already has a later transaction version: pipeloom.engine.errors.WriteRefusedError: txnVersion is behind the table's last version for this model",
+    "hint": "another run wrote this model later, or a host clock is behind; wait for the other run or check the clocks",
+    "location": {
+      "file": "models/m.yml",
+      "line": 2,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {
+      "unit": "a",
+      "category": "permanent"
+    }
+  }
+]

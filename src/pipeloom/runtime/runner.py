@@ -16,7 +16,7 @@ from pipeloom.artifacts.layout import RunPaths
 from pipeloom.artifacts.results import result_row, schema_hash
 from pipeloom.diagnostics import JsonValue, Location
 from pipeloom.engine import portable
-from pipeloom.engine.errors import WriteKeyError
+from pipeloom.engine.errors import WriteKeyError, WriteRefusedError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
 from pipeloom.engine.types import (
     ROW_CHECKS,
@@ -443,6 +443,14 @@ class ModelRunner:
             )
         except _Fail:
             raise
+        except WriteRefusedError as exc:
+            self._fail(
+                "PLM207",
+                "write",
+                exc,
+                f"write refused for intermediate '{node.name}': a later transaction version exists",
+                "another run wrote this model later, or a host clock is behind",
+            )
         except Exception as exc:  # noqa: BLE001 - engines raise their own errors
             self._fail(
                 "PLM201",
@@ -1066,6 +1074,16 @@ class ModelRunner:
                 f"schema change rejected for model '{node.name}' (on_schema_change: {exc.policy})",
                 "change the model, or set write.on_schema_change to ignore, append_new_columns "
                 "or sync_all_columns",
+            )
+        except WriteRefusedError as exc:
+            self._fail(
+                "PLM207",
+                "write",
+                exc,
+                f"write refused for model '{node.name}': '{target.relation_name}' already has a "
+                "later transaction version",
+                "another run wrote this model later, or a host clock is behind; wait for the "
+                "other run or check the clocks",
             )
         except WriteKeyError as exc:
             self._fail(
