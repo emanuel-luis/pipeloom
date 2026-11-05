@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- A repaired Databricks task keeps the run's start time. `{{job.start_time}}` is the start of the latest repair, so the rerun units passed a start the run had not recorded and stopped with PLX108. The task wrapper now reads the job run's `start_time` from the Jobs API and keeps `--start-ms` only as a fallback.
 - `pipeloom run` and `pipeloom finalize` with `--manifest` now bind the project with the manifest's vars (an explicit `--vars` still wins). This fixes Databricks jobs ignoring the vars given at deploy time.
 - The Databricks task entry point returns on success instead of raising `SystemExit(0)`. Serverless runs it under IPython, which reported every successful task as failed.
 - The console log writes plain lines on Databricks. Rich took the job's IPython kernel for Jupyter and rendered each line as its own HTML block, with large gaps between lines in the job output.

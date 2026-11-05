@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sys
 from collections.abc import Callable
+from dataclasses import replace
 from types import ModuleType
 from typing import Any
 
@@ -15,6 +16,7 @@ from pydantic import JsonValue
 
 import pipeloom_databricks
 from pipeloom_databricks import task
+from pipeloom_databricks.client import ApiError
 from pipeloom_databricks.task import (
     check_resolved,
     cli,
@@ -28,6 +30,7 @@ from pipeloom_databricks.task_values import (
     runtime_task_values,
     summary,
 )
+from pipeloom_databricks.testing.fake import FakeDatabricks
 
 Sim = Any
 HASH = "0" * 64
@@ -170,6 +173,23 @@ def test_main_exits_only_on_failure_and_the_lazy_entry_reads_argv(
     monkeypatch.setattr(sys, "argv", ["pipeloom_databricks_task", *unit_args(s)])
     # success returns: serverless (IPython) reports even SystemExit(0) as a failed task
     pipeloom_databricks.pipeloom_databricks_task()
+
+
+def test_the_run_start_comes_from_the_jobs_api_not_the_repair_start(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # {{job.start_time}} is the start of the latest repair; the run keeps its own start
+    fake = FakeDatabricks()
+    fake.set_run(5, job_id=1, result_state="FAILED")
+    fake.runs[5] = replace(fake.runs[5], start_time_ms=1700000000000)
+    ctx = click.Context(task.cli, obj=task._Context(None, lambda: fake))
+    repair_start = {"start_ms": "1700000090000", "job_run_id": "5"}
+    assert task._run_start(ctx, repair_start) == started_at("1700000000000")
+    # a one-time run has no job run id: the literal start stays
+    assert task._run_start(ctx, {**repair_start, "job_run_id": ""}) == started_at("1700000090000")
+    fake.fail["get_run"] = ApiError(500, "unavailable")
+    assert task._run_start(ctx, repair_start) == started_at("1700000090000")
+    assert "warning: run start not read, using --start-ms" in capsys.readouterr().err
 
 
 # -- helpers -------------------------------------------------------------------------------------

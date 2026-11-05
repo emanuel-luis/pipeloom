@@ -230,6 +230,30 @@ def _default_client() -> DatabricksClient:
     return connect(profile=None, env=os.environ)
 
 
+def _run_start(ctx: click.Context, given: Mapping[str, str]) -> str:
+    """The start of the job run from the Jobs API, else `--start-ms`.
+
+    `{{job.start_time.timestamp_ms}}` is the start of the latest repair, not of the run, so a
+    repaired task would pass a start the run did not record (PLX108). Best effort: on any client
+    error one warning goes to stderr and `--start-ms` is used. A one-time run has no job run id
+    and keeps `--start-ms`, which the renderer writes literally.
+    """
+    fallback = started_at(given["start_ms"])
+    job_run_id = given["job_run_id"]
+    if not job_run_id:
+        return fallback
+    factory = ctx.obj.client_factory if isinstance(ctx.obj, _Context) else None
+    try:
+        start_ms = (factory or _default_client)().get_run(int(job_run_id)).start_time_ms
+    except Exception as exc:  # noqa: BLE001 - the flag is a usable fallback
+        click.echo(
+            f"warning: run start not read, using --start-ms: {type(exc).__name__}: {exc}",
+            err=True,
+        )
+        return fallback
+    return fallback if start_ms is None else started_at(str(start_ms))
+
+
 def _states_file(
     ctx: click.Context,
     opts: Mapping[str, str],
@@ -336,7 +360,7 @@ def unit_command(
     named.update({"unit": unit_id or "", "group": group or ""})
     check_resolved(named)
     run_id = resolve_run_id(given["run_id"], given["job_run_id"])
-    start = started_at(given["start_ms"])
+    start = _run_start(ctx, given)
     refresh = _full_refresh(given["full_refresh"])
     members = (
         (unit_id,)
@@ -377,7 +401,7 @@ def finalize_command(ctx: click.Context, /, **given: str) -> None:
     """
     check_resolved({k.replace("_", "-"): v for k, v in given.items()})
     run_id = resolve_run_id(given["run_id"], given["job_run_id"])
-    start = started_at(given["start_ms"])
+    start = _run_start(ctx, given)
     plan, opts = _deploy(given["manifest"], given["pipeline"])
     report = Report()
     units = pipeline_units(plan, opts, given["pipeline"], report)
