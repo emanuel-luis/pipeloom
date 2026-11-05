@@ -22,16 +22,6 @@ JOBS: Final = "/api/2.2/jobs"
 WORKSPACE: Final = "/api/2.0/workspace"
 IMPORT_FORMAT: Final = "AUTO"
 """The workspace import format; ADR-0036 explains why."""
-_STATUS: Final = {
-    "BadRequest": 400,
-    "Unauthenticated": 401,
-    "PermissionDenied": 403,
-    "NotFound": 404,
-    "Conflict": 409,
-    "TooManyRequests": 429,
-    "InternalError": 500,
-    "TemporarilyUnavailable": 503,
-}
 _RESULT: Final = {
     "SUCCESS": "SUCCESS",
     "SUCCESS_WITH_FAILURES": "SUCCESS_WITH_FAILURES",
@@ -59,9 +49,18 @@ class _Api(Protocol):
 
 
 def _status(err: DatabricksError) -> int:
+    """The HTTP status of an SDK error: its own `status_code` when it has one, else the status
+    the SDK maps to the nearest class in its MRO (read from `STATUS_CODE_MAPPING`, so subclasses
+    such as `Aborted` or `DeadlineExceeded` resolve too), else 0."""
+    own = getattr(err, "status_code", None)
+    if isinstance(own, int) and not isinstance(own, bool):
+        return own
+    from databricks.sdk.errors import platform
+
+    by_class = {cls: code for code, cls in getattr(platform, "STATUS_CODE_MAPPING", {}).items()}
     for cls in type(err).__mro__:
-        if cls.__name__ in _STATUS:
-            return _STATUS[cls.__name__]
+        if cls in by_class:
+            return int(by_class[cls])
     return 0
 
 

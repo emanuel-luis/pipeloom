@@ -314,3 +314,32 @@ def test_databricks_errors_become_api_errors_with_masked_messages() -> None:
     with pytest.raises(ApiError) as other:
         sdk.mkdirs("/x")
     assert other.value.status == 0
+
+
+@pytest.mark.parametrize(
+    ("name", "status"),
+    [
+        ("BadRequest", 400),
+        ("InvalidParameterValue", 400),
+        ("Unauthenticated", 401),
+        ("ResourceConflict", 409),
+        ("Aborted", 409),
+        ("AlreadyExists", 409),
+        ("TooManyRequests", 429),
+        ("Cancelled", 499),
+        ("InternalError", 500),
+        ("NotImplemented", 501),
+        ("TemporarilyUnavailable", 503),
+        ("DeadlineExceeded", 504),
+    ],
+)
+def test_every_sdk_error_class_maps_to_its_http_status(name: str, status: int) -> None:
+    from databricks.sdk.errors import platform
+
+    cls = getattr(platform, name, None)
+    if cls is None:
+        pytest.skip(f"this SDK has no {name}")
+    sdk, _ = client(cls("x"))
+    with pytest.raises(ApiError) as err:
+        sdk.mkdirs("/x")
+    assert err.value.status == status

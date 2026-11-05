@@ -112,7 +112,8 @@ def test_a_finished_upload_is_not_repeated(sim: Callable[..., Sim]) -> None:
     uploads = len(fake.called("upload"))
     again, _ = run(s, fake)
     assert again is not None and again.action == "created" and again.root == first.root
-    assert len(fake.called("upload")) == uploads
+    # only the marker is written again: its time says when the folder was last deployed
+    assert fake.called("upload")[uploads:] == [f"{first.root}/{MARKER_PATH}"]
 
 
 def test_an_unfinished_upload_is_redone(sim: Callable[..., Sim]) -> None:
@@ -130,7 +131,7 @@ def test_prune_keeps_the_current_and_the_newest_others(sim: Callable[..., Sim]) 
     s, fake = sim(), FakeDatabricks()
     roots = []
     for i in range(5):
-        (s.root / "note.txt").write_text(f"v{i}", encoding="utf-8")
+        (s.root / "note.py").write_text(f"v{i}", encoding="utf-8")
         result, _ = run(s, fake)
         roots.append(result.root.rsplit("/", 1)[1])
     left = hash_folders(fake)
@@ -138,12 +139,31 @@ def test_prune_keeps_the_current_and_the_newest_others(sim: Callable[..., Sim]) 
     assert left == sorted(roots[2:])
     deleted = fake.called("delete")
     assert len(deleted) == 2 and all(d.startswith(PARENT) for d in deleted)
+    # the API gives folders no time, and the fake does the same: the order came from the markers
+    assert {e.modified_ms for e in fake.list_dir(PARENT)} == {0}
+
+
+def test_prune_keeps_the_folder_the_job_used_before_a_rollback(sim: Callable[..., Sim]) -> None:
+    s, fake = sim(), FakeDatabricks()
+    roots = []
+    for i in range(4):
+        (s.root / "note.py").write_text(f"v{i}", encoding="utf-8")
+        result, _ = run(s, fake)
+        roots.append(result.root.rsplit("/", 1)[1])
+    (s.root / "note.py").write_text("v1", encoding="utf-8")  # back to the second version
+    back, _ = run(s, fake)
+    assert back is not None and back.root.endswith(roots[1])
+    (s.root / "note.py").write_text("v4", encoding="utf-8")
+    run(s, fake)
+    left = hash_folders(fake)
+    assert roots[1] in left and roots[3] in left  # the rolled-back folder is not the oldest
+    assert roots[2] not in left and len(left) == 3
 
 
 def test_prune_failures_are_warnings(sim: Callable[..., Sim]) -> None:
     s, fake = sim(), FakeDatabricks()
     for i in range(4):
-        (s.root / "note.txt").write_text(f"v{i}", encoding="utf-8")
+        (s.root / "note.py").write_text(f"v{i}", encoding="utf-8")
         if i == 3:
             fake.fail["delete"] = ApiError(403, "no delete for you")
         result, report = run(s, fake)
@@ -245,17 +265,60 @@ def test_unuploadable_files_are_pld012(
 ) -> None:
     s, fake = sim(), FakeDatabricks()
     (s.root / "nb.py").write_text("# Databricks notebook source\nprint(1)\n", encoding="utf-8")
+    # not .py, so never collected from python_paths
     (s.root / "q.sql").write_text("-- Databricks notebook source\nselect 1\n", encoding="utf-8")
     (s.root / "x.ipynb").write_text("{}", encoding="utf-8")
-    (s.root / "big.bin").write_bytes(b"0" * 6000)
+    (s.root / "data.csv").write_bytes(b"0" * 6000)
+    # a model file keeps its rule: it is always uploaded, so its size counts
+    models = s.root / "models" / "m.yml"
+    models.write_text(
+        models.read_text(encoding="utf-8") + "# " + "x" * 6000 + "\n", encoding="utf-8"
+    )
     monkeypatch.setattr(upload_module, "MAX_FILE_BYTES", 5000)
     result, report = run(s, fake)
     assert result is None
     found = report.sorted()
     assert {d.code for d in found} == {"PLD012"}
     files = sorted(d.location.file for d in found if d.location and d.location.file)
-    assert files == ["big.bin", "nb.py", "q.sql", "x.ipynb"]
+    assert files == ["models/m.yml", "nb.py"]
     assert fake.calls == []
+
+
+def test_python_paths_take_only_py_files_and_skip_environments_and_build_folders(
+    sim: Callable[..., Sim], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    s = sim()
+    wanted = {"pkg/ok.py": "x = 1\n"}
+    ignored = {
+        "data.csv": "a,b\n",
+        "pkg/data.json": "{}",
+        "pkg/.env": "TOKEN=x",
+        "credentials.txt": "secret",
+        "venv/lib.py": "x",
+        ".venv/lib.py": "x",
+        "dist/pipeloom-0.whl": "x",
+        "dist/setup.py": "x",
+        "build/lib.py": "x",
+        "node_modules/m.py": "x",
+        "myenv/pyvenv.cfg": "home = x",
+        "myenv/lib.py": "x",
+        "pkg/__pycache__/ok.py": "x",
+    }
+    for rel, text in {**wanted, **ignored}.items():
+        path = s.root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    (s.root / "data.csv").write_bytes(b"0" * 6000)
+    monkeypatch.setattr(upload_module, "MAX_FILE_BYTES", 5000)  # a big data file is no problem
+    report = Report()
+    payload = collect(s.root, s.plan, None, report)
+    assert payload is not None and not report.sorted()
+    assert [p for p, _ in payload.files] == [
+        MANIFEST_PATH,
+        "models/m.yml",
+        "pipeloom.yml",
+        "pkg/ok.py",
+    ]
 
 
 def test_python_paths_outside_the_project_are_pld012(sim: Callable[..., Sim]) -> None:

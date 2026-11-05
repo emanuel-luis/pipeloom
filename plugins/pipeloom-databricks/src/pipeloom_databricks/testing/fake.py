@@ -147,8 +147,7 @@ class FakeDatabricks:
         self._enter("mkdirs", path)
         here = path.rstrip("/") or "/"
         while here not in self.dirs:
-            self.dirs.add(here)
-            self._touch(here)
+            self.dirs.add(here)  # like the real API, a folder has no modification time
             here = _parent(here)
 
     def upload(self, path: str, data: bytes) -> None:

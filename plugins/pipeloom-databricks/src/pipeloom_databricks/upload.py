@@ -25,6 +25,9 @@ MAX_FILE_BYTES: Final = 10 * 1024 * 1024
 MANIFEST_PATH: Final = "_pipeloom/manifest.json"
 MARKER_PATH: Final = "_pipeloom/complete"
 KEEP_FOLDERS: Final = 3
+SKIPPED_FOLDERS: Final = frozenset(
+    {"__pycache__", "venv", ".venv", "dist", "build", "node_modules"}
+)
 CONFIG_FILE: Final = "pipeloom.yml"
 _HASH_DIR = re.compile(r"^[0-9a-f]{12}$")
 _NOTEBOOK_HEADERS: Final = (
@@ -54,9 +57,10 @@ def collect(
 ) -> Payload | None:
     """The files to upload, or None with PLD012 for each file that cannot be a plain file.
 
-    The set is `pipeloom.yml`, the model and source files of the plan, every file below
-    `python_paths` and the stable manifest. `__pycache__`, dot entries and the artifacts root
-    are skipped.
+    The set is `pipeloom.yml`, the model and source files of the plan, the `*.py` files below
+    `python_paths` and the stable manifest. Below `python_paths` the walk skips dot entries, the
+    folders in `SKIPPED_FOLDERS`, any folder holding `pyvenv.cfg` (a virtual environment) and the
+    artifacts root, so data files, wheels and credentials of the project folder stay local.
     """
     before = report.error_count
     root = project_dir.resolve()
@@ -88,11 +92,12 @@ def collect(
                 d
                 for d in dirs
                 if not d.startswith(".")
-                and d != "__pycache__"
+                and d not in SKIPPED_FOLDERS
+                and not (Path(folder) / d / "pyvenv.cfg").exists()
                 and (skip is None or (Path(folder) / d).resolve() != skip)
             )
             for name in sorted(names):
-                if not name.startswith(".") and not name.endswith(".pyc"):
+                if name.endswith(".py") and not name.startswith("."):
                     add(Path(folder) / name)
 
     files: list[tuple[str, bytes]] = []
@@ -141,8 +146,14 @@ def is_complete(client: DatabricksClient, root: str) -> bool:
 
 
 def upload(client: DatabricksClient, payload: Payload, root: str) -> bool:
-    """Store the payload under `root`; False when a finished copy is already there."""
+    """Store the payload under `root`; False when a finished copy is already there.
+
+    The marker is written last, and written again when the copy exists: its modification time
+    is the deploy time that `prune` orders folders by (the API gives folders no time).
+    """
+    marker = payload.digest.encode("ascii") + b"\n"
     if is_complete(client, root):
+        client.upload(f"{root}/{MARKER_PATH}", marker)
         return False
     folders = sorted(
         {f"{root}/{p.rsplit('/', 1)[0]}" if "/" in p else root for p, _ in payload.files}
@@ -151,8 +162,19 @@ def upload(client: DatabricksClient, payload: Payload, root: str) -> bool:
         client.mkdirs(folder)
     for path, data in payload.files:
         client.upload(f"{root}/{path}", data)
-    client.upload(f"{root}/{MARKER_PATH}", payload.digest.encode("ascii") + b"\n")
+    client.upload(f"{root}/{MARKER_PATH}", marker)
     return True
+
+
+def _deployed_at(client: DatabricksClient, folder: str) -> int | None:
+    """When `folder` was last deployed: the modification time of its marker file, 0 when it has
+    none (an unfinished upload), None when it cannot be listed."""
+    parent, marker = MARKER_PATH.rsplit("/", 1)
+    try:
+        entries = client.list_dir(f"{folder}/{parent}")
+    except ApiError as err:
+        return 0 if err.status == 404 or err.error_code == "RESOURCE_DOES_NOT_EXIST" else None
+    return max((e.modified_ms for e in entries if e.path.rsplit("/", 1)[-1] == marker), default=0)
 
 
 def prune(
@@ -179,11 +201,15 @@ def prune(
     except ApiError as err:
         warn(f"cannot list {parent} to prune old uploads", err)
         return
-    names = {e.path.rsplit("/", 1)[-1]: e for e in entries if e.is_dir}
-    old = sorted(
-        (n for n in names if _HASH_DIR.match(n) and n != keep_name),
-        key=lambda n: (-names[n].modified_ms, n),
-    )
+    stamps: dict[str, int] = {}
+    for entry in entries:
+        name = entry.path.rsplit("/", 1)[-1]
+        if entry.is_dir and _HASH_DIR.match(name) and name != keep_name:
+            stamp = _deployed_at(client, f"{parent}/{name}")
+            if stamp is not None:  # a folder that cannot be inspected is never deleted
+                stamps[name] = stamp
+    # The newest others include the folder the job used before this deploy: it was deployed last.
+    old = sorted(stamps, key=lambda n: (-stamps[n], n))
     for name in old[KEEP_FOLDERS - 1 :]:
         try:
             client.delete(f"{parent}/{name}", recursive=True)
