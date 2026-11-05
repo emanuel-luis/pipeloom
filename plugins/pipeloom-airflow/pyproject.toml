@@ -34,6 +34,7 @@ kubernetes = [
     "apache-airflow>=3.2,<4",
     "apache-airflow-providers-cncf-kubernetes>=10.25,<11",
 ]
+databricks = ["apache-airflow>=3.2,<4", "pipeloom-databricks~=0.3.0"]
 
 [project.urls]
 Repository = "https://github.com/emanuel-luis/pipeloom"
@@ -42,6 +43,7 @@ Changelog = "https://github.com/emanuel-luis/pipeloom/blob/main/CHANGELOG.md"
 
 [tool.uv.sources]
 pipeloom = { workspace = true }
+pipeloom-databricks = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pipeloom_airflow"]

@@ -133,6 +133,9 @@ ignore_missing_imports = true
 module = [
     "pipeloom_airflow.dag",
     "pipeloom_airflow.operators.*",
+    "pipeloom_airflow.databricks.launch",
+    "pipeloom_airflow.databricks.sensor",
+    "pipeloom_airflow.databricks.triggers",
     "pipeloom_airflow._compat",
     "pipeloom_airflow._compat_k8s",
 ]

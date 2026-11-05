@@ -69,7 +69,32 @@ are set when the task runs, and `retry_on` is not enforced because Airflow sees 
 result. The finalize pod gets the unit states inline (`--unit-states-json`); above 120 KiB (one Linux exec argument is capped at 128 KiB) it
 fails with PLA002, so split the project with `render_config.select`.
 
-The `databricks` mode arrives in a later release of this package. Airflow does not run on
-Windows, so neither do the DAG classes.
+### Databricks mode
+
+```console
+$ pip install "pipeloom-airflow[databricks]"
+```
+
+`ExecutionMode.DATABRICKS` runs the project as the Databricks job that `pipeloom-databricks`
+renders, without the Databricks Airflow provider. The DAG gets a `pipeloom_launch` task, one
+sensor per Databricks task key (with the plan's edges) and a `pipeloom_finalize` sensor on the
+job's finalize task (trigger rule `all_done`) that fails when the pipeloom run failed.
+
+- The launch compiles the project at `project_dir` on the worker, checks its plan hash against
+  the DAG's (PLX103), and starts the job run named after the DAG run. A missing job is PLD007 and
+  a job deployed from other settings is PLD008, unless `databricks_ensure_job=True` deploys it. A
+  retried or cleared launch attaches to the same run, or repairs it when a task failed;
+  Databricks owns the task retries. Launch retries default to 2.
+- The Airflow connection `databricks_conn_id` (default `databricks_default`) holds the host and a
+  token in its password (or `extra.token`); with `extra.service_principal_oauth` true, the OAuth
+  client id is the login and its secret the password. No profile, `~/.databrickscfg` or
+  `DATABRICKS_*` variable is read; a connection that cannot be used is PLD010.
+- `databricks_poll="shared"` (the only mode in this release): the launch defers on one trigger
+  that polls the whole run every `databricks_poll_interval` seconds, keeps the final snapshot in
+  its XCom, and the sensors read it without calling the API. The triggerer needs
+  `pipeloom-airflow[databricks]` installed. The wait ends after `databricks_timeout` seconds
+  (default 24 hours); the launch then retries and attaches to the same run.
+
+Airflow does not run on Windows, so neither do the DAG classes.
 
 License: Apache-2.0.

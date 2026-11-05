@@ -42,7 +42,11 @@ def wide(tmp_path: Path) -> tuple[Path, Path]:
 
 
 def parse(
-    tmp_path: Path, dag_file: str, af_project: tuple[Path, Path, str], wide: tuple[Path, Path]
+    tmp_path: Path,
+    dag_file: str,
+    af_project: tuple[Path, Path, str],
+    wide: tuple[Path, Path],
+    extra: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     home = tmp_path / "home"
     out = tmp_path / "parsed.json"
@@ -60,6 +64,7 @@ def parse(
         "PIPELOOM_AF_CACHE": (tmp_path / "cache").as_posix(),
         "PIPELOOM_AF_WIDE_PROJECT": wide[0].as_posix(),
         "PIPELOOM_AF_WIDE_MANIFEST": wide[1].as_posix(),
+        **(extra or {}),
     }
     done = subprocess.run(
         [sys.executable, "-I", str(HERE / "_parse_helper.py"), str(HERE / "dags" / dag_file), out],
@@ -120,6 +125,30 @@ def test_the_kubernetes_dag_parses_into_pod_operators(
     assert finalize["class"] == "PipeloomKubernetesFinalizeOperator"
     assert finalize["trigger_rule"] == "all_done" and finalize["retries"] == 1
     assert finalize["upstream"] == sorted(plan.leaves)
+
+
+@pytest.mark.timeout(240)
+def test_the_databricks_dag_parses_into_launch_sensors_and_finalize(
+    tmp_path: Path, af_project: Any, dbx_project: Any, wide: Any
+) -> None:
+    extra = {
+        "PIPELOOM_AF_DBX_PROJECT": dbx_project[0].as_posix(),
+        "PIPELOOM_AF_DBX_MANIFEST": dbx_project[1].as_posix(),
+    }
+    result = parse(tmp_path, "shop_databricks.py", af_project, wide, extra)
+    assert result["parse_s"] < 2.0 * SCALE, result["parse_s"]
+    tasks = result["dags"]["shop_databricks"]["tasks"]
+    graph = {
+        k: (v["class"], v["upstream"], v["trigger_rule"], v["retries"]) for k, v in tasks.items()
+    }
+    launch = naming.LAUNCH_ID
+    assert graph == {
+        launch: ("PipeloomDatabricksRunOperator", [], "all_success", 2),
+        "a": ("PipeloomDatabricksTaskSensor", [launch], "all_success", 0),
+        "b": ("PipeloomDatabricksTaskSensor", ["a"], "all_success", 0),
+        "c": ("PipeloomDatabricksTaskSensor", [launch], "all_success", 0),
+        naming.FINALIZE_ID: ("PipeloomDatabricksTaskSensor", ["b", "c", launch], "all_done", 0),
+    }
 
 
 @pytest.mark.timeout(240)

@@ -38,6 +38,17 @@ def test_a_good_configuration_is_clean() -> None:
     assert check(render=RenderConfig(load_method=LoadMode.PROJECT)) == []
 
 
+def test_databricks_timeout_and_poll_interval_must_be_positive() -> None:
+    bad = ExecutionConfig(
+        mode=ExecutionMode.DATABRICKS, databricks_timeout=0, databricks_poll_interval=-1
+    )
+    assert check(execution=bad) == [
+        ("PLA002", "execution.databricks_poll_interval must be a positive number of seconds"),
+        ("PLA002", "execution.databricks_timeout must be a positive number of seconds"),
+    ]
+    assert ExecutionConfig().databricks_timeout == 86400.0
+
+
 def test_docker_is_pla001() -> None:
     assert [c for c, _ in check(execution=ExecutionConfig(mode=ExecutionMode.DOCKER))] == ["PLA001"]
 
