@@ -130,9 +130,7 @@ class DeltaWriter:
     def _run(
         self, ident: str, token: str, meta: Mapping[str, JsonValue], write: Callable[[], None]
     ) -> WriteResult:
-        prior = self.applied(ident, token)
-        if prior is not None:
-            return prior
+        """Run `write` between the metrics brackets; the caller has checked the token already."""
         before = self._metrics.before_write(ident)
         write()
         result = self._metrics.after_write(ident, before, token, merge=False)
@@ -366,7 +364,7 @@ class DeltaWriter:
         }
         self._save(self._writer(batch.limit(0), "append", opts), target)
         if not self._metrics.token_committed(ident, before, token):
-            return replace(self._resolve_skipped(ident, token))
+            return self._resolve_skipped(ident, token)
         return replace(result, commit_meta=dict(cfg.commit_meta))
 
     def _reject_duplicates(self, batch: Any, keys: Sequence[str]) -> None:
