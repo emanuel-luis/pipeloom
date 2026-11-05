@@ -25,7 +25,7 @@ class PipeloomDatabricksTaskSensor(BaseSensorOperator):
 
     `shared` poll mode: it reads the snapshot the launch task `launch_task_id` stored and makes no
     API call. `per_task` mode: it makes one `get_run` call and, without a verdict, defers on a
-    trigger for its own task key until `timeout` (24 hours by default).
+    trigger for its own task key until `timeout` (the DAG sets it to `databricks_timeout`).
     """
 
     def __init__(

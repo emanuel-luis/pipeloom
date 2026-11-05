@@ -240,6 +240,7 @@ def _build_databricks(
         client_factory=execution.databricks_client_factory,
         group_id=group_id,
         poll=execution.databricks_poll,
+        wait_timeout_s=execution.databricks_timeout,
         **operator_args,
     )
     sensing: dict[str, Any] = {
@@ -247,6 +248,7 @@ def _build_databricks(
         "conn_id": execution.databricks_conn_id,
         "poll_interval": execution.databricks_poll_interval,
         "client_factory": execution.databricks_client_factory,
+        "timeout": execution.databricks_timeout,
     }
     ops: dict[str, BaseOperator] = {naming.LAUNCH_ID: launch}
     for t in plan.tasks:

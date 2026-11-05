@@ -93,12 +93,14 @@ job's finalize task (trigger rule `all_done`) that fails when the pipeloom run f
   run-now or repair, and each sensor makes one `get_run` call. Without a verdict yet it defers on
   its own trigger, which polls every `databricks_poll_interval` seconds (30 by default), rides out
   up to 5 transient API errors in a row (429, 5xx, no answer) with doubling sleeps, and fails the
-  sensor on an auth error or when the retries run out. A sensor gives up after its `timeout` (24
-  hours by default). Cost: one API call per waiting sensor per interval.
+  sensor on an auth error or when the retries run out. A sensor gives up after
+  `databricks_timeout` seconds (24 hours by default). Cost: one API call per waiting sensor per interval.
 - `databricks_poll="shared"`: the launch defers on one trigger that polls the whole run, keeps
   the final snapshot in its XCom, and the sensors read it without calling the API. One call per
   interval in total, but a task's result shows only when the whole run is over.
-- The triggerer needs `pipeloom-airflow[databricks]` installed in both modes.
+- The triggerer needs `pipeloom-airflow[databricks]` installed in both modes. In `shared` mode the
+  launch's wait also ends after `databricks_timeout` seconds; the launch then retries and
+  attaches to the same run.
 
 Airflow does not run on Windows, so neither do the DAG classes.
 

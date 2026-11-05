@@ -74,6 +74,8 @@ class ExecutionConfig:
     """`per_task`: each sensor polls its own task, so results show live. `shared`: the launch
     waits for the whole run and the sensors read its snapshot."""
     databricks_poll_interval: float = 30.0
+    databricks_timeout: float = 86400.0
+    """Seconds the launch waits for the job run before it times out (and retries, attaching)."""
     databricks_client_factory: str | None = None
     """`module:attr`, for tests only."""
 
@@ -136,6 +138,9 @@ def validate_configs(
             bad(f"{name} must be an absolute path, got '{value}'")
     if execution.mode is ExecutionMode.VIRTUALENV and not execution.virtualenv_dir:
         bad("execution mode 'virtualenv' needs execution.virtualenv_dir")
+    for name in ("databricks_timeout", "databricks_poll_interval"):
+        if not getattr(execution, name) > 0:
+            bad(f"execution.{name} must be a positive number of seconds")
     if execution.mode is ExecutionMode.KUBERNETES:
         if execution.kubernetes is None or not execution.kubernetes.image:
             bad("execution mode 'kubernetes' needs execution.kubernetes.image")
