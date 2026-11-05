@@ -155,10 +155,11 @@ jobs:
         run: |
           uv venv "$RUNNER_TEMP/af-floor" --python 3.11
           # The DATABRICKS-mode render tests need the Databricks plugin (and its Spark plugin,
-          # without the pyspark extra).
+          # without the pyspark extra); KUBERNETES mode needs the cncf provider.
           uv pip install --python "$RUNNER_TEMP/af-floor" -e . -e plugins/pipeloom-airflow \
             -e plugins/pipeloom-polars -e plugins/pipeloom-spark -e plugins/pipeloom-databricks \
-            "apache-airflow==3.2.2" pytest pytest-timeout
+            "apache-airflow==3.2.2" "apache-airflow-providers-cncf-kubernetes>=10.25,<11" \
+            pytest pytest-timeout
           "$RUNNER_TEMP/af-floor/bin/python" -m pytest -q -p no:cacheprovider \
             plugins/pipeloom-airflow/tests -m "not airflow_e2e"
 
