@@ -66,7 +66,7 @@ passes volumes, mounts, resources and a service account straight through, and
 mounted at the same path in every pod (a ReadWriteMany claim or an object-store CSI mount, given
 through `volumes` and `volume_mounts`). Pods are never deferrable and push no XCom, the arguments
 are set when the task runs, and `retry_on` is not enforced because Airflow sees only the pod's
-result. The finalize pod gets the unit states inline (`--unit-states-json`); above 512 KiB it
+result. The finalize pod gets the unit states inline (`--unit-states-json`); above 120 KiB (one Linux exec argument is capped at 128 KiB) it
 fails with PLA002, so split the project with `render_config.select`.
 
 ### Databricks mode

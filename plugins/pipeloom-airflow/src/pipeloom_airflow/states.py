@@ -39,12 +39,19 @@ def unit_states(
 def unit_states_document(
     states: Mapping[str, ExternalUnitState], *, compact: bool
 ) -> dict[str, JsonValue]:
-    """A `pipeloom.unit_states/1` document. `compact` leaves out `orchestrator_ids`, so it stays
-    small; status, reason, code and message are always kept."""
+    """A `pipeloom.unit_states/1` document. `compact` leaves out `orchestrator_ids` and shortens
+    the PLA004 messages (the long text is in the ADR and the README), so it stays small; status,
+    reason and code are always kept."""
     units: dict[str, JsonValue] = {}
     for unit, s in sorted(states.items()):
         row: dict[str, JsonValue] = {"status": s.status}
-        for name, value in (("reason", s.reason), ("code", s.code), ("message", s.message)):
+        message = s.message
+        if compact and s.code == "PLA004" and message is not None:
+            if message.endswith(NO_FILE):
+                message = "no attempt file visible under artifacts.root"
+            elif message.endswith(NO_RESULT):
+                message = NO_RESULT
+        for name, value in (("reason", s.reason), ("code", s.code), ("message", message)):
             if value is not None:
                 row[name] = value
         if not compact and s.orchestrator_ids:

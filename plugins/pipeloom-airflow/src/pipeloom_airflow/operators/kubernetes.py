@@ -13,8 +13,9 @@ from pipeloom_airflow.commands import CoreCommand
 from pipeloom_airflow.operators.local import _context, finalize_select
 from pipeloom_airflow.states import unit_states, unit_states_document
 
-MAX_UNIT_STATES_BYTES: Final = 512 * 1024
-"""The inline unit states are an argument of the pod, so they stay well under the API limits."""
+MAX_UNIT_STATES_BYTES: Final = 120 * 1024
+"""The inline unit states are one exec argument, and Linux caps a single argument at 128 KiB
+(MAX_ARG_STRLEN), so the cap sits below that."""
 
 
 def _pod_kwargs(kpo_kwargs: dict[str, Any]) -> dict[str, Any]:
