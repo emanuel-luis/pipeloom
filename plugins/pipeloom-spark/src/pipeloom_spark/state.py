@@ -96,10 +96,11 @@ CAS: Final = (
 """Swap when the stored value equals the expected one; an equal value of the same run is a
 replay and succeeds too."""
 TAKE_LOCK: Final = (
-    f"WHEN MATCHED AND t.expires_us <= s.acquired_us THEN UPDATE SET {_SET} "
-    f"WHEN NOT MATCHED THEN INSERT {_INSERT}"
+    f"WHEN MATCHED AND (t.expires_us <= s.acquired_us OR t.owner = s.owner) THEN UPDATE SET "
+    f"{_SET} WHEN NOT MATCHED THEN INSERT {_INSERT}"
 )
-"""Take a free or expired lease; `acquired_us` is the taker's now."""
+"""Take a free or expired lease; `acquired_us` is the taker's now. The owner is unique per
+acquisition, so a retry whose first attempt committed unseen finds its own row and succeeds."""
 
 
 def merge_sql(ident: str, kind: str, clauses: str) -> str:

@@ -12,7 +12,7 @@ from pipeloom.platform import Clock
 from pipeloom.state.types import StateStore
 from pipeloom.testing.contract.state import StateStoreContract, StoreFactory
 from pipeloom_spark.spec import TableStateOptions
-from pipeloom_spark.state import DeltaStateStore
+from pipeloom_spark.state import TAKE_LOCK, DeltaStateStore
 
 pytestmark = [pytest.mark.spark, pytest.mark.timeout(300)]
 
@@ -43,3 +43,18 @@ def test_a_newer_schema_is_refused(classic_spark: Any, tmp_path: Path) -> None:
     )
     with pytest.raises(RuntimeError, match="state schema 2"):
         DeltaStateStore(TableStateOptions(path=location), env={}).get_run("x")
+
+
+def test_a_replayed_lock_merge_takes_its_own_row(classic_spark: Any, tmp_path: Path) -> None:
+    """A retry after a lost reply re-runs the MERGE that already committed: same owner wins."""
+    store = DeltaStateStore(TableStateOptions(path=(tmp_path / "state").as_posix()), env={})
+    row = {
+        "kind": "lock",
+        "key": '["run"]',
+        "owner": "h:1:a",
+        "acquired_us": 0,
+        "expires_us": 10**18,
+    }
+    assert store._merge(TAKE_LOCK, row) == 1
+    assert store._merge(TAKE_LOCK, row) == 1
+    assert store._merge(TAKE_LOCK, {**row, "owner": "h:2:b"}) == 0
