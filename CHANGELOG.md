@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-05
+
+pipeloom 0.6.1 fixes the Databricks plugin on serverless compute, found by running the `databricks-live` workflow against a serverless workspace. Jobs deployed with 0.6.0 show as stale (PLD008) until they are deployed again.
+
 ### Fixed
 
 - A repaired Databricks task keeps the run's start time. `{{job.start_time}}` is the start of the latest repair, so the rerun units passed a start the run had not recorded and stopped with PLX108. The task wrapper now reads the job run's `start_time` from the Jobs API and keeps `--start-ms` only as a fallback.
@@ -231,7 +235,8 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/emanuel-luis/pipeloom/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.3.0...v0.4.0

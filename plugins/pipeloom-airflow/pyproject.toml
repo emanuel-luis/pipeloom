@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pipeloom-airflow"
-version = "0.6.0"
+version = "0.6.1"
 description = "Apache Airflow renderer for pipeloom: a compiled plan as one Airflow task per unit."
 readme = "README.md"
 requires-python = ">=3.11"

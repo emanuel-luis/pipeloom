@@ -224,7 +224,8 @@ without `CREATE SCHEMA` can write to an existing one.
 
 Some behaviors cannot be confirmed from public documentation, so the code guards them and a
 manually dispatched workflow, `databricks-live`, checks them against a real workspace (see
-CONTRIBUTING). Until it has passed for your runtime, treat these as unconfirmed:
+CONTRIBUTING). It passed all its checks on serverless environment version 5 on 2026-11-05 (pipeloom
+0.6.1). Until it has passed for your runtime, treat these as unconfirmed:
 
 - dynamic value references such as `{{job.run_id}}` inside wheel task parameters;
 - an empty parameter default resolving to `dbx-<job run id>`;
