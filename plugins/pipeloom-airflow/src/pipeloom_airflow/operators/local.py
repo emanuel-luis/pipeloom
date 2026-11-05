@@ -62,6 +62,17 @@ def _context(context: Context, group_id: str | None, task_id: str) -> RunContext
         raise AirflowFailException(str(err)) from err
 
 
+def finalize_select(
+    select: tuple[str, ...], exclude: tuple[str, ...], task_units: Mapping[str, tuple[str, ...]]
+) -> tuple[str, ...]:
+    """The `--select` of a finalize call. A stable manifest has an empty `selected`, and the core
+    keeps it when no selector is given, so finalize would see no unit in scope and drop every
+    external state. Without a render selection, name the rendered units instead."""
+    if select or exclude:
+        return select
+    return tuple(sorted(f"unit:{u}" for us in task_units.values() for u in us))
+
+
 class _ChildOperator(BaseOperator):
     """Runs one `pipeloom` child in its own process group and logs its output line by line."""
 
@@ -213,12 +224,7 @@ class PipeloomFinalizeOperator(_ChildOperator):
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(document, f, ensure_ascii=True)
-            # A stable manifest has an empty `selected`, and the core keeps it when no selector
-            # is given, so finalize would see no unit in scope and drop every external state.
-            # Without a render selection, name the rendered units instead.
-            select = self.select
-            if not select and not self.exclude:
-                select = tuple(sorted(f"unit:{u}" for us in self.task_units.values() for u in us))
+            select = finalize_select(self.select, self.exclude, self.task_units)
             argv = self.command.finalize_argv(
                 _python(self.venv_dir),
                 ctx,

@@ -34,6 +34,14 @@
   {
     "code": "PLA002",
     "severity": "error",
+    "message": "pod_kwargs.deferrable is set by pipeloom",
+    "hint": "remove it from pod_kwargs",
+    "location": null,
+    "context": {}
+  },
+  {
+    "code": "PLA002",
+    "severity": "error",
     "message": "project.project_dir must be an absolute path, got 'relative/project'",
     "hint": null,
     "location": null,

@@ -51,7 +51,25 @@ dag = PipeloomDag(
 )
 ```
 
-The `kubernetes` and `databricks` modes arrive in the next releases of this package. Airflow
-does not run on Windows, so neither do the DAG classes.
+### Kubernetes mode
+
+```console
+$ pip install "pipeloom-airflow[kubernetes]"
+```
+
+`ExecutionMode.KUBERNETES` runs every unit, and the finalize step, as a pod built by
+`KubernetesPodOperator` (cncf-kubernetes provider `>=10.25,<11`). Set
+`ExecutionConfig.kubernetes=KubernetesConfig(image=..., namespace=..., python=..., pod_kwargs=...)`;
+`project_dir` and `manifest_path` of the execution config are paths inside the pod. `pod_kwargs`
+passes volumes, mounts, resources and a service account straight through, and
+`ExecutionConfig.env` becomes pod environment variables. The artifact root must be shared storage
+mounted at the same path in every pod (a ReadWriteMany claim or an object-store CSI mount, given
+through `volumes` and `volume_mounts`). Pods are never deferrable and push no XCom, the arguments
+are set when the task runs, and `retry_on` is not enforced because Airflow sees only the pod's
+result. The finalize pod gets the unit states inline (`--unit-states-json`); above 120 KiB (one Linux exec argument is capped at 128 KiB) it
+fails with PLA002, so split the project with `render_config.select`.
+
+The `databricks` mode arrives in a later release of this package. Airflow does not run on
+Windows, so neither do the DAG classes.
 
 License: Apache-2.0.

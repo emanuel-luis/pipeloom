@@ -97,7 +97,8 @@ When the orchestrator ran each unit itself, nothing merged the results. `pipeloo
 what `-s/--select` and `--exclude` leave) it takes, in this order:
 
 1. the unit's attempt file;
-2. else the state the orchestrator reports in `--unit-states PATH`, a JSON file
+2. else the state the orchestrator reports in `--unit-states PATH`, a JSON file (or the same
+   document inline in `--unit-states-json TEXT`, not together with the file),
    `{"schema": "pipeloom.unit_states/1", "units": {"<unit id>": {"status": "failed", ...}}}`.
    `status` is `skipped`, `cancelled`, `failed` or `excluded`; `reason` (for `skipped`, default
    `upstream_failed`), `code`, `message` and `orchestrator_ids` are optional. `excluded` drops the

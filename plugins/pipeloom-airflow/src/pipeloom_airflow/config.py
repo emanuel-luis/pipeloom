@@ -76,15 +76,6 @@ class ExecutionConfig:
     """`module:attr`, for tests only."""
 
 
-POD_KWARGS_RESERVED: Final = (
-    "cmds",
-    "arguments",
-    "image",
-    "name",
-    "task_id",
-    "deferrable",
-    "do_xcom_push",
-)
 OPERATOR_ARGS_RESERVED: Final = (
     "task_id",
     "retries",
@@ -93,6 +84,15 @@ OPERATOR_ARGS_RESERVED: Final = (
     "outlets",
     "execution_timeout",
     "deferrable",
+)
+POD_KWARGS_RESERVED: Final = (
+    "cmds",
+    "arguments",
+    "image",
+    "name",
+    "do_xcom_push",
+    "task_group",
+    *OPERATOR_ARGS_RESERVED,
 )
 
 
@@ -140,6 +140,9 @@ def validate_configs(
         else:
             for key in sorted(set(execution.kubernetes.pod_kwargs) & set(POD_KWARGS_RESERVED)):
                 bad(f"pod_kwargs.{key} is set by pipeloom", "remove it from pod_kwargs")
+            both = set(execution.kubernetes.pod_kwargs) & set(operator_args)
+            for key in sorted(both - set(POD_KWARGS_RESERVED)):
+                bad(f"'{key}' is in both pod_kwargs and operator_args", "keep it in one of them")
     for key in sorted(set(operator_args) & set(OPERATOR_ARGS_RESERVED)):
         bad(f"operator_args.{key} is set by pipeloom", "remove it from operator_args")
     try:

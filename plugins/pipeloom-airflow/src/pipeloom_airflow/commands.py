@@ -133,8 +133,11 @@ class CoreCommand:
         select: Sequence[str],
         exclude: Sequence[str],
         unit_states_path: str | None = None,
+        unit_states_json: str | None = None,
     ) -> list[str]:
         states = ["--unit-states", unit_states_path] if unit_states_path is not None else []
+        if unit_states_json is not None:
+            states += ["--unit-states-json", unit_states_json]
         return [
             *python,
             "-m",
