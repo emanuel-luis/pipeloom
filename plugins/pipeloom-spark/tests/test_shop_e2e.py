@@ -98,10 +98,14 @@ def project(root: Path, files: Mapping[str, str]) -> Path:
 
 
 def run(
-    root: Path, run_id: str, target: str = "spark", control: RunControl | None = None
+    root: Path,
+    run_id: str,
+    target: str = "spark",
+    control: RunControl | None = None,
+    sink: RecordingSink | None = None,
 ) -> tuple[RunOutcome, RecordingSink]:
     clock = FakeClock(datetime(2026, 1, 1, tzinfo=UTC), step=timedelta(0))
-    sink = RecordingSink()
+    sink = sink or RecordingSink()
     proj = Project(
         ProjectOptions(project_dir=root, target=target, env={}), clock=clock, invocation_id="inv"
     )
@@ -178,12 +182,18 @@ def test_cancel_stops_a_slow_model(classic_spark: Any, tmp_path: Path) -> None:
     root = project(tmp_path, SLOW)
     control = RunControl()
     box: list[tuple[RunOutcome, RecordingSink]] = []
-    worker = threading.Thread(target=lambda: box.append(run(root, "c1", control=control)))
+    sink = RecordingSink()
+    worker = threading.Thread(
+        target=lambda: box.append(run(root, "c1", control=control, sink=sink))
+    )
     worker.start()
     tracker = classic_spark.sparkContext.statusTracker()
     deadline = time.monotonic() + 120
-    while not tracker.getActiveJobIds() and time.monotonic() < deadline:
+    while time.monotonic() < deadline and not any(
+        e.type == "unit.started" and e.unit_id == "slow" for e in list(sink.events)
+    ):
         time.sleep(0.2)
+    time.sleep(3)  # the read is done and the endless write job runs
     assert tracker.getActiveJobIds(), "the slow job never started"
     control.request_stop()
     worker.join(timeout=120)
