@@ -11,7 +11,8 @@ to run the cross-process lock test::
             return lambda tmp_path, clock: MyStore(tmp_path / "state.db", clock=clock)
 
 `subprocess_target` is a `module:Class` that takes the store location as its only argument,
-and that location relative to `tmp_path`.
+and that location relative to `tmp_path`. `subprocess_timeout` bounds each child process in
+seconds; raise it for a store whose child needs a slow start (a JVM, for example).
 """
 
 from __future__ import annotations
@@ -63,6 +64,7 @@ def wm(value: Any, dtype: str = "int64", run_id: str = "r1") -> Watermark:
 
 class StateStoreContract:
     subprocess_target: ClassVar[tuple[str, str] | None] = None
+    subprocess_timeout: ClassVar[float] = 45
 
     @pytest.fixture
     def store_factory(self) -> StoreFactory:
@@ -248,7 +250,7 @@ class StateStoreContract:
                 capture_output=True,
                 check=False,
                 text=True,
-                timeout=45,
+                timeout=self.subprocess_timeout,
             )
             assert proc.returncode == 3, proc.stderr
         ok = subprocess.run(
@@ -256,6 +258,6 @@ class StateStoreContract:
             capture_output=True,
             check=False,
             text=True,
-            timeout=45,
+            timeout=self.subprocess_timeout,
         )
         assert ok.returncode == 0, ok.stderr
