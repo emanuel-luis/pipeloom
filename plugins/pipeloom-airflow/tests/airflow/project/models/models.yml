@@ -1,0 +1,8 @@
+models:
+  - name: base
+    python: afproj.models:base
+  - name: child
+    python: afproj.models:child
+    inputs: {base: {ref: base}}
+  - name: other
+    python: afproj.models:other
