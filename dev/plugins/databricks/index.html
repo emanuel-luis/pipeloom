@@ -1522,7 +1522,6 @@ CONTRIBUTING). Until it has passed for your runtime, treat these as unconfirmed:
 <li>dynamic value references such as <code>{{job.run_id}}</code> inside wheel task parameters;</li>
 <li>an empty parameter default resolving to <code>dbx-&lt;job run id&gt;</code>;</li>
 <li><code>only</code> with an <code>ALL_DONE</code> finalize whose dependencies are excluded;</li>
-<li><code>job.start_time</code> staying the same across repairs;</li>
 <li><code>disable_auto_optimization</code> stopping the serverless automatic retry, in a job and in a one-time run (<code>--ephemeral</code>);</li>
 <li><code>os.link</code> and <code>os.replace</code> on <code>/Volumes</code> (attempt files fall back to an exclusive open);</li>
 <li>a Spark session being available in a wheel task;</li>
