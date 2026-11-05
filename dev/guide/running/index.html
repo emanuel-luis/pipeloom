@@ -411,6 +411,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#intermediates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intermediates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#locks" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -978,6 +989,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#intermediates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Intermediates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#locks" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1077,10 +1099,28 @@ process costs about a second per unit.</p>
 unit that already committed under that token is not written twice. Rerunning a finished run
 with the same id leaves the data byte-identical. Attempt files keep counting up
 (<code>attempt-2.json</code>, and so on), and <code>run_results.json</code> reports the newest attempt of each unit.</p>
+<p>Every engine sees one start time for the run. By default it is the time the run began, and a
+reused run id keeps the start recorded the first time. <code>--run-started-at ISO8601</code> (or
+<code>PIPELOOM_RUN_STARTED_AT</code>) sets it instead, for an orchestrator that wants every task to share the
+job's start time. The value needs a UTC offset (<code>2026-11-05T03:00:00+00:00</code> or a trailing <code>Z</code>) and
+needs <code>--run-id</code>. Giving a different value for a run id that already has a start is PLX108 and
+exit code 2. The Spark engine derives its Delta write version from this time.</p>
 <p><code>--full-refresh</code> rebuilds append tables from scratch. It takes an optional <code>true</code> or <code>false</code>, so
 an orchestrator can pass a templated value.</p>
 <p>To run exactly the plan you compiled earlier, pass <code>--manifest target/runs/&lt;id&gt;/manifest.json</code>.
 Add <code>--expect-plan-hash &lt;sha256&gt;</code> to stop with PLX103 when the plan changed.</p>
+<h2 id="intermediates">Intermediates<a class="headerlink" href="#intermediates" title="Permanent link">&para;</a></h2>
+<p>A model with <code>materialized: intermediate</code> is persisted for the length of the run, so units in
+other processes (<code>boundary: task</code>) can read it. The result goes to
+<code>&lt;artifacts.root&gt;/runs/&lt;run_id&gt;/intermediate/&lt;model&gt;</code> and <code>relation_name</code> in <code>run_results.json</code> is
+that location. An intermediate takes no <code>incremental</code> block, no <code>partition_by</code> and no strategy
+other than overwrite (PLP413).</p>
+<p>The target setting <code>artifacts: {intermediate_ttl: 1d}</code> (default <code>1d</code>) says how long the data
+stays. With <code>0</code> the folder is deleted at the end of a run that succeeded; a failed run keeps it.
+At the end of every run, finalize also deletes the intermediates of other runs once
+they are older than the TTL those runs recorded. A run that left no results, or was resumed and
+stopped again, is deleted after it has been idle for the longer of the TTL and one hour. A
+deletion that fails is a warning in <code>run.warnings</code>, never a failed run.</p>
 <h2 id="locks">Locks<a class="headerlink" href="#locks" title="Permanent link">&para;</a></h2>
 <p>A run takes a lock named <code>&lt;project&gt;/&lt;target&gt;</code> in the state store, so two runs of one target do
 not overlap. The lock is a lease of 60 seconds that a heartbeat renews every 20 seconds. A run

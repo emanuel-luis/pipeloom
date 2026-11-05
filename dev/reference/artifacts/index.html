@@ -1025,6 +1025,11 @@ on the target). Paths in artifacts are POSIX.</p>
 </code></pre>
 <p>Finalize writes <code>run_results.json</code> into the run folder, then copies it and the manifest to the
 root. The run folder is the source of truth; the root copies are for convenience.</p>
+<p>Finalize also deletes the <code>intermediate/</code> folder of other runs once they are idle. A finished run
+is judged by the <code>intermediate_ttl</code> it recorded. A run with no <code>run_results.json</code>, or whose
+manifest is newer than its results (resumed, then possibly crashed again), is judged by the newest
+modification time under its run folder and expires after <code>max(ttl, 1h)</code> of inactivity, so an
+active run is never deleted.</p>
 <h2 id="attempt-files">Attempt files<a class="headerlink" href="#attempt-files" title="Permanent link">&para;</a></h2>
 <p>Each unit writes <code>units/&lt;unit_id&gt;/attempt-&lt;n&gt;.json</code> when the attempt ends, whatever the outcome.
 The file holds one results row, the same object that appears in <code>run_results.json</code>. The runner
