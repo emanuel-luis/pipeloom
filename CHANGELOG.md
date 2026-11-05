@@ -6,9 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-05
+
+pipeloom 0.5 adds the `pipeloom-databricks` plugin: rendering to Databricks Jobs and bundles, direct deploy, run, repair and finalize with task states, the `unity` catalog and a `databricks` secret provider. The core gains generic orchestration hooks: the `deploy` block, plugin commands, runtime secret resolution, `--orchestrator-id` and `pipeloom finalize`. Plugin API stays (0, 4).
+
 ### Added
 
 - `pipeloom-databricks`: the `unity` catalog (`catalog: {kind: unity, catalog: main}`, Spark engine only; three-part backticked names, the schema is created only when absent) and the `databricks` secret provider (`${secret:databricks/<scope>/<key>}`, no profile auto-selection, failures are PLX109 without the value).
+- Docs for 0.5: the Databricks plugin page (install, connection rules, deploy block, compute, grouping, bundle and direct deploy, run, repair, finalize, task values, secrets, Unity catalog, limits), a CLI reference page for `pipeloom databricks`, the architecture sections 4, 6, 7, 11, 12, 13, 14, 15 and 16 as delivered, and the Databricks diagram redrawn for the shipped design.
+- `databricks-live`, a manually dispatched workflow (protected environment `databricks-live`, never triggered by regular CI) that deploys `tests/fixtures/databricks_live`, runs, selects and repairs it on a real workspace and prints `CHECK <fact> ok|failed` for the facts no offline test can confirm. `tools/databricks_live.py` holds the checks; its flow is unit-tested against `FakeDatabricks`. CONTRIBUTING explains the environment and secrets.
 - Orchestration hooks in the core (ADR-0034, plugin API stays (0, 4)): a `deploy` runtime key, bound against the `renderers` group and never built by the core, with its validated options recorded in the manifest as `metadata.deploy` outside the plan hash; `manifest_bytes(plan, stable=True)` and `write_manifest(..., stable=True)` give byte-stable manifests.
 - The `pipeloom.commands` entry-point group adds plugin commands to the CLI. They are discovered from metadata and imported only when invoked; built-in names win, duplicate names resolve by distribution name, a command that cannot be imported exits 1, and `PIPELOOM_DISABLE_PLUGIN_AUTOLOAD` hides them. `plugins list --group commands` lists them.
 - `${secret:provider/path}` references in plugin options resolve at run time (`run`), through the `secret_providers` group, and are masked in events, attempt files, state rows and `run_results.json`, in both boundaries, also under secret-like keys. `$${secret:...}` stays literal text. They are never resolved by compile or validate, and never reach the manifest. PLX109 reports one that cannot be resolved (the blueprint's PLX108 was already taken).
@@ -197,7 +203,8 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.1.0...v0.2.0

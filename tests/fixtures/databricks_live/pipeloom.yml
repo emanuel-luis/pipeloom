@@ -1,0 +1,34 @@
+config_version: 1
+name: live
+python_paths: [src]
+# tools/databricks_live.py passes every var below with --vars.
+vars:
+  catalog: main
+  schema: pipeloom_live
+  volume: /Volumes/main/ops/pipeloom_live
+  environment_version: "5"
+  wheel_core: /Volumes/main/ops/pipeloom_live/wheels/pipeloom.whl
+  wheel_spark: /Volumes/main/ops/pipeloom_live/wheels/pipeloom_spark.whl
+  wheel_databricks: /Volumes/main/ops/pipeloom_live/wheels/pipeloom_databricks.whl
+defaults:
+  models: {materialized: table}
+targets:
+  live:
+    engine: {kind: spark}
+    catalog: {kind: unity, catalog: "${var:catalog}"}
+    naming: {kind: none, schema: "${var:schema}"}
+    state: {kind: table, table: "${var:schema}._pipeloom_state"}
+    artifacts: {root: "${var:volume}/artifacts"}
+    deploy:
+      kind: databricks
+      pipelines:
+        stable: {select: ["tag:stable"]}
+        flaky: {select: ["tag:flaky"]}
+      compute:
+        default:
+          kind: serverless
+          environment_version: "${var:environment_version}"
+          dependencies:
+            - "${var:wheel_core}"
+            - "${var:wheel_spark}"
+            - "${var:wheel_databricks}"
