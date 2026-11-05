@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-05
+
+pipeloom 0.5 adds the `pipeloom-databricks` plugin: rendering to Databricks Jobs and bundles, direct deploy, run, repair and finalize with task states, the `unity` catalog and a `databricks` secret provider. The core gains generic orchestration hooks: the `deploy` block, plugin commands, runtime secret resolution, `--orchestrator-id` and `pipeloom finalize`. Plugin API stays (0, 4).
+
 ### Added
 
 - `pipeloom-databricks`: the `unity` catalog (`catalog: {kind: unity, catalog: main}`, Spark engine only; three-part backticked names, the schema is created only when absent) and the `databricks` secret provider (`${secret:databricks/<scope>/<key>}`, no profile auto-selection, failures are PLX109 without the value).
@@ -199,7 +203,8 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.1.0...v0.2.0
