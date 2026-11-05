@@ -1939,6 +1939,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pld007" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD007
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld008" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD008
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pld009" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1961,6 +1983,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pld011" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD011
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pld012" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1976,6 +2009,28 @@
     <span class="md-ellipsis">
       
         PLD013
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld014" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD014
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld015" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD015
       
     </span>
   </a>
@@ -3218,6 +3273,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pld007" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD007
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld008" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD008
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pld009" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3240,6 +3317,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pld011" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD011
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pld012" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3255,6 +3343,28 @@
     <span class="md-ellipsis">
       
         PLD013
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld014" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD014
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld015" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD015
       
     </span>
   </a>
@@ -3551,18 +3661,33 @@
 <h3 id="pld006">PLD006<a class="headerlink" href="#pld006" title="Permanent link">&para;</a></h3>
 <p>More than one job carries the pipeloom_job tag. Severity: error. Status: active. Since: 0.5.</p>
 <p>Two or more Databricks jobs hold the same pipeloom_job tag, so deploy cannot tell which one it owns. Delete or untag the extra jobs; the message lists their ids.</p>
+<h3 id="pld007">PLD007<a class="headerlink" href="#pld007" title="Permanent link">&para;</a></h3>
+<p>Job or run not found. Severity: error. Status: active. Since: 0.5.</p>
+<p>No Databricks job carries the pipeloom_job tag of this pipeline, or the run asked for does not exist. Deploy the job first, or pass --ensure to run so it deploys one; check the run id and the pipeline.</p>
+<h3 id="pld008">PLD008<a class="headerlink" href="#pld008" title="Permanent link">&para;</a></h3>
+<p>Deployed job is out of date. Severity: error. Status: active. Since: 0.5.</p>
+<p>The job in the workspace was deployed from other settings than the project renders now (its pipeloom_settings_hash tag differs). Deploy again, or pass --ensure to run so it deploys first.</p>
 <h3 id="pld009">PLD009<a class="headerlink" href="#pld009" title="Permanent link">&para;</a></h3>
 <p>Databricks API request failed. Severity: error. Status: active. Since: 0.5.</p>
 <p>A call to the Databricks REST API returned an error. The message carries the HTTP status, the error code and the message of the API, with registered secret values masked. Check the connection, the permissions of the caller and the workspace path.</p>
 <h3 id="pld010">PLD010<a class="headerlink" href="#pld010" title="Permanent link">&para;</a></h3>
 <p>No Databricks connection configured. Severity: error. Status: active. Since: 0.5.</p>
 <p>The command needs a workspace and none is configured. Pass --profile, set DATABRICKS_CONFIG_PROFILE, set DATABRICKS_HOST with its credentials, or run on a Databricks runtime. pipeloom never picks a profile by itself.</p>
+<h3 id="pld011">PLD011<a class="headerlink" href="#pld011" title="Permanent link">&para;</a></h3>
+<p>Task ended without a unit result. Severity: error. Status: active. Since: 0.5.</p>
+<p>A Databricks task failed before its unit wrote an attempt file, for example because the cluster was lost, so the unit has no result of its own. Finalize records the unit as failed with the termination message of the task. Read the task's log on the run page; repair reruns it.</p>
 <h3 id="pld012">PLD012<a class="headerlink" href="#pld012" title="Permanent link">&para;</a></h3>
 <p>Project file cannot be uploaded. Severity: error. Status: active. Since: 0.5.</p>
 <p>A project file is above 10 MB, is a notebook (a Databricks notebook header or an .ipynb file), is unreadable or lies outside the project folder, so it cannot be stored as a plain workspace file.</p>
 <h3 id="pld013">PLD013<a class="headerlink" href="#pld013" title="Permanent link">&para;</a></h3>
 <p>Dynamic value reference not resolved in a task parameter. Severity: error. Status: active. Since: 0.5.</p>
 <p>A parameter of a Databricks task still holds a {{...}} reference, so the platform did not substitute it. The task stops before it runs anything. Check the job's parameters and the Databricks runtime that runs the task.</p>
+<h3 id="pld014">PLD014<a class="headerlink" href="#pld014" title="Permanent link">&para;</a></h3>
+<p>Run is still active. Severity: error. Status: active. Since: 0.5.</p>
+<p>A repair was asked for a Databricks job run that has not ended. Wait for it to finish or cancel it, then repair.</p>
+<h3 id="pld015">PLD015<a class="headerlink" href="#pld015" title="Permanent link">&para;</a></h3>
+<p>Selection covers part of a task group. Severity: warning. Status: active. Since: 0.5.</p>
+<p>With task_grouping set, a task runs every unit of its group, so a selection that names only some of them still runs the whole group. Select the whole group, or turn grouping off, to run exactly the units chosen.</p>
 
 
 
