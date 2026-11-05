@@ -30,6 +30,9 @@ All notable changes to this project are documented here. The format follows
 - PLD001 (more than 1,000 tasks), PLD003 (task groups form a cycle), PLD004 (invalid Databricks deploy options) and the warning PLD005 (a compute rule matches no model). PLD002 stays reserved and is never emitted.
 - `tools/versions.py` checks and bumps a member that pins another member (`pipeloom-spark~=X.Y.0` in `pipeloom-databricks`). `import-linter` keeps the core free of `pipeloom_databricks` and `databricks`, and the SDK out of every plugin module except the client ones.
 - `EngineContract`: `test_metrics` and `test_two_threads_materialize_at_once` skip for an engine without the `overwrite` strategy.
+- `pipeloom-airflow` (ADR-0037, first half), new in this release: the pure part of the Airflow renderer. Configs, plan loading from a stable manifest or by compiling the project (with an on-disk cache keyed by files, versions, target, variables and an environment fingerprint), the task graph (one task per unit, visual groups, retry and timeout mapping, asset URIs), the `pipeloom run` and `finalize` command lines, the run id (`af-` plus 16 hex) and the mapping from Airflow task states to `pipeloom finalize --unit-states`. Airflow is not a dependency: the extra `airflow` pulls `apache-airflow>=3.2,<4`, and importing the package never imports `airflow`. Install with `pipeloom[airflow]`.
+- PLA001 (unsupported execution mode, was reserved), PLA002 (invalid plugin configuration), PLA003 (selection renders no units), PLA004 (task ended without a visible unit result), PLA005 (unsupported Airflow version), PLA006 (compile cache unusable) and PLA007 (target boundary is not task).
+- Case files can use `python: "module:function"` to run a scenario that returns diagnostics.
 
 ## [0.3.0] - 2026-11-04
 

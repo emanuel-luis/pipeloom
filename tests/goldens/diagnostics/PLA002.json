@@ -1,0 +1,42 @@
+[
+  {
+    "code": "PLA002",
+    "severity": "error",
+    "message": "asset_uri has an unknown placeholder '{schema}'",
+    "hint": "use: project, target, model, relation, unique_id",
+    "location": null,
+    "context": {}
+  },
+  {
+    "code": "PLA002",
+    "severity": "error",
+    "message": "load_method 'manifest' needs project.manifest_path",
+    "hint": "or use load_method 'project'",
+    "location": null,
+    "context": {}
+  },
+  {
+    "code": "PLA002",
+    "severity": "error",
+    "message": "operator_args.retries is set by pipeloom",
+    "hint": "remove it from operator_args",
+    "location": null,
+    "context": {}
+  },
+  {
+    "code": "PLA002",
+    "severity": "error",
+    "message": "pod_kwargs.cmds is set by pipeloom",
+    "hint": "remove it from pod_kwargs",
+    "location": null,
+    "context": {}
+  },
+  {
+    "code": "PLA002",
+    "severity": "error",
+    "message": "project.project_dir must be an absolute path, got 'relative/project'",
+    "hint": null,
+    "location": null,
+    "context": {}
+  }
+]

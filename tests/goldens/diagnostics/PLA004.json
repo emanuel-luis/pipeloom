@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLA004",
+    "severity": "error",
+    "message": "unit 'a': task 'a' succeeded but no attempt file is visible under artifacts.root (the root must be shared)",
+    "hint": null,
+    "location": null,
+    "context": {}
+  },
+  {
+    "code": "PLA004",
+    "severity": "error",
+    "message": "unit 'b': task 'b' ended without a unit result",
+    "hint": null,
+    "location": null,
+    "context": {}
+  }
+]

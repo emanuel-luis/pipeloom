@@ -1,0 +1,2 @@
+error PLA004 unit 'a': task 'a' succeeded but no attempt file is visible under artifacts.root (the root must be shared)
+error PLA004 unit 'b': task 'b' ended without a unit result

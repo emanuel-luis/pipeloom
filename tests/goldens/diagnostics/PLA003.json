@@ -1,0 +1,15 @@
+[
+  {
+    "code": "PLA003",
+    "severity": "warning",
+    "message": "the selection renders no unit",
+    "hint": "check select and exclude",
+    "location": null,
+    "context": {
+      "select": [
+        "tag:nothing"
+      ],
+      "exclude": []
+    }
+  }
+]

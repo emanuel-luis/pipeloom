@@ -1,0 +1,9 @@
+error PLA002 asset_uri has an unknown placeholder '{schema}'
+      hint: use: project, target, model, relation, unique_id
+error PLA002 load_method 'manifest' needs project.manifest_path
+      hint: or use load_method 'project'
+error PLA002 operator_args.retries is set by pipeloom
+      hint: remove it from operator_args
+error PLA002 pod_kwargs.cmds is set by pipeloom
+      hint: remove it from pod_kwargs
+error PLA002 project.project_dir must be an absolute path, got 'relative/project'

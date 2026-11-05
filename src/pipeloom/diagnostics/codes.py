@@ -551,13 +551,59 @@ _ACTIVE_05: Final = (
 )
 
 
+# Active since 0.6.
+_ACTIVE_06: Final = (
+    (
+        "PLA001",
+        E,
+        "Unsupported execution mode",
+        "The Airflow plugin was configured with an execution mode it does not support. DOCKER is not supported in 0.6; use local, virtualenv, kubernetes or databricks.",
+    ),
+    (
+        "PLA002",
+        E,
+        "Invalid Airflow plugin configuration",
+        "A configuration of the Airflow plugin cannot be used: the manifest load method without a manifest path, a relative path, a virtualenv mode without a directory, a kubernetes mode without an image, a pod_kwargs or operator_args key that pipeloom sets itself, an unknown asset_uri placeholder, or a full_refresh param that is not a boolean.",
+    ),
+    (
+        "PLA003",
+        W,
+        "Selection renders no units",
+        "The DAG's select and exclude selectors match no unit of the plan, so the DAG would hold no unit task.",
+    ),
+    (
+        "PLA004",
+        E,
+        "Unit task ended without a visible unit result",
+        "An Airflow task ended without an attempt file for its unit under artifacts.root. When the task succeeded, the root is not shared between the workers and the finalize task. The unit is recorded as failed, so the run fails.",
+    ),
+    (
+        "PLA005",
+        E,
+        "Unsupported Airflow version",
+        "The plugin supports Airflow 3.2 up to, not including, 4.0.",
+    ),
+    (
+        "PLA006",
+        W,
+        "PROJECT compile cache unusable",
+        "The directory that holds the compile cache of the project load method cannot be read or written. The project compiles on every DAG parse until it is fixed.",
+    ),
+    (
+        "PLA007",
+        W,
+        "Target boundary is not task",
+        "Each unit runs in its own process, so the target should set boundary: task. Then PLC503 checks that the state store is shared between workers.",
+    ),
+)
+
+
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
     ("PLF702", E, "Source missing", "0.2"),
     ("PLF703", E, "Target schema drift detected", "0.2"),
     ("PLD002", E, "Submit task limit (never emitted, PLD001 covers it)", "0.4"),
-    ("PLA001", E, "Unsupported execution mode", "0.4"),
 )
 
 
@@ -569,6 +615,7 @@ def _build() -> Mapping[str, CodeInfo]:
         ("0.3", _ACTIVE_03),
         ("0.4", _ACTIVE_04),
         ("0.5", _ACTIVE_05),
+        ("0.6", _ACTIVE_06),
     ):
         for code, sev, title, expl in table:
             out[code] = CodeInfo(code, _PREFIX_LAYER[code[:3]], sev, title, expl, "active", since)
