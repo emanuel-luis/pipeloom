@@ -17,7 +17,7 @@ targets:
     engine: {kind: spark}
     catalog: {kind: unity, catalog: "${var:catalog}"}
     naming: {kind: none, schema: "${var:schema}"}
-    state: {kind: table, table: "${var:schema}._pipeloom_state"}
+    state: {kind: table, table: "${var:catalog}.${var:schema}._pipeloom_state"}
     artifacts: {root: "${var:volume}/artifacts"}
     deploy:
       kind: databricks

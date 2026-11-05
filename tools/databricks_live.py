@@ -400,6 +400,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         environment_version=args.environment_version,
         wheels=pick_wheels(paths),
     )
+    # The state table lives in the scratch schema and is created before any model write
+    # creates the schema, so the schema has to exist first; the cleanup drops it.
+    sdk.schemas.create(name=schema, catalog_name=args.catalog)
     hooks = Cleanup(
         delete_job=lambda job_id: sdk.jobs.delete(job_id),
         drop_schema=lambda: sdk.schemas.delete(f"{args.catalog}.{schema}", force=True),
