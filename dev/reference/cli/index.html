@@ -1295,9 +1295,9 @@
 <h4 id="pipeloom-finalize">pipeloom finalize<a class="headerlink" href="#pipeloom-finalize" title="Permanent link">&para;</a></h4>
 <p>Merge the unit results of a run into run_results.json and close the run.</p>
 <p>Units in scope (default: the whole plan) take their attempt file, else the state given with
---unit-states, else they are skipped as not_run, which does not fail the run. A unit marked
-excluded gets no row. Exit codes: 0 ok, 1 a unit failed, 2 bad usage, 130 cancelled.
-Running it again rewrites the same results.</p>
+--unit-states or --unit-states-json, else they are skipped as not_run, which does not fail
+the run. A unit marked excluded gets no row. Exit codes: 0 ok, 1 a unit failed, 2 bad usage,
+130 cancelled. Running it again rewrites the same results.</p>
 <p><strong>Usage:</strong></p>
 <pre><code class="language-text">pipeloom finalize [OPTIONS]
 </code></pre>
@@ -1329,6 +1329,9 @@ Running it again rewrites the same results.</p>
                                that wrote no attempt file: {unit_id: {status:
                                skipped|cancelled|failed|excluded, reason,
                                code, message, orchestrator_ids}}.
+  --unit-states-json TEXT      The same document as --unit-states, given
+                               inline (for an orchestrator that cannot share a
+                               file). Not together with --unit-states.
   --orchestrator-id KEY=VALUE  An id the orchestrator gave this run, such as
                                job_run_id=42. It goes into the attempt files,
                                the run results and the context of every event.

@@ -1232,7 +1232,8 @@ as <code>orchestrator_id.&lt;key&gt;</code>.</p>
 what <code>-s/--select</code> and <code>--exclude</code> leave) it takes, in this order:</p>
 <ol>
 <li>the unit's attempt file;</li>
-<li>else the state the orchestrator reports in <code>--unit-states PATH</code>, a JSON file
+<li>else the state the orchestrator reports in <code>--unit-states PATH</code>, a JSON file (or the same
+   document inline in <code>--unit-states-json TEXT</code>, not together with the file),
    <code>{"schema": "pipeloom.unit_states/1", "units": {"&lt;unit id&gt;": {"status": "failed", ...}}}</code>.
    <code>status</code> is <code>skipped</code>, <code>cancelled</code>, <code>failed</code> or <code>excluded</code>; <code>reason</code> (for <code>skipped</code>, default
    <code>upstream_failed</code>), <code>code</code>, <code>message</code> and <code>orchestrator_ids</code> are optional. <code>excluded</code> drops the
