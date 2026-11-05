@@ -99,3 +99,8 @@ def test_spec_builds_a_catalog_for_spark_only_with_views() -> None:
 def test_the_catalog_option_is_required() -> None:
     with pytest.raises(ValueError, match="catalog"):
         UnityOptions.model_validate({})
+
+
+def test_the_catalog_option_cannot_be_empty() -> None:
+    with pytest.raises(ValueError, match="catalog"):
+        UnityOptions.model_validate({"catalog": ""})

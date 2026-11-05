@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from pydantic import Field
+
 from pipeloom.engine.protocols import Catalog, SecretProvider
 from pipeloom.engine.types import CatalogCapabilities
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
@@ -11,8 +13,11 @@ from pipeloom_databricks.options import DatabricksDeployOptions
 
 
 class UnityOptions(OptionsModel):
-    catalog: str
-    """Unity Catalog catalog used when a target's naming leaves the catalog empty."""
+    catalog: str = Field(min_length=1)
+    """Unity Catalog catalog used when a target's naming leaves the catalog empty.
+
+    Never empty: an empty catalog would give two-part names that resolve against the
+    session's current catalog."""
 
 
 class SecretsOptions(OptionsModel):
