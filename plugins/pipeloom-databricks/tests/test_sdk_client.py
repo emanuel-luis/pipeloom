@@ -120,7 +120,7 @@ RUN = {
     "repair_history": [
         {"type": "ORIGINAL"},
         {"type": "REPAIR", "id": 21},
-        {"type": "REPAIR", "id": 22},
+        {"type": "REPAIR", "id": 22, "state": {"life_cycle_state": "TERMINATED"}},
     ],
     "tasks": [
         {
@@ -163,6 +163,7 @@ def test_get_run_merges_task_pages_and_reads_history() -> None:
     )
     assert run.job_parameters == {"pipeloom_run_id": "r1", "full_refresh": "false"}
     assert run.latest_repair_id == 22
+    assert run.repair_states == {21: "UNKNOWN", 22: "TERMINATED"}
     assert (run.run_page_url, run.start_time_ms) == ("https://h.example/run/11", 1700000000000)
     first, second = run.tasks
     assert (first.task_key, first.run_id, first.attempt, first.message) == ("a", 12, 1, "boom")

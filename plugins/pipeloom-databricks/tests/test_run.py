@@ -372,6 +372,35 @@ def test_wait_after_a_repair_ignores_the_terminal_state_shown_right_after_it() -
     assert said[0] == "run: TERMINATED/FAILED"  # the stale reading was seen, and not believed
 
 
+def test_wait_after_a_repair_that_ran_between_two_polls_reads_its_history_entry() -> None:
+    fake = FakeDatabricks()
+    fake.stale_polls = 1
+    fake.set_run(5, job_id=1, result_state="FAILED")
+    repair_id = fake.repair_run(5, rerun_tasks=["a"], latest_repair_id=None)
+    assert fake.runs[5].repair_states == {repair_id: "RUNNING"}
+    polls: list[int] = []
+
+    def sleep(seconds: float) -> None:
+        # the repair started and ended before the next poll: the run is never seen active
+        polls.append(1)
+        fake.set_run(
+            5,
+            job_id=1,
+            result_state="SUCCESS",
+            latest_repair_id=repair_id,
+            repair_states={repair_id: "TERMINATED"},
+        )
+
+    run = wait_for_run(fake, 5, sleep=sleep, say=lambda _: None, repair_id=repair_id, timeout=60)
+    assert run.result_state == "SUCCESS" and polls == [1]
+    # a terminal run whose entry for our repair is still running is not the end
+    fake.set_run(
+        6, job_id=1, result_state="FAILED", latest_repair_id=9, repair_states={9: "RUNNING"}
+    )
+    with pytest.raises(WaitTimeout):
+        wait_for_run(fake, 6, sleep=lambda _: None, say=lambda _: None, repair_id=9, timeout=15)
+
+
 def test_wait_after_a_repair_ends_when_someone_else_repaired_again() -> None:
     fake = FakeDatabricks()
     fake.set_run(5, job_id=1, result_state="FAILED", latest_repair_id=12)
@@ -387,7 +416,7 @@ def test_wait_times_out_on_polling_time_not_wall_clock() -> None:
     with pytest.raises(WaitTimeout, match="did not end within 45 seconds"):
         wait_for_run(fake, 5, sleep=slept.append, say=lambda _: None, timeout=45)
     assert slept == [15, 15, 15]
-    # a repair that ended between two polls is never seen active: only the timeout ends it
+    # a history entry without a usable state and no active poll: only the timeout ends the wait
     fake.set_run(6, job_id=1, result_state="SUCCESS", latest_repair_id=11)
     with pytest.raises(WaitTimeout):
         wait_for_run(fake, 6, sleep=lambda _: None, say=lambda _: None, repair_id=11, timeout=30)

@@ -303,9 +303,9 @@ def wait_for_run(
 
     After a repair, `repair_id` makes the wait ignore the terminal state the run still shows
     right after the repair: it ends only when the run reports that repair or a later one
-    (`latest_repair_id >=`) and, for our own repair, after the run was seen active at least once.
-    A newer repair by someone else ends the wait, since ours is over. A repair that starts and
-    ends between two polls is never seen active, so only `timeout` ends that wait.
+    (`latest_repair_id >=`) and, for our own repair, when its repair history entry is terminal or
+    the run was seen active at least once. A newer repair by someone else ends the wait, since
+    ours is over. `timeout` is the backstop for a history entry without a usable state.
     """
     seen: dict[str, str] = {}
     active = False
@@ -325,7 +325,8 @@ def wait_for_run(
             return run
         if terminal and repair_id is not None:
             latest = run.latest_repair_id or 0
-            if latest > repair_id or (latest == repair_id and active):
+            ours_done = run.repair_states.get(repair_id) in TERMINAL
+            if latest > repair_id or (latest == repair_id and (ours_done or active)):
                 return run
         if timeout is not None and waited >= timeout:
             raise WaitTimeout(f"run {job_run_id} did not end within {timeout:g} seconds")

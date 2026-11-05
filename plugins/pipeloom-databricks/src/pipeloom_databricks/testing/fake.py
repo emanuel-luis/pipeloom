@@ -142,6 +142,7 @@ class FakeDatabricks:
         job_parameters: Mapping[str, str] | None = None,
         latest_repair_id: int | None = None,
         run_page_url: str | None = None,
+        repair_states: Mapping[int, str] | None = None,
     ) -> RunInfo:
         """Put a run in without a call record (test setup, or the simulator)."""
         run = RunInfo(
@@ -153,6 +154,7 @@ class FakeDatabricks:
             tuple(tasks),
             latest_repair_id,
             run_page_url,
+            repair_states=dict(repair_states or {}),
         )
         self.runs[run_id] = run
         return run
@@ -190,7 +192,10 @@ class FakeDatabricks:
             before = replace(self.runs[run_id], latest_repair_id=repair_id)
             self._stale[run_id] = (before, self.stale_polls)
         self.runs[run_id] = replace(
-            self.runs[run_id], life_cycle_state="RUNNING", latest_repair_id=repair_id
+            self.runs[run_id],
+            life_cycle_state="RUNNING",
+            latest_repair_id=repair_id,
+            repair_states={**self.runs[run_id].repair_states, repair_id: "RUNNING"},
         )
         return repair_id
 

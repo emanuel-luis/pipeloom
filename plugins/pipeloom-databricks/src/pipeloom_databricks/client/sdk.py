@@ -102,6 +102,11 @@ def _run(raw: Mapping[str, Any], tasks: Sequence[Mapping[str, Any]] = ()) -> Run
         if value is not None:
             params[str(p["name"])] = str(value)
     repairs = [int(h["id"]) for h in raw.get("repair_history") or [] if h.get("id") is not None]
+    repair_states = {
+        int(h["id"]): _states(h)[0]
+        for h in raw.get("repair_history") or []
+        if h.get("id") is not None
+    }
     job_id = raw.get("job_id")
     start = raw.get("start_time")
     return RunInfo(
@@ -114,6 +119,7 @@ def _run(raw: Mapping[str, Any], tasks: Sequence[Mapping[str, Any]] = ()) -> Run
         latest_repair_id=max(repairs) if repairs else None,
         run_page_url=raw.get("run_page_url"),
         start_time_ms=None if start is None else int(start),
+        repair_states=repair_states,
     )
 
 
