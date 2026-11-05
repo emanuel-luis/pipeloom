@@ -160,7 +160,7 @@ def test_task_values_are_published_and_never_change_the_exit_code(
     assert "task value not set: RuntimeError" in r.stderr
 
 
-def test_main_ends_in_system_exit_and_the_lazy_entry_reads_argv(
+def test_main_exits_only_on_failure_and_the_lazy_entry_reads_argv(
     sim: Callable[..., Sim], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     s = sim()
@@ -168,9 +168,8 @@ def test_main_ends_in_system_exit_and_the_lazy_entry_reads_argv(
         task.main(unit_args(s, unit="c", **{"task-key": "c"}))
     assert stop.value.code == 1
     monkeypatch.setattr(sys, "argv", ["pipeloom_databricks_task", *unit_args(s)])
-    with pytest.raises(SystemExit) as ok:
-        pipeloom_databricks.pipeloom_databricks_task()
-    assert ok.value.code == 0
+    # success returns: serverless (IPython) reports even SystemExit(0) as a failed task
+    pipeloom_databricks.pipeloom_databricks_task()
 
 
 # -- helpers -------------------------------------------------------------------------------------

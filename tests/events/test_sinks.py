@@ -93,6 +93,17 @@ def test_console_defaults_to_the_current_stderr(capsys: pytest.CaptureFixture[st
     assert captured.out == "" and "error PLS101 pipeloom.yml:6:1" in captured.err
 
 
+def test_console_writes_plain_lines_under_a_databricks_kernel(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Rich takes an IPython kernel with DATABRICKS_RUNTIME_VERSION for Jupyter (HTML per line)
+    monkeypatch.setenv("DATABRICKS_RUNTIME_VERSION", "17.3")
+    monkeypatch.setattr("builtins.get_ipython", lambda: object(), raising=False)
+    sample_events([(ConsoleSink(), 5)])
+    captured = capsys.readouterr()
+    assert "error PLS101 pipeloom.yml:6:1" in captured.err and "<pre" not in captured.out
+
+
 def test_jsonl_round_trip_through_event_model(capsys: pytest.CaptureFixture[str]) -> None:
     rec = RecordingSink()
     sample_events([(JsonlSink(None), 5), (rec, 5)])

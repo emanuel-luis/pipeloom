@@ -409,14 +409,21 @@ def main(
     task_values: TaskValues | None = None,
     client_factory: Callable[[], DatabricksClient] | None = None,
 ) -> None:
-    """The entry point. `argv` defaults to `sys.argv[1:]`; always ends in `SystemExit`.
+    """The entry point. `argv` defaults to `sys.argv[1:]`.
+
+    Returns on success and raises `SystemExit` with a non-zero code on failure. Serverless runs
+    the wheel entry point under IPython, which reports even `SystemExit(0)` as a failed task.
 
     `task_values` replaces the platform's task values and `client_factory` the connection that
     finalize reads task states through (a test passes a recorder and a fake client).
     """
     given = task_values is not None or client_factory is not None
-    cli.main(
-        args=None if argv is None else list(argv),
-        prog_name="pipeloom_databricks_task",
-        obj=_Context(task_values, client_factory) if given else None,
-    )
+    try:
+        cli.main(
+            args=None if argv is None else list(argv),
+            prog_name="pipeloom_databricks_task",
+            obj=_Context(task_values, client_factory) if given else None,
+        )
+    except SystemExit as stop:
+        if stop.code not in (None, 0):
+            raise

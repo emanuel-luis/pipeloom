@@ -110,7 +110,9 @@ class ConsoleSink:
     name = "console"
 
     def __init__(self, console: Console | None = None, tz: tzinfo | None = None) -> None:
-        self._console = console or Console(stderr=True)
+        # Rich takes Databricks (and any IPython kernel) for Jupyter and would render every line
+        # as its own HTML block, which the job output shows with large gaps between lines.
+        self._console = console or Console(stderr=True, force_jupyter=False)
         self._tz = tz
         self._total: int | None = None
         self._workers = 0
