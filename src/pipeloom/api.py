@@ -19,6 +19,8 @@ from pipeloom.platform import Clock, Identity, IdentityProvider, LocalIdentity, 
 from pipeloom.plugins import PluginRegistry
 from pipeloom.runtime.control import RunControl
 from pipeloom.runtime.run import RunOptions, RunOutcome, execute_run
+from pipeloom.secrets.redaction import Redactor
+from pipeloom.secrets.resolve import SecretResolver
 from pipeloom.validate import validate_project
 from pipeloom.validate.references import check_references
 
@@ -36,8 +38,12 @@ class Project:
         clock: Clock | None = None,
         identity: IdentityProvider | None = None,
         invocation_id: str | None = None,
+        redactor: Redactor | None = None,
     ) -> None:
         self.options = options
+        self.redactor = redactor or Redactor()
+        """Holds every secret the run resolves; pass the same one to the event bus."""
+        self._secrets: SecretResolver | None = None
         self._registry = registry
         self._registry_problems: tuple[Diagnostic, ...] = ()
         self.clock: Clock = clock or SystemClock()
@@ -63,6 +69,14 @@ class Project:
             )
             self._registry_problems = report.sorted()
         return self._registry
+
+    @property
+    def secrets(self) -> SecretResolver:
+        """Resolves `${secret:...}` references for plugins built to execute. One per project, so
+        each provider is built once per invocation."""
+        if self._secrets is None:
+            self._secrets = SecretResolver(self.registry, self.redactor)
+        return self._secrets
 
     def load(self) -> Outcome[LoadedProject]:
         """Read and check pipeloom.yml, model files and defaults (layers L0 and L1)."""
@@ -152,7 +166,9 @@ class Project:
         if control is not None:
             opts = replace(opts, control=control)
         own = bus is None
-        events = bus or EventBus([], clock=self.clock, invocation_id=self.invocation_id)
+        events = bus or EventBus(
+            [], clock=self.clock, invocation_id=self.invocation_id, redactor=self.redactor
+        )
         try:
             return execute_run(self, opts, events)
         finally:

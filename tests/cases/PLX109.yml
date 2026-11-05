@@ -1,0 +1,15 @@
+plugins: ["tests.plugins.fakes:VAULT"]
+run: {workers: 1}
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine:
+          kind: memory
+          tables: {t: [{token: "${secret:vault/missing}"}]}
+        catalog: {kind: memory}
+  models/m.yml: |
+    models:
+      - {name: a, sql: select 1 as x}

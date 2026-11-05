@@ -45,6 +45,7 @@ from pipeloom.runtime.retry import UnitPolicy
 from pipeloom.runtime.runner import ModelRunner
 from pipeloom.runtime.scheduler import Scheduler, ScheduleResult, UnitGraph
 from pipeloom.runtime.states import UnitState
+from pipeloom.secrets.resolve import SecretError, secret_diagnostic
 from pipeloom.state.types import LockHeld, RunRecord, RunStatus, StateStore
 
 if TYPE_CHECKING:
@@ -314,9 +315,13 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     task = plan.metadata.boundary == "task" and not unit_mode
     executor_name = "process" if plan.metadata.boundary == "task" else "thread"
     identity = project.identity
-    engine: Engine = engine_plugin.create()
-    catalog: Catalog = catalog_plugin.create()
-    state: StateStore = bound.plugins["state_stores"].create()
+    secrets = project.secrets  # references resolve here and nowhere earlier
+    try:
+        engine: Engine = engine_plugin.create(secrets)
+        catalog: Catalog = catalog_plugin.create(secrets)
+        state: StateStore = bound.plugins["state_stores"].create(secrets)
+    except SecretError as err:
+        return _early(bus, [*diags, secret_diagnostic(err)])
     scope = f"{plan.metadata.project}/{plan.metadata.target}"
     if not unit_mode:
         write_manifest(plan, paths.manifest)
@@ -450,6 +455,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                         memo=memo,
                         executor_name=executor_name,
                         policies=policies,
+                        redactor=project.redactor,
                     )
                     executor = ThreadExecutor(
                         runner.run_unit,
@@ -609,7 +615,7 @@ def _finish(
                 err = ErrorInfo(
                     code="PLX101",
                     category="permanent",
-                    message=f"internal error: {type(exc).__name__}: {exc}",
+                    message=project.redactor.mask(f"internal error: {type(exc).__name__}: {exc}"),
                     hint="this is probably a pipeloom bug; report it",
                     exception_type=type(exc).__name__,
                 )
@@ -629,6 +635,7 @@ def _finish(
         crashed=crashed,
         timed_out=timed_out,
         intermediate_ttl=bound.runtime.artifacts.intermediate_ttl,
+        redactor=project.redactor,
     )
     run = done.run_results["run"]
     status: RunStatus = run["status"]

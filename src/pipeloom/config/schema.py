@@ -28,6 +28,7 @@ _BLOCK_FIELDS: Final[Mapping[str, Group]] = {
     "catalog": "catalogs",
     "naming": "naming",
     "state": "state_stores",
+    "deploy": "renderers",
 }
 
 

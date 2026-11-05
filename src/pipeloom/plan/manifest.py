@@ -54,25 +54,35 @@ def compute_plan_hash(plan: Plan) -> str:
     return hashlib.sha256(canonical_json(doc)).hexdigest()
 
 
-def manifest_dict(plan: Plan) -> dict[str, Any]:
-    sections = _sections(plan)
+def manifest_dict(plan: Plan, *, stable: bool = False) -> dict[str, Any]:
+    """The manifest as data. `deploy` is left out when the target has none. `stable` blanks
+    `generated_at` and `invocation_id` and empties the selection, so one project and target
+    always give the same bytes."""
+    metadata = plan.metadata.model_dump(mode="json")
+    selectors = plan.selection.model_dump(mode="json")
+    if metadata["deploy"] is None:
+        del metadata["deploy"]
+    if stable:
+        metadata["generated_at"] = metadata["invocation_id"] = ""
+        selectors = {"select": [], "exclude": [], "selected": []}
     return {
         "schema": MANIFEST_SCHEMA,
-        "metadata": plan.metadata.model_dump(mode="json"),
-        **sections,
-        "selectors": plan.selection.model_dump(mode="json"),
+        "metadata": metadata,
+        **_sections(plan),
+        "selectors": selectors,
     }
 
 
-def manifest_bytes(plan: Plan) -> bytes:
+def manifest_bytes(plan: Plan, *, stable: bool = False) -> bytes:
     """Indented by 2, UTF-8, LF, with a trailing newline."""
-    text = json.dumps(manifest_dict(plan), indent=2, allow_nan=False, ensure_ascii=False)
+    doc = manifest_dict(plan, stable=stable)
+    text = json.dumps(doc, indent=2, allow_nan=False, ensure_ascii=False)
     return (text + "\n").encode("utf-8")
 
 
-def write_manifest(plan: Plan, path: Path) -> bytes:
+def write_manifest(plan: Plan, path: Path, *, stable: bool = False) -> bytes:
     """Write the manifest, creating parent folders. Returns the bytes written."""
-    content = manifest_bytes(plan)
+    content = manifest_bytes(plan, stable=stable)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(content)
     return content

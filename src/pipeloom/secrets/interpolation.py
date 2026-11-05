@@ -3,7 +3,10 @@
 Grammar:
 - `${env:NAME}` and `${env:NAME:-default}`; the default applies only when NAME is unset.
 - `${var:name}`; a value that is exactly one `${var:name}` keeps the variable's type.
-- `${secret:provider/path}` is left as is: it resolves at runtime.
+- `${secret:provider/path}` is left as is: it resolves at runtime. Only references written
+  literally in the YAML count: each is recorded as a `secret` record with its span in the
+  result string, so an escaped `$${secret:...}` or text that came from `${env:...}` or
+  `${var:...}` never resolves.
 - `$${` is an escape for a literal `${`.
 - Any other `${...}` is left alone, so Spark-style `${x}` passes through.
 """
@@ -28,9 +31,11 @@ _WHOLE_VAR = re.compile(r"^\$\{var:([A-Za-z_][A-Za-z0-9_]*)\}$")
 class InterpolationRecord:
     pointer: str
     file: str
-    kind: Literal["env", "var"]
+    kind: Literal["env", "var", "secret"]
     name: str
     default_used: bool
+    span: tuple[int, int] | None = None
+    """For `secret`: where the reference sits in the interpolated string."""
 
 
 def _escape(segment: str) -> str:
@@ -54,13 +59,15 @@ class _Interpolator:
             return {k: self.walk(v, f"{pointer}/{_escape(k)}") for k, v in node.items()}
         if isinstance(node, list):
             return [self.walk(v, f"{pointer}/{i}") for i, v in enumerate(node)]
-        if isinstance(node, str) and "${" in node and not self.skip(pointer):
-            return self.text(node, pointer)
+        if isinstance(node, str) and "${" in node:
+            # A skipped value (a secret-like field) still gets its secret references recorded
+            # and its escapes undone; `${env:...}` and `${var:...}` in it stay as written.
+            return self.text(node, pointer, only_secret=self.skip(pointer))
         return node
 
-    def text(self, value: str, pointer: str) -> Any:
+    def text(self, value: str, pointer: str, *, only_secret: bool = False) -> Any:
         whole = _WHOLE_VAR.match(value)
-        if whole and whole.group(1) in self.vars:
+        if not only_secret and whole and whole.group(1) in self.vars:
             self.records.append(
                 InterpolationRecord(pointer, self.doc.path, "var", whole.group(1), False)
             )
@@ -69,11 +76,34 @@ class _Interpolator:
         def repl(m: re.Match[str]) -> str:
             if m.group(0) == "$${":
                 return "${"
+            if only_secret and not m.group(0).startswith("${secret:"):
+                return m.group(0)
             if m.group(1) is None:  # an unclosed ${env:, ${var: or ${secret:
                 return self.malformed(m.group(0), pointer)
             return self.expression(m, pointer)
 
-        return _TOKEN.sub(repl, value)
+        out: list[str] = []
+        pos = size = 0
+        for m in _TOKEN.finditer(value):
+            out.append(value[pos : m.start()])
+            size += m.start() - pos
+            pos = m.end()
+            piece = repl(m)
+            if (m.group(1) or "").startswith("secret:") and piece == m.group(0):
+                self.records.append(
+                    InterpolationRecord(
+                        pointer,
+                        self.doc.path,
+                        "secret",
+                        m.group(1)[7:],
+                        False,
+                        (size, size + len(piece)),
+                    )
+                )
+            out.append(piece)
+            size += len(piece)
+        out.append(value[pos:])
+        return "".join(out)
 
     def expression(self, m: re.Match[str], pointer: str) -> str:
         inner, original = m.group(1), m.group(0)

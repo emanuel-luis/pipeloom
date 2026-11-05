@@ -61,6 +61,7 @@ from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.retry import NO_POLICY, UnitPolicy
 from pipeloom.runtime.schema_policy import SchemaRejected, changes_json, resolve_columns
+from pipeloom.secrets.redaction import Redactor
 from pipeloom.state.types import StateKey, StateStore, UnitRecord
 
 DEFAULT_SCHEMA = "main"
@@ -155,7 +156,9 @@ class ModelRunner:
         memo: EphemeralMemo | None,
         executor_name: str,
         policies: Mapping[str, UnitPolicy] | None = None,
+        redactor: Redactor | None = None,
     ) -> None:
+        self._redactor = redactor or Redactor()
         self._plan = plan
         self._engine = engine
         self._session = session
@@ -262,6 +265,10 @@ class ModelRunner:
         if interrupted is not None:
             error = interrupt_error(interrupted, unit_id, attempt, self._policy(unit_id).timeout)
             status = "timed_out" if interrupted == "timeout" else "cancelled"
+        # Resolved secrets must not reach attempt files, the state store or run results.
+        if error is not None:
+            error = ErrorInfo.model_validate(self._redactor.scrub(error.model_dump(mode="json")))
+        trace = self._redactor.scrub(trace)
         ended = rt.clock.now()
         duration_ms = max(0, int((rt.clock.monotonic() - t0) * 1000))
         self._rows.pop(handle, None)
@@ -271,6 +278,7 @@ class ModelRunner:
             duration_ms=duration_ms,
             error=None if error is None else error.model_dump(mode="json"),
         )
+        row.update(self._redactor.scrub(dict(row)))
         try:
             if not write_json_once(self._paths.attempt(unit_id, attempt), row):
                 # The scheduler gave up on this attempt first; its file stands.

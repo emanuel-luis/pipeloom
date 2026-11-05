@@ -30,6 +30,7 @@ from pipeloom.plan.manifest import read_manifest
 from pipeloom.runtime.control import RunControl
 from pipeloom.runtime.executors.process import PARENT_ENV
 from pipeloom.runtime.run import RunOptions, artifacts_root
+from pipeloom.secrets.resolve import SecretError, secret_diagnostic
 
 _HASH = re.compile(r"^[0-9a-fA-F]{64}$")
 _RUN_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
@@ -204,12 +205,17 @@ def run(
         invocation = inv.invocation_id
         fallback = root / "runs" / "_invocations" / f"{invocation}.jsonl"
         extra.append((RunFileSink(lambda rid: RunPaths(root, rid).events(invocation), fallback), 5))
-    bus = inv.open_bus(
-        bound,
-        project_sinks=parent is None,  # a child reports to its parent only
-        extra=extra,
-        context=None if parent is None else {"parent_invocation_id": parent},
-    )
+    try:
+        bus = inv.open_bus(
+            bound,
+            project_sinks=parent is None,  # a child reports to its parent only
+            extra=extra,
+            context=None if parent is None else {"parent_invocation_id": parent},
+            secrets=project.secrets,
+        )
+    except SecretError as err:
+        inv.finish([secret_diagnostic(err)], 1)
+        raise  # unreachable: finish exits
     code = 1
     diagnostics: tuple[Diagnostic, ...] = ()
     control = RunControl()

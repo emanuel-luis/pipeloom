@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import importlib.metadata
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar, Literal
 
 import pytest
+from pydantic import Field
 
 from pipeloom.engine.types import CatalogCapabilities, EngineCapabilities
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
@@ -102,3 +103,47 @@ NOVIEWS: PluginSpec[object] = PluginSpec(
     capabilities=CatalogCapabilities(views=False),
     description="A catalog that cannot hold views.",
 )
+
+
+class RendererOptions(OptionsModel):
+    pipelines: list[str] = Field(default_factory=lambda: ["main"])
+    """Pipelines to render."""
+    task_grouping: Literal["none", "by_tag"] = "none"
+    """How tasks are grouped."""
+
+
+def _never_built(_opts: Any) -> object:
+    raise AssertionError("the core must not call a renderer factory")
+
+
+RENDERER: PluginSpec[object] = PluginSpec(
+    "fakejobs", "fakejobs", "renderers", API_VERSION, _never_built, RendererOptions
+)
+
+
+class VaultOptions(OptionsModel):
+    pass
+
+
+class Vault:
+    """`${secret:vault/db/pass}` is `s3cr3t-value`; any other path is unknown."""
+
+    values: ClassVar[dict[str, str]] = {"db/pass": "s3cr3t-value"}
+
+    def resolve(self, path: str) -> str:
+        return self.values[path]
+
+
+VAULT: PluginSpec[object] = PluginSpec(
+    "vault", "vault", "secret_providers", API_VERSION, lambda _o: Vault(), VaultOptions
+)
+
+
+def _leaky(opts: Any) -> object:
+    raise ValueError(f"cannot connect to {opts.path}")
+
+
+LEAKY: PluginSpec[object] = PluginSpec(
+    "leaky", "leaky", "state_stores", API_VERSION, _leaky, FakeOptions
+)
+"""A state store whose factory fails with the option it was given in the message."""

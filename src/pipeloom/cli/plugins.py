@@ -9,9 +9,19 @@ from typing import Any
 import click
 
 from pipeloom.cli._events import Invocation
+from pipeloom.cli._ext import command_entries, load_command
 from pipeloom.cli._options import log_format_option, plugin_option
 from pipeloom.diagnostics import Report, Severity
-from pipeloom.plugins import GROUPS, PluginRegistry
+from pipeloom.plugins import GROUPS, PluginEntry, PluginRegistry
+
+
+def _command_loads(entry: PluginEntry, report: Report) -> bool:
+    """Import a command entry; a failure is PLU003."""
+    cmd = load_command(entry)
+    if cmd.help is not None and cmd.help.startswith("Unavailable: "):
+        report.add("PLU003", cmd.help.removeprefix("Unavailable: "))
+        return False
+    return True
 
 
 @click.group()
@@ -20,7 +30,9 @@ def plugins() -> None:
 
 
 @plugins.command("list")
-@click.option("--group", type=click.Choice(list(GROUPS)), default=None, help="Only this group.")
+@click.option(
+    "--group", type=click.Choice([*GROUPS, "commands"]), default=None, help="Only this group."
+)
 @click.option(
     "--output",
     "output",
@@ -42,7 +54,12 @@ def list_(group: Any, output: str, check: bool, plugins: tuple[str, ...], log_fo
             where = ", ".join(f"{e.distribution} ({e.value})" for e in found)
             report.add("PLU002", f"{grp} kind '{kind}' is provided more than once: {where}")
     rows: list[dict[str, str]] = []
-    for e in registry.entries(group):
+    listed = list(registry.entries(group if group != "commands" else None))
+    if group == "commands":
+        listed = []
+    if group in (None, "commands"):
+        listed += command_entries(os.environ)
+    for e in listed:
         row = {
             "group": e.group,
             "kind": e.kind,
@@ -51,7 +68,10 @@ def list_(group: Any, output: str, check: bool, plugins: tuple[str, ...], log_fo
             "version": e.version,
             "value": e.value,
         }
-        if check:
+        if check and e.group == "commands":
+            row["api"] = "-"
+            row["status"] = "ok" if _command_loads(e, report) else "PLU003"
+        elif check:
             one = Report()
             spec = registry.check(e, one)
             report.extend(one.sorted())

@@ -14,17 +14,6 @@ from pipeloom.diagnostics import Report
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-class PipeloomGroup(click.Group):
-    """A click group that turns Ctrl+C into exit code 130."""
-
-    def invoke(self, ctx: click.Context) -> Any:
-        try:
-            return super().invoke(ctx)
-        except KeyboardInterrupt:
-            click.echo("Interrupted.", err=True)
-            ctx.exit(130)
-
-
 def _parse_vars(ctx: click.Context, param: click.Parameter, value: str | None) -> dict[str, Any]:
     if value is None:
         return {}

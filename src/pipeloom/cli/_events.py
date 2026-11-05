@@ -24,6 +24,7 @@ from pipeloom.events.sinks.buffered import BufferedSink
 from pipeloom.events.sinks.console import ConsoleSink
 from pipeloom.events.sinks.jsonl import JsonlSink
 from pipeloom.platform import SystemClock
+from pipeloom.secrets.resolve import SecretResolver
 
 TERMINAL_BUDGET = 5
 
@@ -53,14 +54,18 @@ def _context_args() -> dict[str, Any]:
     return args
 
 
-def config_sinks(bound: BoundProject | None) -> list[tuple[EventSink, int]]:
-    """Build the sinks of `events.sinks`, with their failure budgets, from a bound project."""
+def config_sinks(
+    bound: BoundProject | None, secrets: SecretResolver | None = None
+) -> list[tuple[EventSink, int]]:
+    """Build the sinks of `events.sinks`, with their failure budgets, from a bound project.
+
+    With `secrets`, `${secret:...}` references in sink options resolve (SecretError)."""
     if bound is None:
         return []
     out: list[tuple[EventSink, int]] = []
     blocks = bound.loaded.config.events.sinks
     for block, plugin in zip(blocks, bound.sinks, strict=True):
-        sink: EventSink = plugin.create()
+        sink: EventSink = plugin.create(secrets)
         if isinstance(sink, JsonlSink):
             sink.root = bound.loaded.project_dir
         if block.buffered:
@@ -105,18 +110,23 @@ class Invocation:
         project_sinks: bool = True,
         extra: Sequence[tuple[EventSink, int]] = (),
         context: Mapping[str, str] | None = None,
+        secrets: SecretResolver | None = None,
     ) -> EventBus:
-        """The bus of this invocation: the terminal sink, the project's sinks, then `extra`."""
+        """The bus of this invocation: the terminal sink, the project's sinks, then `extra`.
+
+        `secrets` resolves references in the sinks' options and masks the values on the bus.
+        Raises SecretError."""
         terminal: EventSink = JsonlSink(None) if self.log_format == "json" else ConsoleSink()
         sinks = [(terminal, TERMINAL_BUDGET)]
         if project_sinks:
-            sinks += config_sinks(bound)
+            sinks += config_sinks(bound, secrets)
         return EventBus(
             [*sinks, *extra],
             clock=self.clock,
             invocation_id=self.invocation_id,
             run_id=None,
             context=context,
+            redactor=None if secrets is None else secrets.redactor,
         )
 
     def started(

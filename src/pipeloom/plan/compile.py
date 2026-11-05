@@ -118,6 +118,7 @@ def compile_plan(
             distribution=entry.distribution if entry else "",
             version=entry.version if entry else "",
         )
+    renderer = bound.plugins.get("renderers")
     env_vars = sorted({(r.name, r.default_used) for r in project.interpolations if r.kind == "env"})
     metadata: dict[str, Any] = {
         "pipeloom_version": __version__,
@@ -132,6 +133,9 @@ def compile_plan(
         "env_vars": tuple(EnvVar(name=n, default_used=d) for n, d in env_vars),
         "generated_at": clock.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         "invocation_id": invocation_id,
+        "deploy": None
+        if renderer is None
+        else {"kind": renderer.kind, **renderer.options.model_dump(mode="json")},
     }
     plan = Plan(
         metadata=PlanMetadata(**metadata),

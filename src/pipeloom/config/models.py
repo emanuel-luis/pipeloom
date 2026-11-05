@@ -88,6 +88,8 @@ class RuntimeSettings(_Model):
     """Time a stopped or timed-out unit gets to finish before it is killed. Default 30s."""
     artifacts: ArtifactsConfig | None = None
     """Where artifacts go."""
+    deploy: PluginBlock | None = None
+    """How an orchestrator deploys and runs the plan: a `renderers` plugin and its options."""
 
 
 class TargetConfig(RuntimeSettings):

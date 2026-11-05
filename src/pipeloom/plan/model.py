@@ -98,6 +98,8 @@ class PlanMetadata(_Frozen):
     env_vars: tuple[EnvVar, ...]
     generated_at: str
     invocation_id: str
+    deploy: dict[str, Any] | None = None
+    """The target's validated deploy options, `kind` included. Not part of the plan hash."""
 
 
 class PlanSelection(_Frozen):
