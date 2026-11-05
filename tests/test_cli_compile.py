@@ -172,3 +172,15 @@ def test_manifest_and_events_share_the_invocation_id(tmp_path: Path) -> None:
     ids = {json.loads(line)["invocation_id"] for line in result.stderr.splitlines()}
     assert len(ids) == 1
     assert manifest(out)["metadata"]["invocation_id"] == ids.pop()
+
+
+def test_stable_manifest_is_reproducible_and_blank(tmp_path: Path) -> None:
+    a, b, c = tmp_path / "a.json", tmp_path / "b.json", tmp_path / "c.json"
+    assert compile_([*SHOP, "--stable", "--out", str(a)]).exit_code == 0
+    assert compile_([*SHOP, "--stable", "--out", str(b)]).exit_code == 0
+    assert a.read_bytes() == b.read_bytes()
+    meta = manifest(a)["metadata"]
+    assert (meta["generated_at"], meta["invocation_id"]) == ("", "")
+    assert compile_([*SHOP, "--out", str(c)]).exit_code == 0
+    meta = manifest(c)["metadata"]
+    assert meta["generated_at"] and meta["invocation_id"]

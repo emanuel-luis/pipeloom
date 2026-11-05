@@ -59,6 +59,12 @@ def _summary(plan: Plan) -> PlanCompiled:
     show_default=True,
     help="Manifest file, relative to the project dir unless absolute.",
 )
+@click.option(
+    "--stable",
+    is_flag=True,
+    help="Blank generated_at, invocation_id and the selection so the same project and target "
+    "always give the same bytes.",
+)
 @click.option("--warn-error", is_flag=True, help="Exit 1 on warnings too.")
 def compile_(
     project_dir: Path,
@@ -70,6 +76,7 @@ def compile_(
     log_format: str,
     boundary: str | None,
     out: Path,
+    stable: bool,
     warn_error: bool,
 ) -> None:
     """Validate the project and write the plan to a manifest file."""
@@ -95,7 +102,7 @@ def compile_(
         return
     plan = outcome.value
     path = out if out.is_absolute() else project_dir / out
-    content = write_manifest(plan, path)
+    content = write_manifest(plan, path, stable=stable)
     shown = out.as_posix() if not out.is_absolute() else path.as_posix()
     inv.add(_summary(plan))
     inv.artifact(PurePosixPath(shown), content, "manifest")

@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The format follows
 ### Added
 
 - A `catalog` setting per model and per folder default, next to `schema`, so each layer can write to its own catalog (for example `pipeloom_bronze.tpch.orders`). It cascades like `schema` and wins over the naming strategy's `catalog` option. pipeloom creates schemas, never catalogs. The resolved config gains a field, so node checksums and plan hashes change once ([ADR-0040](docs/adr/0040-per-model-catalog.md)). Plugin API stays (0, 4).
+- `pipeloom compile --stable` writes a reproducible manifest: `generated_at`, `invocation_id` and the selection are blank, so one project and target always give the same bytes.
 
 ### Changed
 
