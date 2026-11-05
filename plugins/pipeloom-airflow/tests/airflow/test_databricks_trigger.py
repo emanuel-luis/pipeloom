@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 
@@ -157,7 +157,7 @@ def test_api_errors_and_bad_connections_are_error_events(
         host = "h.example"
         login = None
         password = None
-        extra_dejson: dict[str, Any] = {}
+        extra_dejson: ClassVar[dict[str, Any]] = {}
 
     async def aget(conn_id: str) -> Conn:
         assert conn_id == "dbx"

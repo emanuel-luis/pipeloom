@@ -18,10 +18,14 @@ from pipeloom_airflow.databricks.mirror import run_ended, snapshot, task_verdict
 from pipeloom_databricks.api import TERMINAL, ApiError, ConnectionNotConfigured, DatabricksClient
 
 EVENT_VERSION = 1
+# Airflow leaves these untyped; called through Any so strict mypy accepts them on every platform.
+_event: Any = TriggerEvent
+_base_init: Any = BaseTrigger.__init__
 
 
 def _error(message: str) -> TriggerEvent:
-    return TriggerEvent({"v": EVENT_VERSION, "status": "error", "message": message})
+    event: TriggerEvent = _event({"v": EVENT_VERSION, "status": "error", "message": message})
+    return event
 
 
 class DatabricksRunTrigger(BaseTrigger):
@@ -47,7 +51,7 @@ class DatabricksRunTrigger(BaseTrigger):
         client_factory: str | None,
         repair_id: int | None = None,
     ) -> None:
-        super().__init__()
+        _base_init(self)
         self.conn_id = conn_id
         self.job_run_id = job_run_id
         self.task_key = task_key
@@ -102,7 +106,7 @@ class DatabricksRunTrigger(BaseTrigger):
                 return
             if self.task_key is None:
                 if run_ended(run, self.repair_id, seen_active):
-                    yield TriggerEvent(
+                    yield _event(
                         {
                             "v": EVENT_VERSION,
                             "status": "done",
@@ -120,7 +124,7 @@ class DatabricksRunTrigger(BaseTrigger):
                     max_attempts=self.max_attempts,
                 )
                 if verdict is not None:
-                    yield TriggerEvent(
+                    yield _event(
                         {
                             "v": EVENT_VERSION,
                             "status": "done",

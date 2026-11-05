@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 
@@ -177,7 +177,7 @@ def test_the_airflow_connection_maps_to_explicit_credentials(
         host = "adb-1.example.net"
         login = None
         password = "dapi-secret"
-        extra_dejson: dict[str, Any] = {}
+        extra_dejson: ClassVar[dict[str, Any]] = {}
 
     seen: list[dict[str, Any]] = []
     masked: list[str] = []
