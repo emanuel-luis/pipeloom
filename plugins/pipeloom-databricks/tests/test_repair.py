@@ -47,6 +47,17 @@ def test_the_rerun_set_is_every_unsuccessful_task_plus_finalize() -> None:
     assert "SUCCESS" not in REPAIRABLE and "EXCLUDED" not in REPAIRABLE
 
 
+def test_a_repair_passes_the_run_job_parameters_again() -> None:
+    # without them the repair resolves {{job.parameters.pipeloom_run_id}} to its empty default
+    fake = FakeDatabricks()
+    params = {"pipeloom_run_id": "nightly.1", "full_refresh": "false"}
+    fake.set_run(
+        50, job_id=1, result_state="FAILED", tasks=(t("a", "FAILED"),), job_parameters=params
+    )
+    repair(fake, 50, Report())
+    assert fake.repair_parameters == [params]
+
+
 def test_finalize_joins_the_set_when_a_unit_failed_even_if_it_succeeded() -> None:
     fake = FakeDatabricks()
     finished(fake, t("a", "FAILED"), t(FINALIZE_KEY, "SUCCESS"))

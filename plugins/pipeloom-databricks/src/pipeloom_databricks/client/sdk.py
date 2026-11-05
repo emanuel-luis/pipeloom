@@ -220,7 +220,12 @@ class SdkClient:
                 return
 
     def repair_run(
-        self, run_id: int, *, rerun_tasks: Sequence[str], latest_repair_id: int | None
+        self,
+        run_id: int,
+        *,
+        rerun_tasks: Sequence[str],
+        latest_repair_id: int | None,
+        job_parameters: Mapping[str, str] | None = None,
     ) -> int:
         body: dict[str, Any] = {
             "run_id": run_id,
@@ -229,6 +234,8 @@ class SdkClient:
         }
         if latest_repair_id is not None:
             body["latest_repair_id"] = latest_repair_id
+        if job_parameters:
+            body["job_parameters"] = dict(job_parameters)
         return int(self._call("POST", f"{JOBS}/runs/repair", body=body)["repair_id"])
 
     def current_user(self) -> str:

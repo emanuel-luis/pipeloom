@@ -49,6 +49,7 @@ EXPECTED_FACTS = (
     "failed_attempt_one",
     "repair_runs_attempt_two",
     "job_start_time_across_repairs",
+    "ephemeral_runs_at_most_once",
 )
 
 Cli = Callable[[Sequence[str]], tuple[int, str]]
@@ -154,11 +155,31 @@ def check_select(run: RunInfo, doc: Mapping[str, Any], exit_code: int) -> list[C
             exit_code == 0
             and run.result_state == "SUCCESS"
             and task_result(run, "pipeloom__finalize") == "SUCCESS"
-            and task_result(run, "b") == "EXCLUDED"
+            # serverless reports a task left out by `only` as DISABLED, the docs say EXCLUDED
+            and task_result(run, "b") in ("EXCLUDED", "DISABLED")
             and "b" not in rows
             and rows.get("a", {}).get("status") == "succeeded",
         )
     ]
+
+
+def check_ephemeral(run: RunInfo, doc: Mapping[str, Any], exit_code: int) -> list[Check]:
+    """`--ephemeral` over the flaky pipeline: c fails on attempt 1 and nothing retries it.
+
+    Serverless auto-optimization retries a failed task unless the submitted task disables it."""
+    attempts = sum(1 for t in run.tasks if t.task_key == "c")
+    row = unit_rows(doc).get("c", {})
+    ok = (
+        exit_code == 1
+        and run.result_state != "SUCCESS"
+        and attempts == 1
+        and row.get("status") == "failed"
+        and row.get("attempt") == 1
+    )
+    detail = (
+        f"{attempts} task attempt(s) of c, row {row.get('status')} at attempt {row.get('attempt')}"
+    )
+    return [Check("ephemeral_runs_at_most_once", ok, detail)]
 
 
 def check_repair(
@@ -285,6 +306,14 @@ def run_checks(
     repaired = client.get_run(failed.run_id)
     after = read_results(client, artifacts_root, run_id)
     checks += check_repair(failed, code, before, repaired, repair_code, after)
+
+    ephemeral_id = f"live-ephemeral-{tag}"
+    code, started, run_id = start("--pipeline", "flaky", "--ephemeral", "--run-id", ephemeral_id)
+    if "job_run_id" not in started:
+        checks.append(Check("ephemeral_runs_at_most_once", False, "no run was started"))
+        return
+    one_time = client.get_run(int(started["job_run_id"]))
+    checks += check_ephemeral(one_time, read_results(client, artifacts_root, run_id), code)
 
 
 def cleanup(

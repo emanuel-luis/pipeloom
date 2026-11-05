@@ -6,7 +6,7 @@ resources:
       tags:
         pipeloom_job: shop.main.ci
         pipeloom_plan_hash: a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac
-        pipeloom_settings_hash: 13e35887eb13be6dd7b3931cec6808b3c7c800d5a0955dbc62e9300198a1f711
+        pipeloom_settings_hash: da6b2e5934482e56accfa64dcb70de7be7d491607292f0939cf3b8fbf2aae71c
         pipeloom_version: 1.2.3
       parameters:
       - name: pipeloom_run_id
@@ -48,6 +48,7 @@ resources:
           - --task-run-id={{task.run_id}}
           - --start-ms={{job.start_time.timestamp_ms}}
         max_retries: 0
+        disable_auto_optimization: true
       - task_key: fct_orders
         depends_on:
         - task_key: stg_customers
@@ -73,6 +74,7 @@ resources:
           - --task-run-id={{task.run_id}}
           - --start-ms={{job.start_time.timestamp_ms}}
         max_retries: 0
+        disable_auto_optimization: true
       - task_key: rpt_revenue
         depends_on:
         - task_key: fct_orders
@@ -96,6 +98,7 @@ resources:
           - --task-run-id={{task.run_id}}
           - --start-ms={{job.start_time.timestamp_ms}}
         max_retries: 0
+        disable_auto_optimization: true
       - task_key: stg_customers
         environment_key: pipeloom_default
         python_wheel_task:
@@ -117,6 +120,7 @@ resources:
           - --task-run-id={{task.run_id}}
           - --start-ms={{job.start_time.timestamp_ms}}
         max_retries: 0
+        disable_auto_optimization: true
       - task_key: stg_orders
         environment_key: pipeloom_default
         python_wheel_task:
@@ -138,6 +142,7 @@ resources:
           - --task-run-id={{task.run_id}}
           - --start-ms={{job.start_time.timestamp_ms}}
         max_retries: 0
+        disable_auto_optimization: true
       - task_key: stg_payments
         environment_key: pipeloom_default
         python_wheel_task:
@@ -159,6 +164,7 @@ resources:
           - --task-run-id={{task.run_id}}
           - --start-ms={{job.start_time.timestamp_ms}}
         max_retries: 0
+        disable_auto_optimization: true
       - task_key: pipeloom__finalize
         depends_on:
         - task_key: dim_customers
@@ -182,3 +188,4 @@ resources:
           - --start-ms={{job.start_time.timestamp_ms}}
         max_retries: 1
         timeout_seconds: 1800
+        disable_auto_optimization: true

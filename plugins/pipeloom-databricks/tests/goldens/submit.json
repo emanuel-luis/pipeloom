@@ -30,7 +30,8 @@
           "--start-ms=1700000000000"
         ]
       },
-      "max_retries": 0
+      "max_retries": 0,
+      "disable_auto_optimization": true
     },
     {
       "task_key": "fct_orders",
@@ -64,7 +65,8 @@
           "--start-ms=1700000000000"
         ]
       },
-      "max_retries": 0
+      "max_retries": 0,
+      "disable_auto_optimization": true
     },
     {
       "task_key": "rpt_revenue",
@@ -92,7 +94,8 @@
           "--start-ms=1700000000000"
         ]
       },
-      "max_retries": 0
+      "max_retries": 0,
+      "disable_auto_optimization": true
     },
     {
       "task_key": "stg_customers",
@@ -115,7 +118,8 @@
           "--start-ms=1700000000000"
         ]
       },
-      "max_retries": 0
+      "max_retries": 0,
+      "disable_auto_optimization": true
     },
     {
       "task_key": "stg_orders",
@@ -138,7 +142,8 @@
           "--start-ms=1700000000000"
         ]
       },
-      "max_retries": 0
+      "max_retries": 0,
+      "disable_auto_optimization": true
     },
     {
       "task_key": "stg_payments",
@@ -161,7 +166,8 @@
           "--start-ms=1700000000000"
         ]
       },
-      "max_retries": 0
+      "max_retries": 0,
+      "disable_auto_optimization": true
     },
     {
       "task_key": "pipeloom__finalize",
@@ -191,7 +197,8 @@
         ]
       },
       "max_retries": 1,
-      "timeout_seconds": 1800
+      "timeout_seconds": 1800,
+      "disable_auto_optimization": true
     }
   ],
   "environments": [

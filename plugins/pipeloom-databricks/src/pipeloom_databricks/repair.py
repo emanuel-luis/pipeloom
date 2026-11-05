@@ -61,6 +61,11 @@ def repair(
         if not rerun:
             return None
         return client.repair_run(
-            job_run_id, rerun_tasks=rerun, latest_repair_id=run.latest_repair_id
+            job_run_id,
+            rerun_tasks=rerun,
+            latest_repair_id=run.latest_repair_id,
+            # Without them the repair resolves {{job.parameters.*}} to the defaults, so an empty
+            # pipeloom_run_id would become dbx-<job run id> and start a new pipeloom run.
+            job_parameters=run.job_parameters,
         )
     return None

@@ -59,6 +59,7 @@ KEYS = {"a": "ta", "b": "tb", "c": "tc"}
     ("result", "expected"),
     [
         ("EXCLUDED", ExternalUnitState("excluded")),
+        ("DISABLED", ExternalUnitState("excluded")),
         ("UPSTREAM_FAILED", "skipped"),
         ("UPSTREAM_CANCELED", "skipped"),
         ("CANCELED", "cancelled"),
