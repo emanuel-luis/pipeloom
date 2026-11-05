@@ -36,6 +36,7 @@ polars = ["pipeloom-polars==0.5.0"]
 pandas = ["pipeloom-pandas==0.5.0"]
 spark = ["pipeloom-spark[local]==0.5.0"]
 databricks = ["pipeloom-databricks==0.5.0"]
+airflow = ["pipeloom-airflow==0.5.0"]
 sqlglot = ["sqlglot>=26"]
 
 [project.urls]
@@ -74,6 +75,7 @@ pipeloom-polars = { workspace = true }
 pipeloom-pandas = { workspace = true }
 pipeloom-spark = { workspace = true }
 pipeloom-databricks = { workspace = true }
+pipeloom-airflow = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pipeloom"]
@@ -91,6 +93,7 @@ src = [
     "plugins/pipeloom-pandas/src",
     "plugins/pipeloom-spark/src",
     "plugins/pipeloom-databricks/src",
+    "plugins/pipeloom-airflow/src",
 ]
 
 [tool.ruff.lint]
@@ -109,6 +112,8 @@ files = [
     "plugins/pipeloom-spark/tests",
     "plugins/pipeloom-databricks/src",
     "plugins/pipeloom-databricks/tests",
+    "plugins/pipeloom-airflow/src",
+    "plugins/pipeloom-airflow/tests",
 ]
 
 [[tool.mypy.overrides]]
@@ -119,7 +124,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
 timeout = 60
-testpaths = ["tests", "plugins/pipeloom-polars/tests", "plugins/pipeloom-pandas/tests", "plugins/pipeloom-spark/tests", "plugins/pipeloom-databricks/tests"]
+testpaths = ["tests", "plugins/pipeloom-polars/tests", "plugins/pipeloom-pandas/tests", "plugins/pipeloom-spark/tests", "plugins/pipeloom-databricks/tests", "plugins/pipeloom-airflow/tests"]
 pythonpath = ["."]
 markers = [
     "spark: needs local Spark (PIPELOOM_TEST_SPARK=classic, Linux or macOS, Java)",
@@ -136,10 +141,11 @@ source = [
   "plugins/pipeloom-pandas/src/pipeloom_pandas",
   "plugins/pipeloom-spark/src/pipeloom_spark",
   "plugins/pipeloom-databricks/src/pipeloom_databricks",
+  "plugins/pipeloom-airflow/src/pipeloom_airflow",
 ]
 
 [tool.importlinter]
-root_packages = ["pipeloom", "pipeloom_databricks"]
+root_packages = ["pipeloom", "pipeloom_databricks", "pipeloom_airflow"]
 include_external_packages = true
 exclude_type_checking_imports = true
 
@@ -216,6 +222,28 @@ ignore_imports = [
     "pipeloom_databricks.client.sdk -> databricks",
     "pipeloom_databricks.client.connect -> databricks",
     "pipeloom_databricks.task_values -> databricks",
+]
+unmatched_ignore_imports_alerting = "none"
+
+[[tool.importlinter.contracts]]
+name = "The core never imports the Airflow plugin or Airflow"
+type = "forbidden"
+source_modules = ["pipeloom"]
+forbidden_modules = ["pipeloom_airflow", "airflow"]
+
+# Only the compat seam imports Airflow. It arrives with the DAG classes (PR37), so an ignored
+# import that matches nothing is fine for now. The subprocess test in test_import.py backs this
+# contract, because indirect imports are allowed here.
+[[tool.importlinter.contracts]]
+name = "Only the compat modules import airflow, kubernetes or databricks.sdk"
+type = "forbidden"
+source_modules = ["pipeloom_airflow"]
+forbidden_modules = ["airflow", "kubernetes", "databricks"]
+allow_indirect_imports = true
+ignore_imports = [
+    "pipeloom_airflow._compat -> airflow",
+    "pipeloom_airflow._compat_k8s -> airflow",
+    "pipeloom_airflow._compat_k8s -> kubernetes",
 ]
 unmatched_ignore_imports_alerting = "none"
 

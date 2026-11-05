@@ -33,7 +33,7 @@ Airflow 3 only (`airflow.sdk`, version >= 3.0). Dropping Airflow 2 support was a
 
 ## Status
 
-Accepted
+Accepted. Amended by [ADR-0037](0037-airflow-packaging-and-rendering.md): the floor is Airflow 3.2, the run id hashes NUL-separated parts, and the package has no hard Airflow dependency.
 
 ## Date
 

@@ -1,0 +1,13 @@
+python: "pipeloom_airflow.testing.cases:pla004"
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    engine: {kind: memory}
+    catalog: {kind: memory}
+    targets:
+      dev: {}
+  models/m.yml: |
+    models:
+      - {name: a, sql: select 1 as x}
+      - {name: b, sql: select 1 as x}

@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pipeloom-airflow"
+version = "0.5.0"
+description = "Apache Airflow renderer for pipeloom: a compiled plan as one Airflow task per unit."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Emanuel Luis", email = "emanuel.filho08@gmail.com" }]
+keywords = ["pipeloom", "airflow", "dag", "orchestration", "data-engineering", "pipelines"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Framework :: Apache Airflow",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
+# Airflow is not a hard dependency: the pure modules (configs, loading, rendering, argv, states)
+# run without it. Install the extra on a machine that runs DAGs.
+dependencies = ["pipeloom~=0.5.0"]
+
+[project.optional-dependencies]
+airflow = ["apache-airflow>=3.2,<4"]
+
+[project.urls]
+Repository = "https://github.com/emanuel-luis/pipeloom"
+Documentation = "https://emanuel-luis.github.io/pipeloom/"
+Changelog = "https://github.com/emanuel-luis/pipeloom/blob/main/CHANGELOG.md"
+
+[tool.uv.sources]
+pipeloom = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pipeloom_airflow"]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["src", "tests", "LICENSE", "NOTICE", "README.md"]

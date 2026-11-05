@@ -1,0 +1,2 @@
+warning PLA006 the compile cache is not usable; compiling without it
+      hint: set ProjectConfig.cache_dir to a writable directory

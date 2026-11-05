@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import json
 import re
 from collections.abc import Callable
@@ -36,7 +37,7 @@ def test_case(
 ) -> None:
     code = case_file.stem
     spec: dict[str, Any] = yaml.safe_load(case_file.read_text(encoding="utf-8"))
-    project_dir = make_project(tmp_path, spec["files"])
+    project_dir = make_project(tmp_path, spec.get("files", {}))
     install_entry_points(
         monkeypatch,
         [
@@ -46,6 +47,9 @@ def test_case(
     )
     if "task" in spec:
         run_task_case(code, spec["task"], golden)
+        return
+    if "python" in spec:
+        run_python_case(code, spec["python"], project_dir, golden)
         return
     if "cli" in spec:
         run_cli_case(code, spec, project_dir, golden)
@@ -195,6 +199,22 @@ def run_render_case(
     )
     render_job(outcome.value, given.get("pipeline", "main"), locs, report)
     diagnostics = report.sorted()
+    assert code in {d.code for d in diagnostics}
+    text = "".join(format_diagnostic(d) + "\n" for d in diagnostics)
+    as_json = json.dumps([d.to_json() for d in diagnostics], indent=2, ensure_ascii=True)
+    golden(f"diagnostics/{code}.txt", text)
+    golden(f"diagnostics/{code}.json", as_json + "\n")
+
+
+def run_python_case(
+    code: str, target: str, project_dir: Path, golden: Callable[[str, str], None]
+) -> None:
+    """Call `module:function(project_dir)`, which returns the diagnostics of the scenario. The
+    Airflow plugin keeps its scenarios in `pipeloom_airflow.testing.cases`, so they run without
+    Airflow."""
+    module, _, name = target.partition(":")
+    scenario = getattr(importlib.import_module(module), name)
+    diagnostics = list(scenario(project_dir))
     assert code in {d.code for d in diagnostics}
     text = "".join(format_diagnostic(d) + "\n" for d in diagnostics)
     as_json = json.dumps([d.to_json() for d in diagnostics], indent=2, ensure_ascii=True)

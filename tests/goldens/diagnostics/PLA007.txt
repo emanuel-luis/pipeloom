@@ -1,0 +1,2 @@
+warning PLA007 the target's boundary is 'process', not 'task'
+      hint: each unit runs in its own process; set boundary: task so PLC503 checks that the state store is shared

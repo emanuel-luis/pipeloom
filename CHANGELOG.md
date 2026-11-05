@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `pipeloom-airflow` (ADR-0037, first half), new in this release: the pure part of the Airflow renderer. Configs, plan loading from a stable manifest or by compiling the project (with an on-disk cache keyed by files, versions, target, variables and an environment fingerprint), the task graph (one task per unit, visual groups, retry and timeout mapping, asset URIs), the `pipeloom run` and `finalize` command lines, the run id (`af-` plus 16 hex) and the mapping from Airflow task states to `pipeloom finalize --unit-states`. Airflow is not a dependency: the extra `airflow` pulls `apache-airflow>=3.2,<4`, and importing the package never imports `airflow`. Install with `pipeloom[airflow]`.
+- PLA001 (unsupported execution mode, was reserved), PLA002 (invalid plugin configuration), PLA003 (selection renders no units), PLA004 (task ended without a visible unit result), PLA005 (unsupported Airflow version), PLA006 (compile cache unusable) and PLA007 (target boundary is not task).
+- Case files can use `python: "module:function"` to run a scenario that returns diagnostics.
+
 ## [0.5.0] - 2026-11-05
 
 pipeloom 0.5 adds the `pipeloom-databricks` plugin: rendering to Databricks Jobs and bundles, direct deploy, run, repair and finalize with task states, the `unity` catalog and a `databricks` secret provider. The core gains generic orchestration hooks: the `deploy` block, plugin commands, runtime secret resolution, `--orchestrator-id` and `pipeloom finalize`. Plugin API stays (0, 4).

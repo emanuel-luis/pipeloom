@@ -1,0 +1,22 @@
+[
+  {
+    "code": "PLA005",
+    "severity": "error",
+    "message": "Airflow 3.1.0 is not supported",
+    "hint": "install apache-airflow>=3.2,<4",
+    "location": null,
+    "context": {
+      "airflow": "3.1.0"
+    }
+  },
+  {
+    "code": "PLA005",
+    "severity": "error",
+    "message": "Airflow 4.0.0 is not supported",
+    "hint": "install apache-airflow>=3.2,<4",
+    "location": null,
+    "context": {
+      "airflow": "4.0.0"
+    }
+  }
+]

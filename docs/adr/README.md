@@ -40,3 +40,4 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0034 | [Core orchestration hooks](0034-core-orchestration-hooks.md) | Accepted | 2026-11-04 |
 | 0035 | [Databricks rendering and job lifecycle](0035-databricks-rendering-and-job-lifecycle.md) | Accepted | 2026-11-05 |
 | 0036 | [Databricks client and connection](0036-databricks-client-and-connection.md) | Accepted | 2026-11-05 |
+| 0037 | [Airflow packaging and rendering](0037-airflow-packaging-and-rendering.md) | Accepted | 2026-11-05 |

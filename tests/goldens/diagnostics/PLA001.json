@@ -1,0 +1,10 @@
+[
+  {
+    "code": "PLA001",
+    "severity": "error",
+    "message": "execution mode 'docker' is not supported",
+    "hint": "use local, virtualenv, kubernetes or databricks",
+    "location": null,
+    "context": {}
+  }
+]

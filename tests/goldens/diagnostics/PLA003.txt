@@ -1,0 +1,2 @@
+warning PLA003 the selection renders no unit
+      hint: check select and exclude
