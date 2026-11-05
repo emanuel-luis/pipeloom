@@ -93,6 +93,8 @@ jobs:
       - name: Classic local Spark
         env:
           PIPELOOM_TEST_SPARK: classic
+          # also the tests that start a second JVM (the state store's cross-process lock)
+          PIPELOOM_TEST_SPARK_HEAVY: "1"
         run: uv run pytest -q -p no:cacheprovider plugins/pipeloom-spark/tests --cov
       - name: Local Spark Connect server
         env:
