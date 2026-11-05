@@ -191,8 +191,8 @@ targets:
     plugins = ["--plugin", "tests.plugins.fakes:VAULT", "--plugin", "tests.plugins.fakes:LEAKY"]
     args = ["run", *plugins, "--project-dir", str(root), "--target", "dev", "--log-format", "json"]
     run = CliRunner().invoke(main, args, env=ENV)
-    assert run.exit_code == 1, run.stderr
-    assert "PLX109" in run.stderr and "cannot connect to ***" in run.stderr, run.stderr.splitlines()[1][190:600]
+    assert run.exit_code == 1
+    assert "PLX109" in run.stderr and "cannot connect to ***" in run.stderr
     assert VALUE not in run.stdout and VALUE not in run.stderr
     assert not isinstance(run.exception, ValueError)  # no raw traceback
     files = [p for p in root.rglob("*") if p.is_file()]
