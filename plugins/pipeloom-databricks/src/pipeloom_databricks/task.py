@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import tempfile
 from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -23,7 +24,9 @@ import click
 from pipeloom.diagnostics import Diagnostic, Report, format_diagnostic
 from pipeloom.plan.manifest import read_manifest
 from pipeloom.plan.model import Plan
-from pipeloom_databricks.grouping import build_tasks, pipeline_units
+from pipeloom_databricks.client import DatabricksClient, connect
+from pipeloom_databricks.finalize_states import unit_states, unit_states_json
+from pipeloom_databricks.grouping import build_tasks, pipeline_units, task_key_map
 from pipeloom_databricks.options import DatabricksDeployOptions
 from pipeloom_databricks.render import deploy_options
 from pipeloom_databricks.task_values import (
@@ -40,8 +43,13 @@ _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 class _Context:
     """What `main` hands to the commands: a stand-in for the platform's task values."""
 
-    def __init__(self, values: TaskValues | None) -> None:
+    def __init__(
+        self,
+        values: TaskValues | None,
+        client_factory: Callable[[], DatabricksClient] | None = None,
+    ) -> None:
         self.values = values
+        self.client_factory = client_factory
 
 
 def _show(diagnostics: Sequence[Diagnostic]) -> None:
@@ -121,6 +129,7 @@ def core_argv(
     select: Sequence[str] = (),
     exclude: Sequence[str] = (),
     ids: Mapping[str, str] | None = None,
+    unit_states: str | None = None,
 ) -> list[str]:
     """The arguments of the core command `pipeloom run` or `pipeloom finalize`."""
     argv = [
@@ -137,6 +146,8 @@ def core_argv(
     argv += [f"--select={s}" for s in select]
     argv += [f"--exclude={s}" for s in exclude]
     argv += [f"--orchestrator-id=databricks_{k}={v}" for k, v in (ids or {}).items() if v]
+    if unit_states is not None:
+        argv.append(f"--unit-states={unit_states}")
     return argv
 
 
@@ -215,21 +226,43 @@ def _attempts(opts: Mapping[str, str], run_id: str) -> dict[str, dict[str, Any]]
     return latest_attempts(RunPaths(root, run_id))
 
 
-def _warn_missing_attempts(opts: Mapping[str, str], run_id: str, units: Sequence[str]) -> None:
-    """Until finalize reads the real task states, a unit that wrote no attempt file (its task may
-    have died) would count as not run and the run could look like a success. Say so."""
+def _default_client() -> DatabricksClient:
+    return connect(profile=None, env=os.environ)
+
+
+def _states_file(
+    ctx: click.Context,
+    opts: Mapping[str, str],
+    run_id: str,
+    key_map: Mapping[str, str],
+    folder: Path,
+) -> str | None:
+    """Write the unit states the Jobs API reports for the run; the path, or None for no states.
+
+    A unit whose task died wrote no attempt file, and only the Jobs API knows how its task ended.
+    Best effort: on any client error one warning goes to stderr and finalize runs without states,
+    so those units count as not run. A one-time run has no job run id to ask about.
+    """
+    job_run_id = opts["job_run_id"]
+    if not job_run_id:
+        return None
+    factory = ctx.obj.client_factory if isinstance(ctx.obj, _Context) else None
     try:
-        attempts = _attempts(opts, run_id)
-    except Exception as exc:  # noqa: BLE001 - a warning is best effort
-        click.echo(f"warning: attempt files not checked: {type(exc).__name__}: {exc}", err=True)
-        return
-    for unit in units:
-        if unit not in attempts:
-            click.echo(
-                f"warning: no attempt recorded for unit {unit}; "
-                "the task may have died before running",
-                err=True,
-            )
+        client = (factory or _default_client)()
+        run = client.get_run(int(job_run_id))
+        states = unit_states(key_map, run, set(_attempts(opts, run_id)))
+    except Exception as exc:  # noqa: BLE001 - task states are best effort
+        click.echo(
+            f"warning: task states not read, units without a result count as not run: "
+            f"{type(exc).__name__}: {exc}",
+            err=True,
+        )
+        return None
+    if not states:
+        return None
+    path = folder / "unit_states.json"
+    path.write_bytes(unit_states_json(states))
+    return path.as_posix()
 
 
 def _publish(
@@ -335,8 +368,13 @@ def unit_command(
 
 @cli.command("finalize")
 @_common
-def finalize_command(**given: str) -> None:
-    """Close the run: merge the unit results of the pipeline into run_results.json."""
+@click.pass_context
+def finalize_command(ctx: click.Context, /, **given: str) -> None:
+    """Close the run: merge the unit results of the pipeline into run_results.json.
+
+    A unit that wrote no attempt file takes the state of its task from the Jobs API: a task that
+    failed, timed out or was cancelled fails or cancels the run.
+    """
     check_resolved({k.replace("_", "-"): v for k, v in given.items()})
     run_id = resolve_run_id(given["run_id"], given["job_run_id"])
     start = started_at(given["start_ms"])
@@ -345,29 +383,40 @@ def finalize_command(**given: str) -> None:
     units = pipeline_units(plan, opts, given["pipeline"], report)
     if report.has_errors:
         _stop(report)
-    _warn_missing_attempts(given, run_id, units)
-    argv = core_argv(
-        "finalize",
-        project_dir=given["project_dir"],
-        target=given["target"],
-        manifest=given["manifest"],
-        plan_hash=given["plan_hash"],
-        run_id=run_id,
-        run_started_at=start,
-        # The shipped manifest has an empty selection, so the scope is spelled out unit by unit.
-        select=[f"unit:{u}" for u in units],
-        ids={"job_id": given["job_id"], "job_run_id": given["job_run_id"]},
-    )
-    raise SystemExit(_call_core(argv))
+    key_map = task_key_map(plan, opts, given["pipeline"])
+    with tempfile.TemporaryDirectory(prefix="pipeloom-states-") as folder:
+        states = _states_file(ctx, given, run_id, key_map, Path(folder))
+        argv = core_argv(
+            "finalize",
+            project_dir=given["project_dir"],
+            target=given["target"],
+            manifest=given["manifest"],
+            plan_hash=given["plan_hash"],
+            run_id=run_id,
+            run_started_at=start,
+            # The shipped manifest has an empty selection, so the scope is spelled out unit by unit.
+            select=[f"unit:{u}" for u in units],
+            ids={"job_id": given["job_id"], "job_run_id": given["job_run_id"]},
+            unit_states=states,
+        )
+        code = _call_core(argv)
+    raise SystemExit(code)
 
 
-def main(argv: Sequence[str] | None = None, *, task_values: TaskValues | None = None) -> None:
+def main(
+    argv: Sequence[str] | None = None,
+    *,
+    task_values: TaskValues | None = None,
+    client_factory: Callable[[], DatabricksClient] | None = None,
+) -> None:
     """The entry point. `argv` defaults to `sys.argv[1:]`; always ends in `SystemExit`.
 
-    `task_values` replaces the platform's task values (a test passes a recorder).
+    `task_values` replaces the platform's task values and `client_factory` the connection that
+    finalize reads task states through (a test passes a recorder and a fake client).
     """
+    given = task_values is not None or client_factory is not None
     cli.main(
         args=None if argv is None else list(argv),
         prog_name="pipeloom_databricks_task",
-        obj=None if task_values is None else _Context(task_values),
+        obj=_Context(task_values, client_factory) if given else None,
     )

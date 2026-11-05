@@ -549,6 +549,18 @@ _ACTIVE_05: Final = (
         "Two or more Databricks jobs hold the same pipeloom_job tag, so deploy cannot tell which one it owns. Delete or untag the extra jobs; the message lists their ids.",
     ),
     (
+        "PLD007",
+        E,
+        "Job or run not found",
+        "No Databricks job carries the pipeloom_job tag of this pipeline, or the run asked for does not exist. Deploy the job first, or pass --ensure to run so it deploys one; check the run id and the pipeline.",
+    ),
+    (
+        "PLD008",
+        E,
+        "Deployed job is out of date",
+        "The job in the workspace was deployed from other settings than the project renders now (its pipeloom_settings_hash tag differs). Deploy again, or pass --ensure to run so it deploys first.",
+    ),
+    (
         "PLD009",
         E,
         "Databricks API request failed",
@@ -561,6 +573,12 @@ _ACTIVE_05: Final = (
         "The command needs a workspace and none is configured. Pass --profile, set DATABRICKS_CONFIG_PROFILE, set DATABRICKS_HOST with its credentials, or run on a Databricks runtime. pipeloom never picks a profile by itself.",
     ),
     (
+        "PLD011",
+        E,
+        "Task ended without a unit result",
+        "A Databricks task failed before its unit wrote an attempt file, for example because the cluster was lost, so the unit has no result of its own. Finalize records the unit as failed with the termination message of the task. Read the task's log on the run page; repair reruns it.",
+    ),
+    (
         "PLD012",
         E,
         "Project file cannot be uploaded",
@@ -571,6 +589,12 @@ _ACTIVE_05: Final = (
         E,
         "Dynamic value reference not resolved in a task parameter",
         "A parameter of a Databricks task still holds a {{...}} reference, so the platform did not substitute it. The task stops before it runs anything. Check the job's parameters and the Databricks runtime that runs the task.",
+    ),
+    (
+        "PLD014",
+        E,
+        "Run is still active",
+        "A repair was asked for a Databricks job run that has not ended. Wait for it to finish or cancel it, then repair.",
     ),
 )
 

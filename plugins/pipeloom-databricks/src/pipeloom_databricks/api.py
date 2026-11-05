@@ -15,8 +15,11 @@ from pipeloom_databricks.client import (
     connect,
 )
 from pipeloom_databricks.deploy import DeployResult, DuplicateJobs, deploy, find_job
+from pipeloom_databricks.finalize_states import task_states
 from pipeloom_databricks.grouping import task_key_map
 from pipeloom_databricks.render import deploy_options, render_job
+from pipeloom_databricks.repair import repair
+from pipeloom_databricks.run import RunStarted, SelectionError, find_run, run_job
 
 __all__ = [
     "ApiError",
@@ -26,11 +29,17 @@ __all__ = [
     "DuplicateJobs",
     "JobSummary",
     "RunInfo",
+    "RunStarted",
+    "SelectionError",
     "TaskRunInfo",
     "connect",
     "deploy",
     "deploy_options",
     "find_job",
+    "find_run",
     "render_job",
+    "repair",
+    "run_job",
     "task_key_map",
+    "task_states",
 ]

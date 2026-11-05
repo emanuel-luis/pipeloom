@@ -6,7 +6,8 @@ project changes the job settings and a second deploy of the same project is a no
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -68,6 +69,7 @@ class Prepared:
     """`<workspace_root>/<project>/<pipeline>/<target>`: the folder of all uploads of the job."""
     root: str
     job: RenderedJob
+    locations: Locations
 
 
 def prepare(
@@ -100,52 +102,15 @@ def prepare(
         cancel_grace=runtime.cancel_grace,
     )
     job = render_job(plan, pipeline, locs, report, versions=versions)
-    return None if job is None else Prepared(payload, parent, root, job)
+    return None if job is None else Prepared(payload, parent, root, job, locs)
 
 
-def deploy(
-    client: DatabricksClient,
-    project_dir: Path,
-    plan: Plan,
-    pipeline: str,
-    runtime: Runtime,
-    *,
-    report: Report,
-    redactor: Redactor | None = None,
-    versions: Mapping[str, str] | None = None,
-) -> DeployResult | None:
-    """Deploy one pipeline, or return None with PLD004, PLD006, PLD009 or PLD012 in `report`."""
+@contextmanager
+def api_errors(report: Report, redactor: Redactor | None = None) -> Iterator[None]:
+    """Turn `DuplicateJobs` into PLD006 and `ApiError` into PLD009 in `report`; the block then
+    ends early (the caller returns None)."""
     try:
-        prepared = prepare(
-            project_dir,
-            plan,
-            pipeline,
-            runtime,
-            report,
-            user=client.current_user,
-            versions=versions,
-        )
-        if prepared is None:
-            return None
-        job, root = prepared.job, prepared.root
-        existing = find_job(client, job.job_tag, name=job.settings.name)
-        if existing is not None and existing.tags.get(HASH_TAG) == job.settings_hash:
-            return DeployResult(existing.job_id, "unchanged", root)
-        upload(client, prepared.payload, root)
-        settings = to_json(job.settings)
-        if existing is None:
-            result = DeployResult(client.create_job(settings), "created", root)
-        else:
-            client.reset_job(existing.job_id, settings)
-            result = DeployResult(existing.job_id, "updated", root)
-        prune(
-            client,
-            prepared.parent,
-            prepared.payload.digest[:12],
-            report,
-            mask=redactor.mask if redactor else str,
-        )
-        return result
+        yield
     except DuplicateJobs as err:
         report.add(
             "PLD006",
@@ -160,4 +125,64 @@ def deploy(
             f"Databricks API request failed (HTTP {err.status}{code}): {text}",
             context={"status": err.status},
         )
+
+
+def deploy_prepared(
+    client: DatabricksClient,
+    prepared: Prepared,
+    existing: JobSummary | None,
+    *,
+    report: Report,
+    redactor: Redactor | None = None,
+) -> DeployResult:
+    """Upload and create or reset the job of `prepared`; `existing` is the job found by tag.
+
+    Raises `ApiError`; wrap the call in `api_errors`.
+    """
+    job, root = prepared.job, prepared.root
+    if existing is not None and existing.tags.get(HASH_TAG) == job.settings_hash:
+        return DeployResult(existing.job_id, "unchanged", root)
+    upload(client, prepared.payload, root)
+    settings = to_json(job.settings)
+    if existing is None:
+        result = DeployResult(client.create_job(settings), "created", root)
+    else:
+        client.reset_job(existing.job_id, settings)
+        result = DeployResult(existing.job_id, "updated", root)
+    prune(
+        client,
+        prepared.parent,
+        prepared.payload.digest[:12],
+        report,
+        mask=redactor.mask if redactor else str,
+    )
+    return result
+
+
+def deploy(
+    client: DatabricksClient,
+    project_dir: Path,
+    plan: Plan,
+    pipeline: str,
+    runtime: Runtime,
+    *,
+    report: Report,
+    redactor: Redactor | None = None,
+    versions: Mapping[str, str] | None = None,
+) -> DeployResult | None:
+    """Deploy one pipeline, or return None with PLD004, PLD006, PLD009 or PLD012 in `report`."""
+    with api_errors(report, redactor):
+        prepared = prepare(
+            project_dir,
+            plan,
+            pipeline,
+            runtime,
+            report,
+            user=client.current_user,
+            versions=versions,
+        )
+        if prepared is None:
+            return None
+        existing = find_job(client, prepared.job.job_tag, name=prepared.job.settings.name)
+        return deploy_prepared(client, prepared, existing, report=report, redactor=redactor)
     return None
