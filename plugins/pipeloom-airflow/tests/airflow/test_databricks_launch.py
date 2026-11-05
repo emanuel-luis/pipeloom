@@ -4,7 +4,7 @@ finalize sensor, all on FakeDatabricks. No connection, workspace or SDK client i
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, ClassVar
 
 import pytest
@@ -140,6 +140,25 @@ def test_launch_starts_defers_and_the_sensors_mirror_the_run(
     assert stored["snapshot"]["result_state"] == "FAILED"
     outcomes = {t: sense(dag, ti, t) for t in ("a", "b", "c", naming.FINALIZE_ID)}
     assert outcomes == {"a": "success", "b": "failed", "c": "skipped", naming.FINALIZE_ID: "failed"}
+
+
+def test_the_wait_is_bounded_and_a_timed_out_launch_attaches_on_retry(
+    dbx_project: Any, fake: FakeDatabricks
+) -> None:
+    assert launch(make_dag(dbx_project), FakeTaskInstance("d", "r", naming.LAUNCH_ID)).timeout == (
+        timedelta(hours=24)
+    )
+    dag = make_dag(dbx_project, databricks_timeout=90.0)
+    ti = FakeTaskInstance(dag_id="d", run_id="r", task_id=naming.LAUNCH_ID)
+    first = launch(dag, ti)
+    assert first.timeout == timedelta(seconds=90)
+    # the deferral timed out while the run kept going; Airflow retries the launch
+    retry = FakeTaskInstance(dag_id="d", run_id="r", task_id=naming.LAUNCH_ID, try_number=2)
+    again = launch(dag, retry)
+    doc = again.kwargs["launch"]
+    assert doc["action"] == "attached"
+    assert doc["job_run_id"] == first.kwargs["launch"]["job_run_id"]
+    assert len(fake.starts) == 1 and fake.repairs == []
 
 
 def test_a_cleared_launch_repairs_the_failed_run(dbx_project: Any, fake: FakeDatabricks) -> None:

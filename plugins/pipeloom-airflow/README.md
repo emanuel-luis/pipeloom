@@ -92,7 +92,8 @@ job's finalize task (trigger rule `all_done`) that fails when the pipeloom run f
 - `databricks_poll="shared"` (the only mode in this release): the launch defers on one trigger
   that polls the whole run every `databricks_poll_interval` seconds, keeps the final snapshot in
   its XCom, and the sensors read it without calling the API. The triggerer needs
-  `pipeloom-airflow[databricks]` installed.
+  `pipeloom-airflow[databricks]` installed. The wait ends after `databricks_timeout` seconds
+  (default 24 hours); the launch then retries and attaches to the same run.
 
 Airflow does not run on Windows, so neither do the DAG classes.
 

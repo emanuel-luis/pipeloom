@@ -245,6 +245,7 @@ def _build_databricks(
         poll_interval=execution.databricks_poll_interval,
         client_factory=execution.databricks_client_factory,
         group_id=group_id,
+        wait_timeout_s=execution.databricks_timeout,
         **operator_args,
     )
     ops: dict[str, BaseOperator] = {naming.LAUNCH_ID: launch}

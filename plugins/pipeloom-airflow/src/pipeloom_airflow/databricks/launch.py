@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +56,7 @@ class PipeloomDatabricksRunOperator(BaseOperator):
         poll_interval: float,
         client_factory: str | None,
         group_id: str | None,
+        wait_timeout_s: float = 86400.0,
         **kwargs: Any,
     ) -> None:
         kwargs.setdefault("retries", 2)
@@ -68,6 +70,7 @@ class PipeloomDatabricksRunOperator(BaseOperator):
         self.poll_interval = poll_interval
         self.client_factory = client_factory
         self.group_id = group_id
+        self.wait_timeout_s = wait_timeout_s
 
     def _client(self, report: Report) -> DatabricksClient | None:
         creds = None
@@ -137,6 +140,8 @@ class PipeloomDatabricksRunOperator(BaseOperator):
             ),
             method_name="execute_complete",
             kwargs={"launch": result.document()},
+            # a timed-out wait fails this try; the retry finds the same run and attaches to it
+            timeout=timedelta(seconds=self.wait_timeout_s),
         )
 
     def execute_complete(
