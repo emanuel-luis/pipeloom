@@ -14,7 +14,7 @@ class CommitConflict(TransientError):
 class WriteRefusedError(RuntimeError):
     """The engine's idempotency guard refused a write that no earlier attempt applied: a later
     transaction version of the same writer already exists (a newer run, an overlapping run, or
-    clock skew), so nothing was written. The core reports it as PLM207."""
+    clock skew). An engine raises it before it changes any data. The core reports it as PLM207."""
 
 
 class WriteKeyError(ValueError):

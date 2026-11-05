@@ -2,9 +2,36 @@
 
 from __future__ import annotations
 
+import pytest
+
 from pipeloom.engine.types import DeleteSpec, WriteConfig, WriteResult
+from pipeloom_spark import delta
 from pipeloom_spark.delta import Commit, metrics_to_result, parse_token, token_metadata
 from pipeloom_spark.write import app_id, merge_statement
+
+
+def _commits(*metas: str | None) -> list[Commit]:
+    """Newest first, as DESCRIBE HISTORY returns them."""
+    return [Commit(len(metas) - i, "WRITE", {}, m) for i, m in enumerate(metas)]
+
+
+@pytest.mark.parametrize(
+    ("newer", "want"),
+    [
+        (None, True),  # nothing after our claim
+        (token_metadata("r1:m#quarantine", {}, None), True),  # another writer of the table
+        (token_metadata("r2:m", {}, None), False),  # a later run of the same model
+        (delta.claim_metadata("r2:m"), False),
+    ],
+)
+def test_a_claim_counts_only_until_the_same_writer_commits_again(
+    monkeypatch: pytest.MonkeyPatch, newer: str | None, want: bool
+) -> None:
+    history = _commits(newer, delta.claim_metadata("r1:m"), None)
+    monkeypatch.setattr(delta, "history", lambda *a: history)
+    same = lambda other: app_id("shop", other) == app_id("shop", "r1:m")
+    assert delta.claimed(None, "t", "r1:m", same) is want
+    assert delta.claimed(None, "t", "r9:m", same) is False
 
 
 def test_write_metrics_of_an_append() -> None:

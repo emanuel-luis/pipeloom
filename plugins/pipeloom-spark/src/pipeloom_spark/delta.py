@@ -5,7 +5,7 @@ Databricks alike."""
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any, Final
 
@@ -76,6 +76,42 @@ def token_metadata(
 
 def migration_metadata(token: str) -> str:
     return json.dumps({"pipeloom": {"migration_for": token}}, sort_keys=True, separators=(",", ":"))
+
+
+def claim_metadata(token: str) -> str:
+    """The `userMetadata` of a claim commit; it has no `token` key, so `parse_token` ignores it."""
+    return json.dumps({"pipeloom": {"v": 1, "claim": token}}, sort_keys=True, separators=(",", ":"))
+
+
+def _owner(user_metadata: str | None) -> tuple[str, bool] | None:
+    """The token a pipeloom commit carries and whether the commit is a claim; None otherwise."""
+    try:
+        body = json.loads(user_metadata or "")["pipeloom"]
+    except (ValueError, KeyError, TypeError):
+        return None
+    if not isinstance(body, dict):
+        return None
+    is_claim = "token" not in body
+    owner = body.get("claim") if is_claim else body.get("token")
+    return (owner, is_claim) if isinstance(owner, str) else None
+
+
+def claimed(spark: Any, ident: str, token: str, same_writer: Callable[[str], bool]) -> bool:
+    """Whether a claim commit for `token` exists that no other token of the same writer
+    (`same_writer`) committed after: a later run that wrote the model in between voids it.
+    The scan window first, then the full history, newest first."""
+    for limit in (TOKEN_SCAN, None):
+        for commit in _history_or_none(spark, ident, limit) or ():
+            found = _owner(commit.user_metadata)
+            if found is None:
+                continue
+            owner, is_claim = found
+            if owner == token:
+                if is_claim:
+                    return True
+            elif same_writer(owner):
+                return False
+    return False
 
 
 def parse_token(

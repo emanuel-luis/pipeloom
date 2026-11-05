@@ -88,6 +88,13 @@ def app_id(project: str, token: str) -> str:
     return f"pipeloom/{project}/{model}{sep}{suffix}"
 
 
+def _refused(ident: str) -> WriteRefusedError:
+    return WriteRefusedError(
+        f"Delta skipped the write to {ident}: its transaction version is not newer than the "
+        "last one committed for this model"
+    )
+
+
 class DeltaWriter:
     def __init__(self, host: Host, project: str, *, txn_guard: bool) -> None:
         self._host = host
@@ -104,10 +111,13 @@ class DeltaWriter:
     def applied(self, ident: str, token: str) -> WriteResult | None:
         return delta.applied_result(self._spark, ident, token)
 
-    def _txn(self, app: str, started: datetime | None, force: str | None = None) -> dict[str, str]:
+    def _txn(
+        self, app: str, started: datetime | None, force: str | None = None, *, claimed: bool = False
+    ) -> dict[str, str]:
         """The guard options. A commit with no data adds nothing, so Delta skips it unless it
-        carries a transaction: `force` (a token) gives such a commit an app id of its own."""
-        if self._guard and started is not None:
+        carries a transaction: `force` (a token) gives such a commit an app id of its own. Once
+        a claim commit took the run's version (`claimed`), the write uses that app id too."""
+        if self._guard and started is not None and not claimed:
             return {"txnAppId": app, "txnVersion": str(_epoch_ms(started))}
         if force is not None:
             return {"txnAppId": f"{app}@{force}", "txnVersion": "1"}
@@ -122,10 +132,38 @@ class DeltaWriter:
             prior = delta.applied_result(self._spark, ident, token, limit)
             if prior is not None:
                 return prior
-        raise WriteRefusedError(
-            f"Delta skipped the write to {ident}: its transaction version is not newer than the "
-            "last one committed for this model"
-        )
+        raise _refused(ident)
+
+    def _claim(self, target: TargetRef, ident: str, cfg: WriteConfig, token: str) -> bool:
+        """Take the run's transaction version in an empty commit before a change the guard cannot
+        cover (a migration, a `mergeSchema` commit, a MERGE). Raise PLM207 when Delta refuses it
+        and no earlier attempt of this token claimed it. False when the guard is off."""
+        if not self._guard or cfg.run_started_at is None:
+            return False
+        app = app_id(self._project, token)
+        opts = {
+            "userMetadata": delta.claim_metadata(token),
+            **self._txn(app, cfg.run_started_at),
+        }
+        empty = self._host.catalog.read(target).limit(0)
+        self._save(self._writer(empty, "append", opts), target)
+        if not delta.claimed(
+            self._spark, ident, token, lambda other: app_id(self._project, other) == app
+        ):
+            raise _refused(ident)
+        return True
+
+    def _create_empty(self, frame: Any, target: TargetRef, cfg: WriteConfig) -> Schema | None:
+        """A table created by saveAsTable drops the writer's userMetadata: on the session catalog,
+        create a missing table empty first so the token rides on an ordinary write. Returns the
+        new table's schema, or None when nothing was created."""
+        if not isinstance(self._host.catalog, SparkSessionCatalog):
+            return None
+        create = self._writer(frame.limit(0), "append", {})
+        if cfg.partition_by:
+            create = create.partitionBy(*cfg.partition_by)
+        self._save(create, target)
+        return schema_of(frame)
 
     def _run(
         self, ident: str, token: str, meta: Mapping[str, JsonValue], write: Callable[[], None]
@@ -146,11 +184,12 @@ class DeltaWriter:
         started: datetime | None,
         *,
         empty: bool = False,
+        claimed: bool = False,
         **more: str,
     ) -> dict[str, str]:
         return {
             "userMetadata": delta.token_metadata(token, meta, None),
-            **self._txn(app, started, token if empty else None),
+            **self._txn(app, started, token if empty or claimed else None, claimed=claimed),
             **more,
         }
 
@@ -160,19 +199,24 @@ class DeltaWriter:
     # -- schema ---------------------------------------------------------------------------------
 
     def _prepare_schema(
-        self, frame: Any, target: TargetRef, cfg: WriteConfig, token: str
-    ) -> tuple[Schema | None, bool]:
-        """Run the migration commit when columns were removed or widened; return the table's
-        schema before the write and whether the write adds columns."""
+        self, frame: Any, target: TargetRef, cfg: WriteConfig, token: str, *, claim: bool = False
+    ) -> tuple[Schema | None, bool, bool]:
+        """Run the migration commit when columns were removed or widened, after a claim commit
+        (always claimed with `claim`, when the table exists). Return the table's schema before
+        the write, whether the write adds columns, and whether the run's version was claimed."""
         existing = self._host.catalog.table_schema(target)
         if existing is None:
-            return None, False
+            return None, False, False
         wanted = cfg.columns if cfg.columns is not None else schema_of(frame)
         kinds = {c.kind for c in diff_schemas(existing, wanted).changes}
-        if kinds & {"removed", "type_changed"}:
+        migrate = bool(kinds & {"removed", "type_changed"})
+        claimed = (migrate or claim) and self._claim(
+            target, self._host.catalog.ident(target), cfg, token
+        )
+        if migrate:
             self._migrate(target, wanted, token)
-            return existing, True
-        return existing, "added" in kinds
+            return existing, True, claimed
+        return existing, "added" in kinds, claimed
 
     def _migrate(self, target: TargetRef, columns: Schema, token: str) -> None:
         catalog = self._host.catalog
@@ -233,15 +277,9 @@ class DeltaWriter:
     def _append(
         self, frame: Any, target: TargetRef, ident: str, cfg: WriteConfig, token: str
     ) -> WriteResult:
-        existing, adds = self._prepare_schema(frame, target, cfg, token)
-        if existing is None and isinstance(self._host.catalog, SparkSessionCatalog):
-            # A table created by saveAsTable drops the writer's userMetadata: create it empty
-            # first, so the token rides on an ordinary append.
-            create = self._writer(frame.limit(0), "append", {})
-            if cfg.partition_by:
-                create = create.partitionBy(*cfg.partition_by)
-            self._save(create, target)
-            existing = schema_of(frame)
+        existing, adds, claimed = self._prepare_schema(frame, target, cfg, token)
+        if existing is None:
+            existing = self._create_empty(frame, target, cfg)
         more = {"mergeSchema": "true"} if adds else {}
         opts = self._options(
             token,
@@ -249,6 +287,7 @@ class DeltaWriter:
             app_id(self._project, token),
             cfg.run_started_at,
             empty=(not self._guard or cfg.run_started_at is None) and frame.isEmpty(),
+            claimed=claimed,
             **more,
         )
 
@@ -304,7 +343,9 @@ class DeltaWriter:
             raise WriteKeyError("replace_partitions needs partition_by")
         batch = self._host.persist(rel).native
         self._check_keys(batch, cfg.partition_by, "partition_by")
-        existing, adds = self._prepare_schema(batch, target, cfg, token)
+        existing, adds, claimed = self._prepare_schema(batch, target, cfg, token)
+        if existing is None:
+            existing = self._create_empty(batch, target, cfg)
         types = {c.name: c.dtype for c in schema_of(batch)}
         tuples = self._partition_values(batch, cfg.partition_by)
         base = self._options(
@@ -313,6 +354,7 @@ class DeltaWriter:
             app_id(self._project, token),
             cfg.run_started_at,
             empty=not tuples,
+            claimed=claimed,
             **({"mergeSchema": "true"} if adds else {}),
         )
 
@@ -339,13 +381,18 @@ class DeltaWriter:
         batch = self._host.persist(rel).native
         self._check_keys(batch, keys, "unique_key")
         self._reject_duplicates(batch, keys)
-        existing, adds = self._prepare_schema(batch, target, cfg, token)
-        if existing is None:  # nothing to merge into: the first load creates the table
-            return self._append(batch, target, ident, cfg, token)
+        dtypes = {c.name: c.dtype for c in schema_of(batch)}
+        # Nothing data-changing runs before the claim: a MERGE carries no transaction.
         before = self._metrics.before_write(ident)
+        existing, adds, claimed = self._prepare_schema(batch, target, cfg, token, claim=True)
+        if existing is None:  # nothing to merge into: the first load appends, minus the deletes
+            if cfg.deletes is not None and cfg.deletes.column in dtypes:
+                lit = sqltext.literal(cfg.deletes.value, dtypes[cfg.deletes.column])
+                col = sqltext.quote_ident(cfg.deletes.column)
+                batch = batch.where(f"NOT coalesce({col} = {lit}, false)")
+            return self._append(batch, target, ident, cfg, token)
         if adds:  # new columns first, in a commit of their own that carries no token
             self._save(self._writer(batch.limit(0), "append", {"mergeSchema": "true"}), target)
-        dtypes = {c.name: c.dtype for c in schema_of(batch)}
         soft = 0
         if cfg.deletes is not None and cfg.deletes.mode == "soft":
             soft = self._count_soft_deletes(batch, ident, keys, cfg, dtypes)
@@ -360,7 +407,8 @@ class DeltaWriter:
             )
         opts = {
             "userMetadata": delta.token_metadata(token, cfg.commit_meta, result),
-            **self._txn(app_id(self._project, token), cfg.run_started_at, token),
+            # After the claim, `<app>@<token>` still guards two attempts of the same token.
+            **self._txn(app_id(self._project, token), cfg.run_started_at, token, claimed=claimed),
         }
         self._save(self._writer(batch.limit(0), "append", opts), target)
         if not self._metrics.token_committed(ident, before, token):
