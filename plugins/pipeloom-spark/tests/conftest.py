@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 import importlib.util
 import json
+import math
 import os
 import re
 import shutil
@@ -175,6 +176,17 @@ def _slow(spark: Any) -> Callable[[EngineSession, float], Relation]:
     return slow
 
 
+def _num(value: Any) -> Any:
+    return None if value is None or math.isnan(value) else value
+
+
+EXPR_CASES = (
+    ("f > 0", lambda r: None if _num(r["f"]) is None else r["f"] > 0),
+    ("id < 3", lambda r: None if r["id"] is None else r["id"] < 3),
+)
+"""Spark SQL `expr` checks and the predicates they stand for; NaN reads as null."""
+
+
 @pytest.fixture
 def harness_factory() -> Callable[[Any, Catalog, Path], EngineHarness]:
     def build(spark: Any, catalog: Catalog, tmp_path: Path) -> EngineHarness:
@@ -195,6 +207,7 @@ def harness_factory() -> Callable[[Any, Catalog, Path], EngineHarness]:
             slow_relation=_slow(spark),
             schema_on_read=True,
             update_condition="source.v > target.v",
+            expr_cases=EXPR_CASES,
         )
 
     return build
