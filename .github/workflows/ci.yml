@@ -72,6 +72,11 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: read
+    # Classic and Connect cannot share a Python process: one leg each, in parallel.
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [classic, connect]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
@@ -89,17 +94,17 @@ jobs:
           key: ivy-${{ runner.os }}-${{ hashFiles('uv.lock') }}
           restore-keys: ivy-${{ runner.os }}-
       - run: uv sync --locked --all-packages --group spark
-      # Classic and Connect cannot share a Python process: two invocations.
-      - name: Classic local Spark
+      # The classic leg leaves out the schema-policy matrix on spark_catalog: the connect leg
+      # runs it on the same catalog. Coverage comes from the classic leg only.
+      - name: Spark tests (${{ matrix.mode }})
         env:
-          PIPELOOM_TEST_SPARK: classic
+          PIPELOOM_TEST_SPARK: ${{ matrix.mode }}
           # also the tests that start a second JVM (the state store's cross-process lock)
           PIPELOOM_TEST_SPARK_HEAVY: "1"
-        run: uv run pytest -q -p no:cacheprovider plugins/pipeloom-spark/tests --cov
-      - name: Local Spark Connect server
-        env:
-          PIPELOOM_TEST_SPARK: connect
-        run: uv run pytest -q -p no:cacheprovider plugins/pipeloom-spark/tests -m spark_connect
+          ARGS: >-
+            ${{ matrix.mode == 'connect' && '-m spark_connect'
+            || '--cov -k "not (TestClassicSparkCatalog and schema_policy)"' }}
+        run: eval "uv run pytest -q -p no:cacheprovider plugins/pipeloom-spark/tests $ARGS"
 
   build:
     needs: [lint]
