@@ -21,9 +21,12 @@ HEAVY = os.environ.get("PIPELOOM_TEST_SPARK_HEAVY") == "1"
 
 
 class TestClassicPathTable(StateStoreContract):
+    # Each child starts its own JVM and resolves the Delta jars before it can take the lock.
+    pytestmark = pytest.mark.timeout(600)
     subprocess_target: ClassVar[tuple[str, str] | None] = (
         ("pipeloom_spark.state:path_store", "state") if HEAVY else None
     )
+    subprocess_timeout: ClassVar[float] = 240
 
     @pytest.fixture
     def store_factory(self, classic_spark: Any) -> StoreFactory:
