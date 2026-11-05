@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A `catalog` setting per model and per folder default, next to `schema`, so each layer can write to its own catalog (for example `pipeloom_bronze.tpch.orders`). It cascades like `schema` and wins over the naming strategy's `catalog` option. pipeloom creates schemas, never catalogs. The resolved config gains a field, so node checksums and plan hashes change once ([ADR-0040](docs/adr/0040-per-model-catalog.md)). Plugin API stays (0, 4).
+
+### Changed
+
+- The `filesystem` and `delta_path` catalogs lay a table out at `<root>/<catalog>/<schema>/<name>/` when the target has a catalog; they used to ignore it. Migration: a project whose naming option `catalog` was set on a path catalog moves its tables under a directory of that name, or removes the option.
+
 ## [0.6.1] - 2026-11-05
 
 pipeloom 0.6.1 fixes the Databricks plugin on serverless compute, found by running the `databricks-live` workflow against a serverless workspace. Jobs deployed with 0.6.0 show as stale (PLD008) until they are deployed again.

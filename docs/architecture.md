@@ -86,7 +86,7 @@ Source: [02-packages.d2](diagrams/02-packages.d2).
 
 1. **Load:** discover YAML files, then parse them while recording file, line and column for every node.
 2. **Validate schema:** pydantic models (L0-L1).
-3. **Resolve graph:** bind refs and sources, apply defaults and precedence, apply naming strategies to get physical names, apply selectors (L2-L3).
+3. **Resolve graph:** bind refs and sources, apply defaults and precedence, apply naming strategies to get physical names, apply selectors (L2-L3). A model's `schema` goes to the naming strategy; a model's `catalog` (model file, folder `_defaults.yml` or `defaults.models`, same cascade as `schema`) replaces the catalog of the relation the strategy returns, so naming strategies keep transforming only the schema ([ADR-0040](adr/0040-per-model-catalog.md)). Path catalogs (`filesystem`, `delta_path`) lay a table out at `<root>/<catalog>/<schema>/<name>/` when the relation has a catalog; catalogs with a catalog level (`spark_catalog`, `unity`) never create the catalog, only the schema.
 4. **Validate plan:** semantics, plugin capabilities and static code checks (L4-L6).
 5. **Compile:** fuse ephemeral models into units for the chosen boundary, then freeze. Output is `Plan` plus `manifest.json` with a `plan_hash` (sha256 of the canonical JSON of nodes, sources, units, edges and the project, target, boundary and config version; selection, versions, timestamps and ids are excluded).
 6. **Execute:** the scheduler runs units through an executor. Orchestrated tasks run `pipeloom run --manifest ... --select unit:<id> --expect-plan-hash <h>`.
