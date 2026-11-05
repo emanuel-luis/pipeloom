@@ -44,6 +44,10 @@ To set it up once, in the repository settings:
    `volume` (`/Volumes/<catalog>/<schema>/<volume>`). It also needs permission to create jobs and
    to use serverless compute.
 
+The driver refuses to start unless `DATABRICKS_HOST` is set and `DATABRICKS_CONFIG_FILE` points
+at a file that does not exist, so no profile file can ever be read. Each wait is bounded to 20
+minutes so the cleanup always gets time inside the 60-minute limit.
+
 Dispatch it from the Actions tab (or `gh workflow run databricks-live`) with the `catalog` and
 `volume` inputs; `environment_version` defaults to 5. The run deploys two jobs, runs and repairs
 them, then deletes the jobs, the uploaded project folders and a scratch schema. Set `keep_job` to

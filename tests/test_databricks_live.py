@@ -14,7 +14,7 @@ from click.testing import CliRunner
 from tools import databricks_live as live
 
 from pipeloom_databricks.cli import databricks
-from pipeloom_databricks.client import RunInfo, TaskRunInfo
+from pipeloom_databricks.client import ApiError, RunInfo, TaskRunInfo
 from pipeloom_databricks.testing.fake import FakeDatabricks
 
 ROOT = "/Volumes/main/ops/live/artifacts"
@@ -31,9 +31,16 @@ def row(
     }
 
 
-def doc(run_id: str, status: str, *rows: dict[str, Any]) -> dict[str, Any]:
+def doc(
+    run_id: str,
+    status: str,
+    *rows: dict[str, Any],
+    generated_at: str = "t0",
+    started_at: str = "2026-11-05T10:00:00Z",
+) -> dict[str, Any]:
     return {
-        "run": {"run_id": run_id, "status": status, "started_at": "2026-11-05T10:00:00Z"},
+        "metadata": {"generated_at": generated_at},
+        "run": {"run_id": run_id, "status": status, "started_at": started_at},
         "results": list(rows),
     }
 
@@ -83,13 +90,40 @@ def test_select_check_needs_an_excluded_task_and_a_green_finalize() -> None:
 
 def test_repair_checks() -> None:
     before = doc("r", "failed", row("c", "failed", 1, 9))
-    after = doc("r", "succeeded", row("c", "succeeded", 2, 9))
+    after = doc("r", "succeeded", row("c", "succeeded", 2, 9), generated_at="t1")
     failed, fixed = run_info(9, "FAILED"), run_info(9, "SUCCESS")
     assert all(c.ok for c in live.check_repair(failed, 1, before, fixed, 0, after))
-    again = doc("r", "succeeded", row("c", "succeeded", 1, 9))
+    again = doc("r", "succeeded", row("c", "succeeded", 1, 9), generated_at="t1")
     assert not facts(live.check_repair(failed, 1, before, fixed, 0, again))[
         "repair_runs_attempt_two"
     ]
+
+
+def test_start_time_across_repairs_needs_a_rewritten_file_and_a_good_repair() -> None:
+    before = doc("r", "failed", row("c", "failed", 1, 9))
+    failed, fixed = run_info(9, "FAILED"), run_info(9, "SUCCESS")
+    ok_row = row("c", "succeeded", 2, 9)
+    stale = doc("r", "succeeded", ok_row)  # same generated_at: finalize left the old file
+    got = live.check_repair(failed, 1, before, fixed, 0, stale)[2]
+    assert not got.ok and "not rewritten" in got.detail
+    bad_repair = doc("r", "failed", row("c", "failed", 1, 9), generated_at="t1")
+    got = live.check_repair(failed, 1, before, failed, 1, bad_repair)[2]
+    assert not got.ok and "repair did not succeed" in got.detail
+    moved = doc("r", "succeeded", ok_row, generated_at="t1", started_at="2026-11-05T11:00:00Z")
+    assert not live.check_repair(failed, 1, before, fixed, 0, moved)[2].ok
+
+
+def test_isolation_needs_a_host_and_a_missing_config_file(tmp_path: Path) -> None:
+    good = {"DATABRICKS_HOST": "https://h", "DATABRICKS_CONFIG_FILE": str(tmp_path / "nope")}
+    assert live.isolation_problem(good) is None
+    assert "DATABRICKS_HOST" in (live.isolation_problem({**good, "DATABRICKS_HOST": ""}) or "")
+    no_file = {k: v for k, v in good.items() if k != "DATABRICKS_CONFIG_FILE"}
+    assert "CONFIG_FILE" in (live.isolation_problem(no_file) or "")
+    present = tmp_path / "cfg"
+    present.write_text("[DEFAULT]\n", encoding="utf-8")
+    assert "exists" in (
+        live.isolation_problem({**good, "DATABRICKS_CONFIG_FILE": str(present)}) or ""
+    )
 
 
 def test_wheels_are_picked_in_fixture_order(tmp_path: Path) -> None:
@@ -123,9 +157,15 @@ class Script:
         self.fake.set_run(run_id, job_id=job_id, result_state=result, tasks=tasks)
         self.fake.runs[run_id] = replace(self.fake.runs[run_id], start_time_ms=1)
 
-    def _results(self, run_id: str, *rows: dict[str, Any], status: str = "succeeded") -> None:
+    def _results(
+        self,
+        run_id: str,
+        *rows: dict[str, Any],
+        status: str = "succeeded",
+        generated_at: str = "t0",
+    ) -> None:
         self.fake.volume_files[f"{ROOT}/runs/{run_id}/run_results.json"] = json.dumps(
-            doc(run_id, status, *rows)
+            doc(run_id, status, *rows, generated_at=generated_at)
         ).encode()
 
     def __call__(self, args: Sequence[str]) -> tuple[int, str]:
@@ -184,7 +224,7 @@ class Script:
         run_id = self.runs[pipeline]
         if self.repair_works:
             self._set(run_id, self.jobs[pipeline], "SUCCESS")
-            self._results(given or "", row("c", "succeeded", 2, run_id))
+            self._results(given or "", row("c", "succeeded", 2, run_id), generated_at="t1")
             return 0, ""
         return 1, ""
 
@@ -229,6 +269,36 @@ def test_the_flow_prints_a_line_per_fact_and_cleans_up(capsys: pytest.CaptureFix
         "folder /ws/flaky/h",
         "schema",
     ]
+
+
+def test_every_run_and_repair_is_bounded(capsys: pytest.CaptureFixture[str]) -> None:
+    seen: list[Sequence[str]] = []
+
+    class Spy(Script):
+        def __call__(self, args: Sequence[str]) -> tuple[int, str]:
+            seen.append(args)
+            return super().__call__(args)
+
+    execute(Spy(FakeDatabricks()), Hooks(), capsys, keep=False)
+    bounded = [a for a in seen if a[0] in ("run", "repair")]
+    assert len(bounded) == 4
+    assert all(a[a.index("--timeout") + 1] == live.WAIT_SECONDS for a in bounded)
+
+
+def test_an_api_error_halfway_reports_the_rest_as_not_reached(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fake = FakeDatabricks()
+    fake.fail["get_run"] = ApiError(500, "unavailable")
+    hooks = Hooks()
+    code, lines = execute(Script(fake), hooks, capsys, keep=False)
+    assert code == 1
+    assert "CHECK deploy ok" in lines
+    assert "CHECK workspace_api failed" in lines
+    assert "CHECK repair_runs_attempt_two failed (not reached)" in lines
+    for fact in live.EXPECTED_FACTS:
+        assert any(line.startswith(f"CHECK {fact} ") for line in lines), fact
+    assert "schema" in hooks.deleted  # the cleanup still ran
 
 
 def test_keep_job_skips_the_cleanup(capsys: pytest.CaptureFixture[str]) -> None:

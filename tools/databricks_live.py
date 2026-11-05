@@ -34,6 +34,23 @@ TARGET = "live"
 WHEELS = ("pipeloom", "pipeloom_spark", "pipeloom_databricks")
 """Wheel file name prefixes, in the order of the fixture's `wheel_*` vars."""
 
+WAIT_SECONDS = "1200"
+"""`--timeout` of every run and repair: bounds each wait so the cleanup always gets time."""
+NOT_REACHED = "not reached"
+EXPECTED_FACTS = (
+    "deploy",
+    "run_succeeded",
+    "empty_parameter_default_resolves_run_id",
+    "dynamic_references_in_wheel_parameters",
+    "spark_session_in_wheel_task",
+    "attempt_files_on_volume",
+    "job_start_time_reference",
+    "only_with_all_done_finalize",
+    "failed_attempt_one",
+    "repair_runs_attempt_two",
+    "job_start_time_across_repairs",
+)
+
 Cli = Callable[[Sequence[str]], tuple[int, str]]
 """Runs `pipeloom databricks <args>`; returns the exit code and stdout."""
 
@@ -45,7 +62,10 @@ class Check:
     detail: str = ""
 
     def line(self) -> str:
-        return f"CHECK {self.fact} {'ok' if self.ok else 'failed'}"
+        state = (
+            "ok" if self.ok else "failed (not reached)" if self.detail == NOT_REACHED else "failed"
+        )
+        return f"CHECK {self.fact} {state}"
 
 
 @dataclass(frozen=True)
@@ -151,24 +171,33 @@ def check_repair(
 ) -> list[Check]:
     first = unit_rows(before).get("c", {})
     second = unit_rows(after).get("c", {})
+    repaired_ok = (
+        repair_exit == 0
+        and repaired.result_state == "SUCCESS"
+        and second.get("status") == "succeeded"
+        and second.get("attempt") == 2
+        and after.get("run", {}).get("status") == "succeeded"
+    )
+    # A different start time would make the core refuse (PLX108) and leave the old results in
+    # place, so the start is compared only when finalize rewrote the file after the repair.
+    rewritten = before.get("metadata", {}).get("generated_at") != after.get("metadata", {}).get(
+        "generated_at"
+    )
+    started = before.get("run", {}).get("started_at")
+    if not repaired_ok:
+        start = Check("job_start_time_across_repairs", False, "the repair did not succeed")
+    elif not rewritten:
+        start = Check("job_start_time_across_repairs", False, "run_results.json was not rewritten")
+    else:
+        same = bool(started) and started == after.get("run", {}).get("started_at")
+        start = Check("job_start_time_across_repairs", same)
     return [
         Check(
             "failed_attempt_one",
             failed_exit == 1 and failed_run.result_state != "SUCCESS" and first.get("attempt") == 1,
         ),
-        Check(
-            "repair_runs_attempt_two",
-            repair_exit == 0
-            and repaired.result_state == "SUCCESS"
-            and second.get("status") == "succeeded"
-            and second.get("attempt") == 2
-            and after.get("run", {}).get("status") == "succeeded",
-        ),
-        Check(
-            "job_start_time_across_repairs",
-            bool(before.get("run", {}).get("started_at"))
-            and before["run"]["started_at"] == after.get("run", {}).get("started_at"),
-        ),
+        Check("repair_runs_attempt_two", repaired_ok),
+        start,
     ]
 
 
@@ -210,20 +239,20 @@ def run_checks(
     say: Callable[[str], None],
     job_ids: list[int],
     folders: list[str],
-) -> list[Check]:
-    """Deploy, run, select, fail and repair. Fills `job_ids` and `folders` as it goes, so a
-    failure half way still leaves them for the cleanup."""
-    checks: list[Check] = []
+    checks: list[Check],
+) -> None:
+    """Deploy, run, select, fail and repair. Fills `job_ids`, `folders` and `checks` as it goes,
+    so a failure half way still leaves them for the cleanup and the report."""
     code, out = cli(["deploy"])
     jobs = {d["pipeline"]: d for d in json_lines(out) if "job_id" in d}
     job_ids += [int(d["job_id"]) for d in jobs.values()]
     folders += [str(d["root"]) for d in jobs.values()]
     checks.append(Check("deploy", code == 0 and {"stable", "flaky"} <= jobs.keys(), out))
     if not checks[-1].ok:
-        return checks
+        return
 
     def start(*args: str) -> tuple[int, dict[str, Any], str]:
-        code, out = cli(["run", *args])
+        code, out = cli(["run", *args, "--timeout", WAIT_SECONDS])
         say(f"run {' '.join(args)} -> exit {code}")
         started = last_json(out)
         run_id = started.get("run_id") or f"dbx-{started.get('job_run_id')}"
@@ -248,14 +277,14 @@ def run_checks(
     code, started, run_id = start("--pipeline", "flaky", "--run-id", flaky_id)
     if "job_run_id" not in started:
         checks.append(Check("failed_attempt_one", False, "no run was started"))
-        return checks
+        return
     failed = client.get_run(int(started["job_run_id"]))
     before = read_results(client, artifacts_root, run_id)
-    repair_code, _ = cli(["repair", "--pipeline", "flaky", "--run-id", flaky_id])
+    repair_args = ["repair", "--pipeline", "flaky", "--run-id", flaky_id, "--timeout", WAIT_SECONDS]
+    repair_code, _ = cli(repair_args)
     repaired = client.get_run(failed.run_id)
     after = read_results(client, artifacts_root, run_id)
     checks += check_repair(failed, code, before, repaired, repair_code, after)
-    return checks
 
 
 def cleanup(
@@ -289,12 +318,14 @@ def execute(
     folders: list[str] = []
     checks: list[Check] = []
     try:
-        checks = run_checks(client, cli, artifacts_root, tag, say, job_ids, folders)
+        run_checks(client, cli, artifacts_root, tag, say, job_ids, folders, checks)
     except ApiError as err:
         checks.append(Check("workspace_api", False, err.message))
     finally:
         if not keep_job:
             cleanup(job_ids, folders, hooks, say)
+    seen = {c.fact for c in checks}
+    checks += [Check(f, False, NOT_REACHED) for f in EXPECTED_FACTS if f not in seen]
     for check in checks:
         print(check.line())
         if not check.ok and check.detail:
@@ -313,6 +344,19 @@ def _subprocess_cli(project: Path, vars_json: str, env: Mapping[str, str]) -> Cl
         return done.returncode, done.stdout
 
     return run
+
+
+def isolation_problem(env: Mapping[str, str]) -> str | None:
+    """Why this process must not touch a workspace, or None. It needs a host from the
+    environment and a config file path that does not exist, so no profile file can be used."""
+    if not env.get("DATABRICKS_HOST"):
+        return "DATABRICKS_HOST is not set"
+    config = env.get("DATABRICKS_CONFIG_FILE")
+    if not config:
+        return "DATABRICKS_CONFIG_FILE is not set (it must point at a file that does not exist)"
+    if Path(config).exists():
+        return f"DATABRICKS_CONFIG_FILE {config} exists; a profile file must not be readable"
+    return None
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -337,8 +381,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     for key in [k for k, v in os.environ.items() if k.startswith("DATABRICKS_") and not v]:
         del os.environ[key]
     env = os.environ
+    problem = isolation_problem(env)
+    if problem:
+        print(f"refusing to run: {problem}", file=sys.stderr)
+        return 2
     client = connect(profile=None, env=env)
-    sdk = WorkspaceClient(config_file=env.get("DATABRICKS_CONFIG_FILE"))
+    sdk = WorkspaceClient(config_file=env["DATABRICKS_CONFIG_FILE"])
     tag = uuid.uuid4().hex[:8]
     schema = f"pipeloom_live_{tag}"
     paths = wheel_paths(args.dist, args.volume, args.sha)

@@ -41,10 +41,6 @@ jobs:
     env:
       # never fall back to a profile file: authentication comes from the environment secrets
       DATABRICKS_CONFIG_FILE: /nonexistent
-      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
-      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
@@ -53,6 +49,11 @@ jobs:
       - run: uv build --all-packages
       - name: Live checks
         env:
+          # the secrets reach this step only, not the checkout, sync and build steps
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
           CATALOG: ${{ inputs.catalog }}
           VOLUME: ${{ inputs.volume }}
           ENVIRONMENT_VERSION: ${{ inputs.environment_version }}
