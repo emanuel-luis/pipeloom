@@ -5,8 +5,8 @@ resources:
       name: pipeloom_shop_main_ci
       tags:
         pipeloom_job: shop.main.ci
-        pipeloom_plan_hash: a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac
-        pipeloom_settings_hash: da6b2e5934482e56accfa64dcb70de7be7d491607292f0939cf3b8fbf2aae71c
+        pipeloom_plan_hash: 7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
+        pipeloom_settings_hash: e237e1b2d56a66e965cb80032ae137989dc51beb91f660606a1c7d11e26e5963
         pipeloom_version: 1.2.3
       parameters:
       - name: pipeloom_run_id
@@ -39,7 +39,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --unit=dim_customers
-          - --plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac
+          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -65,7 +65,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --unit=fct_orders
-          - --plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac
+          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -89,7 +89,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --unit=rpt_revenue
-          - --plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac
+          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -111,7 +111,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --unit=stg_customers
-          - --plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac
+          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -133,7 +133,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --unit=stg_orders
-          - --plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac
+          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -155,7 +155,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --unit=stg_payments
-          - --plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac
+          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -180,7 +180,7 @@ resources:
           - --manifest=/Workspace/pipeloom/shop/manifest.json
           - --target=ci
           - --pipeline=main
-          - --plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac
+          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
