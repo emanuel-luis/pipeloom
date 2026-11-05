@@ -193,6 +193,45 @@ def _members(manifest: str, pipeline: str, group: str) -> tuple[str, ...]:
     raise SystemExit(1)
 
 
+def _attempts(opts: Mapping[str, str], run_id: str) -> dict[str, dict[str, Any]]:
+    """The newest attempt file of every unit of the run, read from the artifacts root."""
+    from pipeloom.api import Project, ProjectOptions
+    from pipeloom.artifacts.finalize import latest_attempts
+    from pipeloom.artifacts.layout import RunPaths
+    from pipeloom.runtime.run import artifacts_root
+
+    bound = (
+        Project(
+            ProjectOptions(
+                project_dir=Path(opts["project_dir"]), target=opts["target"], env=os.environ
+            )
+        )
+        .bind()
+        .value
+    )
+    if bound is None:
+        raise RuntimeError("the project could not be bound")
+    root = artifacts_root(bound, bound.loaded.project_dir.resolve())
+    return latest_attempts(RunPaths(root, run_id))
+
+
+def _warn_missing_attempts(opts: Mapping[str, str], run_id: str, units: Sequence[str]) -> None:
+    """Until finalize reads the real task states, a unit that wrote no attempt file (its task may
+    have died) would count as not run and the run could look like a success. Say so."""
+    try:
+        attempts = _attempts(opts, run_id)
+    except Exception as exc:  # noqa: BLE001 - a warning is best effort
+        click.echo(f"warning: attempt files not checked: {type(exc).__name__}: {exc}", err=True)
+        return
+    for unit in units:
+        if unit not in attempts:
+            click.echo(
+                f"warning: no attempt recorded for unit {unit}; "
+                "the task may have died before running",
+                err=True,
+            )
+
+
 def _publish(
     values: TaskValues | None,
     opts: Mapping[str, str],
@@ -204,24 +243,7 @@ def _publish(
     if values is None:
         return
     try:
-        from pipeloom.api import Project, ProjectOptions
-        from pipeloom.artifacts.finalize import latest_attempts
-        from pipeloom.artifacts.layout import RunPaths
-        from pipeloom.runtime.run import artifacts_root
-
-        bound = (
-            Project(
-                ProjectOptions(
-                    project_dir=Path(opts["project_dir"]), target=opts["target"], env=os.environ
-                )
-            )
-            .bind()
-            .value
-        )
-        if bound is None:
-            raise RuntimeError("the project could not be bound")
-        root = artifacts_root(bound, bound.loaded.project_dir.resolve())
-        attempts = latest_attempts(RunPaths(root, run_id))
+        attempts = _attempts(opts, run_id)
         rows = [attempts[u] for u in members if u in attempts]
         status = {0: "succeeded", 130: "cancelled"}.get(code, "failed")
         values.set(TASK_VALUE_KEY, summary(run_id, status, rows))
@@ -323,6 +345,7 @@ def finalize_command(**given: str) -> None:
     units = pipeline_units(plan, opts, given["pipeline"], report)
     if report.has_errors:
         _stop(report)
+    _warn_missing_attempts(given, run_id, units)
     argv = core_argv(
         "finalize",
         project_dir=given["project_dir"],

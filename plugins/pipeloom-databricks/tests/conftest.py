@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,6 +15,7 @@ from pipeloom.api import Project, ProjectOptions
 from pipeloom.diagnostics import Report
 from pipeloom.plan.manifest import manifest_bytes
 from pipeloom.plan.model import Plan
+from pipeloom_databricks import render as render_module
 from pipeloom_databricks.jobs_model import to_json
 from pipeloom_databricks.render import Locations, RenderedJob, render_job
 
@@ -165,6 +167,11 @@ class Sim:
 def sim(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[..., Sim]:
     """sim(grouping="none") -> a Sim whose models are a -> b, c -> d (c fails until its source
     exists) and e. Models a and b share the tag grp, c and d the tag bad."""
+    # Production rejects a drive path as an artifacts root; these projects live under a Windows
+    # temp dir, so the check also accepts `C:/...` here.
+    monkeypatch.setattr(
+        render_module, "_ABSOLUTE", re.compile(r"^(/|[A-Za-z]:/|[A-Za-z][A-Za-z0-9+.-]+:/)")
+    )
     for name in (
         "DATABRICKS_RUNTIME_VERSION",
         "PIPELOOM_TARGET",

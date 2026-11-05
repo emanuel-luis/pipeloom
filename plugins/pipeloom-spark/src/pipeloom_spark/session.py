@@ -26,13 +26,21 @@ class SessionHandle:
 
 
 def active_session() -> Any | None:
-    """The session `SparkSession.getActiveSession()` returns, or None when there is none (or no
-    pyspark)."""
+    """The session of this thread (`getActiveSession()`), else the default session another thread
+    built (`SparkSession.active()`), or None when there is none (or no pyspark)."""
     try:
         from pyspark.sql import SparkSession
-
-        return SparkSession.getActiveSession()
-    except Exception:  # noqa: BLE001 - no pyspark, or no active session: both mean none
+    except Exception:  # noqa: BLE001 - no pyspark
+        return None
+    try:
+        found = SparkSession.getActiveSession()
+    except Exception:  # noqa: BLE001 - a runtime without it: try the default session
+        found = None
+    if found is not None:
+        return found
+    try:
+        return SparkSession.active()
+    except Exception:  # noqa: BLE001 - no default session (or a runtime without active())
         return None
 
 

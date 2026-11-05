@@ -229,6 +229,7 @@ BAD: list[tuple[str, dict[str, Any], dict[str, Any], str]] = [
     ("secret", {"settings": {"description": "${secret:vault/x}"}}, {}, "${secret:"),
     ("root_unset", {}, {"artifacts_root": None}, "artifacts.root"),
     ("root_relative", {}, {"artifacts_root": "artifacts"}, "artifacts.root"),
+    ("root_drive_path", {}, {"artifacts_root": "C:/data"}, "artifacts.root"),
     ("state_local", {}, {"state_shared": False}, "not shared"),
     (
         "group_two_computes",
