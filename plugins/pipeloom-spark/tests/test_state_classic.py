@@ -17,7 +17,7 @@ from pipeloom_spark.state import TAKE_LOCK, DeltaStateStore
 pytestmark = [pytest.mark.spark, pytest.mark.timeout(300)]
 
 HEAVY = os.environ.get("PIPELOOM_TEST_SPARK_HEAVY") == "1"
-"""The cross-process lock test starts a second JVM; CI sets this, local runs skip it."""
+"""The cross-process lock test starts a second JVM; it runs only when this is set (see ADR-0033)."""
 
 
 class TestClassicPathTable(StateStoreContract):

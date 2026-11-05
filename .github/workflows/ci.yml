@@ -113,8 +113,6 @@ jobs:
       - name: Spark tests (${{ matrix.leg }})
         env:
           PIPELOOM_TEST_SPARK: ${{ matrix.mode }}
-          # also the tests that start a second JVM (the state store's cross-process lock)
-          PIPELOOM_TEST_SPARK_HEAVY: "1"
           ARGS: ${{ matrix.args }}
         run: eval "uv run pytest -q -p no:cacheprovider $ARGS"
 

@@ -29,7 +29,7 @@ A Delta concurrent-modification error is retried up to `CONFLICT_RETRIES = 10` t
 - Each state call runs a Spark job (tens to hundreds of milliseconds); fine for a few calls per unit, slow for very wide runs.
 - The table grows with every run and unit; Delta's own `OPTIMIZE` and `VACUUM` apply. A retention command is a later concern.
 - Lease times rely on the clocks of the writers, as with the other stores.
-- The contract's cross-process lock test starts a second JVM, so it runs only with `PIPELOOM_TEST_SPARK_HEAVY=1` (set in CI).
+- The contract's cross-process lock test starts a second JVM, so it runs only with `PIPELOOM_TEST_SPARK_HEAVY=1`. CI does not set it yet: on GitHub runners the child JVM stalled for over 240 s while resolving the Delta packages, before it reached the lock. Lock exclusion between writers is still covered in one process (the eight-thread race), and it rests on the same Delta commit check whether the writers share a JVM or not. Running the test in CI, for example with the Delta jars pre-resolved into a local directory, is a follow-up.
 
 ## Status
 
