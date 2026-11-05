@@ -13,6 +13,8 @@ Describe the deployment in a target:
 targets:
   prod:
     engine: {kind: spark}
+    catalog: {kind: spark_catalog}
+    state: {kind: table, table: ops._pipeloom_state}   # shared by every task
     artifacts: {root: /Volumes/main/ops/pipeloom}
     deploy:
       kind: databricks
@@ -27,6 +29,8 @@ targets:
 - Rendering is pure: no network, no Databricks SDK call and no credentials are needed. The
   output is byte-for-byte the same for the same plan.
 - Compute is serverless environments or job clusters, chosen per model with `compute_rules`.
+- A pipeline job runs only its own units. An upstream model in another pipeline is read from
+  its persisted output, so schedule that pipeline first.
 - Diagnostics: PLD001 (task limit), PLD003 (group cycle), PLD004 (invalid deploy options),
   PLD005 (compute rule that matches no model).
 - Deploying, running and repairing jobs arrive in later releases of this package.
