@@ -6,17 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-05
+
+pipeloom 0.6 adds the `pipeloom-airflow` plugin: `PipeloomDag` and `PipeloomTaskGroup` render a project as one Airflow task per unit, run in LOCAL, VIRTUALENV or KUBERNETES mode, or mirror a deployed Databricks job in DATABRICKS mode. Airflow 3.2 or later; Airflow is an optional extra. Plugin API stays (0, 4).
+
 ### Added
 
-- `pipeloom-airflow` (ADR-0037, first half), new in this release: the pure part of the Airflow renderer. Configs, plan loading from a stable manifest or by compiling the project (with an on-disk cache keyed by files, versions, target, variables and an environment fingerprint), the task graph (one task per unit, visual groups, retry and timeout mapping, asset URIs), the `pipeloom run` and `finalize` command lines, the run id (`af-` plus 16 hex) and the mapping from Airflow task states to `pipeloom finalize --unit-states`. Airflow is not a dependency: the extra `airflow` pulls `apache-airflow>=3.2,<4`, and importing the package never imports `airflow`. Install with `pipeloom[airflow]`.
+- `pipeloom-airflow` (ADR-0037), new in this release: the pure part of the Airflow renderer. Configs, plan loading from a stable manifest or by compiling the project (with an on-disk cache keyed by files, versions, target, variables and an environment fingerprint), the task graph (one task per unit, visual groups, retry and timeout mapping, asset URIs), the `pipeloom run` and `finalize` command lines, the run id (`af-` plus 16 hex) and the mapping from Airflow task states to `pipeloom finalize --unit-states`. Airflow is not a dependency: the extra `airflow` pulls `apache-airflow>=3.2,<4`, and importing the package never imports `airflow`. Install with `pipeloom-airflow[airflow]` (or `pipeloom[airflow]` next to an existing Airflow).
 - PLA001 (unsupported execution mode, was reserved), PLA002 (invalid plugin configuration), PLA003 (selection renders no units), PLA004 (task ended without a visible unit result), PLA005 (unsupported Airflow version), PLA006 (compile cache unusable) and PLA007 (target boundary is not task).
 - Case files can use `python: "module:function"` to run a scenario that returns diagnostics.
-- `pipeloom-airflow` DAG classes and the `local` and `virtualenv` execution modes (ADR-0038): `PipeloomDag`, `PipeloomTaskGroup`, `PipeloomRunOperator` and `PipeloomFinalizeOperator`. Each unit runs as `python -m pipeloom run` in its own process group, a killed task stops it (SIGTERM, then SIGKILL after the cancel grace), and the finalize task passes the Airflow task states to `pipeloom finalize --unit-states` and fails the DAG run when the run failed. PLA005 is checked when a DAG is built.
+- `pipeloom-airflow` DAG classes and the `local` and `virtualenv` execution modes (ADR-0038): `PipeloomDag`, `PipeloomTaskGroup`, `PipeloomRunOperator` and `PipeloomFinalizeOperator`. Each unit runs as `python -m pipeloom run` in its own process group, a killed task stops it (SIGTERM, then SIGKILL after the core default grace of 30 s), and the finalize task passes the Airflow task states to `pipeloom finalize --unit-states` and fails the DAG run when the run failed. PLA005 is checked when a DAG is built.
 - `pipeloom-airflow` `kubernetes` mode and extra (ADR-0038): `PipeloomKubernetesOperator` and `PipeloomKubernetesFinalizeOperator` build on `KubernetesPodOperator` from `apache-airflow-providers-cncf-kubernetes>=10.25,<11`. Each unit and the finalize step is a pod of `KubernetesConfig.image`; `pod_kwargs` (volumes, resources, service account) and `ExecutionConfig.env` pass through, pods are never deferrable, and the run id is set in `execute`. Only `pipeloom_airflow._compat_k8s` imports the provider; PLA001 now also reports a missing provider and PLA002 a reserved `pod_kwargs` key such as `deferrable`.
 - `pipeloom finalize --unit-states-json TEXT` takes the `pipeloom.unit_states/1` document inline (same schema and errors as `--unit-states`; giving both exits 2).
 - `pipeloom-airflow` `databricks` mode and extra (ADR-0039): `PipeloomDatabricksRunOperator` starts the Databricks job run named after the DAG run (or attaches to it, or repairs it when a task failed), defers on one `DatabricksRunTrigger` until the run is over and keeps its snapshot in XCom; one `PipeloomDatabricksTaskSensor` per task key and one on the job's finalize task mirror the results. The Airflow connection maps to explicit credentials, never a profile (PLD010 when it cannot be used). `databricks_poll="per_task"` is the default and mirrors the run live: the launch returns right after run-now or repair, and each sensor makes one `get_run` call and, without a verdict, defers on its own trigger (bounded by `databricks_timeout`, 24 hours by default, 5 transient API errors in a row are retried with doubling sleeps). `databricks_poll="shared"` keeps one whole-run trigger and sensors that read its final snapshot.
 - `pipeloom_databricks.api.connect_explicit` builds a client from a host and a token or OAuth client credentials, ignoring `~/.databrickscfg` and `DATABRICKS_*` variables.
 - The `airflow` dependency group, the `airflow` CI job (locked latest and the 3.2.2 floor), `scripts/wsl-airflow-tests.sh` and `make airflow-test`. Airflow tests opt in with `PIPELOOM_TEST_AIRFLOW=1` and refuse to start unless Airflow points at a throwaway home and sqlite database.
+- Docs: a new Airflow plugin page (installation with constraint files, configs, load methods and the PROJECT cache, modes, artifact store per executor, run id, retries per mode, `full_refresh`, assets, finalize, the Databricks connection, poll modes and their API cost, limits).
+- Docs: architecture sections 7, 11, 13, 14, 15 and 16 describe the 0.6 Airflow plugin as built (floor and extras, `ExecutionConfig`, artifact store, retry table, `shared` poll mode, PLA001 to PLA007, `orchestrator_ids` keys, connection handling, the `airflow` CI job and its isolation and parse budgets); the shared artifact store question is decided. The `07-airflow-modes` diagram shows the run id formula, the shared artifact root and the poll modes.
 
 ## [0.5.0] - 2026-11-05
 
@@ -215,7 +221,8 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.2.0...v0.3.0

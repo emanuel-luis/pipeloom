@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pipeloom-airflow"
-version = "0.5.0"
+version = "0.6.0"
 description = "Apache Airflow renderer for pipeloom: a compiled plan as one Airflow task per unit."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -26,7 +26,7 @@ classifiers = [
 ]
 # Airflow is not a hard dependency: the pure modules (configs, loading, rendering, argv, states)
 # run without it. Install the extra on a machine that runs DAGs.
-dependencies = ["pipeloom~=0.5.0"]
+dependencies = ["pipeloom~=0.6.0"]
 
 [project.optional-dependencies]
 airflow = ["apache-airflow>=3.2,<4"]
@@ -34,7 +34,7 @@ kubernetes = [
     "apache-airflow>=3.2,<4",
     "apache-airflow-providers-cncf-kubernetes>=10.25,<11",
 ]
-databricks = ["apache-airflow>=3.2,<4", "pipeloom-databricks~=0.3.0"]
+databricks = ["apache-airflow>=3.2,<4", "pipeloom-databricks~=0.6.0"]
 
 [project.urls]
 Repository = "https://github.com/emanuel-luis/pipeloom"
