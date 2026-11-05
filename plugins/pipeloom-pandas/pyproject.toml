@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pipeloom-pandas"
-version = "0.5.0"
+version = "0.6.0"
 description = "pandas engine for pipeloom: eager DataFrames and file tables."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
 ]
-dependencies = ["pipeloom~=0.5.0", "pandas>=2.3.3,<4", "pyarrow>=22"]
+dependencies = ["pipeloom~=0.6.0", "pandas>=2.3.3,<4", "pyarrow>=22"]
 
 [project.urls]
 Repository = "https://github.com/emanuel-luis/pipeloom"
