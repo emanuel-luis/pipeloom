@@ -30,6 +30,10 @@ dependencies = ["pipeloom~=0.3.0"]
 
 [project.optional-dependencies]
 airflow = ["apache-airflow>=3.2,<4"]
+kubernetes = [
+    "apache-airflow>=3.2,<4",
+    "apache-airflow-providers-cncf-kubernetes>=10.25,<11",
+]
 
 [project.urls]
 Repository = "https://github.com/emanuel-luis/pipeloom"

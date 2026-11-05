@@ -403,6 +403,36 @@ def test_unit_states_file_errors_exit_2(root: Path) -> None:
     assert finalize(root, "--unit-states", str(root / "missing.json")).exit_code == 2
 
 
+def test_unit_states_json_matches_the_file(root: Path) -> None:
+    units = {"b": {"status": "failed", "code": "PLA004", "message": "no file"}}
+    ran_a(root)
+    r = finalize(
+        root, "--unit-states-json", json.dumps({"schema": "pipeloom.unit_states/1", "units": units})
+    )
+    assert r.exit_code == 1, r.stderr
+    got = rows(root)
+    assert got["b"]["status"] == "failed" and got["b"]["error"]["code"] == "PLA004"
+    assert "no file" in r.stderr
+
+
+def test_unit_states_json_errors_exit_2(root: Path) -> None:
+    good = states(root, {})
+    inline = '{"schema": "pipeloom.unit_states/1", "units": {}}'
+    assert finalize(root, "--unit-states-json", "{").exit_code == 2
+    assert finalize(root, "--unit-states-json", '{"schema": "other/1", "units": {}}').exit_code == 2
+    assert (
+        finalize(
+            root,
+            "--unit-states-json",
+            '{"schema": "pipeloom.unit_states/1", "units": {"a": {"status": "done"}}}',
+        ).exit_code
+        == 2
+    )
+    both = finalize(root, "--unit-states", str(good), "--unit-states-json", inline)
+    assert both.exit_code == 2
+    assert "cannot be used together" in both.output
+
+
 def test_run_started_at_flag_and_env(root: Path) -> None:
     flag = "2026-11-04T09:30:00Z"
     assert finalize(root, "--run-started-at", flag).exit_code == 0

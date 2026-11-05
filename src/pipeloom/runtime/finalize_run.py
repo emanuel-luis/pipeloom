@@ -88,8 +88,13 @@ class FinalizeOptions:
 
 def read_unit_states(path: Path) -> dict[str, ExternalUnitState]:
     """Read a `pipeloom.unit_states/1` file. Raises ValueError (or OSError) when it is unusable."""
+    return parse_unit_states(path.read_bytes())
+
+
+def parse_unit_states(data: bytes) -> dict[str, ExternalUnitState]:
+    """Parse a `pipeloom.unit_states/1` document. Raises ValueError when it is unusable."""
     try:
-        doc = json.loads(path.read_bytes().decode("utf-8"))
+        doc = json.loads(data.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as err:
         raise ValueError(f"not valid JSON: {err}") from err
     if not isinstance(doc, dict) or doc.get("schema") != UNIT_STATES_SCHEMA:
@@ -409,5 +414,6 @@ __all__ = [
     "ExternalUnitState",
     "FinalizeOptions",
     "finalize_run",
+    "parse_unit_states",
     "read_unit_states",
 ]

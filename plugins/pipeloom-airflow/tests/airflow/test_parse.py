@@ -104,6 +104,25 @@ def test_a_pipeloom_dag_parses_into_the_unit_graph(
 
 
 @pytest.mark.timeout(240)
+def test_the_kubernetes_dag_parses_into_pod_operators(
+    tmp_path: Path, af_project: Any, af_plan: Plan, wide: Any
+) -> None:
+    result = parse(tmp_path, "shop_k8s.py", af_project, wide)
+    assert result["parse_s"] < 4.0 * SCALE, result["parse_s"]
+    tasks = result["dags"]["shop_k8s"]["tasks"]
+    plan = af_plan[0]
+    assert set(tasks) == {t.task_id for t in plan.tasks} | {naming.FINALIZE_ID}
+    for t in plan.tasks:
+        assert tasks[t.task_id]["class"] == "PipeloomKubernetesOperator"
+        assert tasks[t.task_id]["upstream"] == list(t.upstream)
+        assert tasks[t.task_id]["retries"] == t.retries
+    finalize = tasks[naming.FINALIZE_ID]
+    assert finalize["class"] == "PipeloomKubernetesFinalizeOperator"
+    assert finalize["trigger_rule"] == "all_done" and finalize["retries"] == 1
+    assert finalize["upstream"] == sorted(plan.leaves)
+
+
+@pytest.mark.timeout(240)
 def test_a_task_group_nests_the_units_between_other_tasks(
     tmp_path: Path, af_project: Any, af_plan: Plan, wide: Any
 ) -> None:

@@ -53,7 +53,9 @@ def pla002(project_dir: Path) -> Sequence[Diagnostic]:
         RenderConfig(asset_uri="pipeloom://{project}/{schema}"),
         ExecutionConfig(
             mode=ExecutionMode.KUBERNETES,
-            kubernetes=KubernetesConfig(image="img", pod_kwargs={"cmds": ["x"]}),
+            kubernetes=KubernetesConfig(
+                image="img", pod_kwargs={"cmds": ["x"], "deferrable": True}
+            ),
         ),
         {"retries": 3},
         report,

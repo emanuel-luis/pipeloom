@@ -6,4 +6,6 @@ error PLA002 operator_args.retries is set by pipeloom
       hint: remove it from operator_args
 error PLA002 pod_kwargs.cmds is set by pipeloom
       hint: remove it from pod_kwargs
+error PLA002 pod_kwargs.deferrable is set by pipeloom
+      hint: remove it from pod_kwargs
 error PLA002 project.project_dir must be an absolute path, got 'relative/project'

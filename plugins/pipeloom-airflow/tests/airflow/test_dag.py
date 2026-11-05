@@ -86,7 +86,8 @@ def test_a_task_group_prefixes_its_tasks_and_its_run_id(af_project: Any, af_plan
     ("kw", "code"),
     [
         ({"execution_config": ExecutionConfig(mode=ExecutionMode.DOCKER)}, "PLA001"),
-        ({"execution_config": ExecutionConfig(mode=ExecutionMode.KUBERNETES)}, "PLA001"),
+        ({"execution_config": ExecutionConfig(mode=ExecutionMode.DATABRICKS)}, "PLA001"),
+        ({"execution_config": ExecutionConfig(mode=ExecutionMode.KUBERNETES)}, "PLA002"),
         ({"operator_args": {"retries": 3}}, "PLA002"),
     ],
 )

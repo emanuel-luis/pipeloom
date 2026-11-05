@@ -27,30 +27,46 @@ from pipeloom.diagnostics import Diagnostic
 from pipeloom.events.bus import EventSink
 from pipeloom.events.sinks.runfile import RunFileSink
 from pipeloom.graph.selectors import Selection
-from pipeloom.runtime.finalize_run import ExternalUnitState, FinalizeOptions, read_unit_states
+from pipeloom.runtime.finalize_run import (
+    ExternalUnitState,
+    FinalizeOptions,
+    parse_unit_states,
+    read_unit_states,
+)
 from pipeloom.runtime.run import artifacts_root
 from pipeloom.secrets.resolve import SecretError, secret_diagnostic
 
 
 @dataclass(frozen=True)
 class _States:
-    """The file read once. The invocation event records the options with `str()`, and a state's
-    message may hold a secret, so only the path shows."""
+    """The states read once. The invocation event records the options with `str()`, and a state's
+    message may hold a secret, so only the source (a path, or a fixed label) shows."""
 
-    path: Path
+    label: str
     units: dict[str, ExternalUnitState] = field(repr=False)
 
     def __str__(self) -> str:
-        return self.path.as_posix()
+        return self.label
 
 
 def _unit_states(ctx: click.Context, param: click.Parameter, value: Path | None) -> _States | None:
     if value is None:
         return None
     try:
-        return _States(value, read_unit_states(value))
+        return _States(value.as_posix(), read_unit_states(value))
     except (OSError, ValueError) as err:
         raise click.BadParameter(f"{value.as_posix()}: {err}", ctx=ctx, param=param) from err
+
+
+def _unit_states_json(
+    ctx: click.Context, param: click.Parameter, value: str | None
+) -> _States | None:
+    if value is None:
+        return None
+    try:
+        return _States("<--unit-states-json>", parse_unit_states(value.encode("utf-8")))
+    except ValueError as err:
+        raise click.BadParameter(str(err), ctx=ctx, param=param) from err
 
 
 @click.command()
@@ -89,6 +105,15 @@ def _unit_states(ctx: click.Context, param: click.Parameter, value: Path | None)
     "units that wrote no attempt file: {unit_id: {status: skipped|cancelled|failed|excluded, "
     "reason, code, message, orchestrator_ids}}.",
 )
+@click.option(
+    "--unit-states-json",
+    "unit_states_json",
+    callback=_unit_states_json,
+    default=None,
+    metavar="TEXT",
+    help="The same document as --unit-states, given inline (for an orchestrator that cannot "
+    "share a file). Not together with --unit-states.",
+)
 @orchestrator_id_option
 @click.option(
     "--run-started-at",
@@ -110,16 +135,20 @@ def finalize(
     manifest: Path | None,
     expect_plan_hash: str | None,
     unit_states: _States | None,
+    unit_states_json: _States | None,
     orchestrator_ids: dict[str, str],
     run_started_at: datetime | None,
 ) -> None:
     """Merge the unit results of a run into run_results.json and close the run.
 
     Units in scope (default: the whole plan) take their attempt file, else the state given with
-    --unit-states, else they are skipped as not_run, which does not fail the run. A unit marked
-    excluded gets no row. Exit codes: 0 ok, 1 a unit failed, 2 bad usage, 130 cancelled.
-    Running it again rewrites the same results.
+    --unit-states or --unit-states-json, else they are skipped as not_run, which does not fail
+    the run. A unit marked excluded gets no row. Exit codes: 0 ok, 1 a unit failed, 2 bad usage,
+    130 cancelled. Running it again rewrites the same results.
     """
+    if unit_states is not None and unit_states_json is not None:
+        raise click.UsageError("--unit-states and --unit-states-json cannot be used together")
+    unit_states = unit_states or unit_states_json
     opts = ProjectOptions(
         project_dir=project_dir,
         target=target,

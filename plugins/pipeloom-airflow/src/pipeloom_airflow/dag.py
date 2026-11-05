@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import logging
 import os
@@ -33,6 +34,30 @@ EXECUTION_TIMEOUT_SLACK_S = 300.0
 """Added to a unit's timeout and cancel grace, so the core times a unit out before Airflow."""
 
 
+def _k8s_provider_installed() -> bool:
+    try:
+        return importlib.util.find_spec("airflow.providers.cncf.kubernetes") is not None
+    except ImportError:
+        return False
+
+
+def _pod_kwargs(execution: ExecutionConfig, plan: TaskPlan) -> dict[str, Any]:
+    """Keyword arguments every pod gets: the image, the namespace, the user's `pod_kwargs`, the
+    execution env as pod env, and the cancel grace as the pod's termination grace."""
+    from pipeloom_airflow._compat_k8s import merge_env_vars
+
+    k8s = execution.kubernetes
+    assert k8s is not None  # validate_configs reports PLA002 otherwise
+    kwargs: dict[str, Any] = {"image": k8s.image, **k8s.pod_kwargs}
+    if k8s.namespace is not None:
+        kwargs.setdefault("namespace", k8s.namespace)
+    kwargs.setdefault("termination_grace_period", int(plan.cancel_grace_s))
+    env_vars = merge_env_vars(execution.env, kwargs.get("env_vars"))
+    if env_vars:
+        kwargs["env_vars"] = env_vars
+    return kwargs
+
+
 def _plan(
     project: ProjectConfig,
     target: str,
@@ -46,11 +71,17 @@ def _plan(
     task_plan = None
     if check_airflow_version(airflow_version(), report):
         validate_configs(project, render, execution, operator_args, report)
-        if execution.mode in (ExecutionMode.KUBERNETES, ExecutionMode.DATABRICKS):
+        if execution.mode is ExecutionMode.DATABRICKS:
             report.add(
                 "PLA001",
                 f"execution mode '{execution.mode.value}' is not available in this release",
-                hint="use local or virtualenv",
+                hint="use local, virtualenv or kubernetes",
+            )
+        if execution.mode is ExecutionMode.KUBERNETES and not _k8s_provider_installed():
+            report.add(
+                "PLA001",
+                "execution mode 'kubernetes' needs the cncf-kubernetes provider",
+                hint="install pipeloom-airflow[kubernetes]",
             )
     if not report.has_errors:
         loaded = load_plan(project, render, target, report, env=os.environ)
@@ -85,6 +116,18 @@ def build_tasks(
     """Create the operators in the current DAG (and task group) context: rendered task id ->
     operator, plus `pipeloom_finalize`. Visual groups nest as `UnitTask.group` says."""
     venv = execution.virtualenv_dir if execution.mode is ExecutionMode.VIRTUALENV else None
+    pod: dict[str, Any] | None = None
+    python = "python"
+    if execution.mode is ExecutionMode.KUBERNETES:
+        # imported here: the provider is needed only in this mode
+        from pipeloom_airflow.operators.kubernetes import (
+            PipeloomKubernetesFinalizeOperator,
+            PipeloomKubernetesOperator,
+        )
+
+        pod = _pod_kwargs(execution, plan)
+        assert execution.kubernetes is not None
+        python = execution.kubernetes.python
     groups: dict[tuple[str, ...], Any] = {}
 
     def group(path: tuple[str, ...]) -> Any:
@@ -108,36 +151,64 @@ def build_tasks(
             extra["outlets"] = [Asset(name=uri, uri=uri) for uri in t.assets]
         if t.group:
             extra["task_group"] = group(t.group)
-        ops[t.task_id] = PipeloomRunOperator(
-            task_id=t.task_id,
-            unit_id=t.unit_id,
-            command=command,
-            venv_dir=venv,
-            env=execution.env,
-            retry_on=t.retry_on,
-            cancel_grace_s=plan.cancel_grace_s,
-            group_id=group_id,
-            retries=t.retries,
-            retry_delay=timedelta(seconds=t.retry_delay_s),
-            execution_timeout=timeout,
+        common: dict[str, Any] = {
+            "task_id": t.task_id,
+            "retries": t.retries,
+            "retry_delay": timedelta(seconds=t.retry_delay_s),
+            "execution_timeout": timeout,
             **extra,
             **operator_args,
-        )
+        }
+        if pod is not None:
+            ops[t.task_id] = PipeloomKubernetesOperator(
+                unit_id=t.unit_id,
+                command=command,
+                python=python,
+                group_id=group_id,
+                **pod,
+                **common,
+            )
+        else:
+            ops[t.task_id] = PipeloomRunOperator(
+                unit_id=t.unit_id,
+                command=command,
+                venv_dir=venv,
+                env=execution.env,
+                retry_on=t.retry_on,
+                cancel_grace_s=plan.cancel_grace_s,
+                group_id=group_id,
+                **common,
+            )
     for t in plan.tasks:
         for up in t.upstream:
             ops[up] >> ops[t.task_id]
-    finalize = PipeloomFinalizeOperator(
-        task_id=naming.FINALIZE_ID,
-        command=command,
-        venv_dir=venv,
-        env=execution.env,
-        task_units={ops[t.task_id].task_id: t.units for t in plan.tasks},
-        select=plan.select,
-        exclude=plan.exclude,
-        group_id=group_id,
-        cancel_grace_s=plan.cancel_grace_s,
-        **operator_args,
-    )
+    task_units = {ops[t.task_id].task_id: t.units for t in plan.tasks}
+    finalize: BaseOperator
+    if pod is not None:
+        finalize = PipeloomKubernetesFinalizeOperator(
+            task_id=naming.FINALIZE_ID,
+            command=command,
+            python=python,
+            task_units=task_units,
+            select=plan.select,
+            exclude=plan.exclude,
+            group_id=group_id,
+            **pod,
+            **operator_args,
+        )
+    else:
+        finalize = PipeloomFinalizeOperator(
+            task_id=naming.FINALIZE_ID,
+            command=command,
+            venv_dir=venv,
+            env=execution.env,
+            task_units=task_units,
+            select=plan.select,
+            exclude=plan.exclude,
+            group_id=group_id,
+            cancel_grace_s=plan.cancel_grace_s,
+            **operator_args,
+        )
     for leaf in plan.leaves:
         ops[leaf] >> finalize
     ops[naming.FINALIZE_ID] = finalize
