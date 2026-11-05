@@ -137,16 +137,36 @@ def _from_cache(folder: Path, key: str, env: Mapping[str, str]) -> Plan | None:
         return None
     if not isinstance(meta, dict) or meta.get("schema") != CACHE_SCHEMA or meta.get("key") != key:
         return None
-    plan = read_manifest(folder / f"{key}.manifest.json", Report())
+    path = folder / f"{key}.manifest.json"
+    try:
+        before = hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+    # Two processes with different env values share these paths, so the entry names the exact
+    # manifest it was written with; a manifest from another writer is a miss.
+    if meta.get("manifest_sha256") != before:
+        return None
+    plan = read_manifest(path, Report())
     if plan is None or meta.get("env") != _fingerprint(plan, env):
+        return None
+    try:
+        if hashlib.sha256(path.read_bytes()).hexdigest() != before:
+            return None
+    except OSError:
         return None
     return plan
 
 
 def _store(folder: Path, key: str, plan: Plan, env: Mapping[str, str]) -> None:
     folder.mkdir(parents=True, exist_ok=True)
-    _atomic(folder / f"{key}.manifest.json", manifest_bytes(plan, stable=True))
-    meta = {"schema": CACHE_SCHEMA, "key": key, "env": _fingerprint(plan, env)}
+    content = manifest_bytes(plan, stable=True)
+    _atomic(folder / f"{key}.manifest.json", content)
+    meta = {
+        "schema": CACHE_SCHEMA,
+        "key": key,
+        "env": _fingerprint(plan, env),
+        "manifest_sha256": hashlib.sha256(content).hexdigest(),
+    }
     _atomic(folder / f"{key}.entry.json", canonical_json(meta) + b"\n")
     _prune(folder)
 

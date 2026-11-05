@@ -39,19 +39,16 @@ def unit_states(
 def unit_states_document(
     states: Mapping[str, ExternalUnitState], *, compact: bool
 ) -> dict[str, JsonValue]:
-    """A `pipeloom.unit_states/1` document. `compact` keeps status, reason and code, so it fits
-    on a command line."""
+    """A `pipeloom.unit_states/1` document. `compact` leaves out `orchestrator_ids`, so it stays
+    small; status, reason, code and message are always kept."""
     units: dict[str, JsonValue] = {}
     for unit, s in sorted(states.items()):
         row: dict[str, JsonValue] = {"status": s.status}
-        for name, value in (("reason", s.reason), ("code", s.code)):
+        for name, value in (("reason", s.reason), ("code", s.code), ("message", s.message)):
             if value is not None:
                 row[name] = value
-        if not compact:
-            if s.message is not None:
-                row["message"] = s.message
-            if s.orchestrator_ids:
-                row["orchestrator_ids"] = dict(sorted(s.orchestrator_ids.items()))
+        if not compact and s.orchestrator_ids:
+            row["orchestrator_ids"] = dict(sorted(s.orchestrator_ids.items()))
         units[unit] = row
     return {"schema": UNIT_STATES_SCHEMA, "units": units}
 

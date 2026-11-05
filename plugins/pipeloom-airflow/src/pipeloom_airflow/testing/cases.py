@@ -4,11 +4,14 @@ Airflow, so the case files run on every CI cell."""
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from pathlib import Path
 
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.diagnostics import Diagnostic, Report
+from pipeloom.graph.selectors import Selection
+from pipeloom.runtime.finalize_run import FinalizeOptions, read_unit_states
 from pipeloom_airflow.config import (
     ExecutionConfig,
     ExecutionMode,
@@ -20,7 +23,7 @@ from pipeloom_airflow.config import (
 )
 from pipeloom_airflow.load import LoadedPlan, load_plan
 from pipeloom_airflow.render import render_plan
-from pipeloom_airflow.states import unit_states
+from pipeloom_airflow.states import unit_states, unit_states_document
 from pipeloom_airflow.version import check_airflow_version
 
 
@@ -71,14 +74,17 @@ def pla003(project_dir: Path) -> Sequence[Diagnostic]:
 
 
 def pla004(project_dir: Path) -> Sequence[Diagnostic]:
-    report = Report()
-    states = unit_states(
-        {"a": "success", "b": "failed"},
-        {"a": ("a",), "b": ("b",)},
+    """Finalize a run in which no unit wrote an attempt file, with the states Airflow reports.
+    The core turns them into failed units, and PLA004 comes out of its own outcome."""
+    states = unit_states({"ta": "success", "tb": "failed"}, {"ta": ("a",), "tb": ("b",)})
+    document = unit_states_document(states, compact=False)
+    path = project_dir / "unit_states.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+    project = Project(ProjectOptions(project_dir=project_dir, target="dev", env={}))
+    outcome = project.finalize(
+        FinalizeOptions(run_id="case", selection=Selection(), unit_states=read_unit_states(path))
     )
-    for unit, state in sorted(states.items()):
-        report.add("PLA004", f"unit '{unit}': {state.message}")
-    return report.sorted()
+    return [d for d in outcome.diagnostics if d.code == "PLA004"]
 
 
 def pla005(project_dir: Path) -> Sequence[Diagnostic]:

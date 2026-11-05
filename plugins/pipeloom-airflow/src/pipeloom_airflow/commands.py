@@ -133,15 +133,8 @@ class CoreCommand:
         select: Sequence[str],
         exclude: Sequence[str],
         unit_states_path: str | None = None,
-        unit_states_json: str | None = None,
     ) -> list[str]:
-        if unit_states_path is not None and unit_states_json is not None:
-            raise ValueError("give unit_states_path or unit_states_json, not both")
-        states: list[str] = []
-        if unit_states_path is not None:
-            states = ["--unit-states", unit_states_path]
-        elif unit_states_json is not None:
-            states = ["--unit-states-json", unit_states_json]
+        states = ["--unit-states", unit_states_path] if unit_states_path is not None else []
         return [
             *python,
             "-m",

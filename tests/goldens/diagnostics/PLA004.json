@@ -2,17 +2,23 @@
   {
     "code": "PLA004",
     "severity": "error",
-    "message": "unit 'a': task 'a' succeeded but no attempt file is visible under artifacts.root (the root must be shared)",
-    "hint": null,
+    "message": "task 'ta' succeeded but no attempt file is visible under artifacts.root (the root must be shared)",
+    "hint": "the unit wrote no attempt file; read the orchestrator's log for the task",
     "location": null,
-    "context": {}
+    "context": {
+      "unit": "a",
+      "category": "permanent"
+    }
   },
   {
     "code": "PLA004",
     "severity": "error",
-    "message": "unit 'b': task 'b' ended without a unit result",
-    "hint": null,
+    "message": "task 'tb' ended without a unit result",
+    "hint": "the unit wrote no attempt file; read the orchestrator's log for the task",
     "location": null,
-    "context": {}
+    "context": {
+      "unit": "b",
+      "category": "permanent"
+    }
   }
 ]

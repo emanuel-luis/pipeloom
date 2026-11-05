@@ -143,12 +143,8 @@ def test_finalize_argv() -> None:
         "--unit-states",
         "/s.json",
     ]
-    inline = command(None).finalize_argv(["py"], c, select=[], exclude=[], unit_states_json="{}")
-    assert inline[-2:] == ["--unit-states-json", "{}"] and "--manifest" not in inline
-    with pytest.raises(ValueError, match="not both"):
-        command(None).finalize_argv(
-            ["py"], c, select=[], exclude=[], unit_states_path="p", unit_states_json="{}"
-        )
+    bare = command(None).finalize_argv(["py"], c, select=[], exclude=[])
+    assert "--manifest" not in bare and "--unit-states" not in bare
 
 
 def test_venv_python() -> None:

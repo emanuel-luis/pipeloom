@@ -13,7 +13,7 @@ from pydantic import JsonValue
 import pipeloom_airflow.load as load_module
 from pipeloom.api import Project
 from pipeloom.diagnostics import Report
-from pipeloom.plan.manifest import write_manifest
+from pipeloom.plan.manifest import manifest_bytes, write_manifest
 from pipeloom_airflow.config import LoadMode, ProjectConfig, RenderConfig
 from pipeloom_airflow.load import LoadedPlan, load_plan
 
@@ -192,3 +192,24 @@ def test_cache_files_are_identical_across_hash_seeds(project: Path, tmp_path: Pa
     assert files[0] == files[1] and len(files[0]) == 2
     for rel in files[0]:
         assert (caches[0] / rel).read_bytes() == (caches[1] / rel).read_bytes()
+
+
+def test_a_manifest_from_another_writer_is_a_miss(
+    project: Path, tmp_path: Path, compiles: list[int], shop: LoadedPlan
+) -> None:
+    """Interleaved writers of one key: the entry of A next to the manifest of B."""
+    cache = tmp_path / "cache"
+    go(project, cache)
+    (manifest,) = cache.rglob("*.manifest.json")
+    other = shop.plan.model_copy(
+        update={"metadata": shop.plan.metadata.model_copy(update={"pipeloom_version": "9.9.9"})}
+    )
+    manifest.write_bytes(manifest_bytes(other, stable=True))
+    again, _ = go(project, cache)
+    assert again is not None and again.source == "project" and len(compiles) == 2
+    third, _ = go(project, cache)
+    assert (
+        third is not None
+        and third.source == "cache"
+        and third.plan.metadata.pipeloom_version != "9.9.9"
+    )

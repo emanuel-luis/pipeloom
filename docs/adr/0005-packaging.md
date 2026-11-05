@@ -30,7 +30,7 @@ The uv workspace.
 
 ## Status
 
-Accepted
+Accepted. Amended by [ADR-0037](0037-airflow-packaging-and-rendering.md) (the plugin is a package with an optional Airflow extra).
 
 ## Date
 

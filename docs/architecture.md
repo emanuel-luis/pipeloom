@@ -627,7 +627,7 @@ Source: [06-databricks.d2](diagrams/06-databricks.d2).
 
 ## 13. The Airflow plugin
 
-**`pipeloom-airflow`** supports Airflow ≥ 3.0 only. It imports `from airflow.sdk import DAG, TaskGroup, BaseOperator, BaseSensorOperator, Asset`. Triggers come from the Airflow 3 trigger base (verify the module path per minor version).
+**`pipeloom-airflow`** supports Airflow 3.2 up to 4.0 (`apache-airflow>=3.2,<4`, installed through the `airflow` extra; the package has no hard Airflow dependency, see [ADR-0037](adr/0037-airflow-packaging-and-rendering.md)). It imports `from airflow.sdk import DAG, TaskGroup, BaseOperator, BaseSensorOperator, Asset`. Triggers come from the Airflow 3 trigger base (verify the module path per minor version).
 
 ```python
 from pipeloom_airflow import PipeloomDag, ProjectConfig, RenderConfig, ExecutionConfig, ExecutionMode, LoadMode
@@ -661,7 +661,7 @@ shop_daily = PipeloomDag(
 - One Airflow task per unit. Airflow retries own the retry count.
 - Trigger rule `all_success`, so skip-downstream maps to `upstream_failed`.
 - A `pipeloom_finalize` task runs with `all_done`.
-- `rid` is `af-` plus 16 hex characters of sha256(dag_id + Airflow run_id), stable across task retries. A clear-and-rerun of failed tasks therefore continues the same pipeloom run.
+- `rid` is `af-` plus 16 hex characters of sha256 of the NUL-separated dag_id, Airflow run_id and, inside a task group, the group id (ADR-0037), stable across task retries. A clear-and-rerun of failed tasks therefore continues the same pipeloom run.
 - With `emit_assets`, each model task declares `Asset(uri=<target URI>)` outlets.
 
 ![PipeloomDag in LOCAL or KUBERNETES mode has one task per unit. DATABRICKS mode has a launch task, one mirror sensor per model and a finalize task, with repair handled in Databricks.](diagrams/07-airflow-modes.svg)

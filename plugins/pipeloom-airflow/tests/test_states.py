@@ -59,7 +59,7 @@ def test_the_document_round_trips_through_the_core_reader(tmp_path: Path) -> Non
     }
     compact = unit_states_document(states, compact=True)
     assert compact["units"] == {
-        "a": {"status": "failed", "code": "PLA004"},
+        "a": {"status": "failed", "code": "PLA004", "message": "m"},
         "b": {"status": "skipped", "reason": "not_run"},
     }
     path = tmp_path / "s.json"

@@ -83,8 +83,16 @@ def _databricks_groups(
     plan: Plan, execution: ExecutionConfig, units: set[str], report: Report
 ) -> list[tuple[str, tuple[str, ...], tuple[str, ...]]]:
     """(key, member units, parent keys) of the Databricks tasks that hold a rendered unit."""
-    from pipeloom_databricks.grouping import build_tasks
-    from pipeloom_databricks.render import deploy_options
+    try:
+        from pipeloom_databricks.grouping import build_tasks
+        from pipeloom_databricks.render import deploy_options
+    except ImportError:
+        report.add(
+            "PLA001",
+            "execution mode 'databricks' needs the pipeloom-databricks package",
+            hint="install pipeloom-databricks",
+        )
+        return []
 
     opts = deploy_options(plan, report)
     if opts is None:

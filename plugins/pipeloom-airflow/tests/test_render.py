@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -184,3 +185,12 @@ def test_a_500_unit_manifest_renders_fast(tmp_path: Path, models_loaded: Models)
 @pytest.mark.parametrize("mode", [ExecutionMode.LOCAL, ExecutionMode.VIRTUALENV])
 def test_the_mode_does_not_change_the_unit_graph(shop: LoadedPlan, mode: ExecutionMode) -> None:
     assert render(shop, execution=ExecutionConfig(mode=mode))[0] == render(shop)[0]
+
+
+def test_databricks_mode_without_the_package_is_pla001(
+    shop: LoadedPlan, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for name in ("pipeloom_databricks.grouping", "pipeloom_databricks.render"):
+        monkeypatch.setitem(sys.modules, name, None)
+    plan, codes = render(shop, execution=ExecutionConfig(mode=ExecutionMode.DATABRICKS))
+    assert plan.tasks == () and "PLA001" in codes
