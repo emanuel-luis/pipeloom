@@ -1,0 +1,6 @@
+project:
+  name: pipeloom-examples
+api-server:
+  port: 8085
+postgres:
+  port: 5439

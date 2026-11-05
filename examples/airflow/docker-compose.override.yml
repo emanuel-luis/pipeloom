@@ -1,0 +1,9 @@
+x-examples-mount: &examples-mount
+  volumes:
+    - ../:/usr/local/airflow/examples
+
+services:
+  scheduler: *examples-mount
+  dag-processor: *examples-mount
+  triggerer: *examples-mount
+  api-server: *examples-mount

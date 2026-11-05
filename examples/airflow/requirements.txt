@@ -1,0 +1,6 @@
+pipeloom==0.7.0
+pipeloom-polars==0.7.0
+pipeloom-pandas==0.7.0
+pipeloom-spark[local]==0.7.0
+pipeloom-databricks==0.7.0
+pipeloom-airflow[databricks]==0.7.0
