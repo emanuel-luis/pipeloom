@@ -25,6 +25,33 @@ map to unit states. Importing the package never imports `airflow`.
   (the selection renders no unit), PLA004 (a task ended without a unit result), PLA005
   (unsupported Airflow version), PLA006 (the compile cache cannot be used), PLA007 (the target
   boundary is not task).
-- The DAG and operator classes arrive in the next releases of this package.
+- `PipeloomDag` (a `DAG` subclass) and `PipeloomTaskGroup` (a `TaskGroup` subclass) build the
+  tasks at parse time. Both add nothing else to the DAG; `PipeloomDag` adds the param
+  `full_refresh` (default false) unless you define it.
+- Execution modes `local` (the worker's own interpreter) and `virtualenv`
+  (`ExecutionConfig.virtualenv_dir`, created on every worker with pipeloom installed). Each task
+  runs the core in a child process group; killing the task sends SIGTERM, then SIGKILL after
+  the target's cancel grace. Exit 2, and exit 1 with a permanent error under
+  `retry_on: transient`, fail the task without a retry.
+- The finalize task (`pipeloom_finalize`, trigger rule `all_done`, one retry) reads the states
+  of the unit tasks and runs `pipeloom finalize --unit-states`; it fails when the run failed, so
+  the DAG run fails too.
+
+```python
+from datetime import datetime
+from pipeloom_airflow.config import ProjectConfig
+from pipeloom_airflow.dag import PipeloomDag
+
+dag = PipeloomDag(
+    dag_id="shop",
+    schedule=None,
+    start_date=datetime(2026, 1, 1),
+    project_config=ProjectConfig("/srv/shop", manifest_path="/srv/shop/target/manifest.json"),
+    target="prod",
+)
+```
+
+The `kubernetes` and `databricks` modes arrive in the next releases of this package. Airflow
+does not run on Windows, so neither do the DAG classes.
 
 License: Apache-2.0.
