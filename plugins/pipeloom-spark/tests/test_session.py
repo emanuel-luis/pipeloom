@@ -60,7 +60,9 @@ class _Spark:
         raise AssertionError(f"the session was touched: {name}")
 
 
-def fake_pyspark(monkeypatch: pytest.MonkeyPatch, active: object | None) -> list[str]:
+def fake_pyspark(
+    monkeypatch: pytest.MonkeyPatch, active: object | None, default: object | None = None
+) -> list[str]:
     """Install a `pyspark.sql.SparkSession`; the returned list records builder calls."""
     calls: list[str] = []
     created = _Spark()
@@ -79,6 +81,12 @@ def fake_pyspark(monkeypatch: pytest.MonkeyPatch, active: object | None) -> list
         @staticmethod
         def getActiveSession() -> object | None:
             return active
+
+        @staticmethod
+        def active() -> object:
+            if default is None:
+                raise RuntimeError("no default session")
+            return default
 
     root, sql = ModuleType("pyspark"), ModuleType("pyspark.sql")
     sql.SparkSession = SparkSession  # type: ignore[attr-defined]
@@ -109,6 +117,19 @@ def test_on_databricks_without_a_session_active_mode_attaches_with_no_conf(
     with open_session(SparkEngineOptions(), env) as handle:
         assert (handle.mode, handle.owned) == ("active", False)
     assert calls == ["getOrCreate"]  # a configured or stopped session would have raised
+
+
+def test_a_default_session_from_another_thread_means_auto_picks_active(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    default = _Spark()
+    calls = fake_pyspark(monkeypatch, None, default)  # getActiveSession() is None here
+    opts = SparkEngineOptions()
+    assert resolve_mode(opts, {}) == "active"
+    with open_session(opts, {}) as handle:
+        assert handle.spark is default
+        assert (handle.mode, handle.owned) == ("active", False)
+    assert calls == []  # nothing built, configured or stopped (the stand-in raises on both)
 
 
 def test_active_mode_off_databricks_needs_a_session(monkeypatch: pytest.MonkeyPatch) -> None:
