@@ -1894,6 +1894,39 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#pld003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD003
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD004
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD005
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3085,6 +3118,39 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#pld003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD003
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD004
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD005
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3358,11 +3424,20 @@
 <p>Unsupported execution mode. Severity: error. Status: reserved. Since: 0.4.</p>
 <p>Reserved: not emitted yet.</p>
 <h3 id="pld001">PLD001<a class="headerlink" href="#pld001" title="Permanent link">&para;</a></h3>
-<p>Task limit exceeded. Severity: error. Status: reserved. Since: 0.4.</p>
-<p>Reserved: not emitted yet.</p>
+<p>Task limit exceeded. Severity: error. Status: active. Since: 0.5.</p>
+<p>A Databricks job would hold more than 1,000 tasks, its finalize task included. Set task_grouping in the deploy block, or split the project into pipelines.</p>
 <h3 id="pld002">PLD002<a class="headerlink" href="#pld002" title="Permanent link">&para;</a></h3>
-<p>Submit above 100 tasks. Severity: error. Status: reserved. Since: 0.4.</p>
+<p>Submit task limit (never emitted, PLD001 covers it). Severity: error. Status: reserved. Since: 0.4.</p>
 <p>Reserved: not emitted yet.</p>
+<h3 id="pld003">PLD003<a class="headerlink" href="#pld003" title="Permanent link">&para;</a></h3>
+<p>Task groups form a cycle. Severity: error. Status: active. Since: 0.5.</p>
+<p>With task_grouping set, the units of one group depend on units of another group in both directions, so the grouped tasks cannot be ordered. Group by another key or turn grouping off.</p>
+<h3 id="pld004">PLD004<a class="headerlink" href="#pld004" title="Permanent link">&para;</a></h3>
+<p>Invalid Databricks deploy options for this plan or target. Severity: error. Status: active. Since: 0.5.</p>
+<p>The deploy block cannot be rendered: an unknown pipeline or compute key, environment_version 1, more than 10 serverless environments in a job, a key in settings that pipeloom owns, a ${secret:...} reference, an artifacts root that is unset or relative, a state store that is not shared, a group that spans two computes, or an ephemeral run on a job cluster.</p>
+<h3 id="pld005">PLD005<a class="headerlink" href="#pld005" title="Permanent link">&para;</a></h3>
+<p>Compute rule matches no model. Severity: warning. Status: active. Since: 0.5.</p>
+<p>No model of the plan matches the select selectors of a compute rule, so the rule never applies.</p>
 
 
 
