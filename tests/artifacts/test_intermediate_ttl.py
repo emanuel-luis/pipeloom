@@ -153,19 +153,28 @@ def test_replayed_writes_still_count_as_activity_through_the_rest_of_the_run_fol
     assert resumed.is_dir()
 
 
-def test_a_run_whose_manifest_is_newer_than_its_results_is_running_again(
-    tmp_path: Path,
-) -> None:
-    resumed = make_run(tmp_path, "r1", ended=timedelta(days=3), files=timedelta(days=3), ttl=HOUR)
-    manifest = resumed.parent / "manifest.json"
+def resumed_run(root: Path, run_id: str, idle: timedelta) -> Path:
+    """A run with old results and a manifest newer than them; everything idle for `idle`."""
+    kept = make_run(root, run_id, ended=timedelta(days=3), files=idle, ttl=HOUR)
+    run_dir = kept.parent
+    manifest = run_dir / "manifest.json"
     manifest.write_bytes(b"{}")
-    old = (NOW - timedelta(days=3)).timestamp()
-    os.utime(resumed.parent / "run_results.json", (old, old))
-    os.utime(manifest, (old + 10, old + 10))
-    os.utime(resumed.parent, (old, old))  # creating the manifest touched the folder
+    stamp = (NOW - idle).timestamp()
+    os.utime(run_dir / "run_results.json", (stamp - 10, stamp - 10))
+    os.utime(manifest, (stamp, stamp))
+    os.utime(run_dir, (stamp, stamp))
+    return kept
+
+
+def test_a_resumed_and_active_run_is_kept(tmp_path: Path) -> None:
+    active = resumed_run(tmp_path, "r1", timedelta(minutes=5))
     clean(tmp_path)
-    assert resumed.is_dir()
-    os.utime(manifest, (old - 10, old - 10))  # older than the results: finished, so it expires
-    os.utime(resumed.parent, (old, old))  # creating the manifest touched the folder
-    clean(tmp_path)
-    assert not resumed.exists()
+    assert active.is_dir()
+
+
+def test_a_resumed_run_that_crashed_again_expires_once_idle(tmp_path: Path) -> None:
+    crashed = resumed_run(tmp_path, "r1", timedelta(hours=3))
+    clean(tmp_path, ttl=10 * HOUR)
+    assert crashed.is_dir()  # idle, but inside max(ttl, 1h)
+    clean(tmp_path, ttl=HOUR)
+    assert not crashed.exists()
