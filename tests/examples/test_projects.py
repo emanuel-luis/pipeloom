@@ -79,7 +79,7 @@ def test_polars_and_pandas_agree(tmp_path: Path) -> None:
         assert result.exit_code == 0, result.stderr
     for name in GOLD:
         left, right = (gold(roots[p], name) for p in ("tpch_polars", "tpch_pandas"))
-        assert left.columns == right.columns, name
+        assert left.schema == right.schema, name
         assert left.height == right.height > 0, name
         for column in left.columns:
             a, b = left[column], right[column]
@@ -88,4 +88,4 @@ def test_polars_and_pandas_agree(tmp_path: Path) -> None:
                 # rounding boundary: allow one cent.
                 assert ((a - b).abs() <= 0.0101).all(), f"{name}.{column}"
             else:
-                assert a.to_list() == b.cast(a.dtype).to_list(), f"{name}.{column}"
+                assert a.to_list() == b.to_list(), f"{name}.{column}"

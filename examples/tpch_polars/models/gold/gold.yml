@@ -6,8 +6,8 @@ models:
       select
         o.region as region,
         o.nation as nation,
-        extract(year from o.order_date) as order_year,
-        extract(month from o.order_date) as order_month,
+        cast(extract(year from o.order_date) as int) as order_year,
+        cast(extract(month from o.order_date) as int) as order_month,
         count(distinct o.order_key) as orders,
         round(sum(l.net_revenue), 2) as net_revenue
       from orders_enriched o
