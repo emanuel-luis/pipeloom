@@ -11,6 +11,7 @@ import hashlib
 import json
 import platform
 from collections.abc import Mapping
+from contextlib import ExitStack
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
@@ -28,7 +29,7 @@ from pipeloom.artifacts.results import (
 )
 from pipeloom.diagnostics import Diagnostic, JsonValue, Report
 from pipeloom.events.bus import EventBus
-from pipeloom.events.model import ArtifactWritten, RunCompleted
+from pipeloom.events.model import ArtifactWritten, DiagnosticEmitted, RunCompleted
 from pipeloom.graph.selectors import Selection
 from pipeloom.plan.manifest import write_manifest
 from pipeloom.platform import check_orchestrator_id
@@ -45,8 +46,9 @@ from pipeloom.runtime.run import (
     artifacts_root,
     resolve_run_started_at,
 )
+from pipeloom.runtime.scheduler import UnitGraph
 from pipeloom.secrets.resolve import SecretError, secret_diagnostic
-from pipeloom.state.types import RunRecord
+from pipeloom.state.types import LockHeld, RunRecord
 
 if TYPE_CHECKING:
     from pipeloom.api import Project
@@ -123,6 +125,17 @@ def read_unit_states(path: Path) -> dict[str, ExternalUnitState]:
     return out
 
 
+def _fails(row: Mapping[str, Any]) -> bool:
+    """A row that makes its descendants `upstream_failed`."""
+    if row["status"] in ("failed", "timed_out"):
+        return True
+    return row["status"] == "skipped" and row["skip_reason"] in (
+        None,
+        "upstream_failed",
+        "fail_fast",
+    )
+
+
 def _external_row(
     unit_id: str, node: str, state: ExternalUnitState, run_ids: Mapping[str, str]
 ) -> dict[str, Any]:
@@ -150,6 +163,19 @@ def _external_row(
             orchestrator_ids=ids,
         )
     return result_row(unique_id=node, unit_id=unit_id, status="cancelled", orchestrator_ids=ids)
+
+
+def _refused(bus: EventBus, held: LockHeld) -> RunOutcome:
+    info = held.info
+    found = Report().add(
+        "PLX105",
+        f"run {info.run_id} is still running: its lock '{info.scope}' is held by {info.owner} "
+        f"until {_iso(info.expires_at)}",
+        hint="finalize after the run ended, or after its lease expired",
+        context={"owner": info.owner, "run_id": info.run_id, "expires_at": _iso(info.expires_at)},
+    )
+    bus.emit(DiagnosticEmitted.from_diagnostic(found))
+    return RunOutcome("failed", 2, None, (found,))
 
 
 def finalize_run(project: Project, opts: FinalizeOptions, bus: EventBus) -> RunOutcome:
@@ -207,21 +233,34 @@ def finalize_run(project: Project, opts: FinalizeOptions, bus: EventBus) -> RunO
     except SecretError as err:
         return _early(bus, [*diags, secret_diagnostic(err)])
     try:
-        with engine.session(
-            RuntimeContext(
-                run_id=run_id,
-                invocation_id=project.invocation_id,
-                project=plan.metadata.project,
-                target=plan.metadata.target,
-                project_dir=project_dir,
-                clock=clock,
-                identity=identity,
-                vars=plan.metadata.vars,
-                orchestrator=dict(ids),
-                artifacts_root=paths.root.as_posix(),
+        with (
+            ExitStack() as stack,
+            engine.session(
+                RuntimeContext(
+                    run_id=run_id,
+                    invocation_id=project.invocation_id,
+                    project=plan.metadata.project,
+                    target=plan.metadata.target,
+                    project_dir=project_dir,
+                    clock=clock,
+                    identity=identity,
+                    vars=plan.metadata.vars,
+                    orchestrator=dict(ids),
+                    artifacts_root=paths.root.as_posix(),
+                ),
+                catalog=catalog,
             ),
-            catalog=catalog,
         ):
+            # Units of an orchestrated run never take the lock. A lock held for this very run id
+            # means a `pipeloom run` is still working on it: finalizing now would count its
+            # in-flight units as not run. A lock of another run is none of our business.
+            try:
+                stack.enter_context(
+                    state.lock(f"{plan.metadata.project}/{plan.metadata.target}", run_id)
+                )
+            except LockHeld as held:
+                if held.info.run_id == run_id:
+                    return _refused(bus, held)
             prior = state.get_run(run_id)
             run_started_at, conflict = resolve_run_started_at(
                 opts.run_started_at, prior, started, unit_mode=False
@@ -237,15 +276,28 @@ def finalize_run(project: Project, opts: FinalizeOptions, bus: EventBus) -> RunO
 
             have = latest_attempts(paths)
             external: dict[str, dict[str, Any]] = {}
-            not_run: dict[str, tuple[str, str | None]] = {}
             for unit_id in units:
-                if unit_id in have:
+                known = opts.unit_states.get(unit_id)
+                if unit_id not in have and known is not None and known.status != "excluded":
+                    external[unit_id] = _external_row(unit_id, unit_nodes[unit_id], known, ids)
+            # A unit the scheduler skipped wrote no attempt file: when nothing else is known,
+            # an upstream that failed (walked in topological order) tells why it did not run.
+            failing = {u for u, row in {**have, **external}.items() if _fails(row)}
+            not_run: dict[str, tuple[str, str | None]] = {}
+            for unit_id in UnitGraph.from_plan(plan, plan.units).parents:
+                if unit_id not in units or unit_id in have or unit_id in external:
                     continue
                 known = opts.unit_states.get(unit_id)
-                if known is None:
+                if known is not None:  # excluded: no row
+                    continue
+                failed_up = next(
+                    (p for p in sorted(plan.units[unit_id].parents) if p in failing), None
+                )
+                if failed_up is None:
                     not_run[unit_id] = ("not_run", None)
-                elif known.status != "excluded":
-                    external[unit_id] = _external_row(unit_id, unit_nodes[unit_id], known, ids)
+                else:
+                    not_run[unit_id] = ("upstream_failed", failed_up)
+                    failing.add(unit_id)
 
             ended = clock.now()
             header = RunHeader(

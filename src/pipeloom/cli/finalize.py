@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -26,20 +27,30 @@ from pipeloom.diagnostics import Diagnostic
 from pipeloom.events.bus import EventSink
 from pipeloom.events.sinks.runfile import RunFileSink
 from pipeloom.graph.selectors import Selection
-from pipeloom.runtime.finalize_run import FinalizeOptions, read_unit_states
+from pipeloom.runtime.finalize_run import ExternalUnitState, FinalizeOptions, read_unit_states
 from pipeloom.runtime.run import artifacts_root
 from pipeloom.secrets.resolve import SecretError, secret_diagnostic
 
 
-def _unit_states(ctx: click.Context, param: click.Parameter, value: Path | None) -> Path | None:
-    """Check the file now (exit 2) but keep the path: the invocation event records the options,
-    and a state's message may hold a secret."""
-    if value is not None:
-        try:
-            read_unit_states(value)
-        except (OSError, ValueError) as err:
-            raise click.BadParameter(f"{value.as_posix()}: {err}", ctx=ctx, param=param) from err
-    return value
+@dataclass(frozen=True)
+class _States:
+    """The file read once. The invocation event records the options with `str()`, and a state's
+    message may hold a secret, so only the path shows."""
+
+    path: Path
+    units: dict[str, ExternalUnitState] = field(repr=False)
+
+    def __str__(self) -> str:
+        return self.path.as_posix()
+
+
+def _unit_states(ctx: click.Context, param: click.Parameter, value: Path | None) -> _States | None:
+    if value is None:
+        return None
+    try:
+        return _States(value, read_unit_states(value))
+    except (OSError, ValueError) as err:
+        raise click.BadParameter(f"{value.as_posix()}: {err}", ctx=ctx, param=param) from err
 
 
 @click.command()
@@ -98,7 +109,7 @@ def finalize(
     run_id: str,
     manifest: Path | None,
     expect_plan_hash: str | None,
-    unit_states: Path | None,
+    unit_states: _States | None,
     orchestrator_ids: dict[str, str],
     run_started_at: datetime | None,
 ) -> None:
@@ -146,7 +157,7 @@ def finalize(
                     selection=Selection(select, exclude),
                     manifest=manifest,
                     expect_plan_hash=expect_plan_hash,
-                    unit_states={} if unit_states is None else read_unit_states(unit_states),
+                    unit_states={} if unit_states is None else unit_states.units,
                     orchestrator_ids=orchestrator_ids,
                     run_started_at=run_started_at,
                 ),

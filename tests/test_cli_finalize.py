@@ -220,7 +220,69 @@ def test_a_failed_attempt_file_fails_the_run(root: Path) -> None:
     assert r.exit_code == 1
     got = rows(root)
     assert got["bad"]["status"] == "failed"
-    assert got["after_bad"]["skip_reason"] == "not_run"  # a skipped unit wrote no file
+    # the scheduler's skip wrote no file: the failed upstream tells why
+    assert got["after_bad"]["skip_reason"] == "upstream_failed"
+    assert got["z"]["status"] == "succeeded"
+
+
+CHAIN = """models:
+  - {name: a, sql: select 1 as x}
+  - {name: b, sql: select * from a, inputs: {a: {ref: a}}}
+  - {name: c, sql: select * from b, inputs: {b: {ref: b}}}
+  - {name: d, sql: select 2 as x}
+"""
+
+
+def test_descendants_of_a_failed_unit_are_upstream_failed(tmp_path: Path) -> None:
+    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": CHAIN})
+    path = states(root, {"a": {"status": "failed"}})
+    r = finalize(root, "--unit-states", str(path))
+    assert r.exit_code == 1, r.stderr
+    got = rows(root)
+    assert got["a"]["status"] == "failed"
+    for unit in ("b", "c"):  # c is two steps away: skipped rows propagate
+        assert (got[unit]["status"], got[unit]["skip_reason"]) == ("skipped", "upstream_failed")
+    assert got["d"]["skip_reason"] == "not_run"
+
+
+def test_an_excluded_or_unknown_upstream_does_not_fail_descendants(tmp_path: Path) -> None:
+    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": CHAIN})
+    path = states(root, {"a": {"status": "excluded"}})
+    assert finalize(root, "--unit-states", str(path)).exit_code == 0
+    got = rows(root)
+    assert "a" not in got and got["b"]["skip_reason"] == "not_run"
+
+
+def _hold(root: Path, run_id: str) -> Any:
+    from pipeloom.api import Project, ProjectOptions
+
+    bound = Project(ProjectOptions(project_dir=root, target="ci", env={})).bind().value
+    assert bound is not None
+    store = bound.plugins["state_stores"].create(None)
+    return store, store.lock("p/ci", run_id)
+
+
+def test_finalize_refuses_while_the_same_run_holds_the_lock(root: Path) -> None:
+    ran_a(root)
+    store, lock = _hold(root, "r1")
+    try:
+        with lock:
+            r = finalize(root)
+    finally:
+        store.close()
+    assert r.exit_code == 2 and "PLX105" in r.stderr and "still running" in r.stderr
+    assert finalize(root).exit_code == 0  # released: nothing holds it any more
+
+
+def test_finalize_ignores_a_lock_of_another_run(root: Path) -> None:
+    ran_a(root)
+    store, lock = _hold(root, "other")
+    try:
+        with lock:
+            r = finalize(root)
+    finally:
+        store.close()
+    assert r.exit_code == 0, r.stderr
 
 
 def test_cancelled_alone_exits_130(root: Path) -> None:

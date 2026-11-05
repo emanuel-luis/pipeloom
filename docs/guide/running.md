@@ -80,7 +80,7 @@ what `-s/--select` and `--exclude` leave) it takes, in this order:
    `status` is `skipped`, `cancelled`, `failed` or `excluded`; `reason` (for `skipped`, default
    `upstream_failed`), `code`, `message` and `orchestrator_ids` are optional. `excluded` drops the
    unit from the results;
-3. else the unit is `skipped` with the reason `not_run`, which does not fail the run.
+3. else the unit is `skipped` with the reason `upstream_failed` when one of its upstreams failed, otherwise `not_run`, which does not fail the run.
 
 The run is failed when any unit failed, timed out or was skipped as `upstream_failed`, else
 cancelled when any unit was cancelled, else succeeded. The exit code is 0, 1 or 130. A file that
