@@ -3,7 +3,7 @@ SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help install lint format typecheck test spark-test build docs docs-serve \
+.PHONY: help install lint format typecheck test spark-test airflow-test build docs docs-serve \
 	d2-install diagrams diagrams-check diagrams-watch
 
 help: ## list the targets
@@ -35,6 +35,14 @@ spark-test: ## print the WSL recipe for the Spark tests (Spark never runs in Win
 	@echo "  wsl -d Ubuntu -e bash /mnt/d/<path>/pipeloom/scripts/wsl-spark-tests.sh connect"
 	@echo "Extra arguments go to pytest; PIPELOOM_WSL_VENV picks the virtualenv (default ~/.venvs/pipeloom-spark)."
 	@echo "On Linux or macOS: bash scripts/wsl-spark-tests.sh classic"
+
+airflow-test: ## print the recipe for the Airflow tests (Airflow does not run on Windows)
+	@echo "Airflow tests need Linux or macOS. On Windows, run them in WSL:"
+	@echo "  wsl -d Ubuntu -e bash /mnt/d/<path>/pipeloom/scripts/wsl-airflow-tests.sh"
+	@echo "The script makes a throwaway AIRFLOW_HOME with a sqlite database and removes it after."
+	@echo "Extra arguments go to pytest; PIPELOOM_WSL_VENV picks the virtualenv (default ~/.venvs/pipeloom-airflow);"
+	@echo "PIPELOOM_AIRFLOW_PIN=3.2.2 with its own PIPELOOM_WSL_VENV tests the floor."
+	@echo "On Linux or macOS: bash scripts/wsl-airflow-tests.sh"
 
 build: ## build every distribution (core and plugins) into dist/
 	uv build --all-packages

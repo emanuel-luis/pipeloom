@@ -65,6 +65,8 @@ dev = [
     "sqlglot>=26",
 ]
 spark = ["pipeloom-spark[local]"]
+# Airflow does not support Windows: install this group on Linux, macOS or WSL only.
+airflow = ["apache-airflow>=3.2,<4"]
 docs = ["mkdocs-material", "mkdocstrings[python]", "mkdocs-click", "mike"]
 
 [tool.uv.workspace]
@@ -121,6 +123,16 @@ files = [
 module = ["pandas", "pandas.*", "pyarrow", "pyarrow.*", "pyspark", "pyspark.*", "delta", "delta.*", "py4j", "py4j.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+# Airflow is installed only by the `airflow` group (never on Windows). Without it the Airflow base
+# classes are Any, so the modules that subclass them allow that; with it they check fully.
+module = ["airflow", "airflow.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["pipeloom_airflow.dag", "pipeloom_airflow.operators.*", "pipeloom_airflow._compat"]
+disallow_subclassing_any = false
+
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
 timeout = 60
@@ -129,6 +141,7 @@ pythonpath = ["."]
 markers = [
     "spark: needs local Spark (PIPELOOM_TEST_SPARK=classic, Linux or macOS, Java)",
     "spark_connect: needs a local Spark Connect server (PIPELOOM_TEST_SPARK=connect)",
+    "airflow_e2e: migrates a throwaway sqlite Airflow database and runs dag.test() (PIPELOOM_TEST_AIRFLOW=1)",
 ]
 
 [tool.coverage.run]

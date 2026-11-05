@@ -1,0 +1,13 @@
+config_version: 1
+name: afproj
+python_paths: [src]
+defaults:
+  models: {materialized: table}
+targets:
+  dev:
+    engine: {kind: polars}
+    catalog: {kind: filesystem, root: target/warehouse}
+    state: {kind: json, path: .pipeloom/state}
+    naming: {kind: none}
+    boundary: task
+    cancel_grace: 2

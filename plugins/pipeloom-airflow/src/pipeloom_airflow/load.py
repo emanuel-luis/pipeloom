@@ -19,7 +19,6 @@ from typing import Any, Final, Literal
 
 import yaml
 
-from pipeloom.api import Project, ProjectOptions
 from pipeloom.diagnostics import Location, Report
 from pipeloom.plan.manifest import canonical_json, manifest_bytes, read_manifest
 from pipeloom.plan.model import Plan
@@ -212,6 +211,9 @@ def load_plan(
     except (OSError, TypeError, yaml.YAMLError):
         folder = None
         _unusable(report)
+    # imported here: a manifest load or a cache hit (every parse but the first) never needs it
+    from pipeloom.api import Project, ProjectOptions
+
     outcome = Project(
         ProjectOptions(project_dir=project_dir, target=target, vars=dict(project.vars), env=env)
     ).compile()
