@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-05
+
+pipeloom 0.4 adds the `pipeloom-spark` engine (Spark classic and Spark Connect) with Delta writes, idempotent commits, metrics from the commit history, quality checks and a Delta table state store, plus intermediate models on every engine, on plugin API (0, 4).
+
 ### Added
 
 - `intermediate` materialization on the memory, polars and pandas engines (ADR-0030, amends ADR-0007): the result is written to `<artifacts.root>/runs/<run_id>/intermediate/<model>` and read by its consumers; `relation_name` in `run_results` is that location. PLP413 rejects `incremental`, a strategy other than overwrite and `partition_by` on an intermediate.
@@ -172,7 +176,8 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.0.2...v0.1.0
