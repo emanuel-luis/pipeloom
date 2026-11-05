@@ -33,6 +33,12 @@ Changelog = "https://github.com/emanuel-luis/pipeloom/blob/main/CHANGELOG.md"
 [project.entry-points."pipeloom.renderers"]
 databricks = "pipeloom_databricks.spec:RENDERER_SPEC"
 
+[project.entry-points."pipeloom.commands"]
+databricks = "pipeloom_databricks.cli:databricks"
+
+[project.scripts]
+pipeloom_databricks_task = "pipeloom_databricks.task:main"
+
 [tool.uv.sources]
 pipeloom = { workspace = true }
 pipeloom-spark = { workspace = true }

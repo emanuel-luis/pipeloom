@@ -179,3 +179,7 @@ once used it.
 [0.2.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.0.2...v0.1.0
 [0.0.2]: https://github.com/emanuel-luis/pipeloom/releases/tag/v0.0.2
+- `pipeloom databricks bundle --target T --out DIR` (command added by `pipeloom-databricks` through `pipeloom.commands`) writes a job file and a stable manifest per pipeline into a Declarative Automation Bundle, with `${workspace.file_path}` paths; `--check` lists stale files and exits 1. Tasks run the new `pipeloom_databricks_task` wrapper, which resolves the run id, rejects unresolved `{{...}}` parameters (PLD013), calls the core in process, sets a size-capped task value (best effort) and exits with the core's code.
+- `pipeloom_databricks.testing.jobsim.simulate_job` runs a rendered job locally through the wrapper, with `run_if`, `only` and repairs.
+- PLD013: a task parameter still holds a `{{...}}` reference.
+- `pipeloom-spark`: with `DATABRICKS_RUNTIME_VERSION` set and no active session, mode `active` attaches with `SparkSession.builder.getOrCreate()` and no conf (a wheel task starts without a session). The session is never configured or stopped, and `active_session()` now uses `getActiveSession()`.

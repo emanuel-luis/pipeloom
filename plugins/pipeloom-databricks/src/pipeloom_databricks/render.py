@@ -59,7 +59,8 @@ TAG_PREFIX: Final = "pipeloom_"
 MAX_ENVIRONMENTS: Final = 10
 FINALIZE_TIMEOUT: Final = 1800
 TIMEOUT_MARGIN: Final = 300
-_ABSOLUTE = re.compile(r"^(/|[A-Za-z][A-Za-z0-9+.-]+:/)")
+_ABSOLUTE = re.compile(r"^(/|[A-Za-z][A-Za-z0-9+.-]*:/)")
+"""A POSIX path, a URI such as `dbfs:/x`, or a drive path such as `C:/x` (tests on Windows)."""
 
 
 @dataclass(frozen=True)
