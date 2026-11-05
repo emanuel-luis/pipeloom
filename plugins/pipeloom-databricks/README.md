@@ -57,6 +57,22 @@ targets:
   by itself. Other codes: PLD006 (two jobs with the same tag), PLD009 (API error).
 - `pipeloom_databricks.api` is the stable surface for other distributions, and
   `pipeloom_databricks.testing.fake.FakeDatabricks` a fake workspace for tests.
-- Running and repairing jobs arrive in a later release of this package.
+- Run: `pipeloom databricks run --target prod [--pipeline NAME] [--select S]... [--exclude S]...
+  [--run-id RID] [--full-refresh] [--ensure] [--ephemeral] [--wait|--no-wait]` starts the
+  deployed job (PLD007 when none is deployed, PLD008 when it differs from the local render,
+  unless `--ensure` deploys first). Selected units map to task keys plus finalize (`only`); a
+  partly selected group runs whole, with the warning PLD015. `--timeout SECONDS` (default 24
+  hours) bounds `--wait`. `--run-id` names the run and makes the start
+  idempotent. `--ephemeral` uploads the project and submits a one-time run on serverless
+  compute. It prints one JSON line with the ids and the run page URL, then with `--wait` (the
+  default) polls every 15 seconds, reports task transitions and the failed units, and exits 1
+  unless the run succeeded.
+- Repair: `pipeloom databricks repair --target prod (--run-id RID | --job-run-id N)
+  [--wait|--no-wait]` reruns the tasks that failed, timed out, were cancelled or skipped, plus
+  finalize. A run that is still active is PLD014; nothing to repair exits 0.
+- Finalize reads how each task ended from the Jobs API and gives core finalize the state of every
+  unit that wrote no attempt file, so a lost, timed-out or cancelled task fails or cancels the
+  run (a failed one is PLD011). If the API cannot be read, finalize prints one warning and judges
+  by the attempt files alone. A one-time run has no job run id, so it gets no task states.
 
 License: Apache-2.0.

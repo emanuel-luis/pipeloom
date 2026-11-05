@@ -42,6 +42,8 @@ class RunInfo:
     latest_repair_id: int | None = None
     run_page_url: str | None = None
     start_time_ms: int | None = None
+    repair_states: Mapping[int, str] = field(default_factory=dict)
+    """Repair id -> life cycle state of that repair's entry in the run's repair history."""
 
 
 @dataclass(frozen=True)

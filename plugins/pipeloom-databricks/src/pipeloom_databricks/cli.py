@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import time
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
 
@@ -11,20 +15,53 @@ import click
 
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.cli._events import Invocation
-from pipeloom.cli._options import log_format_option, plugin_option, project_options, target_option
+from pipeloom.cli._options import (
+    log_format_option,
+    plugin_option,
+    project_options,
+    select_options,
+    target_option,
+)
 from pipeloom.config.bind import BoundProject
 from pipeloom.diagnostics import Report
 from pipeloom.engine.types import StateStoreCapabilities
+from pipeloom.graph.selectors import Selection
 from pipeloom.plan.model import Plan
 from pipeloom.runtime.run import DEFAULT_CANCEL_GRACE
 from pipeloom_databricks.bundle import Runtime, find_bundle_root, relative_to_root, render_bundle
-from pipeloom_databricks.client import ConnectionNotConfigured, connect
+from pipeloom_databricks.client import (
+    ConnectionNotConfigured,
+    DatabricksClient,
+    connect,
+)
+from pipeloom_databricks.deploy import api_errors, find_job, prepare
 from pipeloom_databricks.deploy import deploy as deploy_pipeline
-from pipeloom_databricks.deploy import prepare
 from pipeloom_databricks.jobs_model import to_json
-from pipeloom_databricks.render import deploy_options
+from pipeloom_databricks.options import DatabricksDeployOptions
+from pipeloom_databricks.render import deploy_options, job_name
+from pipeloom_databricks.repair import repair as repair_run
+from pipeloom_databricks.run import (
+    SelectionError,
+    WaitTimeout,
+    effective_run_id,
+    failure_lines,
+    find_run,
+    run_job,
+    submit_ephemeral,
+    wait_for_run,
+)
 
 CONNECTION_KEY: Final = "pipeloom_databricks.connection"
+SLEEP_KEY: Final = "pipeloom_databricks.sleep"
+DEFAULT_TIMEOUT: Final = 24 * 3600
+_RUN_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+
+
+@dataclass
+class Hooks:
+    """What a test hands to the command group as `obj`: a stand-in for `time.sleep`."""
+
+    sleep: Callable[[float], None] = time.sleep
 
 
 def _load(
@@ -72,6 +109,86 @@ def _load(
 def databricks(ctx: click.Context, profile: str | None, client_factory: str | None) -> None:
     """Databricks jobs for a pipeloom project."""
     ctx.meta[CONNECTION_KEY] = (profile, client_factory)
+    ctx.meta[SLEEP_KEY] = ctx.obj.sleep if isinstance(ctx.obj, Hooks) else time.sleep
+
+
+def _connect(
+    ctx: click.Context, inv: Invocation, report: Report, bound: BoundProject | None
+) -> DatabricksClient:
+    """The client the group options select; ends the command with PLD010 (exit 1) when none."""
+    profile, factory = ctx.meta.get(CONNECTION_KEY, (None, None))
+    try:
+        return connect(profile=profile, env=os.environ, factory=factory)
+    except ConnectionNotConfigured as err:
+        report.add("PLD010", str(err))
+        inv.finish(report.sorted(), 1, bound=bound)
+        raise SystemExit(1) from None
+
+
+def _pipeline(name: str | None, opts: DatabricksDeployOptions) -> str:
+    """The pipeline to act on: `name`, or the only one of the deploy block. Exit 2 otherwise."""
+    if name is None:
+        if len(opts.pipelines) != 1:
+            raise click.UsageError(
+                f"--pipeline is required: the deploy block has {', '.join(sorted(opts.pipelines))}"
+            )
+        return next(iter(opts.pipelines))
+    if name not in opts.pipelines:
+        raise click.UsageError(
+            f"pipeline '{name}' is not in the deploy block ({', '.join(sorted(opts.pipelines))})"
+        )
+    return name
+
+
+def _run_id(ctx: click.Context, param: click.Parameter, value: str | None) -> str | None:
+    if value is not None and not _RUN_ID.match(value):
+        raise click.BadParameter(
+            "use 1 to 64 letters, digits, dots, underscores or hyphens", ctx=ctx, param=param
+        )
+    return value
+
+
+def _echo_started(job_id: int | None, job_run_id: int, run_id: str | None, url: str | None) -> None:
+    doc = {"job_id": job_id, "job_run_id": job_run_id, "run_id": run_id, "run_page_url": url}
+    click.echo(json.dumps(doc, ensure_ascii=True))
+
+
+def _follow(
+    ctx: click.Context,
+    client: DatabricksClient,
+    job_run_id: int,
+    run_id: str | None,
+    runtime: Runtime,
+    report: Report,
+    *,
+    repair_id: int | None = None,
+    timeout: int = DEFAULT_TIMEOUT,
+) -> int:
+    """Wait for the run, say what happened to its tasks and units; the exit code of the command."""
+    say: Callable[[str], None] = lambda line: click.echo(line, err=True)
+    code = 1
+    with api_errors(report):
+        try:
+            run = wait_for_run(
+                client,
+                job_run_id,
+                sleep=ctx.meta[SLEEP_KEY],
+                say=say,
+                repair_id=repair_id,
+                timeout=timeout,
+            )
+        except WaitTimeout as err:
+            say(f"{err}; the run keeps going")
+            return 1
+        if run.result_state == "SUCCESS":
+            code = 0
+        else:
+            say(f"run {job_run_id} ended: {run.life_cycle_state}/{run.result_state}")
+            for line in failure_lines(
+                client, runtime.artifacts_root, run_id or effective_run_id(run)
+            ):
+                say(line)
+    return code
 
 
 @databricks.command()
@@ -212,13 +329,7 @@ def deploy(
                 }
                 click.echo(json.dumps(doc, ensure_ascii=True))
     else:
-        profile, factory = ctx.meta.get(CONNECTION_KEY, (None, None))
-        try:
-            client = connect(profile=profile, env=os.environ, factory=factory)
-        except ConnectionNotConfigured as err:
-            report.add("PLD010", str(err))
-            inv.finish(report.sorted(), 1, bound=bound)
-            return
+        client = _connect(ctx, inv, report, bound)
         for name in names:
             result = deploy_pipeline(client, project_dir, plan, name, runtime, report=report)
             if result is not None:
@@ -230,3 +341,221 @@ def deploy(
                 }
                 click.echo(json.dumps(doc, ensure_ascii=True))
     inv.finish(report.sorted(), 1 if report.has_errors else 0, bound=bound)
+
+
+_PIPELINE_OPTION = click.option(
+    "--pipeline",
+    metavar="NAME",
+    default=None,
+    help="A pipeline of the deploy block. Default: the only one.",
+)
+
+
+def _wait_options(func: Callable[..., Any]) -> Callable[..., Any]:
+    """--wait/--no-wait and --timeout, shared by run and repair."""
+    func = click.option(
+        "--timeout",
+        type=click.IntRange(min=1),
+        default=DEFAULT_TIMEOUT,
+        show_default=True,
+        metavar="SECONDS",
+        help="With --wait, stop waiting after this long and exit 1. The run keeps going.",
+    )(func)
+    return click.option(
+        "--wait/--no-wait",
+        default=True,
+        show_default=True,
+        help="Wait for the run to end (polling every 15 seconds) and exit 1 unless it succeeded.",
+    )(func)
+
+
+@databricks.command()
+@project_options
+@target_option
+@plugin_option
+@log_format_option
+@select_options
+@_PIPELINE_OPTION
+@click.option(
+    "--run-id",
+    callback=_run_id,
+    default=None,
+    metavar="RID",
+    help="Name the run (1 to 64 letters, digits, dots, underscores or hyphens) and make the "
+    "start idempotent. Default: dbx-<job run id>.",
+)
+@click.option("--full-refresh", is_flag=True, help="Rebuild append tables from scratch.")
+@click.option(
+    "--ensure",
+    is_flag=True,
+    help="Deploy the job first when it is missing or out of date, instead of stopping.",
+)
+@click.option(
+    "--ephemeral",
+    is_flag=True,
+    help="Run once without a job: upload the project and submit the run. Serverless only.",
+)
+@_wait_options
+@click.pass_context
+def run(
+    ctx: click.Context,
+    /,
+    project_dir: Path,
+    vars_: dict[str, Any],
+    target: str | None,
+    plugins: tuple[str, ...],
+    log_format: str,
+    select: tuple[str, ...],
+    exclude: tuple[str, ...],
+    pipeline: str | None,
+    run_id: str | None,
+    full_refresh: bool,
+    ensure: bool,
+    ephemeral: bool,
+    wait: bool,
+    timeout: int,
+) -> None:
+    """Run the deployed job of a pipeline, or run it once without a job (--ephemeral).
+
+    Prints {job_id, job_run_id, run_id, run_page_url} as one JSON line. --select and --exclude
+    pick units: only their tasks (and finalize) run. Exit codes: 0 ok, 1 a diagnostic or a run
+    that did not succeed, 2 bad usage.
+    """
+    inv = Invocation("databricks run", log_format)
+    plan, bound, runtime, report = _load(inv, project_dir, target, vars_, plugins)
+    opts = deploy_options(plan, report)
+    if opts is None:
+        inv.finish(report.sorted(), 1, bound=bound)
+        return
+    name = _pipeline(pipeline, opts)
+    if ephemeral and ensure:
+        raise click.UsageError("--ensure deploys a job; --ephemeral runs without one")
+    client = _connect(ctx, inv, report, bound)
+    selection = Selection(select, exclude)
+    try:
+        if ephemeral:
+            started = submit_ephemeral(
+                client,
+                project_dir,
+                plan,
+                name,
+                runtime,
+                selection=selection,
+                full_refresh=full_refresh,
+                report=report,
+                run_id=run_id,
+            )
+        else:
+            started = run_job(
+                client,
+                project_dir,
+                plan,
+                name,
+                runtime,
+                selection=selection,
+                run_id=run_id,
+                full_refresh=full_refresh,
+                ensure=ensure,
+                report=report,
+            )
+    except SelectionError as err:
+        raise click.UsageError(str(err)) from err
+    code = 1
+    if started is not None:
+        shown = started.run_id or f"dbx-{started.job_run_id}"
+        _echo_started(started.job_id, started.job_run_id, shown, started.run_page_url)
+        code = 0
+        if wait:
+            code = _follow(
+                ctx, client, started.job_run_id, started.run_id, runtime, report, timeout=timeout
+            )
+    inv.finish(report.sorted(), 1 if report.has_errors else code, bound=bound)
+
+
+@databricks.command()
+@project_options
+@target_option
+@plugin_option
+@log_format_option
+@_PIPELINE_OPTION
+@click.option("--run-id", callback=_run_id, default=None, metavar="RID", help="The run to repair.")
+@click.option(
+    "--job-run-id",
+    type=click.IntRange(min=1),
+    default=None,
+    metavar="N",
+    help="The job run to repair.",
+)
+@_wait_options
+@click.pass_context
+def repair(
+    ctx: click.Context,
+    /,
+    project_dir: Path,
+    vars_: dict[str, Any],
+    target: str | None,
+    plugins: tuple[str, ...],
+    log_format: str,
+    pipeline: str | None,
+    run_id: str | None,
+    job_run_id: int | None,
+    wait: bool,
+    timeout: int,
+) -> None:
+    """Rerun the failed, cancelled and skipped tasks of a finished run, and finalize again.
+
+    Name the run with --run-id (the pipeloom run id) or --job-run-id (the Databricks run id),
+    exactly one. Prints {job_run_id, repair_id} as one JSON line. Exit codes: 0 ok (also when
+    there is nothing to repair), 1 a diagnostic or a repair that did not succeed, 2 bad usage.
+    """
+    if (run_id is None) == (job_run_id is None):
+        raise click.UsageError("use exactly one of --run-id and --job-run-id")
+    inv = Invocation("databricks repair", log_format)
+    plan, bound, runtime, report = _load(inv, project_dir, target, vars_, plugins)
+    opts = deploy_options(plan, report)
+    if opts is None:
+        inv.finish(report.sorted(), 1, bound=bound)
+        return
+    name = _pipeline(pipeline, opts)
+    client = _connect(ctx, inv, report, bound)
+    target_run = job_run_id
+    if run_id is not None:
+        with api_errors(report):
+            meta = plan.metadata
+            job = find_job(
+                client, f"{meta.project}.{name}.{meta.target}", name=job_name(plan, name)
+            )
+            found = None if job is None else find_run(client, job.job_id, run_id)
+            if found is None:
+                report.add(
+                    "PLD007",
+                    f"no run '{run_id}' of pipeline '{name}'"
+                    if job is not None
+                    else f"no job is deployed for pipeline '{name}'",
+                    hint="check --run-id, --pipeline and --target",
+                )
+            else:
+                target_run = found.run_id
+    code = 1
+    if target_run is not None and not report.has_errors:
+        repair_id = repair_run(client, target_run, report)
+        if repair_id is not None:
+            click.echo(
+                json.dumps({"job_run_id": target_run, "repair_id": repair_id}, ensure_ascii=True)
+            )
+            code = 0
+            if wait:
+                code = _follow(
+                    ctx,
+                    client,
+                    target_run,
+                    run_id,
+                    runtime,
+                    report,
+                    repair_id=repair_id,
+                    timeout=timeout,
+                )
+        elif not report.has_errors:
+            click.echo(f"nothing to repair in run {target_run}", err=True)
+            code = 0
+    inv.finish(report.sorted(), 1 if report.has_errors else code, bound=bound)
