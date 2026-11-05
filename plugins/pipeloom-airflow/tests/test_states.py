@@ -6,6 +6,7 @@ from pathlib import Path
 from pipeloom.events.model import Event
 from pipeloom.runtime.finalize_run import ExternalUnitState, read_unit_states
 from pipeloom_airflow.states import (
+    NO_RESULT,
     ChildTerminal,
     parse_child_line,
     unit_states,
@@ -61,6 +62,16 @@ def test_the_document_round_trips_through_the_core_reader(tmp_path: Path) -> Non
     assert compact["units"] == {
         "a": {"status": "failed", "code": "PLA004", "message": "m"},
         "b": {"status": "skipped", "reason": "not_run"},
+    }
+    long = unit_states({"t1": "success", "t2": "failed"}, {"t1": ("a",), "t2": ("b",)})
+    short = unit_states_document(long, compact=True)["units"]
+    assert short == {
+        "a": {
+            "status": "failed",
+            "code": "PLA004",
+            "message": "no attempt file visible under artifacts.root",
+        },
+        "b": {"status": "failed", "code": "PLA004", "message": NO_RESULT},
     }
     path = tmp_path / "s.json"
     path.write_text(json.dumps(full), encoding="utf-8")

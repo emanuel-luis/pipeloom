@@ -230,7 +230,27 @@ def test_env_merges_with_dict_and_list_pod_env(af_project: Any) -> None:
         ({"execution_config": execution(deferrable=True)}, "pod_kwargs.deferrable"),
         ({"execution_config": execution(do_xcom_push=True)}, "pod_kwargs.do_xcom_push"),
         ({"execution_config": execution(arguments=["x"])}, "pod_kwargs.arguments"),
+        *[
+            ({"execution_config": execution(**{key: 1})}, f"pod_kwargs.{key}")
+            for key in (
+                "retries",
+                "retry_delay",
+                "execution_timeout",
+                "outlets",
+                "task_group",
+                "trigger_rule",
+                "task_id",
+                "name",
+                "image",
+                "cmds",
+            )
+        ],
         ({"operator_args": {"deferrable": True}}, "operator_args.deferrable"),
+        ({"operator_args": {"retries": 2}}, "operator_args.retries"),
+        (
+            {"execution_config": execution(pool="p"), "operator_args": {"pool": "q"}},
+            "'pool' is in both pod_kwargs and operator_args",
+        ),
         (
             {"execution_config": ExecutionConfig(mode=ExecutionMode.KUBERNETES)},
             "execution.kubernetes.image",

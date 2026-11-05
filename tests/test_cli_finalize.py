@@ -415,6 +415,21 @@ def test_unit_states_json_matches_the_file(root: Path) -> None:
     assert "no file" in r.stderr
 
 
+def test_unit_states_json_content_stays_out_of_the_events(root: Path) -> None:
+    doc = {
+        "schema": "pipeloom.unit_states/1",
+        "units": {"z": {"status": "excluded", "message": "SECRET-INLINE-TEXT"}},
+    }
+    r = finalize(root, "--unit-states-json", json.dumps(doc))
+    assert "SECRET-INLINE-TEXT" not in r.stderr
+    (started,) = [
+        json.loads(ln)
+        for ln in r.stderr.splitlines()
+        if ln.startswith("{") and '"invocation.started"' in ln
+    ]
+    assert started["data"]["args"]["unit_states_json"] == "<--unit-states-json>"
+
+
 def test_unit_states_json_errors_exit_2(root: Path) -> None:
     good = states(root, {})
     inline = '{"schema": "pipeloom.unit_states/1", "units": {}}'
