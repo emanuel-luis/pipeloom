@@ -108,6 +108,15 @@ def test_operator_args_own_keys() -> None:
     assert check(args={"pool": "p", "queue": "q"}) == []
 
 
+def test_databricks_operator_args_own_more_keys() -> None:
+    owned = ["timeout", "poll", "conn_id", "poll_interval", "client_factory", "task_key"]
+    databricks = ExecutionConfig(mode=ExecutionMode.DATABRICKS)
+    found = check(execution=databricks, args=dict.fromkeys(owned, 1))
+    assert [c for c, _ in found] == ["PLA002"] * len(owned)
+    assert "operator_args.timeout is set by pipeloom" in [m for _, m in found]
+    assert check(args={"timeout": 5}) == []  # only DATABRICKS mode sets it
+
+
 def test_asset_uri_placeholders() -> None:
     assert check(render=RenderConfig(asset_uri="x://{project}/{model}/{unique_id}")) == []
     found = check(render=RenderConfig(asset_uri="x://{schema}"))

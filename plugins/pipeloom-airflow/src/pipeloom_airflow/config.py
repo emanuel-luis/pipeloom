@@ -89,6 +89,24 @@ OPERATOR_ARGS_RESERVED: Final = (
     "execution_timeout",
     "deferrable",
 )
+DATABRICKS_ARGS_RESERVED: Final = (
+    "timeout",  # databricks_timeout
+    "poll",
+    "poll_interval",
+    "conn_id",
+    "client_factory",
+    "wait_timeout_s",
+    "task_key",
+    "launch_task_id",
+    "max_attempts",
+    "command",
+    "pipeline",
+    "ensure_job",
+    "select",
+    "exclude",
+    "group_id",
+)
+"""Constructor arguments of the DATABRICKS-mode operators that pipeloom sets itself."""
 POD_KWARGS_RESERVED: Final = (
     "cmds",
     "arguments",
@@ -150,7 +168,10 @@ def validate_configs(
             both = set(execution.kubernetes.pod_kwargs) & set(operator_args)
             for key in sorted(both - set(POD_KWARGS_RESERVED)):
                 bad(f"'{key}' is in both pod_kwargs and operator_args", "keep it in one of them")
-    for key in sorted(set(operator_args) & set(OPERATOR_ARGS_RESERVED)):
+    reserved = set(OPERATOR_ARGS_RESERVED)
+    if execution.mode is ExecutionMode.DATABRICKS:
+        reserved |= set(DATABRICKS_ARGS_RESERVED)
+    for key in sorted(set(operator_args) & reserved):
         bad(f"operator_args.{key} is set by pipeloom", "remove it from operator_args")
     try:
         fields = {f for _, f, _, _ in string.Formatter().parse(render.asset_uri) if f is not None}
