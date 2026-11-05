@@ -391,7 +391,7 @@ pending → cancelled (run cancelled)
 queued  → cancelled (run cancelled)
 ```
 
-The transition table is checked in code (`pipeloom.runtime.states`). `retrying -> cancelled` is part of it: a stop request, or fail-fast, cancels a unit that waits for its next attempt. A skipped unit carries a reason: `upstream_failed` (with the failed upstream) or `fail_fast`.
+The transition table is checked in code (`pipeloom.runtime.states`). `retrying -> cancelled` is part of it: a stop request, or fail-fast, cancels a unit that waits for its next attempt. A skipped unit carries a reason: `upstream_failed` (with the failed upstream) or `fail_fast`; `pipeloom finalize` adds `not_run` for a unit with neither an attempt file nor an orchestrator state (ADR-0034).
 
 **Run state machine:** `created → compiled → running → succeeded | failed | cancelled`. A run with warnings is still `succeeded`.
 
@@ -572,7 +572,7 @@ Long engine (JVM) traces are trimmed to the first user frame and the root cause.
 - Schema: `schema_hash`, `schema_changes[]{kind, column, old, new, action}`.
 - Quality: `expectations[]{name, kind, action, passed, failed, value}` (`passed` is null and `value` is set for aggregate checks), `warnings[]` (expectation warnings and `watermark_seeded: target`). A replayed unit restores them from the stored commit metadata.
 - Error: `{code, category, message, hint, exception_type, trace_excerpt}`.
-- Runtime: `engine`, `engine_version`, `executor`, `orchestrator_ids` (Databricks job, run and task run ids; Airflow dag, run, task and try), `idempotency_token`.
+- Runtime: `engine`, `engine_version`, `executor`, `orchestrator_ids` (Databricks job, run and task run ids; Airflow dag, run, task and try; filled from `--orchestrator-id`, ADR-0034), `idempotency_token`.
 
 **Per-run metadata (`run_results.run`):**
 - `run_id`, `parent_run_id`, `invocation_ids[]`, `project`, `target`, `plan_hash`, `selector`, `args`, `full_refresh`.

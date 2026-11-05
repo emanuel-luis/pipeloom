@@ -19,7 +19,8 @@ class UnitState(StrEnum):
     SKIPPED = "skipped"
 
 
-SkipReason = Literal["upstream_failed", "fail_fast"]
+SkipReason = Literal["upstream_failed", "fail_fast", "not_run"]
+"""`not_run` is only written by `pipeloom finalize`: no result and no orchestrator state."""
 
 _S = UnitState
 

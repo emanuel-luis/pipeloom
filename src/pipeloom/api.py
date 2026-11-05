@@ -18,6 +18,7 @@ from pipeloom.plan.model import Plan
 from pipeloom.platform import Clock, Identity, IdentityProvider, LocalIdentity, SystemClock
 from pipeloom.plugins import PluginRegistry
 from pipeloom.runtime.control import RunControl
+from pipeloom.runtime.finalize_run import FinalizeOptions, finalize_run
 from pipeloom.runtime.run import RunOptions, RunOutcome, execute_run
 from pipeloom.secrets.redaction import Redactor
 from pipeloom.secrets.resolve import SecretResolver
@@ -171,6 +172,19 @@ class Project:
         )
         try:
             return execute_run(self, opts, events)
+        finally:
+            if own:
+                events.close()
+
+    def finalize(self, opts: FinalizeOptions, bus: EventBus | None = None) -> RunOutcome:
+        """Close a run an orchestrator drove unit by unit: merge the unit results, record the run
+        and emit `run.completed`. Repeating the call rewrites the same results."""
+        own = bus is None
+        events = bus or EventBus(
+            [], clock=self.clock, invocation_id=self.invocation_id, redactor=self.redactor
+        )
+        try:
+            return finalize_run(self, opts, events)
         finally:
             if own:
                 events.close()

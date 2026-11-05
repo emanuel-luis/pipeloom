@@ -33,6 +33,7 @@ from pipeloom.events.model import (
 from pipeloom.graph.selectors import Selection, SelectorError, apply_to_plan, is_unit_selection
 from pipeloom.plan.manifest import read_manifest, write_manifest
 from pipeloom.plan.model import Plan, PlanSelection
+from pipeloom.platform import check_orchestrator_id
 from pipeloom.runtime.context import RuntimeContext
 from pipeloom.runtime.control import RunControl
 from pipeloom.runtime.errors import ErrorInfo, to_diagnostic
@@ -76,8 +77,13 @@ class RunOptions:
     run_started_at: datetime | None = None
     """Timezone-aware start time of the run, for example the start of the orchestrator job.
     Needs `run_id`. A reused run id keeps the start it recorded; a different value is PLX108."""
+    orchestrator_ids: Mapping[str, str] = field(default_factory=dict)
+    """Ids the orchestrator gave the run (job, run and task ids): they go into every attempt file,
+    the run results and the `context` of every event. They win over the identity provider's."""
 
     def __post_init__(self) -> None:
+        for key, value in self.orchestrator_ids.items():
+            check_orchestrator_id(key, value)
         if self.run_started_at is not None:
             if self.run_started_at.tzinfo is None:
                 raise ValueError("run_started_at must be timezone-aware")
@@ -315,6 +321,9 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     task = plan.metadata.boundary == "task" and not unit_mode
     executor_name = "process" if plan.metadata.boundary == "task" else "thread"
     identity = project.identity
+    identity = replace(
+        identity, orchestrator_ids={**identity.orchestrator_ids, **opts.orchestrator_ids}
+    )
     secrets = project.secrets  # references resolve here and nowhere earlier
     try:
         engine: Engine = engine_plugin.create(secrets)
@@ -428,6 +437,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                         else None,
                         plugins=project.options.plugins,
                         cancel_grace=grace,
+                        orchestrator_ids=opts.orchestrator_ids,
                     ),
                     paths=paths,
                     bus=bus,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, TypeVar
 
@@ -10,6 +10,7 @@ import click
 
 from pipeloom.config.yaml import parse_yaml
 from pipeloom.diagnostics import Report
+from pipeloom.platform import check_orchestrator_id
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -25,6 +26,41 @@ def _parse_vars(ctx: click.Context, param: click.Parameter, value: str | None) -
     if not isinstance(doc.data, dict):
         raise click.BadParameter("must be a YAML or JSON mapping", ctx=ctx, param=param)
     return dict(doc.data)
+
+
+def _orchestrator_ids(
+    ctx: click.Context, param: click.Parameter, value: tuple[str, ...]
+) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for item in value:
+        key, sep, text = item.partition("=")
+        if not sep:
+            raise click.BadParameter(f"'{item}' is not KEY=VALUE", ctx=ctx, param=param)
+        try:
+            check_orchestrator_id(key, text)
+        except ValueError as err:
+            raise click.BadParameter(str(err), ctx=ctx, param=param) from err
+        out[key] = text  # a later duplicate wins
+    return out
+
+
+def orchestrator_id_option(func: F) -> F:
+    """Add a repeatable --orchestrator-id KEY=VALUE; the parameter is `orchestrator_ids`."""
+    return click.option(
+        "--orchestrator-id",
+        "orchestrator_ids",
+        multiple=True,
+        callback=_orchestrator_ids,
+        metavar="KEY=VALUE",
+        help="An id the orchestrator gave this run, such as job_run_id=42. It goes into the "
+        "attempt files, the run results and the context of every event. Repeatable; a later "
+        "duplicate wins. Key: [a-z][a-z0-9_]{0,63}; value: 1 to 256 printable characters.",
+    )(func)
+
+
+def orchestrator_context(ids: Mapping[str, str]) -> dict[str, str]:
+    """The ids as event `context` entries: `orchestrator_id.<key>`."""
+    return {f"orchestrator_id.{k}": v for k, v in ids.items()}
 
 
 def plugin_option(func: F) -> F:

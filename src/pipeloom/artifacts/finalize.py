@@ -138,6 +138,7 @@ def finalize(
     timed_out: Mapping[str, tuple[int, dict[str, Any]]] | None = None,
     intermediate_ttl: float | None = None,
     redactor: Redactor | None = None,
+    failure_first: bool = False,
 ) -> Finalized:
     """Write `run_results.json` into the run folder and copy it, with the manifest, to the root.
 
@@ -149,7 +150,8 @@ def finalize(
     (an internal error stopped the run) are reported as cancelled. `crashed` rows replace the
     attempt of a unit whose runner failed before it could write one. With `intermediate_ttl`
     the run also deletes expired intermediates; failures go to the run's `warnings`. `redactor`
-    masks resolved secrets in everything written.
+    masks resolved secrets in everything written. `failure_first` is for `pipeloom finalize`:
+    a failed unit makes the run failed even when another was cancelled.
     """
     rows = latest_attempts(paths)
     for unit_id, (reason, _upstream) in skipped.items():
@@ -176,7 +178,7 @@ def finalize(
     rows.update(crashed or {})
     cleanup_warnings: list[str] = []
     if intermediate_ttl is not None:
-        status = status_of(list(rows.values()))
+        status = status_of(list(rows.values()), failure_first=failure_first)
         cleanup_warnings = cleanup_intermediates(
             paths.root,
             now=datetime.fromisoformat(header.ended_at),
@@ -184,7 +186,9 @@ def finalize(
             run_id=header.run_id,
             status=status,
         )
-    results = build_run_results(header, list(rows.values()), cleanup_warnings, intermediate_ttl)
+    results = build_run_results(
+        header, list(rows.values()), cleanup_warnings, intermediate_ttl, failure_first=failure_first
+    )
     if redactor is not None:
         results = redactor.scrub(results)
     write_json_atomic(paths.run_results, results)

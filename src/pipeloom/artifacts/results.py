@@ -14,6 +14,8 @@ RESULTS_SCHEMA: Final = "pipeloom.run_results/1"
 
 RunStatusName = Literal["succeeded", "failed", "cancelled"]
 
+_FAILING_SKIPS: Final = ("upstream_failed", "fail_fast")
+
 # Every row has every key. Fields 0.2 does not fill stay null or empty.
 ROW_DEFAULTS: Final[Mapping[str, Any]] = {
     "unique_id": None,
@@ -91,13 +93,22 @@ def git_sha(cwd: Path, timeout: float = 2.0) -> str | None:
     return out if done.returncode == 0 and len(out) >= 7 else None
 
 
-def status_of(rows: Sequence[Mapping[str, Any]]) -> RunStatusName:
-    statuses = {r["status"] for r in rows}
+def status_of(rows: Sequence[Mapping[str, Any]], *, failure_first: bool = False) -> RunStatusName:
+    """A skipped unit fails the run only for `upstream_failed` or `fail_fast` (or no reason);
+    `not_run` and an orchestrator's own reason count for nothing. A run that was stopped is
+    cancelled even when a unit failed; `failure_first` (`pipeloom finalize`) lets a failure
+    win instead."""
+    statuses = {
+        r["status"]
+        for r in rows
+        if r["status"] != "skipped" or r["skip_reason"] in (None, *_FAILING_SKIPS)
+    }
+    failed = bool(statuses & {"failed", "skipped", "timed_out"})
+    if failure_first and failed:
+        return "failed"
     if "cancelled" in statuses:
         return "cancelled"
-    if statuses & {"failed", "skipped", "timed_out"}:
-        return "failed"
-    return "succeeded"
+    return "failed" if failed else "succeeded"
 
 
 def exit_code_of(status: RunStatusName) -> int:
@@ -149,9 +160,11 @@ def build_run_results(
     rows: Sequence[dict[str, Any]],
     warnings: Sequence[str] = (),
     intermediate_ttl: float | None = None,
+    *,
+    failure_first: bool = False,
 ) -> dict[str, Any]:
     ordered = sorted(rows, key=lambda r: str(r["unit_id"]))
-    status = status_of(ordered)
+    status = status_of(ordered, failure_first=failure_first)
     h = header
     return {
         "schema": RESULTS_SCHEMA,

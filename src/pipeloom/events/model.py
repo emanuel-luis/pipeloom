@@ -151,7 +151,7 @@ class UnitQueued(EventPayload):
 class UnitSkipped(EventPayload):
     TYPE = "unit.skipped"
 
-    reason: Literal["upstream_failed", "fail_fast"]
+    reason: Literal["upstream_failed", "fail_fast", "not_run"]
     upstream: str | None
     """The failed unit that caused the skip; None for `fail_fast`."""
 
