@@ -24,6 +24,31 @@ Run `make help` for the full list. The usual ones:
 Before a pull request, run `uv run ruff check`, `uv run ruff format --check`,
 `uv run mypy --strict src` and `uv run pytest -q`.
 
+## Live Databricks checks
+
+Facts that only a real workspace can confirm are checked by the workflow `databricks-live`
+(`.github/workflows/databricks-live.yml`, driver `tools/databricks_live.py`, project
+`tests/fixtures/databricks_live`). It runs only when a maintainer dispatches it by hand in the
+upstream repository, never on a pull request, and it prints `CHECK <fact> ok|failed` per fact.
+Regular CI and the test suite never reach a workspace.
+
+To set it up once, in the repository settings:
+
+1. Create the environment `databricks-live`. Add required reviewers, and restrict deployment to
+   the `main` branch.
+2. Add these environment secrets. Use a service principal, never a personal token. Either
+   `DATABRICKS_HOST` with `DATABRICKS_CLIENT_ID` and `DATABRICKS_CLIENT_SECRET` (OAuth), or
+   `DATABRICKS_HOST` with `DATABRICKS_TOKEN`.
+3. In the workspace, give the principal `USE CATALOG` and `CREATE SCHEMA` on the catalog you pass
+   as the `catalog` input, and `READ VOLUME` and `WRITE VOLUME` on the volume you pass as
+   `volume` (`/Volumes/<catalog>/<schema>/<volume>`). It also needs permission to create jobs and
+   to use serverless compute.
+
+Dispatch it from the Actions tab (or `gh workflow run databricks-live`) with the `catalog` and
+`volume` inputs; `environment_version` defaults to 5. The run deploys two jobs, runs and repairs
+them, then deletes the jobs, the uploaded project folders and a scratch schema. Set `keep_job` to
+keep them for inspection. The wheels it uploads stay under `<volume>/wheels/<sha>/`.
+
 ## Commits
 
 - Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`,
