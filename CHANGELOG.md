@@ -6,14 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-05
+
+pipeloom 0.7 adds a `catalog` setting per model and per folder, so a project can keep each layer in its own catalog, and `pipeloom compile --stable`. Plugin API stays (0, 4). Plan hashes change once, so Databricks jobs deployed with an earlier version show as stale (PLD008) until they are deployed again.
+
 ### Added
 
-- A `catalog` setting per model and per folder default, next to `schema`, so each layer can write to its own catalog (for example `pipeloom_bronze.tpch.orders`). It cascades like `schema` and wins over the naming strategy's `catalog` option. pipeloom creates schemas, never catalogs. The resolved config gains a field, so node checksums and plan hashes change once ([ADR-0040](docs/adr/0040-per-model-catalog.md)). Plugin API stays (0, 4).
-- `pipeloom compile --stable` writes a reproducible manifest: `generated_at`, `invocation_id` and the selection are blank, so one project and target always give the same bytes.
+- A `catalog` setting per model and per folder default, next to `schema`, so each layer can write to its own catalog (for example `pipeloom_bronze.tpch.orders`). It cascades like `schema` and wins over the naming strategy's `catalog` option. pipeloom creates schemas, never catalogs. An empty catalog is rejected (PLS102). The resolved config gains a field, so node checksums and plan hashes change once ([ADR-0040](docs/adr/0040-per-model-catalog.md)). Plugin API stays (0, 4).
+- `pipeloom compile --stable` writes a reproducible manifest: `generated_at`, `invocation_id` and the selection are blank, so one project and target always give the same bytes. `pipeloom run --manifest` on such a manifest runs every model unless `--select` or `--exclude` is given.
 
 ### Changed
 
 - The `filesystem` and `delta_path` catalogs lay a table out at `<root>/<catalog>/<schema>/<name>/` when the target has a catalog; they used to ignore it. Migration: a project whose naming option `catalog` was set on a path catalog moves its tables under a directory of that name, or removes the option. A source with a three-part `table: a.b.c` now reads `<root>/a/b/c` instead of `<root>/b/c` on these catalogs: move its files under a directory named `a`, or write the table as `b.c`.
+
+### Fixed
+
+- PLP412 (quarantine table collides with a model) compares the effective catalog and schema of both tables, including the naming strategy's defaults. A model that left its schema or catalog unset no longer escapes the check when the other model sets the same value explicitly.
 
 ## [0.6.1] - 2026-11-05
 
@@ -244,7 +252,8 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/emanuel-luis/pipeloom/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.4.0...v0.5.0
