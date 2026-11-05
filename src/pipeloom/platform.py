@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import getpass
 import os
+import re
 import socket
 import time
 from collections.abc import Mapping
@@ -25,6 +26,18 @@ class SystemClock:
 
     def monotonic(self) -> float:
         return time.monotonic()
+
+
+_ORCHESTRATOR_KEY = re.compile(r"[a-z][a-z0-9_]{0,63}")
+
+
+def check_orchestrator_id(key: str, value: str) -> None:
+    """Raise ValueError unless `key` is `[a-z][a-z0-9_]{0,63}` and `value` 1 to 256 printable
+    characters."""
+    if not _ORCHESTRATOR_KEY.fullmatch(key):
+        raise ValueError(f"orchestrator id key '{key}' must match [a-z][a-z0-9_]{{0,63}}")
+    if not 1 <= len(value) <= 256 or not value.isprintable():
+        raise ValueError(f"orchestrator id '{key}' needs 1 to 256 printable characters")
 
 
 @dataclass(frozen=True)

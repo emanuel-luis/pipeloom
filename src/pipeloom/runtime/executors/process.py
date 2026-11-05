@@ -23,7 +23,7 @@ import threading
 import time
 from collections import deque
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
@@ -60,6 +60,7 @@ class ChildCommand:
     plugins: tuple[str, ...]
     cancel_grace: float | None = None
     """The parent's grace in seconds, rounded up: the flag takes whole seconds."""
+    orchestrator_ids: Mapping[str, str] = field(default_factory=dict)
 
     def argv(self, unit_id: str) -> list[str]:
         out = [
@@ -90,6 +91,8 @@ class ChildCommand:
             out += ["--vars", self.vars]
         for spec in self.plugins:
             out += ["--plugin", spec]
+        for key, value in self.orchestrator_ids.items():
+            out += ["--orchestrator-id", f"{key}={value}"]
         return out
 
 
@@ -343,6 +346,7 @@ class ProcessExecutor:
             ended_at=now,
             executor=self.name,
             error=error.model_dump(mode="json"),
+            orchestrator_ids=dict(self._cmd.orchestrator_ids),
         )
         write_json_once(paths.attempt(unit_id, floor), row)
         if stopped is None:

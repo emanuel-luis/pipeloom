@@ -60,7 +60,7 @@ Every row in `results` has every key. Ephemeral models have no row: they appear 
 | `ephemeral_inlined` | Ephemeral models computed inside this unit. |
 | `materialization`, `strategy`, `relation_name` | What was built and where. |
 | `status` | `succeeded`, `failed`, `skipped` or `cancelled`. |
-| `skip_reason` | `upstream_failed` or `fail_fast` for a skipped unit, else null. |
+| `skip_reason` | `upstream_failed` or `fail_fast` for a skipped unit; `not_run` (or the orchestrator's own reason) when `pipeloom finalize` found no result; else null. |
 | `attempt`, `retries_used` | Attempt number; retries are 0 in 0.2. |
 | `started_at`, `ended_at`, `duration_ms`, `queue_wait_ms` | Timing. Timestamps are RFC 3339 UTC. |
 | `rows_read` | Rows read per input alias; null where the engine is lazy (polars). |
@@ -75,7 +75,7 @@ Incremental and merge models fill `rows_updated`, `rows_deleted`, `target_versio
 `is_incremental`, `watermark_before` and `watermark_after` (ISO text for dates and timestamps),
 and `warnings` carries `watermark_seeded: target` when the state store had no watermark.
 Fields that later versions fill stay null or empty: `rows_dropped`, `rows_quarantined`,
-`bytes_read`, `schema_changes`, `expectations` and `orchestrator_ids`.
+`bytes_read`, `schema_changes` and `expectations`. `orchestrator_ids` holds the ids from `--orchestrator-id`.
 
 There is no published JSON Schema for this file yet. It is described here and covered by golden
 tests; a schema under `schema/v1/` will follow once the field set stops moving.

@@ -15,6 +15,8 @@ from pipeloom.artifacts.layout import RunPaths
 from pipeloom.cli._events import Invocation
 from pipeloom.cli._options import (
     log_format_option,
+    orchestrator_context,
+    orchestrator_id_option,
     plugin_option,
     project_options,
     select_options,
@@ -124,6 +126,7 @@ def _started_at(ctx: click.Context, param: click.Parameter, value: str | None) -
     "job). Engines use it to make writes idempotent. Needs --run-id. A reused run id keeps "
     "the start it recorded.",
 )
+@orchestrator_id_option
 @click.option("--fail-fast", is_flag=True, help="After the first failure, start no more units.")
 @click.option("--no-lock", is_flag=True, help="Do not take the run lock.")
 @click.option(
@@ -161,6 +164,7 @@ def run(
     expect_plan_hash: str | None,
     run_id: str | None,
     run_started_at: datetime | None,
+    orchestrator_ids: dict[str, str],
     full_refresh: bool,
     fail_fast: bool,
     no_lock: bool,
@@ -210,7 +214,10 @@ def run(
             bound,
             project_sinks=parent is None,  # a child reports to its parent only
             extra=extra,
-            context=None if parent is None else {"parent_invocation_id": parent},
+            context={
+                **({} if parent is None else {"parent_invocation_id": parent}),
+                **orchestrator_context(orchestrator_ids),
+            },
             secrets=project.secrets,
         )
     except SecretError as err:
@@ -229,6 +236,7 @@ def run(
                     expect_plan_hash=expect_plan_hash,
                     run_id=run_id,
                     run_started_at=run_started_at,
+                    orchestrator_ids=orchestrator_ids,
                     full_refresh=full_refresh,
                     fail_fast=fail_fast,
                     lock=not no_lock,

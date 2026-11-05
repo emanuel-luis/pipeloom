@@ -62,6 +62,36 @@ PLX105 and names the holder, its run id and when the lease expires. `--no-lock` 
 retries. Each invocation writes its own attempt file and event file under the run folder, and
 the invocation that owns the run merges them when it finalizes. The unit ids are in the manifest.
 
+Pass the ids the orchestrator gave the run with `--orchestrator-id KEY=VALUE`, repeated as
+needed, for example `--orchestrator-id job_run_id=42`. Keys match `[a-z][a-z0-9_]{0,63}` and
+values are 1 to 256 printable characters; a later duplicate wins. The ids go into every attempt
+file, the `orchestrator_ids` of each result row and of the run, and the `context` of every event
+as `orchestrator_id.<key>`.
+
+### Closing the run: `pipeloom finalize`
+
+When the orchestrator ran each unit itself, nothing merged the results. `pipeloom finalize
+--run-id <id>` does it as the last task of the job. For each unit in scope (the whole plan, or
+what `-s/--select` and `--exclude` leave) it takes, in this order:
+
+1. the unit's attempt file;
+2. else the state the orchestrator reports in `--unit-states PATH`, a JSON file
+   `{"schema": "pipeloom.unit_states/1", "units": {"<unit id>": {"status": "failed", ...}}}`.
+   `status` is `skipped`, `cancelled`, `failed` or `excluded`; `reason` (for `skipped`, default
+   `upstream_failed`), `code`, `message` and `orchestrator_ids` are optional. `excluded` drops the
+   unit from the results;
+3. else the unit is `skipped` with the reason `not_run`, which does not fail the run.
+
+The run is failed when any unit failed, timed out or was skipped as `upstream_failed`, else
+cancelled when any unit was cancelled, else succeeded. The exit code is 0, 1 or 130. A file that
+cannot be read or does not match the schema is exit 2. Finalize records the run in the state
+store, deletes expired intermediates and emits `run.completed`. Running it again with the same
+inputs rewrites the same results. It also takes `--manifest`, `--expect-plan-hash`,
+`--orchestrator-id`, `--run-started-at` and the project options of `run`.
+
+On a file system without hard links (some network volumes), attempt files are created with an
+exclusive open instead of a link, which is still exclusive but not atomic.
+
 ## Output
 
 The console prints one line per unit, a summary, the failure block for each failed unit and the

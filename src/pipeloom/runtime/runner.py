@@ -225,6 +225,7 @@ class ModelRunner:
             if strategy is None and node.materialized != "intermediate"
             else f"{rt.run_id}:{node.name}",
             retries_used=attempt - first,
+            orchestrator_ids=dict(rt.identity.orchestrator_ids),
         )
         self._rows[handle] = (row, started)
         error: ErrorInfo | None = None

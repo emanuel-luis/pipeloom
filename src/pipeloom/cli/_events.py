@@ -34,6 +34,8 @@ def _json_arg(value: Any) -> Any:
         return value.as_posix()
     if isinstance(value, tuple | list):
         return [_json_arg(v) for v in value]
+    if isinstance(value, dict):
+        return {str(k): _json_arg(v) for k, v in value.items()}
     if value is None or isinstance(value, str | int | float | bool):
         return value
     return str(value)
@@ -49,7 +51,7 @@ def _context_args() -> dict[str, Any]:
         if key == "vars_":
             if value:
                 args["vars"] = sorted(value)
-        elif value is not None and value != () and value is not False:
+        elif value is not None and value != () and value != {} and value is not False:
             args[key] = _json_arg(value)
     return args
 

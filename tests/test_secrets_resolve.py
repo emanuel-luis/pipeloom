@@ -146,6 +146,44 @@ def test_a_resolved_secret_reaches_no_file_of_a_failing_run(
     assert "leaked ***" in next(root.rglob("run_results.json")).read_text("utf-8")
 
 
+def test_a_resolved_secret_reaches_no_file_of_a_finalized_run(tmp_path: Path) -> None:
+    """`finalize` binds plugin options like `run`: the values stay out of every artifact."""
+    yml = YML.replace(REF, "${secret:env/PL_TOKEN}")
+    root = make_project(tmp_path, {"pipeloom.yml": yml, "models/m.yml": MODELS, "src/m.py": BODY})
+    env = {**ENV, "PL_TOKEN": VALUE, "PIPELOOM_RUN_STARTED_AT": ""}
+    args = ["--project-dir", str(root), "--target", "dev", "--log-format", "json"]
+    assert CliRunner().invoke(main, ["run", *args, "--run-id", "r1"], env=env).exit_code == 1
+    states = root / "states.json"
+    states.write_text(
+        json.dumps(
+            {
+                "schema": "pipeloom.unit_states/1",
+                "units": {"a": {"status": "failed", "message": f"boom {VALUE}"}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    done = CliRunner().invoke(
+        main,
+        ["finalize", *args, "--run-id", "r2", "--unit-states", str(states)],
+        env=env,
+    )
+    assert done.exit_code == 1 and VALUE not in done.stdout and VALUE not in done.stderr
+    assert "boom ***" in (root / "target/runs/r2/run_results.json").read_text("utf-8")
+    again = CliRunner().invoke(main, ["finalize", *args, "--run-id", "r1"], env=env)
+    assert again.exit_code == 1 and VALUE not in again.stderr
+    files = [p for p in root.rglob("*") if p.is_file() and p.name != "states.json"]
+    assert [p.relative_to(root).as_posix() for p in files if VALUE.encode() in p.read_bytes()] == []
+
+
+def test_an_unresolvable_reference_stops_finalize_with_plx109(tmp_path: Path) -> None:
+    yml = YML.replace(REF, "${secret:env/PL_MISSING}")
+    root = make_project(tmp_path, {"pipeloom.yml": yml, "models/m.yml": MODELS, "src/m.py": BODY})
+    args = ["finalize", "--project-dir", str(root), "--target", "dev", "--run-id", "r1"]
+    result = CliRunner().invoke(main, [*args, "--log-format", "json"], env=ENV)
+    assert result.exit_code == 1 and "PLX109" in result.stderr
+
+
 def test_an_escaped_reference_stays_text(tmp_path: Path) -> None:
     proj = project(tmp_path, NOTE.replace(REF, "$${secret:nowhere/x}"))
     outcome = proj.run(RunOptions(run_id="r", workers=1))
