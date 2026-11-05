@@ -36,3 +36,4 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0030 | [Plugin API (0, 4) and intermediates](0030-plugin-api-0-4-and-intermediates.md) | Accepted | 2026-11-04 |
 | 0031 | [Spark engine](0031-spark-engine.md) | Accepted | 2026-11-04 |
 | 0032 | [Delta writes and idempotency](0032-delta-writes-and-idempotency.md) | Accepted | 2026-11-04 |
+| 0033 | [Delta table state store](0033-delta-table-state-store.md) | Accepted | 2026-11-04 |
