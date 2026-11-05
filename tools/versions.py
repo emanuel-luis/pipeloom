@@ -4,7 +4,8 @@
     python tools/versions.py bump X.Y.Z [--no-lock]
 
 `check` verifies that every plugin under `plugins/` has the root version, depends on
-`pipeloom~=X.Y.0`, and is pinned `==X.Y.Z` by a root extra. `bump` rewrites those lines, checks,
+`pipeloom~=X.Y.0`, and is pinned `==X.Y.Z` by a root extra (an extra on the name, as in
+`pipeloom-spark[local]==X.Y.Z`, is accepted). `bump` rewrites those lines, checks,
 then runs `uv lock`.
 """
 
@@ -22,7 +23,8 @@ ROOT = Path(__file__).resolve().parent.parent
 VERSION = re.compile(r"\d+\.\d+\.\d+")
 _VERSION_LINE = re.compile(r'^version = "[^"]*"$', re.MULTILINE)
 _CORE_PIN = re.compile(r'"pipeloom~=[^"]*"')
-_EXTRA_PIN = re.compile(r'"(pipeloom-[a-z0-9-]+)==[^"]*"')
+_EXTRA_PIN = re.compile(r'"(pipeloom-[a-z0-9-]+(?:\[[a-z0-9,-]+\])?)==[^"]*"')
+_PINNED = re.compile(r"(pipeloom-[a-z0-9-]+)(?:\[[a-z0-9,-]+\])?==(.+)")
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -46,7 +48,7 @@ def check(root: Path, tag: str | None = None) -> list[str]:
     if tag is not None and tag != f"v{version}":
         errors.append(f"tag {tag} does not match the root version {version}")
     extras = [dep for deps in meta.get("optional-dependencies", {}).values() for dep in deps]
-    pinned = {d.split("==")[0]: d.split("==")[1] for d in extras if "==" in d}
+    pinned = {m[1]: m[2] for d in extras if (m := _PINNED.fullmatch(d.replace(" ", "")))}
     for path in members(root):
         project = _load(path)["project"]
         name = project["name"]

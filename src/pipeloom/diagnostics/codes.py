@@ -501,6 +501,12 @@ _ACTIVE_04: Final = (
         "Run start time conflict",
         "--run-started-at differs from the start the run recorded when it first ran. A reused run id keeps its recorded start. Exit code 2.",
     ),
+    (
+        "PLM207",
+        E,
+        "Write refused by the idempotency guard",
+        "The engine skipped the write because this model already has a later transaction version: a newer run, an overlapping run started with --no-lock, or a host clock that ran behind. The engine refuses before it changes any data. Wait for the other run, check the clocks, or turn the guard off in the engine options.",
+    ),
 )
 
 

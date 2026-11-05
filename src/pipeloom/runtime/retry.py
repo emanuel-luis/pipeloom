@@ -24,7 +24,9 @@ _NOT_TRANSIENT_OS: Final = (
     NotADirectoryError,
     FileExistsError,
 )
-PERMANENT_CODES: Final = frozenset({"PLQ301", "PLQ302", "PLM202", "PLM203", "PLM205", "PLM206"})
+PERMANENT_CODES: Final = frozenset(
+    {"PLQ301", "PLQ302", "PLM202", "PLM203", "PLM205", "PLM206", "PLM207"}
+)
 """Failures that repeat on the same data; only `retry_on: any` retries them."""
 
 
