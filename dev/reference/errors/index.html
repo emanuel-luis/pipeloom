@@ -1929,6 +1929,72 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pla002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA002
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA003
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA004
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA005
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla006" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA006
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla007" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA007
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pld001" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3263,6 +3329,72 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pla002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA002
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA003
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA004
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA005
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla006" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA006
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla007" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA007
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pld001" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3697,8 +3829,26 @@
 <p>A ${secret:provider/path} reference in a plugin's options could not be resolved when the command executed: the provider is unknown or failed, the resolved options are invalid, or the plugin could not be built with them. The message names the provider and path, never a value.</p>
 <h2 id="renderers">Renderers<a class="headerlink" href="#renderers" title="Permanent link">&para;</a></h2>
 <h3 id="pla001">PLA001<a class="headerlink" href="#pla001" title="Permanent link">&para;</a></h3>
-<p>Unsupported execution mode. Severity: error. Status: reserved. Since: 0.4.</p>
-<p>Reserved: not emitted yet.</p>
+<p>Unsupported execution mode. Severity: error. Status: active. Since: 0.6.</p>
+<p>The Airflow plugin was configured with an execution mode it does not support. DOCKER is not supported in 0.6; use local, virtualenv, kubernetes or databricks.</p>
+<h3 id="pla002">PLA002<a class="headerlink" href="#pla002" title="Permanent link">&para;</a></h3>
+<p>Invalid Airflow plugin configuration. Severity: error. Status: active. Since: 0.6.</p>
+<p>A configuration of the Airflow plugin cannot be used: the manifest load method without a manifest path, a relative path, a virtualenv mode without a directory, a kubernetes mode without an image, a pod_kwargs or operator_args key that pipeloom sets itself, an unknown asset_uri placeholder, or a full_refresh param that is not a boolean.</p>
+<h3 id="pla003">PLA003<a class="headerlink" href="#pla003" title="Permanent link">&para;</a></h3>
+<p>Selection renders no units. Severity: warning. Status: active. Since: 0.6.</p>
+<p>The DAG's select and exclude selectors match no unit of the plan, so the DAG would hold no unit task.</p>
+<h3 id="pla004">PLA004<a class="headerlink" href="#pla004" title="Permanent link">&para;</a></h3>
+<p>Unit task ended without a visible unit result. Severity: error. Status: active. Since: 0.6.</p>
+<p>An Airflow task ended without an attempt file for its unit under artifacts.root. When the task succeeded, the root is not shared between the workers and the finalize task. The unit is recorded as failed, so the run fails.</p>
+<h3 id="pla005">PLA005<a class="headerlink" href="#pla005" title="Permanent link">&para;</a></h3>
+<p>Unsupported Airflow version. Severity: error. Status: active. Since: 0.6.</p>
+<p>The plugin supports Airflow 3.2 up to, not including, 4.0.</p>
+<h3 id="pla006">PLA006<a class="headerlink" href="#pla006" title="Permanent link">&para;</a></h3>
+<p>PROJECT compile cache unusable. Severity: warning. Status: active. Since: 0.6.</p>
+<p>The directory that holds the compile cache of the project load method cannot be read or written. The project compiles on every DAG parse until it is fixed.</p>
+<h3 id="pla007">PLA007<a class="headerlink" href="#pla007" title="Permanent link">&para;</a></h3>
+<p>Target boundary is not task. Severity: warning. Status: active. Since: 0.6.</p>
+<p>Each unit runs in its own process, so the target should set boundary: task. Then PLC503 checks that the state store is shared between workers.</p>
 <h3 id="pld001">PLD001<a class="headerlink" href="#pld001" title="Permanent link">&para;</a></h3>
 <p>Task limit exceeded. Severity: error. Status: active. Since: 0.5.</p>
 <p>A Databricks job would hold more than 1,000 tasks, its finalize task included. Set task_grouping in the deploy block, or split the project into pipelines.</p>

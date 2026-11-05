@@ -2095,7 +2095,7 @@ quality: {quarantine: true, max_drop_ratio: 0.05}
 - <code>pipeloom databricks repair --run-id</code> reruns the tasks in FAILED, TIMEDOUT, CANCELED, UPSTREAM_FAILED, UPSTREAM_CANCELED or MAXIMUM_CONCURRENT_RUNS_REACHED plus finalize, with <code>latest_repair_id</code> from the run history. A run that is still active is PLD014.</p>
 <p><strong>Unity Catalog and secrets.</strong> The <code>unity</code> catalog subclasses the Spark session catalog (three-part backticked names, schema created only when absent). The <code>databricks</code> secret provider resolves <code>${secret:databricks/&lt;scope&gt;/&lt;key&gt;}</code> through the client with no profile; failures are PLX109. Connection order: <code>--profile</code>, a user-set <code>DATABRICKS_CONFIG_PROFILE</code>, <code>DATABRICKS_HOST</code> with credentials, runtime authentication, else PLD010 (ADR-0036).</p>
 <h2 id="13-the-airflow-plugin">13. The Airflow plugin<a class="headerlink" href="#13-the-airflow-plugin" title="Permanent link">&para;</a></h2>
-<p><strong><code>pipeloom-airflow</code></strong> supports Airflow ≥ 3.0 only. It imports <code>from airflow.sdk import DAG, TaskGroup, BaseOperator, BaseSensorOperator, Asset</code>. Triggers come from the Airflow 3 trigger base (verify the module path per minor version).</p>
+<p><strong><code>pipeloom-airflow</code></strong> supports Airflow 3.2 up to 4.0 (<code>apache-airflow&gt;=3.2,&lt;4</code>, installed through the <code>airflow</code> extra; the package has no hard Airflow dependency, see <a href="../adr/0037-airflow-packaging-and-rendering/">ADR-0037</a>). It imports <code>from airflow.sdk import DAG, TaskGroup, BaseOperator, BaseSensorOperator, Asset</code>. Triggers come from the Airflow 3 trigger base (verify the module path per minor version).</p>
 <pre><code class="language-python">from pipeloom_airflow import PipeloomDag, ProjectConfig, RenderConfig, ExecutionConfig, ExecutionMode, LoadMode
 
 shop_daily = PipeloomDag(
@@ -2122,7 +2122,7 @@ shop_daily = PipeloomDag(
 - One Airflow task per unit. Airflow retries own the retry count.
 - Trigger rule <code>all_success</code>, so skip-downstream maps to <code>upstream_failed</code>.
 - A <code>pipeloom_finalize</code> task runs with <code>all_done</code>.
-- <code>rid</code> is <code>af-</code> plus 16 hex characters of sha256(dag_id + Airflow run_id), stable across task retries. A clear-and-rerun of failed tasks therefore continues the same pipeloom run.
+- <code>rid</code> is <code>af-</code> plus 16 hex characters of sha256 of the NUL-separated dag_id, Airflow run_id and, inside a task group, the group id (ADR-0037), stable across task retries. A clear-and-rerun of failed tasks therefore continues the same pipeloom run.
 - With <code>emit_assets</code>, each model task declares <code>Asset(uri=&lt;target URI&gt;)</code> outlets.</p>
 <p><img alt="PipeloomDag in LOCAL or KUBERNETES mode has one task per unit. DATABRICKS mode has a launch task, one mirror sensor per model and a finalize task, with repair handled in Databricks." src="../diagrams/07-airflow-modes.svg" /></p>
 <p>Source: <a href="../diagrams/07-airflow-modes.d2">07-airflow-modes.d2</a>.</p>
