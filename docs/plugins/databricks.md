@@ -230,6 +230,7 @@ CONTRIBUTING). Until it has passed for your runtime, treat these as unconfirmed:
 - an empty parameter default resolving to `dbx-<job run id>`;
 - `only` with an `ALL_DONE` finalize whose dependencies are excluded;
 - `job.start_time` staying the same across repairs;
+- `disable_auto_optimization` stopping the serverless automatic retry, in a job and in a one-time run (`--ephemeral`);
 - `os.link` and `os.replace` on `/Volumes` (attempt files fall back to an exclusive open);
 - a Spark session being available in a wheel task;
 - task values set from a wheel task (not checked by the workflow today);

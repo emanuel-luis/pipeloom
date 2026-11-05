@@ -96,6 +96,16 @@ def test_select_check_needs_an_excluded_task_and_a_green_finalize() -> None:
     assert not live.check_select(skipped, results, 0)[0].ok
 
 
+def test_ephemeral_check_needs_one_failed_attempt_and_no_retry() -> None:
+    results = doc("r", "failed", row("c", "failed", 1, 1))
+    once = run_info(1, "FAILED", task("c", "FAILED"), task("pipeloom__finalize", "FAILED"))
+    assert live.check_ephemeral(once, results, 1)[0].ok
+    # serverless auto-optimization retried it: a second task attempt, and the run passed
+    retried = run_info(1, "SUCCESS", task("c", "FAILED"), task("c", "SUCCESS"))
+    check = live.check_ephemeral(retried, results, 0)[0]
+    assert not check.ok and "2 task attempt(s)" in check.detail
+
+
 def test_repair_checks() -> None:
     before = doc("r", "failed", row("c", "failed", 1, 9))
     after = doc("r", "succeeded", row("c", "succeeded", 2, 9), generated_at="t1")
@@ -201,7 +211,7 @@ class Script:
             name = given or f"dbx-{run_id}"
             job = self.jobs[pipeline]
             if pipeline == "flaky":
-                self._set(run_id, job, "FAILED")
+                self._set(run_id, job, "FAILED", task("c", "FAILED"))
                 self._results(name, row("c", "failed", 1, run_id), status="failed")
                 code = 1
             elif "--select" in args:
@@ -289,7 +299,7 @@ def test_every_run_and_repair_is_bounded(capsys: pytest.CaptureFixture[str]) -> 
 
     execute(Spy(FakeDatabricks()), Hooks(), capsys, keep=False)
     bounded = [a for a in seen if a[0] in ("run", "repair")]
-    assert len(bounded) == 4
+    assert len(bounded) == 5
     assert all(a[a.index("--timeout") + 1] == live.WAIT_SECONDS for a in bounded)
 
 
