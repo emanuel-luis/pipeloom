@@ -1,0 +1,121 @@
+{
+  "name": "pipeloom_shop_main_ci",
+  "tags": {
+    "pipeloom_job": "shop.main.ci",
+    "pipeloom_plan_hash": "a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+    "pipeloom_settings_hash": "2623a393d369b3c3f076850239bf729fe127d726ec0f30ade67894b47e4472d8",
+    "pipeloom_version": "1.2.3"
+  },
+  "parameters": [
+    {
+      "name": "pipeloom_run_id",
+      "default": ""
+    },
+    {
+      "name": "full_refresh",
+      "default": "false"
+    }
+  ],
+  "max_concurrent_runs": 1,
+  "queue": {
+    "enabled": true
+  },
+  "environments": [
+    {
+      "environment_key": "pipeloom_default",
+      "spec": {
+        "environment_version": "5",
+        "dependencies": [
+          "pipeloom==1.2.3",
+          "pipeloom-databricks==1.2.3"
+        ]
+      }
+    }
+  ],
+  "tasks": [
+    {
+      "task_key": "dir_models_marts",
+      "depends_on": [
+        {
+          "task_key": "dir_models_staging"
+        }
+      ],
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--group=dir_models_marts",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id={{job.parameters.pipeloom_run_id}}",
+          "--full-refresh={{job.parameters.full_refresh}}",
+          "--job-id={{job.id}}",
+          "--job-run-id={{job.run_id}}",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms={{job.start_time.timestamp_ms}}"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "dir_models_staging",
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--group=dir_models_staging",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id={{job.parameters.pipeloom_run_id}}",
+          "--full-refresh={{job.parameters.full_refresh}}",
+          "--job-id={{job.id}}",
+          "--job-run-id={{job.run_id}}",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms={{job.start_time.timestamp_ms}}"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "pipeloom__finalize",
+      "depends_on": [
+        {
+          "task_key": "dir_models_marts"
+        }
+      ],
+      "run_if": "ALL_DONE",
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "finalize",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id={{job.parameters.pipeloom_run_id}}",
+          "--full-refresh={{job.parameters.full_refresh}}",
+          "--job-id={{job.id}}",
+          "--job-run-id={{job.run_id}}",
+          "--start-ms={{job.start_time.timestamp_ms}}"
+        ]
+      },
+      "max_retries": 1,
+      "timeout_seconds": 1800
+    }
+  ]
+}

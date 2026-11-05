@@ -1,0 +1,13 @@
+[
+  {
+    "code": "PLD001",
+    "severity": "error",
+    "message": "pipeline 'main' needs 4 tasks with its finalize task, the limit is 3",
+    "hint": "set task_grouping in the deploy block, or split the project into pipelines",
+    "location": null,
+    "context": {
+      "pipeline": "main",
+      "tasks": 4
+    }
+  }
+]

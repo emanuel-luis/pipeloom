@@ -1,0 +1,282 @@
+{
+  "name": "pipeloom_shop_main_ci",
+  "tags": {
+    "pipeloom_job": "shop.main.ci",
+    "pipeloom_plan_hash": "a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+    "pipeloom_settings_hash": "1e3fd002d6840fe1e17c7a502df544df71c74646b059dac268984f2d6b82dce0",
+    "pipeloom_version": "1.2.3",
+    "team": "data"
+  },
+  "parameters": [
+    {
+      "name": "pipeloom_run_id",
+      "default": ""
+    },
+    {
+      "name": "full_refresh",
+      "default": "false"
+    }
+  ],
+  "max_concurrent_runs": 1,
+  "queue": {
+    "enabled": true
+  },
+  "environments": [
+    {
+      "environment_key": "pipeloom_default",
+      "spec": {
+        "environment_version": "6",
+        "dependencies": [
+          "pipeloom==1.2.3",
+          "pipeloom-databricks==1.2.3"
+        ]
+      }
+    }
+  ],
+  "job_clusters": [
+    {
+      "job_cluster_key": "pipeloom_big",
+      "new_cluster": {
+        "spark_version": "16.4.x-scala2.13",
+        "node_type_id": "m5.xlarge",
+        "num_workers": 4
+      }
+    }
+  ],
+  "tasks": [
+    {
+      "task_key": "dim_customers",
+      "depends_on": [
+        {
+          "task_key": "stg_customers"
+        },
+        {
+          "task_key": "stg_orders"
+        }
+      ],
+      "job_cluster_key": "pipeloom_big",
+      "libraries": [
+        {
+          "pypi": {
+            "package": "pipeloom==1.2.3"
+          }
+        },
+        {
+          "pypi": {
+            "package": "pipeloom-databricks==1.2.3"
+          }
+        }
+      ],
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--unit=dim_customers",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id={{job.parameters.pipeloom_run_id}}",
+          "--full-refresh={{job.parameters.full_refresh}}",
+          "--job-id={{job.id}}",
+          "--job-run-id={{job.run_id}}",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms={{job.start_time.timestamp_ms}}"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "fct_orders",
+      "depends_on": [
+        {
+          "task_key": "stg_customers"
+        },
+        {
+          "task_key": "stg_orders"
+        },
+        {
+          "task_key": "stg_payments"
+        }
+      ],
+      "job_cluster_key": "pipeloom_big",
+      "libraries": [
+        {
+          "pypi": {
+            "package": "pipeloom==1.2.3"
+          }
+        },
+        {
+          "pypi": {
+            "package": "pipeloom-databricks==1.2.3"
+          }
+        }
+      ],
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--unit=fct_orders",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id={{job.parameters.pipeloom_run_id}}",
+          "--full-refresh={{job.parameters.full_refresh}}",
+          "--job-id={{job.id}}",
+          "--job-run-id={{job.run_id}}",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms={{job.start_time.timestamp_ms}}"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "rpt_revenue",
+      "depends_on": [
+        {
+          "task_key": "fct_orders"
+        }
+      ],
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--unit=rpt_revenue",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id={{job.parameters.pipeloom_run_id}}",
+          "--full-refresh={{job.parameters.full_refresh}}",
+          "--job-id={{job.id}}",
+          "--job-run-id={{job.run_id}}",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms={{job.start_time.timestamp_ms}}"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "stg_customers",
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--unit=stg_customers",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id={{job.parameters.pipeloom_run_id}}",
+          "--full-refresh={{job.parameters.full_refresh}}",
+          "--job-id={{job.id}}",
+          "--job-run-id={{job.run_id}}",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms={{job.start_time.timestamp_ms}}"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "stg_orders",
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--unit=stg_orders",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id={{job.parameters.pipeloom_run_id}}",
+          "--full-refresh={{job.parameters.full_refresh}}",
+          "--job-id={{job.id}}",
+          "--job-run-id={{job.run_id}}",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms={{job.start_time.timestamp_ms}}"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "stg_payments",
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--unit=stg_payments",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id={{job.parameters.pipeloom_run_id}}",
+          "--full-refresh={{job.parameters.full_refresh}}",
+          "--job-id={{job.id}}",
+          "--job-run-id={{job.run_id}}",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms={{job.start_time.timestamp_ms}}"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "pipeloom__finalize",
+      "depends_on": [
+        {
+          "task_key": "dim_customers"
+        },
+        {
+          "task_key": "rpt_revenue"
+        }
+      ],
+      "run_if": "ALL_DONE",
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "finalize",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id={{job.parameters.pipeloom_run_id}}",
+          "--full-refresh={{job.parameters.full_refresh}}",
+          "--job-id={{job.id}}",
+          "--job-run-id={{job.run_id}}",
+          "--start-ms={{job.start_time.timestamp_ms}}"
+        ]
+      },
+      "max_retries": 1,
+      "timeout_seconds": 1800
+    }
+  ],
+  "schedule": {
+    "quartz_cron_expression": "0 0 5 * * ?",
+    "timezone_id": "UTC"
+  }
+}

@@ -26,6 +26,9 @@ All notable changes to this project are documented here. The format follows
 - `tools/versions.py` accepts a root extra that pins a distribution with an extra, as in `pipeloom-spark[local]==X.Y.Z`.
 - Spark Delta writes (ADR-0032): `append`, `overwrite`, `merge` and `replace_partitions` (`replaceWhere`), the `view`, `incremental` and `intermediate` materializations, idempotent writes (`txnAppId`, `txnVersion` and a token in `userMetadata`; a MERGE is followed by an empty token commit) and row and byte metrics read from the commit history. No Spark conf is set.
 - PLM207: Delta skipped the write because a later transaction version exists for the model (a newer or overlapping run, or clock skew); permanent for retries. `txn_guard: false` turns the guard off.
+- `pipeloom-databricks` (ADR-0035, first half), new in this release: a renderer for the `deploy` block (`kind: databricks`) that turns a plan into Databricks Jobs settings JSON, bundle YAML and `runs/submit` bodies. Rendering is pure (no network, no SDK, no credentials) and byte-deterministic. Supports serverless and job-cluster compute, `compute_rules`, several pipelines, `task_grouping` (`none`, `by_tag`, `by_folder`) and a finalize task. Install with `pipeloom[databricks]`.
+- PLD001 (more than 1,000 tasks), PLD003 (task groups form a cycle), PLD004 (invalid Databricks deploy options) and the warning PLD005 (a compute rule matches no model). PLD002 stays reserved and is never emitted.
+- `tools/versions.py` checks and bumps a member that pins another member (`pipeloom-spark~=X.Y.0` in `pipeloom-databricks`). `import-linter` keeps the core free of `pipeloom_databricks` and `databricks`, and the SDK out of every plugin module except the client ones.
 - `EngineContract`: `test_metrics` and `test_two_threads_materialize_at_once` skip for an engine without the `overwrite` strategy.
 
 ## [0.3.0] - 2026-11-04

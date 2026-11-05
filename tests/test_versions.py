@@ -102,3 +102,18 @@ def test_an_extra_on_the_pinned_name_is_accepted(workspace: Path) -> None:
     ]
     assert versions.bump(workspace, "7.8.9", lock=False) == []
     assert '"pipeloom-spark[local]==7.8.9"' in root.read_text(encoding="utf-8")
+
+
+def test_a_member_that_pins_another_member_follows_the_version(workspace: Path) -> None:
+    cur = _current()
+    minor = cur.rsplit(".", 1)[0] + ".0"
+    plugin = workspace / "plugins" / "pipeloom-databricks" / "pyproject.toml"
+    text = plugin.read_text(encoding="utf-8")
+    assert f'"pipeloom-spark~={minor}"' in text
+    plugin.write_text(text.replace(f"pipeloom-spark~={minor}", "pipeloom-spark~=0.1.0"), "utf-8")
+    assert versions.check(workspace) == [
+        f"pipeloom-databricks must depend on pipeloom-spark~={minor}"
+    ]
+    assert versions.bump(workspace, "7.8.9", lock=False) == []
+    assert '"pipeloom-spark~=7.8.0"' in plugin.read_text(encoding="utf-8")
+    assert '"pipeloom~=7.8.0"' in plugin.read_text(encoding="utf-8")

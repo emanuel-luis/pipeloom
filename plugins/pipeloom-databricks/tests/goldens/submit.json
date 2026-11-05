@@ -1,0 +1,212 @@
+{
+  "run_name": "pipeloom_shop_main_ci",
+  "tasks": [
+    {
+      "task_key": "dim_customers",
+      "depends_on": [
+        {
+          "task_key": "stg_customers"
+        },
+        {
+          "task_key": "stg_orders"
+        }
+      ],
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--unit=dim_customers",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id=dbx-42",
+          "--full-refresh=true",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms=1700000000000"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "fct_orders",
+      "depends_on": [
+        {
+          "task_key": "stg_customers"
+        },
+        {
+          "task_key": "stg_orders"
+        },
+        {
+          "task_key": "stg_payments"
+        }
+      ],
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--unit=fct_orders",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id=dbx-42",
+          "--full-refresh=true",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms=1700000000000"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "rpt_revenue",
+      "depends_on": [
+        {
+          "task_key": "fct_orders"
+        }
+      ],
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--unit=rpt_revenue",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id=dbx-42",
+          "--full-refresh=true",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms=1700000000000"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "stg_customers",
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--unit=stg_customers",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id=dbx-42",
+          "--full-refresh=true",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms=1700000000000"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "stg_orders",
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--unit=stg_orders",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id=dbx-42",
+          "--full-refresh=true",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms=1700000000000"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "stg_payments",
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--unit=stg_payments",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id=dbx-42",
+          "--full-refresh=true",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms=1700000000000"
+        ]
+      },
+      "max_retries": 0
+    },
+    {
+      "task_key": "pipeloom__finalize",
+      "depends_on": [
+        {
+          "task_key": "dim_customers"
+        },
+        {
+          "task_key": "rpt_revenue"
+        }
+      ],
+      "run_if": "ALL_DONE",
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "finalize",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--plan-hash=a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
+          "--run-id=dbx-42",
+          "--full-refresh=true",
+          "--start-ms=1700000000000"
+        ]
+      },
+      "max_retries": 1,
+      "timeout_seconds": 1800
+    }
+  ],
+  "environments": [
+    {
+      "environment_key": "pipeloom_default",
+      "spec": {
+        "environment_version": "5",
+        "dependencies": [
+          "pipeloom==1.2.3",
+          "pipeloom-databricks==1.2.3"
+        ]
+      }
+    }
+  ],
+  "queue": {
+    "enabled": true
+  }
+}

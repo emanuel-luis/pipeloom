@@ -518,6 +518,30 @@ _ACTIVE_05: Final = (
         "Secret reference not resolved",
         "A ${secret:provider/path} reference in a plugin's options could not be resolved when the command executed: the provider is unknown or failed, the resolved options are invalid, or the plugin could not be built with them. The message names the provider and path, never a value.",
     ),
+    (
+        "PLD001",
+        E,
+        "Task limit exceeded",
+        "A Databricks job would hold more than 1,000 tasks, its finalize task included. Set task_grouping in the deploy block, or split the project into pipelines.",
+    ),
+    (
+        "PLD003",
+        E,
+        "Task groups form a cycle",
+        "With task_grouping set, the units of one group depend on units of another group in both directions, so the grouped tasks cannot be ordered. Group by another key or turn grouping off.",
+    ),
+    (
+        "PLD004",
+        E,
+        "Invalid Databricks deploy options for this plan or target",
+        "The deploy block cannot be rendered: an unknown pipeline or compute key, environment_version 1, more than 10 serverless environments in a job, a key in settings that pipeloom owns, a ${secret:...} reference, an artifacts root that is unset or relative, a state store that is not shared, a group that spans two computes, or an ephemeral run on a job cluster.",
+    ),
+    (
+        "PLD005",
+        W,
+        "Compute rule matches no model",
+        "No model of the plan matches the select selectors of a compute rule, so the rule never applies.",
+    ),
 )
 
 
@@ -526,8 +550,7 @@ _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
     ("PLF702", E, "Source missing", "0.2"),
     ("PLF703", E, "Target schema drift detected", "0.2"),
-    ("PLD001", E, "Task limit exceeded", "0.4"),
-    ("PLD002", E, "Submit above 100 tasks", "0.4"),
+    ("PLD002", E, "Submit task limit (never emitted, PLD001 covers it)", "0.4"),
     ("PLA001", E, "Unsupported execution mode", "0.4"),
 )
 
