@@ -29,7 +29,7 @@ from pipeloom.artifacts.results import (
 )
 from pipeloom.diagnostics import Diagnostic, JsonValue, Report
 from pipeloom.events.bus import EventBus
-from pipeloom.events.model import ArtifactWritten, DiagnosticEmitted, RunCompleted
+from pipeloom.events.model import ArtifactWritten, RunCompleted
 from pipeloom.graph.selectors import Selection
 from pipeloom.plan.manifest import write_manifest
 from pipeloom.platform import check_orchestrator_id
@@ -165,7 +165,7 @@ def _external_row(
     return result_row(unique_id=node, unit_id=unit_id, status="cancelled", orchestrator_ids=ids)
 
 
-def _refused(bus: EventBus, held: LockHeld) -> RunOutcome:
+def _refused(bus: EventBus, diags: list[Diagnostic], held: LockHeld) -> RunOutcome:
     info = held.info
     found = Report().add(
         "PLX105",
@@ -174,8 +174,7 @@ def _refused(bus: EventBus, held: LockHeld) -> RunOutcome:
         hint="finalize after the run ended, or after its lease expired",
         context={"owner": info.owner, "run_id": info.run_id, "expires_at": _iso(info.expires_at)},
     )
-    bus.emit(DiagnosticEmitted.from_diagnostic(found))
-    return RunOutcome("failed", 2, None, (found,))
+    return _early(bus, [*diags, found])
 
 
 def finalize_run(project: Project, opts: FinalizeOptions, bus: EventBus) -> RunOutcome:
@@ -252,16 +251,18 @@ def finalize_run(project: Project, opts: FinalizeOptions, bus: EventBus) -> RunO
             ),
         ):
             # Units of an orchestrated run never take the lock. A lock held for this very run id
-            # means a `pipeloom run` is still working on it: finalizing now would count its
-            # in-flight units as not run. A lock of another run is none of our business.
+            # and a run record still `running` mean a `pipeloom run` is working on it:
+            # finalizing now would count its in-flight units as not run. Finalize never records
+            # `running`, so the lock a crashed finalize left behind does not block its retry.
+            # A lock of another run is none of our business.
+            prior = state.get_run(run_id)
             try:
                 stack.enter_context(
                     state.lock(f"{plan.metadata.project}/{plan.metadata.target}", run_id)
                 )
             except LockHeld as held:
-                if held.info.run_id == run_id:
-                    return _refused(bus, held)
-            prior = state.get_run(run_id)
+                if held.info.run_id == run_id and prior is not None and prior.status == "running":
+                    return _refused(bus, diags, held)
             run_started_at, conflict = resolve_run_started_at(
                 opts.run_started_at, prior, started, unit_mode=False
             )

@@ -262,7 +262,39 @@ def _hold(root: Path, run_id: str) -> Any:
     return store, store.lock("p/ci", run_id)
 
 
-def test_finalize_refuses_while_the_same_run_holds_the_lock(root: Path) -> None:
+def _running(store: Any) -> None:
+    from datetime import UTC, datetime
+
+    from pipeloom.state.types import RunRecord
+
+    store.record_run(
+        RunRecord(
+            run_id="r1",
+            project="p",
+            target="ci",
+            plan_hash="0" * 64,
+            status="running",
+            started_at=datetime(2026, 11, 4, tzinfo=UTC),
+            invocation_ids=("i",),
+        )
+    )
+
+
+def test_finalize_refuses_while_the_same_run_is_live(root: Path) -> None:
+    ran_a(root)
+    store, lock = _hold(root, "r1")
+    try:
+        _running(store)
+        with lock:
+            r = finalize(root)
+    finally:
+        store.close()
+    assert r.exit_code == 1 and "PLX105" in r.stderr and "still running" in r.stderr
+    assert finalize(root).exit_code == 0  # released: nothing holds it any more
+
+
+def test_a_lock_without_a_running_record_does_not_block_finalize(root: Path) -> None:
+    """What a finalize that crashed leaves behind: its lock, and no `running` record."""
     ran_a(root)
     store, lock = _hold(root, "r1")
     try:
@@ -270,14 +302,14 @@ def test_finalize_refuses_while_the_same_run_holds_the_lock(root: Path) -> None:
             r = finalize(root)
     finally:
         store.close()
-    assert r.exit_code == 2 and "PLX105" in r.stderr and "still running" in r.stderr
-    assert finalize(root).exit_code == 0  # released: nothing holds it any more
+    assert r.exit_code == 0, r.stderr
 
 
 def test_finalize_ignores_a_lock_of_another_run(root: Path) -> None:
     ran_a(root)
     store, lock = _hold(root, "other")
     try:
+        _running(store)
         with lock:
             r = finalize(root)
     finally:

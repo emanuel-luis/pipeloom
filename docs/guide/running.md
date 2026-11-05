@@ -89,6 +89,9 @@ store, deletes expired intermediates and emits `run.completed`. Running it again
 inputs rewrites the same results. It also takes `--manifest`, `--expect-plan-hash`,
 `--orchestrator-id`, `--run-started-at` and the project options of `run`.
 
+Finalize refuses with PLX105 (exit 1, as `run` does) while a `pipeloom run` of the same run id is
+still live, that is, its lock is held and its run record says `running`.
+
 On a file system without hard links (some network volumes), attempt files are created with an
 exclusive open instead of a link, which is still exclusive but not atomic.
 
