@@ -99,3 +99,38 @@ def test_filesystem_catalog_rejects_a_bad_catalog(tmp_path: Path, bad: str) -> N
         cat.table(TargetRef(bad, "s", "t"))
     with pytest.raises(ValueError, match="directory name"):
         cat.ensure_namespace(Namespace(bad, "s"))
+
+
+def test_project_level_default_cascades(project_factory: Factory) -> None:
+    root = project_factory(
+        {
+            "pipeloom.yml": PROJECT + "defaults:\n  models: {catalog: dflt}\n",
+            "models/m.yml": (
+                "models:\n  - {name: a, sql: select 1}\n"
+                "  - {name: b, sql: select 1, catalog: own}\n"
+            ),
+        }
+    )
+    assert relations(root) == {"a": "dflt.main.a", "b": "own.main.b"}
+
+
+def test_per_user_naming_keeps_the_model_catalog(project_factory: Factory) -> None:
+    root = project_factory(
+        {
+            "pipeloom.yml": PROJECT.replace("kind: none, catalog: base", "kind: per_user"),
+            "models/m.yml": "models:\n  - {name: a, sql: select 1, catalog: gold}\n",
+        }
+    )
+    got = relations(root)["a"]
+    assert got is not None and got.startswith("gold.main_") and got.endswith(".a")
+
+
+def test_empty_catalog_is_rejected(project_factory: Factory) -> None:
+    root = project_factory(
+        {
+            "pipeloom.yml": PROJECT,
+            "models/m.yml": "models:\n  - {name: a, sql: select 1, catalog: ''}\n",
+        }
+    )
+    out = Project(ProjectOptions(project_dir=root, env={})).validate()
+    assert {d.code for d in out.diagnostics} == {"PLS102"}

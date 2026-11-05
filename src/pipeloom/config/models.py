@@ -230,7 +230,7 @@ class ModelSettings(_Model):
     """Frame type passed to Python bodies."""
     schema_: str | None = Field(default=None, alias="schema")
     """Schema (namespace) of the target relation."""
-    catalog: str | None = None
+    catalog: str | None = Field(default=None, min_length=1)
     """Catalog of the target relation; wins over the naming strategy's catalog."""
     meta: dict[str, Any] | None = None
     """Free-form metadata."""
@@ -253,7 +253,7 @@ class ResolvedModelConfig(_Model):
     timeout: Duration | None = None
     frame_api: Literal["native", "narwhals"] = "native"
     schema_: str | None = Field(default=None, alias="schema")
-    catalog: str | None = None
+    catalog: str | None = Field(default=None, min_length=1)
     """Catalog of the target relation; wins over the naming strategy's catalog."""
     meta: dict[str, Any] = Field(default_factory=dict)
 
