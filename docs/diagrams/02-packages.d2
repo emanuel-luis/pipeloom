@@ -12,7 +12,7 @@ direction: down
 
 pandas: "pipeloom-pandas\nengines" {class: process}
 polars: "pipeloom-polars\nengines" {class: process}
-spark: "pipeloom-spark\nengines, state_stores" {class: process}
+spark: "pipeloom-spark\nengines, catalogs, state_stores" {class: process}
 dbx: "pipeloom-databricks\ncatalogs, secret_providers,\nrenderers, executors" {class: process}
 af: "pipeloom-airflow\nrenderers" {class: process}
 ol: "pipeloom-openlineage\nsinks" {class: process}

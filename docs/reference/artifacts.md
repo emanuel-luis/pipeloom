@@ -21,6 +21,12 @@ target/
 Finalize writes `run_results.json` into the run folder, then copies it and the manifest to the
 root. The run folder is the source of truth; the root copies are for convenience.
 
+Finalize also deletes the `intermediate/` folder of other runs once they are idle. A finished run
+is judged by the `intermediate_ttl` it recorded. A run with no `run_results.json`, or whose
+manifest is newer than its results (resumed, then possibly crashed again), is judged by the newest
+modification time under its run folder and expires after `max(ttl, 1h)` of inactivity, so an
+active run is never deleted.
+
 ## Attempt files
 
 Each unit writes `units/<unit_id>/attempt-<n>.json` when the attempt ends, whatever the outcome.
