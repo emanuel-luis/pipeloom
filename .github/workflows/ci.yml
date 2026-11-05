@@ -42,7 +42,7 @@ jobs:
       # pyspark and delta ship py.typed: the group installs them, so the Spark plugin is
       # checked against the real types
       - run: uv sync --locked --all-packages --group spark
-      - run: uv run mypy --strict src plugins/pipeloom-polars/src plugins/pipeloom-pandas/src plugins/pipeloom-spark/src
+      - run: uv run mypy --strict src plugins/pipeloom-polars/src plugins/pipeloom-pandas/src plugins/pipeloom-spark/src plugins/pipeloom-databricks/src
 
   test:
     needs: [lint]

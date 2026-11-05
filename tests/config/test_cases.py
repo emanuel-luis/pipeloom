@@ -53,6 +53,9 @@ def test_case(
         plugins=tuple(spec.get("plugins", ())),
         env={},
     )
+    if "render" in spec:  # renderer codes: compile, then render the deploy block
+        run_render_case(code, spec["render"], options, monkeypatch, golden)
+        return
     if spec.get("run"):  # runtime codes: run the project; failed units are diagnostics
         run_case(code, spec, options, project_dir, golden)
         return
@@ -158,6 +161,40 @@ def run_case(
     as_json = json.dumps([d.to_json() for d in outcome.diagnostics], indent=2)
     for pattern, label in ((_TIME, "<time>"), (_OWNER, "<owner>")):
         text, as_json = pattern.sub(label, text), pattern.sub(label, as_json)
+    golden(f"diagnostics/{code}.txt", text)
+    golden(f"diagnostics/{code}.json", as_json + "\n")
+
+
+def run_render_case(
+    code: str,
+    given: dict[str, Any],
+    options: ProjectOptions,
+    monkeypatch: pytest.MonkeyPatch,
+    golden: Callable[[str, str], None],
+) -> None:
+    """Compile the project and render a pipeline of its Databricks deploy block. `render` may set
+    `pipeline`, `artifacts_root`, `state_shared` and `max_tasks` (lowers the 1,000 task limit so
+    the case file stays small)."""
+    from pipeloom_databricks import keys
+    from pipeloom_databricks.render import Locations, render_job
+
+    if "max_tasks" in given:
+        monkeypatch.setattr(keys, "MAX_TASKS", given["max_tasks"])
+    outcome = Project(options).compile()
+    assert outcome.value is not None, [d.message for d in outcome.diagnostics]
+    report = Report()
+    report.extend(outcome.diagnostics)
+    locs = Locations(
+        project_root="/Workspace/pipeloom/case",
+        manifest_path="/Workspace/pipeloom/case/manifest.json",
+        artifacts_root=given.get("artifacts_root", "/Volumes/main/ops/pipeloom"),
+        state_shared=given.get("state_shared", True),
+    )
+    render_job(outcome.value, given.get("pipeline", "main"), locs, report)
+    diagnostics = report.sorted()
+    assert code in {d.code for d in diagnostics}
+    text = "".join(format_diagnostic(d) + "\n" for d in diagnostics)
+    as_json = json.dumps([d.to_json() for d in diagnostics], indent=2, ensure_ascii=True)
     golden(f"diagnostics/{code}.txt", text)
     golden(f"diagnostics/{code}.json", as_json + "\n")
 

@@ -1,0 +1,10 @@
+[
+  {
+    "code": "PLD004",
+    "severity": "error",
+    "message": "compute 'default' uses serverless environment version 1 (Python 3.10)",
+    "hint": "use environment_version 2 or later",
+    "location": null,
+    "context": {}
+  }
+]

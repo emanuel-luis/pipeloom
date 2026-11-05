@@ -5,7 +5,8 @@
 
 `check` verifies that every plugin under `plugins/` has the root version, depends on
 `pipeloom~=X.Y.0`, and is pinned `==X.Y.Z` by a root extra (an extra on the name, as in
-`pipeloom-spark[local]==X.Y.Z`, is accepted). `bump` rewrites those lines, checks,
+`pipeloom-spark[local]==X.Y.Z`, is accepted). A member that pins another member
+(`pipeloom-spark~=X.Y.0`) must use the same `X.Y.0`. `bump` rewrites those lines, checks,
 then runs `uv lock`.
 """
 
@@ -22,7 +23,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 VERSION = re.compile(r"\d+\.\d+\.\d+")
 _VERSION_LINE = re.compile(r'^version = "[^"]*"$', re.MULTILINE)
-_CORE_PIN = re.compile(r'"pipeloom~=[^"]*"')
+_CORE_PIN = re.compile(r'"(pipeloom(?:-[a-z0-9-]+)?)~=[^"]*"')
+_MEMBER_PIN = re.compile(r"(pipeloom-[a-z0-9-]+)~=(.+)")
 _EXTRA_PIN = re.compile(r'"(pipeloom-[a-z0-9-]+(?:\[[a-z0-9,-]+\])?)==[^"]*"')
 _PINNED = re.compile(r"(pipeloom-[a-z0-9-]+)(?:\[[a-z0-9,-]+\])?==(.+)")
 
@@ -55,8 +57,13 @@ def check(root: Path, tag: str | None = None) -> list[str]:
         if project["version"] != version:
             errors.append(f"{name} is {project['version']}, the root is {version}")
         core = f"pipeloom~={major}.{minor}.0"
-        if core not in [d.replace(" ", "") for d in project.get("dependencies", [])]:
+        deps = [d.replace(" ", "") for d in project.get("dependencies", [])]
+        if core not in deps:
             errors.append(f"{name} must depend on {core}")
+        # A member may pin another member (pipeloom-databricks needs pipeloom-spark).
+        for dep in deps:
+            if (m := _MEMBER_PIN.fullmatch(dep)) and m[2] != f"{major}.{minor}.0":
+                errors.append(f"{name} must depend on {m[1]}~={major}.{minor}.0")
         if name not in pinned:
             errors.append(f"no root extra pins {name}")
         elif pinned[name] != version:
@@ -73,7 +80,7 @@ def bump(root: Path, version: str, *, lock: bool = True) -> list[str]:
     for path in files:
         text = path.read_text(encoding="utf-8")
         text = _VERSION_LINE.sub(f'version = "{version}"', text, count=1)
-        text = _CORE_PIN.sub(f'"pipeloom~={major}.{minor}.0"', text)
+        text = _CORE_PIN.sub(rf'"\1~={major}.{minor}.0"', text)
         text = _EXTRA_PIN.sub(rf'"\1=={version}"', text)
         path.write_text(text, encoding="utf-8", newline="\n")
     errors = check(root)

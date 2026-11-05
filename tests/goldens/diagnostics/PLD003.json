@@ -1,0 +1,15 @@
+[
+  {
+    "code": "PLD003",
+    "severity": "error",
+    "message": "task groups form a cycle: dir_models_a -> dir_models_b -> dir_models_a",
+    "hint": "group by another key, or set task_grouping to none",
+    "location": null,
+    "context": {
+      "groups": [
+        "dir_models_a",
+        "dir_models_b"
+      ]
+    }
+  }
+]

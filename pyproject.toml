@@ -35,6 +35,7 @@ dependencies = [
 polars = ["pipeloom-polars==0.4.0"]
 pandas = ["pipeloom-pandas==0.4.0"]
 spark = ["pipeloom-spark[local]==0.4.0"]
+databricks = ["pipeloom-databricks==0.4.0"]
 sqlglot = ["sqlglot>=26"]
 
 [project.urls]
@@ -72,6 +73,7 @@ members = ["plugins/*"]
 pipeloom-polars = { workspace = true }
 pipeloom-pandas = { workspace = true }
 pipeloom-spark = { workspace = true }
+pipeloom-databricks = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pipeloom"]
@@ -88,6 +90,7 @@ src = [
     "plugins/pipeloom-polars/src",
     "plugins/pipeloom-pandas/src",
     "plugins/pipeloom-spark/src",
+    "plugins/pipeloom-databricks/src",
 ]
 
 [tool.ruff.lint]
@@ -104,6 +107,8 @@ files = [
     "plugins/pipeloom-pandas/tests",
     "plugins/pipeloom-spark/src",
     "plugins/pipeloom-spark/tests",
+    "plugins/pipeloom-databricks/src",
+    "plugins/pipeloom-databricks/tests",
 ]
 
 [[tool.mypy.overrides]]
@@ -114,7 +119,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
 timeout = 60
-testpaths = ["tests", "plugins/pipeloom-polars/tests", "plugins/pipeloom-pandas/tests", "plugins/pipeloom-spark/tests"]
+testpaths = ["tests", "plugins/pipeloom-polars/tests", "plugins/pipeloom-pandas/tests", "plugins/pipeloom-spark/tests", "plugins/pipeloom-databricks/tests"]
 pythonpath = ["."]
 markers = [
     "spark: needs local Spark (PIPELOOM_TEST_SPARK=classic, Linux or macOS, Java)",
@@ -130,10 +135,11 @@ source = [
   "plugins/pipeloom-polars/src/pipeloom_polars",
   "plugins/pipeloom-pandas/src/pipeloom_pandas",
   "plugins/pipeloom-spark/src/pipeloom_spark",
+  "plugins/pipeloom-databricks/src/pipeloom_databricks",
 ]
 
 [tool.importlinter]
-root_package = "pipeloom"
+root_packages = ["pipeloom", "pipeloom_databricks"]
 include_external_packages = true
 exclude_type_checking_imports = true
 
@@ -192,6 +198,26 @@ type = "forbidden"
 source_modules = ["pipeloom"]
 forbidden_modules = ["polars", "pandas", "pyarrow", "sqlglot", "pyspark", "delta", "py4j"]
 ignore_imports = ["pipeloom.validate.static -> sqlglot"]
+
+[[tool.importlinter.contracts]]
+name = "The core never imports the Databricks plugin or SDK"
+type = "forbidden"
+source_modules = ["pipeloom"]
+forbidden_modules = ["pipeloom_databricks", "databricks"]
+
+# Only the modules that talk to a workspace may import the SDK. They arrive with the client
+# (PR32) and the task wrapper (PR31), so an ignored import that matches nothing is fine for now.
+[[tool.importlinter.contracts]]
+name = "Only the client and task value modules import databricks.sdk"
+type = "forbidden"
+source_modules = ["pipeloom_databricks"]
+forbidden_modules = ["databricks"]
+ignore_imports = [
+    "pipeloom_databricks.client.sdk -> databricks",
+    "pipeloom_databricks.client.connect -> databricks",
+    "pipeloom_databricks.task_values -> databricks",
+]
+unmatched_ignore_imports_alerting = "none"
 
 [[tool.importlinter.contracts]]
 name = "Only pipeloom.engine.portable imports narwhals"

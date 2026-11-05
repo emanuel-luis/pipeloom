@@ -1,0 +1,12 @@
+[
+  {
+    "code": "PLD005",
+    "severity": "warning",
+    "message": "compute rule 0 (tag:heavy) matches no model",
+    "hint": null,
+    "location": null,
+    "context": {
+      "rule": 0
+    }
+  }
+]

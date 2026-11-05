@@ -1,0 +1,2 @@
+error PLD003 task groups form a cycle: dir_models_a -> dir_models_b -> dir_models_a
+      hint: group by another key, or set task_grouping to none
