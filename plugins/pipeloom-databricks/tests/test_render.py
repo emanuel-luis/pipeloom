@@ -344,7 +344,7 @@ import sys
 from pathlib import Path
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.diagnostics import Report
-from pipeloom_databricks.jobs_model import to_json as _to_json
+from pipeloom_databricks.jobs_model import to_json
 from pipeloom_databricks.render import Locations, render_job
 from pipeloom_databricks.serialize import to_bundle_yaml, to_json_bytes
 

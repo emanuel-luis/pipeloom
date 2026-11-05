@@ -23,17 +23,6 @@ LOCS = Locations(
 )
 
 
-def pytest_addoption(parser: pytest.Parser) -> None:
-    # The root tests/conftest.py registers the same flag; this keeps it usable when only the
-    # plugin tests are collected.
-    try:
-        parser.addoption(
-            "--update-goldens", action="store_true", default=False, help="Rewrite golden files."
-        )
-    except ValueError:
-        pass
-
-
 Deploy = Callable[..., Plan]
 
 
@@ -110,7 +99,11 @@ def models_plan(tmp_path: Path) -> Callable[[Mapping[str, str]], Plan]:
 
 @pytest.fixture
 def golden(request: pytest.FixtureRequest) -> Callable[[str, bytes], None]:
-    """Compare bytes with tests/goldens/<name>; --update-goldens rewrites it (LF)."""
+    """Compare bytes with tests/goldens/<name>; --update-goldens rewrites it (LF).
+
+    The flag is registered by the root tests/conftest.py, so an update run also names a root
+    test path: `pytest --update-goldens tests/test_catalog.py plugins/pipeloom-databricks/tests`.
+    """
     update = bool(request.config.getoption("--update-goldens", default=False))
 
     def check(name: str, data: bytes) -> None:
