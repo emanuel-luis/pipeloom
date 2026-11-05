@@ -44,6 +44,9 @@ Stop with `astro dev stop`, or remove the containers and volumes with `astro dev
 compile each project at parse time (`LoadMode.PROJECT`), so no manifest is needed. The project
 variable `tpch_dir` (`../data/tpch`) resolves to `examples/data/tpch`.
 
+`packages.txt` installs Java 21 for the Spark DAG: the runtime 3.2 image is based on Debian 13, which
+has no Java 17 package, and Spark 4 supports both.
+
 ## DAGs and output
 
 | DAG | Mode | Output |
