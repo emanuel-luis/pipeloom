@@ -254,6 +254,13 @@ def run_cli_case(
         for e in events
         if e["data"].get("code") == code
     ]
+    # A code a finished run reports for its units (finalize) travels in `run.completed.failures`;
+    # that event also holds timings, so keep only the failures that carry the code.
+    for e in events:
+        failures = e["data"].get("failures")
+        hits = [f for f in failures if f.get("code") == code] if isinstance(failures, list) else []
+        if hits:
+            kept.append({"type": e["type"], "run_id": e["run_id"], "data": {"failures": hits}})
     assert kept, as_json.stderr
     as_text = CliRunner().invoke(main, [*args, "--log-format", "text"], env=env)
     lines = [ln for ln in as_text.stderr.splitlines() if code in ln]

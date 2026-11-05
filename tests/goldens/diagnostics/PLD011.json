@@ -1,0 +1,23 @@
+[
+  {
+    "type": "run.completed",
+    "run_id": "case",
+    "data": {
+      "failures": [
+        {
+          "unit_id": "a",
+          "code": "PLD011",
+          "severity": "error",
+          "message": "task a ended without a unit result: the cluster was lost",
+          "hint": "the unit wrote no attempt file; read the orchestrator's log for the task",
+          "location": null,
+          "context": {
+            "unit": "a",
+            "category": "permanent"
+          },
+          "trace_excerpt": []
+        }
+      ]
+    }
+  }
+]

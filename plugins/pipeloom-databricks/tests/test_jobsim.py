@@ -10,6 +10,7 @@ import pytest
 
 from pipeloom_databricks.keys import FINALIZE_KEY
 from pipeloom_databricks.task_values import TASK_VALUE_MAX_BYTES
+from pipeloom_databricks.testing.fake import FakeDatabricks
 from pipeloom_databricks.testing.jobsim import SimRun, simulate_job
 
 Sim = Any
@@ -92,9 +93,7 @@ def test_only_excludes_the_other_tasks_and_finalize_still_runs(sim: Callable[...
     assert res.exit_codes[FINALIZE_KEY] == 0
 
 
-def test_a_task_that_dies_leaves_no_attempt_and_does_not_fail_the_run(
-    sim: Callable[..., Sim],
-) -> None:
+def test_a_task_that_dies_without_task_states_counts_as_not_run(sim: Callable[..., Sim]) -> None:
     s = sim()
     res = simulate_job(
         s.settings,
@@ -105,8 +104,41 @@ def test_a_task_that_dies_leaves_no_attempt_and_does_not_fail_the_run(
     )
     assert res.task_states["e"] == BAD and res.exit_codes["e"] == 1
     assert s.attempts("dbx-125", "e") == []
-    assert s.rows("dbx-125")["e"]["skip_reason"] == "not_run"  # PR33 reads the real state
+    # no client was given, so finalize could not ask the Jobs API and judges by attempt files
+    assert s.rows("dbx-125")["e"]["skip_reason"] == "not_run"
     assert res.exit_codes[FINALIZE_KEY] == 0
+
+
+def test_a_task_that_dies_fails_the_run_when_finalize_reads_the_task_states(
+    sim: Callable[..., Sim],
+) -> None:
+    s, fake = sim(), FakeDatabricks()
+    res = simulate_job(
+        s.settings,
+        job_run_id=127,
+        job_parameters={},
+        only={"a", "e", FINALIZE_KEY},
+        fail={"e"},
+        client=fake,
+    )
+    assert res.exit_codes[FINALIZE_KEY] == 1
+    rows = s.rows("dbx-127")
+    assert rows["e"]["status"] == "failed"
+    error = rows["e"]["error"]
+    assert error["code"] == "PLD011" and "the task failed" in error["message"]
+    assert rows["e"]["orchestrator_ids"]["databricks_task_key"] == "e"
+    assert set(rows) == {"a", "e"}  # the excluded units get no row
+    assert s.results("dbx-127")["run"]["status"] == "failed"
+    stored = fake.runs[127]
+    assert stored.life_cycle_state == "TERMINATED" and stored.result_state == "FAILED"
+    assert {t.task_key: t.result_state for t in stored.tasks} == {
+        "a": OK,
+        "b": "EXCLUDED",
+        "c": "EXCLUDED",
+        "d": "EXCLUDED",
+        "e": BAD,
+        FINALIZE_KEY: BAD,
+    }
 
 
 def test_job_parameters_reach_the_wrapper(sim: Callable[..., Sim]) -> None:
