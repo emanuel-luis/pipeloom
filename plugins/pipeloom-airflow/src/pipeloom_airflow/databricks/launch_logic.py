@@ -157,7 +157,10 @@ def start_or_attach(
             return LaunchResult(
                 run_id, job.job_id, found.run_id, found.run_page_url, None, action="attached"
             )
-        baseline = {t.task_key: t.attempt + 1 for t in found.tasks if t.task_key in rerun}
+        baseline: dict[str, int] = {}
+        for t in found.tasks:  # retries may be separate entries: the highest attempt wins
+            if t.task_key in rerun:
+                baseline[t.task_key] = max(baseline.get(t.task_key, 0), t.attempt + 1)
         repair_id = repair(client, found.run_id, report)
         if repair_id is None:
             return None

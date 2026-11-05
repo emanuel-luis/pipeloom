@@ -1,5 +1,6 @@
-"""The launch task of DATABRICKS mode: start, continue or repair the job run, then wait for it in
-the triggerer (`shared` poll mode) and keep its snapshot in the XCom the sensors read."""
+"""The launch task of DATABRICKS mode: start, continue or repair the job run. In `per_task` poll
+mode it returns at once; in `shared` mode it waits for the run in the triggerer and keeps its
+snapshot in the XCom the sensors read."""
 
 from __future__ import annotations
 
@@ -7,7 +8,7 @@ import json
 import os
 from datetime import timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import JsonValue
 
@@ -40,6 +41,22 @@ def _raise(report: Report) -> None:
     raise AirflowFailException(text)
 
 
+def client_for(conn_id: str, factory: str | None, report: Report) -> DatabricksClient | None:
+    """A client for Airflow connection `conn_id` (secrets masked), or None after PLD010."""
+    creds = None
+    if not factory:
+        creds = credentials_from_connection(get_connection(conn_id), conn_id, report)
+        if creds is None:
+            return None
+        for secret in creds.secrets():
+            mask_secret(secret)
+    try:
+        return make_client(creds, factory=factory)
+    except ConnectionNotConfigured as err:
+        report.add("PLD010", str(err), context={"conn_id": conn_id})
+        return None
+
+
 class PipeloomDatabricksRunOperator(BaseOperator):
     """Starts or continues the job run of one DAG run. A cleared launch attaches to the same run
     (or repairs it); Databricks owns the retries of its tasks."""
@@ -56,11 +73,13 @@ class PipeloomDatabricksRunOperator(BaseOperator):
         poll_interval: float,
         client_factory: str | None,
         group_id: str | None,
+        poll: Literal["per_task", "shared"] = "shared",
         wait_timeout_s: float = 86400.0,
         **kwargs: Any,
     ) -> None:
         kwargs.setdefault("retries", 2)
         super().__init__(**kwargs)
+        self.poll = poll
         self.command = command
         self.pipeline = pipeline
         self.conn_id = conn_id
@@ -73,20 +92,9 @@ class PipeloomDatabricksRunOperator(BaseOperator):
         self.wait_timeout_s = wait_timeout_s
 
     def _client(self, report: Report) -> DatabricksClient | None:
-        creds = None
-        if not self.client_factory:
-            creds = credentials_from_connection(get_connection(self.conn_id), self.conn_id, report)
-            if creds is None:
-                return None
-            for secret in creds.secrets():
-                mask_secret(secret)
-        try:
-            return make_client(creds, factory=self.client_factory)
-        except ConnectionNotConfigured as err:
-            report.add("PLD010", str(err), context={"conn_id": self.conn_id})
-            return None
+        return client_for(self.conn_id, self.client_factory, report)
 
-    def execute(self, context: Context) -> None:
+    def execute(self, context: Context) -> dict[str, JsonValue] | None:
         ctx = _context(context, self.group_id, self.task_id)
         report = Report()
         cmd = self.command
@@ -119,7 +127,7 @@ class PipeloomDatabricksRunOperator(BaseOperator):
                 self.log.warning("%s", format_diagnostic(d))
         if result is None:
             _raise(report)
-            return
+            return None
         self.log.info(
             "pipeloom run %s: %s job run %s (%s)",
             result.run_id,
@@ -127,6 +135,8 @@ class PipeloomDatabricksRunOperator(BaseOperator):
             result.job_run_id,
             result.run_page_url or "no page url",
         )
+        if self.poll == "per_task":
+            return result.document()
         self.defer(
             trigger=DatabricksRunTrigger(
                 conn_id=self.conn_id,
@@ -143,6 +153,7 @@ class PipeloomDatabricksRunOperator(BaseOperator):
             # a timed-out wait fails this try; the retry finds the same run and attaches to it
             timeout=timedelta(seconds=self.wait_timeout_s),
         )
+        return None  # defer never returns; this satisfies mypy where Airflow is not installed
 
     def execute_complete(
         self, context: Context, event: dict[str, Any], launch: dict[str, Any] | None = None

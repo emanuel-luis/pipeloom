@@ -25,18 +25,33 @@ class Verdict:
     message: str | None
 
 
+def latest_attempt(run: RunInfo, task_key: str) -> TaskRunInfo | None:
+    """The entry of `task_key` with the highest attempt; retries may be separate entries."""
+    entries = [t for t in run.tasks if t.task_key == task_key]
+    return max(entries, key=lambda t: t.attempt) if entries else None
+
+
 def task_verdict(
-    run: RunInfo, task_key: str, *, baseline_attempt: int, max_attempts: int
+    run: RunInfo,
+    task_key: str,
+    *,
+    baseline_attempt: int,
+    max_attempts: int,
+    ended: bool | None = None,
 ) -> Verdict | None:
     """The outcome of task `task_key`, or None while it is still open.
+
+    `ended` says whether the run is over for this launch; the default is "its life cycle state is
+    terminal". After a repair, pass `run_ended(...)`: a terminal run that still shows the state
+    from before the repair is not over yet.
 
     While the run is active, an attempt below `baseline_attempt` (one a repair is rerunning) is
     ignored, and a failed attempt counts only once it is the last one Databricks will make
     (`attempt >= max_attempts - 1`). A terminal run decides every task: a task it does not list
     was skipped, and a state no rule names is a failure.
     """
-    terminal = run.life_cycle_state in TERMINAL
-    task = next((t for t in run.tasks if t.task_key == task_key), None)
+    terminal = run.life_cycle_state in TERMINAL if ended is None else ended
+    task = latest_attempt(run, task_key)
     if task is None:
         return Verdict("skipped", 0, f"task {task_key} did not run") if terminal else None
     if not terminal and task.attempt < baseline_attempt:
@@ -63,7 +78,7 @@ def run_ended(run: RunInfo, repair_id: int | None, seen_active: bool) -> bool:
     if run.life_cycle_state not in TERMINAL:
         return False
     if repair_id is None:
-        return True
+        return True  # no repair: terminal is over
     latest = run.latest_repair_id or 0
     ours_done = run.repair_states.get(repair_id) in TERMINAL
     return latest > repair_id or (latest == repair_id and (ours_done or seen_active))
@@ -71,6 +86,7 @@ def run_ended(run: RunInfo, repair_id: int | None, seen_active: bool) -> bool:
 
 def snapshot(run: RunInfo) -> dict[str, JsonValue]:
     """The run as plain JSON for an XCom: its states and each task's latest attempt."""
+    latest = [latest_attempt(run, key) for key in sorted({t.task_key for t in run.tasks})]
     tasks: dict[str, JsonValue] = {
         t.task_key: {
             "run_id": t.run_id,
@@ -80,7 +96,8 @@ def snapshot(run: RunInfo) -> dict[str, JsonValue]:
             "termination_code": t.termination_code,
             "message": t.message,
         }
-        for t in sorted(run.tasks, key=lambda t: t.task_key)
+        for t in latest
+        if t is not None
     }
     return {
         "v": SNAPSHOT_VERSION,

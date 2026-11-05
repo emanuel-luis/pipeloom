@@ -89,16 +89,15 @@ def test_a_task_group_prefixes_its_tasks_and_its_run_id(af_project: Any, af_plan
     ("kw", "code"),
     [
         ({"execution_config": ExecutionConfig(mode=ExecutionMode.DOCKER)}, "PLA001"),
-        (
-            {
-                "execution_config": ExecutionConfig(
-                    mode=ExecutionMode.DATABRICKS, databricks_poll="per_task"
-                )
-            },
-            "PLA001",
-        ),
         ({"execution_config": ExecutionConfig(mode=ExecutionMode.KUBERNETES)}, "PLA002"),
         ({"operator_args": {"retries": 3}}, "PLA002"),
+        (
+            {
+                "execution_config": ExecutionConfig(mode=ExecutionMode.DATABRICKS),
+                "operator_args": {"timeout": 5},
+            },
+            "PLA002",
+        ),
     ],
 )
 def test_a_broken_configuration_raises_at_parse_time(

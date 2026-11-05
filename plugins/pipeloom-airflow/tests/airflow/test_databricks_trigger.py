@@ -146,6 +146,69 @@ def test_a_task_key_yields_its_verdict(
     assert (event["task_key"], event["outcome"], event["attempt"]) == ("a", "success", 0)
 
 
+def test_task_verdicts_follow_attempts_and_the_baseline(
+    fake: FakeDatabricks, clock: tuple[list[float], Script]
+) -> None:
+    slept, script = clock
+    # attempt 0 failed but Databricks makes a second one: no verdict until it ends
+    fake.set_run(900, job_id=1, life_cycle_state="RUNNING", tasks=[task("a", "FAILED", "RUNNING")])
+    script.append(
+        lambda: fake.set_run(
+            900,
+            job_id=1,
+            life_cycle_state="RUNNING",
+            tasks=[task("a", "SUCCESS", attempt=1)],
+        )
+    )
+    event = asyncio.run(first_event(make(task_key="a", max_attempts=2)))
+    assert (event["outcome"], event["attempt"], slept) == ("success", 1, [30.0])
+
+    # the last attempt failing is final
+    fake.set_run(900, job_id=1, life_cycle_state="RUNNING", tasks=[task("a", "FAILED", attempt=1)])
+    event = asyncio.run(first_event(make(task_key="a", max_attempts=2)))
+    assert (event["outcome"], event["attempt"]) == ("failed", 1)
+
+    # a stale FAILED below the repair baseline is ignored until the rerun reports
+    fake.set_run(900, job_id=1, life_cycle_state="RUNNING", tasks=[task("a", "FAILED", attempt=0)])
+    script.append(
+        lambda: fake.set_run(
+            900, job_id=1, life_cycle_state="RUNNING", tasks=[task("a", "SUCCESS", attempt=1)]
+        )
+    )
+    slept.clear()
+    event = asyncio.run(first_event(make(task_key="a", baseline_attempt=1)))
+    assert (event["outcome"], event["attempt"], slept) == ("success", 1, [30.0])
+
+    # an excluded task is skipped
+    fake.set_run(900, job_id=1, life_cycle_state="RUNNING", tasks=[task("a", "EXCLUDED")])
+    event = asyncio.run(first_event(make(task_key="a")))
+    assert event["outcome"] == "skipped"
+
+
+def test_transient_errors_are_retried_with_doubling_sleeps(
+    fake: FakeDatabricks, clock: tuple[list[float], Script]
+) -> None:
+    slept, script = clock
+    fake.fail["get_run"] = ApiError(503, "unavailable")
+    script.append(lambda: fake.fail.update({"get_run": ApiError(0, "connection reset")}))
+    script.append(lambda: fake.fail.pop("get_run"))
+    fake.set_run(900, job_id=1, result_state="SUCCESS", tasks=[task("a", "SUCCESS")])
+    event = asyncio.run(first_event(make(task_key="a")))
+    assert event["outcome"] == "success" and slept == [30.0, 60.0]
+    assert fake.called("get_run") == ["900"] * 3
+
+
+def test_five_transient_errors_in_a_row_are_an_error_event(
+    fake: FakeDatabricks, clock: tuple[list[float], Script]
+) -> None:
+    slept, _ = clock
+    fake.fail["get_run"] = ApiError(429, "slow down")
+    event = asyncio.run(first_event(make(task_key="a")))
+    assert event["status"] == "error" and "HTTP 429" in event["message"]
+    assert slept == [30.0, 60.0, 120.0, 120.0, 120.0]
+    assert len(fake.called("get_run")) == 6
+
+
 def test_api_errors_and_bad_connections_are_error_events(
     fake: FakeDatabricks, clock: tuple[list[float], Script], monkeypatch: pytest.MonkeyPatch
 ) -> None:

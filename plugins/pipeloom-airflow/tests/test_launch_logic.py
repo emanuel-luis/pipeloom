@@ -163,6 +163,30 @@ def test_a_succeeded_run_is_attached_and_a_failed_one_repaired(
     assert repaired.document()["baseline"] == {"b": 2, FINALIZE_KEY: 1}
 
 
+def test_the_repair_baseline_uses_the_highest_attempt_in_any_order(
+    project: tuple[Path, Plan],
+) -> None:
+    fake = FakeDatabricks()
+    job_id = deployed(project, fake)
+    first, _ = go(project, fake)
+    assert first is not None
+    bad = [
+        _task("a", "SUCCESS"),
+        _task("b", "FAILED", 1),
+        _task("b", "FAILED", 0),
+        _task(FINALIZE_KEY, "FAILED"),
+    ]
+    fake.set_run(
+        first.job_run_id,
+        job_id=job_id,
+        result_state="FAILED",
+        tasks=bad,
+        job_parameters={"pipeloom_run_id": RID},
+    )
+    repaired, _ = go(project, fake)
+    assert repaired is not None and dict(repaired.baseline) == {"b": 2, FINALIZE_KEY: 1}
+
+
 def test_api_errors_are_pld009(project: tuple[Path, Plan]) -> None:
     fake = FakeDatabricks()
     fake.fail["list_jobs"] = ApiError(503, "unavailable")

@@ -61,6 +61,24 @@ def test_a_failure_says_why_and_a_missing_task_of_an_ended_run_was_skipped() -> 
     assert gone is not None and gone.outcome == "skipped"
 
 
+def test_the_entry_with_the_highest_attempt_is_the_latest_in_any_order() -> None:
+    failed, retried = task("FAILED", 0), task("SUCCESS", 1)
+    for entries in ((failed, retried), (retried, failed)):
+        run = run_of("RUNNING", *entries)
+        verdict = task_verdict(run, "k", baseline_attempt=0, max_attempts=2)
+        assert verdict is not None and (verdict.outcome, verdict.attempt) == ("success", 1)
+        assert snapshot(run)["tasks"]["k"]["attempt"] == 1  # type: ignore[index]
+
+
+def test_a_terminal_run_from_before_the_repair_is_not_a_verdict() -> None:
+    stale = run_of("TERMINATED", task("FAILED", 0), latest_repair_id=5)
+    assert not run_ended(stale, 5, False)
+    # without the repair in mind the old failure would be final; with it, the baseline applies
+    assert task_verdict(stale, "k", baseline_attempt=0, max_attempts=1) is not None
+    ended = run_ended(stale, 5, False)
+    assert task_verdict(stale, "k", baseline_attempt=1, max_attempts=1, ended=ended) is None
+
+
 def test_run_ended_waits_for_the_repair() -> None:
     assert not run_ended(run_of("RUNNING"), None, False)
     assert run_ended(run_of("TERMINATED"), None, False)
