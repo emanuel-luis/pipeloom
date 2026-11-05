@@ -24,7 +24,7 @@ def unit_states(
 ) -> dict[str, ExternalUnitState]:
     """The external state of every unit that has no attempt file.
 
-    `key_map` is unit id -> task key. EXCLUDED is `excluded`; UPSTREAM_FAILED and
+    `key_map` is unit id -> task key. EXCLUDED and DISABLED are `excluded`; UPSTREAM_FAILED and
     UPSTREAM_CANCELED are `skipped` (upstream_failed); CANCELED and TIMEDOUT are `cancelled`; FAILED
     is `failed` with PLD011 and the termination message. Any other state (success, still running,
     unknown task) gives no entry, so core finalize counts the unit as not run.
@@ -40,7 +40,7 @@ def unit_states(
             "databricks_task_run_id": str(task.run_id),
         }
         match task.result_state:
-            case "EXCLUDED":
+            case "EXCLUDED" | "DISABLED":  # a task outside `only` ends DISABLED on serverless
                 out[unit] = ExternalUnitState("excluded")
             case "UPSTREAM_FAILED" | "UPSTREAM_CANCELED":
                 out[unit] = ExternalUnitState("skipped", orchestrator_ids=ids)

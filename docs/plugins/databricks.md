@@ -99,7 +99,9 @@ PLD005. All models of one task group must resolve to the same compute (PLD004).
 
 Each model keeps its own `retries`, `retry_delay` and `timeout`: they become `max_retries`, the
 retry interval and `timeout_seconds` (the model timeout plus the cancel grace plus 300 seconds).
-Databricks retries any failure, so `retry_on: transient` cannot be enforced there.
+Databricks retries any failure, so `retry_on: transient` cannot be enforced there. Serverless tasks
+are rendered with `disable_auto_optimization: true`: serverless auto-optimization would otherwise
+retry a failed task on top of `max_retries`, so a model with `retries: 0` would still run twice.
 
 ## Task grouping
 
@@ -161,7 +163,9 @@ $ pipeloom databricks repair --target prod --pipeline daily --run-id RID
 
 Name the run with `--run-id` (the pipeloom id) or `--job-run-id` (the Databricks id), exactly one.
 Repair reruns the tasks that failed, timed out, were cancelled or were skipped, plus finalize. The
-run keeps its run id, and each rerun unit writes the next attempt. A run that is still active is
+run keeps its run id, and each rerun unit writes the next attempt: the repair passes the run's job
+parameters again, since without them `{{job.parameters.pipeloom_run_id}}` would resolve to its empty
+default and start a new pipeloom run. A run that is still active is
 PLD014. With nothing to repair the command says so and exits 0. `--wait`, `--no-wait` and
 `--timeout` work as in `run`.
 
@@ -176,7 +180,7 @@ how each task ended from the Jobs API and hands core the state of every unit wit
 
 | Task state | Unit state |
 | --- | --- |
-| EXCLUDED | excluded (no row) |
+| EXCLUDED, DISABLED | excluded (no row); serverless reports a task left out by `only` as DISABLED |
 | UPSTREAM_FAILED, UPSTREAM_CANCELED | skipped, reason `upstream_failed` |
 | CANCELED, TIMEDOUT | cancelled |
 | FAILED | failed, with PLD011 and the termination message |

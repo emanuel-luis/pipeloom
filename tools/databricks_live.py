@@ -154,7 +154,8 @@ def check_select(run: RunInfo, doc: Mapping[str, Any], exit_code: int) -> list[C
             exit_code == 0
             and run.result_state == "SUCCESS"
             and task_result(run, "pipeloom__finalize") == "SUCCESS"
-            and task_result(run, "b") == "EXCLUDED"
+            # serverless reports a task left out by `only` as DISABLED, the docs say EXCLUDED
+            and task_result(run, "b") in ("EXCLUDED", "DISABLED")
             and "b" not in rows
             and rows.get("a", {}).get("status") == "succeeded",
         )

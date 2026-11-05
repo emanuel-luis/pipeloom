@@ -66,6 +66,8 @@ class Task:
     max_retries: int | None
     min_retry_interval_millis: int | None
     timeout_seconds: int | None
+    disable_auto_optimization: bool | None = None
+    """True on serverless: auto-optimization retries a failed task on top of `max_retries`."""
 
 
 @dataclass(frozen=True)

@@ -3,7 +3,7 @@
   "tags": {
     "pipeloom_job": "shop.main.ci",
     "pipeloom_plan_hash": "a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
-    "pipeloom_settings_hash": "1e3fd002d6840fe1e17c7a502df544df71c74646b059dac268984f2d6b82dce0",
+    "pipeloom_settings_hash": "c5bb6cb107c5cf386d3a0a134aefb8f16268e925290dba8f88a58e5b74868962",
     "pipeloom_version": "1.2.3",
     "team": "data"
   },
@@ -165,7 +165,8 @@
           "--start-ms={{job.start_time.timestamp_ms}}"
         ]
       },
-      "max_retries": 0
+      "max_retries": 0,
+      "disable_auto_optimization": true
     },
     {
       "task_key": "stg_customers",
@@ -190,7 +191,8 @@
           "--start-ms={{job.start_time.timestamp_ms}}"
         ]
       },
-      "max_retries": 0
+      "max_retries": 0,
+      "disable_auto_optimization": true
     },
     {
       "task_key": "stg_orders",
@@ -215,7 +217,8 @@
           "--start-ms={{job.start_time.timestamp_ms}}"
         ]
       },
-      "max_retries": 0
+      "max_retries": 0,
+      "disable_auto_optimization": true
     },
     {
       "task_key": "stg_payments",
@@ -240,7 +243,8 @@
           "--start-ms={{job.start_time.timestamp_ms}}"
         ]
       },
-      "max_retries": 0
+      "max_retries": 0,
+      "disable_auto_optimization": true
     },
     {
       "task_key": "pipeloom__finalize",
@@ -272,7 +276,8 @@
         ]
       },
       "max_retries": 1,
-      "timeout_seconds": 1800
+      "timeout_seconds": 1800,
+      "disable_auto_optimization": true
     }
   ],
   "schedule": {

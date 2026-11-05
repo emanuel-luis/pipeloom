@@ -311,6 +311,7 @@ def _assemble(
                     if all(timeouts)
                     else None
                 ),
+                disable_auto_optimization=True if env_key else None,
             )
         )
     waits = {p for u in units for p in u.parents}
@@ -329,6 +330,7 @@ def _assemble(
             max_retries=1,
             min_retry_interval_millis=None,
             timeout_seconds=FINALIZE_TIMEOUT,
+            disable_auto_optimization=True if env_key else None,
         )
     )
     return _Parts(opts, units, tuple(tasks), tuple(environments), tuple(clusters))

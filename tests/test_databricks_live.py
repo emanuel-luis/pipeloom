@@ -78,6 +78,14 @@ def test_select_check_needs_an_excluded_task_and_a_green_finalize() -> None:
         task("pipeloom__finalize", "SUCCESS"),
     )
     assert live.check_select(ok, results, 0)[0].ok
+    disabled = run_info(
+        1,
+        "SUCCESS",
+        task("a", "SUCCESS"),
+        task("b", "DISABLED"),
+        task("pipeloom__finalize", "SUCCESS"),
+    )
+    assert live.check_select(disabled, results, 0)[0].ok
     skipped = run_info(
         1,
         "SUCCESS",

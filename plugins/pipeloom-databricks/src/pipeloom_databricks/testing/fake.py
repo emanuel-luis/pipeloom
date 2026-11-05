@@ -38,6 +38,8 @@ class FakeDatabricks:
         self.runs: dict[int, RunInfo] = {}
         self.run_tokens: dict[str, int] = {}
         self.repairs: list[tuple[int, tuple[str, ...], int | None]] = []
+        self.repair_parameters: list[dict[str, str]] = []
+        """The job parameters each repair passed, in order."""
         self.starts: list[tuple[int, dict[str, str], tuple[str, ...] | None, str | None]] = []
         """Every `run_now`: (job_id, job_parameters, only, idempotency_token)."""
         self.submissions: list[tuple[dict[str, JsonValue], str | None]] = []
@@ -177,7 +179,12 @@ class FakeDatabricks:
                 yield run
 
     def repair_run(
-        self, run_id: int, *, rerun_tasks: Sequence[str], latest_repair_id: int | None
+        self,
+        run_id: int,
+        *,
+        rerun_tasks: Sequence[str],
+        latest_repair_id: int | None,
+        job_parameters: Mapping[str, str] | None = None,
     ) -> int:
         self._enter("repair_run", run_id)
         if run_id not in self.runs:
@@ -188,6 +195,7 @@ class FakeDatabricks:
             )
         repair_id = self._id()
         self.repairs.append((run_id, tuple(rerun_tasks), latest_repair_id))
+        self.repair_parameters.append(dict(job_parameters or {}))
         if self.stale_polls:
             before = replace(self.runs[run_id], latest_repair_id=repair_id)
             self._stale[run_id] = (before, self.stale_polls)

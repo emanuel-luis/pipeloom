@@ -11,6 +11,9 @@ All notable changes to this project are documented here. The format follows
 - `pipeloom run` and `pipeloom finalize` with `--manifest` now bind the project with the manifest's vars (an explicit `--vars` still wins). This fixes Databricks jobs ignoring the vars given at deploy time.
 - The Databricks task entry point returns on success instead of raising `SystemExit(0)`. Serverless runs it under IPython, which reported every successful task as failed.
 - The console log writes plain lines on Databricks. Rich took the job's IPython kernel for Jupyter and rendered each line as its own HTML block, with large gaps between lines in the job output.
+- `pipeloom databricks repair` passes the run's job parameters again. Without them the repair resolved `pipeloom_run_id` to its empty default, so the rerun units started a new pipeloom run (`dbx-<job run id>`) instead of continuing the original one.
+- Finalize maps a task in state DISABLED to `excluded`: serverless reports a task left out by `only` as DISABLED, not EXCLUDED.
+- Serverless tasks are rendered with `disable_auto_optimization: true`. Auto-optimization retried a failed task on top of `max_retries`, so a model with `retries: 0` ran twice. The settings hash changes, so deployed jobs show as stale (PLD008) until they are deployed again.
 
 ## [0.6.0] - 2026-11-05
 

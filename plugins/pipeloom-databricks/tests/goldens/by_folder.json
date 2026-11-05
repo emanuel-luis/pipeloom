@@ -3,7 +3,7 @@
   "tags": {
     "pipeloom_job": "shop.main.ci",
     "pipeloom_plan_hash": "a2501b77df2ad29619b953019adbd873b9cbe132e6d1b5b2a52f0da6a45ecbac",
-    "pipeloom_settings_hash": "2623a393d369b3c3f076850239bf729fe127d726ec0f30ade67894b47e4472d8",
+    "pipeloom_settings_hash": "c34a68f8140da68d14267702fc8854f834d1c2f0521d307b82007c7dc517f404",
     "pipeloom_version": "1.2.3"
   },
   "parameters": [
@@ -61,7 +61,8 @@
           "--start-ms={{job.start_time.timestamp_ms}}"
         ]
       },
-      "max_retries": 0
+      "max_retries": 0,
+      "disable_auto_optimization": true
     },
     {
       "task_key": "dir_models_staging",
@@ -86,7 +87,8 @@
           "--start-ms={{job.start_time.timestamp_ms}}"
         ]
       },
-      "max_retries": 0
+      "max_retries": 0,
+      "disable_auto_optimization": true
     },
     {
       "task_key": "pipeloom__finalize",
@@ -115,7 +117,8 @@
         ]
       },
       "max_retries": 1,
-      "timeout_seconds": 1800
+      "timeout_seconds": 1800,
+      "disable_auto_optimization": true
     }
   ]
 }

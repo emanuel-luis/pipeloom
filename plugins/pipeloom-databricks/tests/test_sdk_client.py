@@ -227,8 +227,11 @@ def test_repair_run_body() -> None:
         "rerun_tasks": ["a", "b"],
         "rerun_dependent_tasks": True,
     }
-    sdk.repair_run(11, rerun_tasks=["a"], latest_repair_id=31)
+    sdk.repair_run(
+        11, rerun_tasks=["a"], latest_repair_id=31, job_parameters={"pipeloom_run_id": "r"}
+    )
     assert api.calls[1]["body"]["latest_repair_id"] == 31
+    assert api.calls[1]["body"]["job_parameters"] == {"pipeloom_run_id": "r"}
 
 
 def test_workspace_calls() -> None:
