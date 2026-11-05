@@ -8,12 +8,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 from airflow.sdk import DAG, Asset, BaseHook, BaseOperator, BaseSensorOperator, Param, TaskGroup
-from airflow.sdk.exceptions import AirflowException, AirflowSkipException
-
-try:
-    from airflow.sdk.exceptions import AirflowFailException
-except ImportError:  # pragma: no cover - only before 3.2
-    from airflow.exceptions import AirflowFailException
+from airflow.sdk.exceptions import AirflowException, AirflowFailException, AirflowSkipException
 
 if TYPE_CHECKING:
     from airflow.sdk import Context
