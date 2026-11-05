@@ -1,0 +1,1 @@
+error PLD010 no Databricks connection: pass --profile, set DATABRICKS_CONFIG_PROFILE, set DATABRICKS_HOST with credentials, or run on a Databricks runtime

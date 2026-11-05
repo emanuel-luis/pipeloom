@@ -60,3 +60,12 @@ def golden(request: pytest.FixtureRequest) -> Callable[[str, str], None]:
         assert text == expected
 
     return check
+
+
+@pytest.fixture(autouse=True)
+def no_databricks_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Keep a developer's Databricks settings out of every test: no DATABRICKS_* variable, and a
+    config file that does not exist, so nothing can pick up a profile."""
+    for name in [n for n in os.environ if n.upper().startswith("DATABRICKS_")]:
+        monkeypatch.delenv(name)
+    monkeypatch.setenv("DATABRICKS_CONFIG_FILE", str(tmp_path / "missing" / "databrickscfg"))

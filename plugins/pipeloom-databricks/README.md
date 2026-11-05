@@ -42,6 +42,21 @@ targets:
   the task with PLD013. After a unit task the wrapper sets the task value `pipeloom`, a small
   summary of its units (best effort).
 - `pipeloom_databricks.testing.jobsim.simulate_job` runs a rendered job locally for tests.
-- Deploying, running and repairing jobs arrive in later releases of this package.
+- Direct deploy: `pipeloom databricks [--profile NAME] deploy --target prod [--pipeline NAME]...
+  [--dry-run]` uploads the project to the workspace (content addressed, under
+  `<workspace_root>/<project>/<pipeline>/<target>/<hash>`) and creates or resets one job per
+  pipeline, found by its `pipeloom_job` tag. It prints one JSON line per pipeline. `--dry-run`
+  prints the job settings and connects to nothing. The upload holds `pipeloom.yml`, the model
+  files and the `*.py` files below `python_paths` (virtual environments, `dist`, `build` and
+  similar folders are skipped). Other files below `python_paths` are not uploaded, so a Python
+  model that reads a file next to it (`.sql`, `.json`, `.csv`) works locally but not on
+  Databricks; keep such data in a table or a volume. Notebooks and files above 10 MB are refused
+  (PLD012).
+- Connection: `--profile`, else a `DATABRICKS_CONFIG_PROFILE` you set, else `DATABRICKS_HOST`
+  with credentials, else the Databricks runtime, else PLD010. pipeloom never picks a profile
+  by itself. Other codes: PLD006 (two jobs with the same tag), PLD009 (API error).
+- `pipeloom_databricks.api` is the stable surface for other distributions, and
+  `pipeloom_databricks.testing.fake.FakeDatabricks` a fake workspace for tests.
+- Running and repairing jobs arrive in a later release of this package.
 
 License: Apache-2.0.

@@ -21,6 +21,8 @@ All notable changes to this project are documented here. The format follows
 - `pipeloom_databricks.testing.jobsim.simulate_job` runs a rendered job locally through the wrapper, with `run_if`, `only` and repairs.
 - PLD013: a task parameter still holds a `{{...}}` reference.
 - `pipeloom-spark`: with `DATABRICKS_RUNTIME_VERSION` set and no active session, mode `active` attaches with `SparkSession.builder.getOrCreate()` and no conf (a wheel task starts without a session). The session is never configured or stopped. `active_session()` tries the thread's session first, then the default session another thread built.
+- `pipeloom databricks deploy` (ADR-0036): uploads the project to the workspace, content addressed, and creates or resets one job per pipeline, found by its `pipeloom_job` tag. `--dry-run` prints the settings and connects to nothing; `--profile` is a group option and no profile is ever picked automatically (`DATABRICKS_CONFIG_PROFILE`, `DATABRICKS_HOST`, the runtime, else PLD010). The client calls the Jobs API 2.2 through the SDK's `api_client.do`; `pipeloom_databricks.api` and `pipeloom_databricks.testing.fake.FakeDatabricks` are new.
+- PLD006 (two jobs carry the same `pipeloom_job` tag), PLD009 (Databricks API request failed), PLD010 (no Databricks connection configured) and PLD012 (a project file cannot be uploaded: a notebook, above 10 MB or outside the project).
 
 ## [0.4.0] - 2026-11-05
 

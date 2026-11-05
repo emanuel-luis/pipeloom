@@ -2,24 +2,76 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
 import click
 
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.cli._events import Invocation
 from pipeloom.cli._options import log_format_option, plugin_option, project_options, target_option
+from pipeloom.config.bind import BoundProject
 from pipeloom.diagnostics import Report
 from pipeloom.engine.types import StateStoreCapabilities
+from pipeloom.plan.model import Plan
 from pipeloom.runtime.run import DEFAULT_CANCEL_GRACE
 from pipeloom_databricks.bundle import Runtime, find_bundle_root, relative_to_root, render_bundle
+from pipeloom_databricks.client import ConnectionNotConfigured, connect
+from pipeloom_databricks.deploy import deploy as deploy_pipeline
+from pipeloom_databricks.deploy import prepare
+from pipeloom_databricks.jobs_model import to_json
+from pipeloom_databricks.render import deploy_options
+
+CONNECTION_KEY: Final = "pipeloom_databricks.connection"
+
+
+def _load(
+    inv: Invocation,
+    project_dir: Path,
+    target: str | None,
+    vars_: dict[str, Any],
+    plugins: tuple[str, ...],
+) -> tuple[Plan, BoundProject, Runtime, Report]:
+    """Compile and bind the project; ends the command with exit 1 when that fails."""
+    project = Project(
+        ProjectOptions(
+            project_dir=project_dir, target=target, vars=vars_, plugins=plugins, env=os.environ
+        ),
+        invocation_id=inv.invocation_id,
+    )
+    compiled = project.compile()
+    bound = project.bind().value
+    if compiled.value is None or bound is None:
+        inv.finish(compiled.diagnostics, 1, bound=bound)
+        raise SystemExit(1)
+    store = bound.plugins.get("state_stores")
+    caps = None if store is None else store.spec.capabilities
+    grace = bound.runtime.cancel_grace
+    runtime = Runtime(
+        artifacts_root=bound.runtime.artifacts.root,
+        state_shared=isinstance(caps, StateStoreCapabilities) and caps.shared,
+        cancel_grace=int(DEFAULT_CANCEL_GRACE if grace is None else grace),
+    )
+    report = Report()
+    report.extend(compiled.diagnostics)
+    return compiled.value, bound, runtime, report
 
 
 @click.group()
-def databricks() -> None:
+@click.option(
+    "--profile",
+    metavar="NAME",
+    default=None,
+    help="The Databricks profile to use. Without it, DATABRICKS_CONFIG_PROFILE, then "
+    "DATABRICKS_HOST, then the runtime; pipeloom never picks a profile by itself.",
+)
+@click.option("--client-factory", hidden=True, default=None, help="MODULE:ATTR of a test client.")
+@click.pass_context
+def databricks(ctx: click.Context, profile: str | None, client_factory: str | None) -> None:
     """Databricks jobs for a pipeloom project."""
+    ctx.meta[CONNECTION_KEY] = (profile, client_factory)
 
 
 @databricks.command()
@@ -77,29 +129,10 @@ def bundle(
         raise click.UsageError(f"the project dir and --out must lie inside the bundle {root}")
 
     inv = Invocation("databricks bundle", log_format)
-    project = Project(
-        ProjectOptions(
-            project_dir=project_dir, target=target, vars=vars_, plugins=plugins, env=os.environ
-        ),
-        invocation_id=inv.invocation_id,
-    )
-    compiled = project.compile()
-    bound = project.bind().value
-    if compiled.value is None or bound is None:
-        inv.finish(compiled.diagnostics, 1, bound=bound)
-        return
-    store = bound.plugins.get("state_stores")
-    caps = None if store is None else store.spec.capabilities
-    grace = bound.runtime.cancel_grace
-    runtime = Runtime(
-        artifacts_root=bound.runtime.artifacts.root,
-        state_shared=isinstance(caps, StateStoreCapabilities) and caps.shared,
-        cancel_grace=int(DEFAULT_CANCEL_GRACE if grace is None else grace),
-    )
-    report = Report()
-    report.extend(compiled.diagnostics)
+    loaded = _load(inv, project_dir, target, vars_, plugins)
+    plan, bound, runtime, report = loaded
     files = render_bundle(
-        compiled.value,
+        plan,
         runtime,
         pipelines,
         out=out,
@@ -122,3 +155,78 @@ def bundle(
         f.path.write_bytes(f.content)
         click.echo(f.path.as_posix())
     inv.finish(diagnostics, 0, bound=bound)
+
+
+@databricks.command()
+@project_options
+@target_option
+@plugin_option
+@log_format_option
+@click.option(
+    "--pipeline",
+    "pipelines",
+    multiple=True,
+    metavar="NAME",
+    help="A pipeline of the deploy block. Repeatable. Default: all of them.",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Print the job settings as JSON and connect to nothing.",
+)
+@click.pass_context
+def deploy(
+    ctx: click.Context,
+    /,
+    project_dir: Path,
+    vars_: dict[str, Any],
+    target: str | None,
+    plugins: tuple[str, ...],
+    log_format: str,
+    pipelines: tuple[str, ...],
+    dry_run: bool,
+) -> None:
+    """Upload the project to the workspace and create or update one job per pipeline.
+
+    Prints one JSON line per pipeline: {pipeline, job_id, action, root}. With --dry-run it prints
+    {pipeline, root, settings} instead and creates no client. Exit codes: 0 ok, 1 a diagnostic.
+    """
+    inv = Invocation("databricks deploy", log_format)
+    plan, bound, runtime, report = _load(inv, project_dir, target, vars_, plugins)
+    opts = deploy_options(plan, report)
+    names = pipelines or (sorted(opts.pipelines) if opts else ())
+    for name in names:
+        if opts is not None and name not in opts.pipelines:
+            report.add("PLD004", f"pipeline '{name}' is not in the deploy block")
+    if opts is None or report.has_errors:
+        inv.finish(report.sorted(), 1, bound=bound)
+        return
+    if dry_run:
+        for name in names:
+            prepared = prepare(project_dir, plan, name, runtime, report, user=lambda: "<user>")
+            if prepared is not None:
+                doc: dict[str, Any] = {
+                    "pipeline": name,
+                    "root": prepared.root,
+                    "settings": to_json(prepared.job.settings),
+                }
+                click.echo(json.dumps(doc, ensure_ascii=True))
+    else:
+        profile, factory = ctx.meta.get(CONNECTION_KEY, (None, None))
+        try:
+            client = connect(profile=profile, env=os.environ, factory=factory)
+        except ConnectionNotConfigured as err:
+            report.add("PLD010", str(err))
+            inv.finish(report.sorted(), 1, bound=bound)
+            return
+        for name in names:
+            result = deploy_pipeline(client, project_dir, plan, name, runtime, report=report)
+            if result is not None:
+                doc = {
+                    "pipeline": name,
+                    "job_id": result.job_id,
+                    "action": result.action,
+                    "root": result.root,
+                }
+                click.echo(json.dumps(doc, ensure_ascii=True))
+    inv.finish(report.sorted(), 1 if report.has_errors else 0, bound=bound)
