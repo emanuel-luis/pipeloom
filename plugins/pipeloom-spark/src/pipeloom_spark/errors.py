@@ -21,6 +21,18 @@ MISSING: Final = frozenset(
     }
 )
 """Conditions that mean the table or path does not exist."""
+_TRANSIENT_CLASSES: Final = frozenset(
+    {
+        "Py4JNetworkError",
+        # delta.exceptions.captured: on classic Spark these can carry no readable condition
+        "ConcurrentAppendException",
+        "ConcurrentDeleteReadException",
+        "ConcurrentDeleteDeleteException",
+        "ConcurrentTransactionException",
+        "MetadataChangedException",
+        "ProtocolChangedException",
+    }
+)
 _PERMANENT_CLASSES: Final = frozenset({"AnalysisException", "ParseException"})
 
 
@@ -55,7 +67,7 @@ def _verdict(exc: BaseException) -> bool | None:
             return True
         if cond == "PARSE_SYNTAX_ERROR":
             return False
-    if _status(exc) in _TRANSIENT_STATUS or type(exc).__name__ == "Py4JNetworkError":
+    if _status(exc) in _TRANSIENT_STATUS or type(exc).__name__ in _TRANSIENT_CLASSES:
         return True
     if type(exc).__name__ in _PERMANENT_CLASSES:
         return False

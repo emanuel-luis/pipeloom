@@ -9,6 +9,7 @@ CODE = """
 import sys
 import pipeloom_databricks.spec as spec
 assert spec.RENDERER_SPEC.group == "renderers" and spec.RENDERER_SPEC.kind == "databricks"
+assert spec.UNITY_SPEC.group == "catalogs" and spec.SECRETS_SPEC.group == "secret_providers"
 for name in ("databricks", "databricks.sdk", "pyspark", "pipeloom_spark", "pipeloom_databricks.render"):
     assert name not in sys.modules, name + " was imported"
 print("ok")
@@ -26,6 +27,12 @@ ENTRY = """
 import importlib.metadata as md
 found = {e.name: e.value for e in md.entry_points(group="pipeloom.renderers")}
 assert found["databricks"] == "pipeloom_databricks.spec:RENDERER_SPEC", found
+for group, name, attr in (
+    ("catalogs", "unity", "UNITY_SPEC"),
+    ("secret_providers", "databricks", "SECRETS_SPEC"),
+):
+    found = {e.name: e.value for e in md.entry_points(group="pipeloom." + group)}
+    assert found[name] == "pipeloom_databricks.spec:" + attr, found
 print("ok")
 """
 
