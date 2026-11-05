@@ -25,6 +25,12 @@ class Verdict:
     message: str | None
 
 
+def latest_attempt(run: RunInfo, task_key: str) -> TaskRunInfo | None:
+    """The entry of `task_key` with the highest attempt; retries may be separate entries."""
+    entries = [t for t in run.tasks if t.task_key == task_key]
+    return max(entries, key=lambda t: t.attempt) if entries else None
+
+
 def task_verdict(
     run: RunInfo, task_key: str, *, baseline_attempt: int, max_attempts: int
 ) -> Verdict | None:
@@ -36,7 +42,7 @@ def task_verdict(
     was skipped, and a state no rule names is a failure.
     """
     terminal = run.life_cycle_state in TERMINAL
-    task = next((t for t in run.tasks if t.task_key == task_key), None)
+    task = latest_attempt(run, task_key)
     if task is None:
         return Verdict("skipped", 0, f"task {task_key} did not run") if terminal else None
     if not terminal and task.attempt < baseline_attempt:
@@ -71,6 +77,7 @@ def run_ended(run: RunInfo, repair_id: int | None, seen_active: bool) -> bool:
 
 def snapshot(run: RunInfo) -> dict[str, JsonValue]:
     """The run as plain JSON for an XCom: its states and each task's latest attempt."""
+    latest = [latest_attempt(run, key) for key in sorted({t.task_key for t in run.tasks})]
     tasks: dict[str, JsonValue] = {
         t.task_key: {
             "run_id": t.run_id,
@@ -80,7 +87,8 @@ def snapshot(run: RunInfo) -> dict[str, JsonValue]:
             "termination_code": t.termination_code,
             "message": t.message,
         }
-        for t in sorted(run.tasks, key=lambda t: t.task_key)
+        for t in latest
+        if t is not None
     }
     return {
         "v": SNAPSHOT_VERSION,

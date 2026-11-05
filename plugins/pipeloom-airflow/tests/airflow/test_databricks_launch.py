@@ -37,6 +37,7 @@ def make_dag(dbx_project: Any, **kw: Any) -> PipeloomDag:
         "databricks_client_factory": FACTORY,
         "databricks_ensure_job": True,
         "databricks_poll_interval": 5.0,
+        "databricks_poll": "shared",
         **kw,
     }
     return PipeloomDag(
@@ -191,6 +192,119 @@ def test_the_airflow_connection_maps_to_explicit_credentials(
     launch(dag, ti)
     assert seen[0]["host"] == "https://adb-1.example.net" and seen[0]["auth_type"] == "pat"
     assert masked == ["dapi-secret"]
+
+
+def per_task_launch(dag: PipeloomDag, ti: FakeTaskInstance, **params: Any) -> dict[str, Any]:
+    doc: dict[str, Any] = dag.get_task(naming.LAUNCH_ID).execute(context(ti, **params))
+    ti.xcoms[(naming.LAUNCH_ID, "return_value")] = doc
+    return doc
+
+
+def test_per_task_is_the_default_and_the_launch_returns_at_once(
+    dbx_project: Any, fake: FakeDatabricks
+) -> None:
+    dag = make_dag(dbx_project, databricks_poll="per_task")
+    assert ExecutionConfig().databricks_poll == "per_task"
+    ti = FakeTaskInstance(dag_id="d", run_id="r", task_id=naming.LAUNCH_ID)
+    doc = per_task_launch(dag, ti)
+    assert doc["action"] == "started" and "snapshot" not in doc
+    # the launch only reads the run it just started, once; it never waits for it
+    assert len(fake.starts) == 1 and fake.called("get_run") == [str(doc["job_run_id"])]
+    sensor = dag.get_task("a")
+    assert (sensor.poll, sensor.conn_id, sensor.poll_interval) == (
+        "per_task",
+        "databricks_default",
+        5.0,
+    )
+    assert sensor.timeout == 24 * 3600
+
+
+def test_a_sensor_with_a_verdict_makes_one_call_and_does_not_defer(
+    dbx_project: Any, fake: FakeDatabricks
+) -> None:
+    dag = make_dag(dbx_project, databricks_poll="per_task")
+    ti = FakeTaskInstance(dag_id="d", run_id="r", task_id="a")
+    doc = per_task_launch(dag, ti)
+    finish(
+        fake,
+        doc["job_run_id"],
+        ("a", "SUCCESS"),
+        ("b", "FAILED"),
+        ("c", "EXCLUDED"),
+        (FINALIZE_KEY, "FAILED"),
+    )
+    before = len(fake.called("get_run"))
+    outcomes = {t: sense(dag, ti, t) for t in ("a", "b", "c", naming.FINALIZE_ID)}
+    assert outcomes == {"a": "success", "b": "failed", "c": "skipped", naming.FINALIZE_ID: "failed"}
+    assert fake.called("get_run")[before:] == [str(doc["job_run_id"])] * 4
+
+
+def test_a_sensor_without_a_verdict_defers_on_its_own_trigger_and_settles(
+    dbx_project: Any, fake: FakeDatabricks, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dag = make_dag(dbx_project, databricks_poll="per_task")
+    ti = FakeTaskInstance(dag_id="d", run_id="r", task_id="a")
+    doc = per_task_launch(dag, ti)
+    job_run_id = doc["job_run_id"]
+    run = fake.runs[job_run_id]
+    fake.set_run(job_run_id, job_id=run.job_id, life_cycle_state="RUNNING", tasks=[])
+    sensor = dag.get_task("a")
+    with pytest.raises(BaseException) as info:  # TaskDeferred is not an Exception
+        sensor.execute(context(ti))
+    deferred = info.value
+    assert type(deferred).__name__ == "TaskDeferred"
+    assert deferred.method_name == "execute_complete"
+    assert deferred.timeout.total_seconds() == 24 * 3600
+    _, kwargs = deferred.trigger.serialize()
+    assert (kwargs["task_key"], kwargs["job_run_id"], kwargs["poll_interval"]) == (
+        "a",
+        job_run_id,
+        5.0,
+    )
+
+    async def sleep(seconds: float) -> None:
+        fake.set_run(
+            job_run_id,
+            job_id=run.job_id,
+            life_cycle_state="RUNNING",
+            tasks=[TaskRunInfo("a", 1, 0, "TERMINATED", "SUCCESS", None, "ok")],
+        )
+
+    monkeypatch.setattr(type(deferred.trigger), "sleep", staticmethod(sleep))
+
+    async def first() -> Any:
+        async for event in deferred.trigger.run():
+            return event.payload
+        raise AssertionError("no event")
+
+    event = asyncio.run(first())
+    assert sensor.execute_complete(context(ti), event) is None
+    failed = {**event, "outcome": "failed", "message": "boom"}
+    with pytest.raises(_compat.AirflowFailException, match="boom"):
+        sensor.execute_complete(context(ti), failed)
+
+
+def test_a_per_task_sensor_reads_the_baseline_and_reports_api_errors(
+    dbx_project: Any, fake: FakeDatabricks
+) -> None:
+    dag = make_dag(dbx_project, databricks_poll="per_task")
+    ti = FakeTaskInstance(dag_id="d", run_id="r", task_id="b")
+    assert sense(dag, ti, "b") == "failed"  # no launch result
+    doc = per_task_launch(dag, ti)
+    ti.xcoms[(naming.LAUNCH_ID, "return_value")] = {**doc, "baseline": {"b": 1}}
+    job_run_id = doc["job_run_id"]
+    fake.set_run(
+        job_run_id,
+        job_id=doc["job_id"],
+        life_cycle_state="RUNNING",
+        tasks=[TaskRunInfo("b", 1, 0, "TERMINATED", "FAILED", None, "stale")],
+    )
+    with pytest.raises(BaseException) as info:
+        dag.get_task("b").execute(context(ti))
+    assert type(info.value).__name__ == "TaskDeferred"  # attempt 0 is below the baseline
+    fake.fail["get_run"] = fake_module.ApiError(503, "unavailable")
+    with pytest.raises(_compat.AirflowException, match="PLD009"):
+        dag.get_task("b").execute(context(ti))
 
 
 def test_a_sensor_without_a_snapshot_fails(dbx_project: Any) -> None:

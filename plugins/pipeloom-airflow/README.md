@@ -89,10 +89,16 @@ job's finalize task (trigger rule `all_done`) that fails when the pipeloom run f
   token in its password (or `extra.token`); with `extra.service_principal_oauth` true, the OAuth
   client id is the login and its secret the password. No profile, `~/.databrickscfg` or
   `DATABRICKS_*` variable is read; a connection that cannot be used is PLD010.
-- `databricks_poll="shared"` (the only mode in this release): the launch defers on one trigger
-  that polls the whole run every `databricks_poll_interval` seconds, keeps the final snapshot in
-  its XCom, and the sensors read it without calling the API. The triggerer needs
-  `pipeloom-airflow[databricks]` installed.
+- `databricks_poll="per_task"` (the default) mirrors the run live: the launch returns right after
+  run-now or repair, and each sensor makes one `get_run` call. Without a verdict yet it defers on
+  its own trigger, which polls every `databricks_poll_interval` seconds (30 by default), rides out
+  up to 5 transient API errors in a row (429, 5xx, no answer) with doubling sleeps, and fails the
+  sensor on an auth error or when the retries run out. A sensor gives up after its `timeout` (24
+  hours by default). Cost: one API call per waiting sensor per interval.
+- `databricks_poll="shared"`: the launch defers on one trigger that polls the whole run, keeps
+  the final snapshot in its XCom, and the sensors read it without calling the API. One call per
+  interval in total, but a task's result shows only when the whole run is over.
+- The triggerer needs `pipeloom-airflow[databricks]` installed in both modes.
 
 Airflow does not run on Windows, so neither do the DAG classes.
 

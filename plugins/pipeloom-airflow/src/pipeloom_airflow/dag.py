@@ -71,12 +71,6 @@ def _plan(
     task_plan = None
     if check_airflow_version(airflow_version(), report):
         validate_configs(project, render, execution, operator_args, report)
-        if execution.mode is ExecutionMode.DATABRICKS and execution.databricks_poll != "shared":
-            report.add(
-                "PLA001",
-                f"databricks_poll '{execution.databricks_poll}' is not available in this release",
-                hint="use databricks_poll 'shared'",
-            )
         if execution.mode is ExecutionMode.KUBERNETES and not _k8s_provider_installed():
             report.add(
                 "PLA001",
@@ -245,8 +239,15 @@ def _build_databricks(
         poll_interval=execution.databricks_poll_interval,
         client_factory=execution.databricks_client_factory,
         group_id=group_id,
+        poll=execution.databricks_poll,
         **operator_args,
     )
+    sensing: dict[str, Any] = {
+        "poll": execution.databricks_poll,
+        "conn_id": execution.databricks_conn_id,
+        "poll_interval": execution.databricks_poll_interval,
+        "client_factory": execution.databricks_client_factory,
+    }
     ops: dict[str, BaseOperator] = {naming.LAUNCH_ID: launch}
     for t in plan.tasks:
         assert t.databricks_key is not None
@@ -258,6 +259,7 @@ def _build_databricks(
             task_key=t.databricks_key,
             launch_task_id=launch.task_id,
             max_attempts=t.max_attempts,
+            **sensing,
             **extra,
             **operator_args,
         )
@@ -272,6 +274,7 @@ def _build_databricks(
         launch_task_id=launch.task_id,
         max_attempts=1,
         trigger_rule="all_done",
+        **sensing,
         **operator_args,
     )
     launch >> finalize

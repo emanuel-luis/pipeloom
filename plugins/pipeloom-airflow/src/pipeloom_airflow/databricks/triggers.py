@@ -23,6 +23,15 @@ _event: Any = TriggerEvent
 _base_init: Any = BaseTrigger.__init__
 
 
+MAX_TRANSIENT = 5
+"""Transient API errors in a row the trigger rides out before it gives up."""
+
+
+def _transient(err: ApiError) -> bool:
+    """Throttling, a server error or no HTTP answer at all (status 0); auth errors are final."""
+    return err.status in (0, 429) or err.status >= 500
+
+
 def _error(message: str) -> TriggerEvent:
     event: TriggerEvent = _event({"v": EVENT_VERSION, "status": "error", "message": message})
     return event
@@ -33,7 +42,9 @@ class DatabricksRunTrigger(BaseTrigger):
 
     `task_key=None` (the `shared` poll mode) waits until the run, and the repair `repair_id` when
     set, is over, then yields the run's snapshot. With a task key it yields that task's verdict as
-    soon as there is one. An API or connection failure yields an error event.
+    soon as there is one. A transient API error (429, 5xx, no answer) is retried up to
+    `MAX_TRANSIENT` times in a row, sleeping the interval, then double, capped at four times it;
+    any other API or connection failure yields an error event.
     """
 
     sleep: Callable[[float], Awaitable[Any]] = staticmethod(asyncio.sleep)
@@ -98,12 +109,19 @@ class DatabricksRunTrigger(BaseTrigger):
             yield _error(client)
             return
         seen_active = False
+        failures = 0
         while True:
             try:
                 run = await asyncio.to_thread(client.get_run, self.job_run_id)
             except ApiError as err:
-                yield _error(f"PLD009 Databricks API request failed (HTTP {err.status}): {err}")
-                return
+                if not _transient(err) or failures >= MAX_TRANSIENT:
+                    yield _error(f"PLD009 Databricks API request failed (HTTP {err.status}): {err}")
+                    return
+                failures += 1
+                delay = min(self.poll_interval * 2 ** (failures - 1), 4 * self.poll_interval)
+                await type(self).sleep(delay)
+                continue
+            failures = 0
             if self.task_key is None:
                 if run_ended(run, self.repair_id, seen_active):
                     yield _event(
