@@ -1,0 +1,1106 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+      
+      
+      
+        <link rel="canonical" href="https://emanuel-luis.github.io/pipeloom/0.6.0/adr/0035-databricks-rendering-and-job-lifecycle/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>ADR-0035: Databricks rendering and job lifecycle - pipeloom</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#adr-0035-databricks-rendering-and-job-lifecycle" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="pipeloom" class="md-header__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            pipeloom
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ADR-0035: Databricks rendering and job lifecycle
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="pipeloom" class="md-nav__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    pipeloom
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/running/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/write-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge, replace_partitions and schema changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/retries-and-cancellation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retries, timeouts and cancellation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/polars/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/pandas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pandas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/spark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spark
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/databricks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/airflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Airflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/databricks-cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/errors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#date" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Date
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="adr-0035-databricks-rendering-and-job-lifecycle">ADR-0035: Databricks rendering and job lifecycle<a class="headerlink" href="#adr-0035-databricks-rendering-and-job-lifecycle" title="Permanent link">&para;</a></h1>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>pipeloom 0.5 deploys a plan as a Databricks job. ADR-0011 sketched the job shape and ADR-0012 the orchestrator modes, and both left facts to verify. ADR-0034 gave the core the hooks (a <code>deploy</code> block, a stable manifest, plugin commands, <code>pipeloom finalize</code>). This ADR covers the plugin side. It is written in halves: the first is rendering, which is pure and needs no workspace, and the wrapper and bundle command that need none either; the second half (deploy, run, repair, find by tag, upload) arrives with the client and amends this record. It amends ADR-0011 and ADR-0012.</p>
+<p>Facts checked against the public Jobs API documentation: a task key is 1 to 100 characters of <code>[A-Za-z0-9_-]</code>; jobs/create, reset, update and runs/submit all accept at most 1,000 tasks; a job has at most 10 environments; an environment has an <code>environment_version</code> (a string, 1 to 6) and <code>dependencies</code>; a job run's result comes from its leaf tasks.</p>
+<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>A <code>databricks</code> executor.</strong> ADR-0020 picks executors by boundary, and Databricks is an orchestrator, not a boundary. Rejected.</li>
+<li><strong>Per-model compute as a model key.</strong> Compute is a runtime setting a target may override, so a model key would need its own precedence. Rejected for target-level <code>compute_rules</code> with selectors.</li>
+<li><strong>Grouping only above the task limit.</strong> The shape of the job would change when the 1,001st model is added. Rejected: grouping applies whenever <code>task_grouping</code> is set.</li>
+<li><strong>Tasks call the core CLI directly.</strong> Needs an environment where the <code>pipeloom</code> script exists, and cannot turn a start time or an empty run id into arguments. Rejected for a plugin wrapper entry point.</li>
+<li><strong>Rendering through the SDK dataclasses.</strong> They lag the API and drop fields such as <code>environment_version</code>. Rejected for stdlib frozen dataclasses that mirror the subset we use.</li>
+</ul>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>The plugin <code>pipeloom-databricks</code> registers the <code>databricks</code> kind in the <code>renderers</code> group. Its options (<code>DatabricksDeployOptions</code>) are the validated <code>deploy</code> block: pipelines (each a selection of units and one job), named computes (<code>serverless</code> or <code>job_cluster</code>), <code>compute_rules</code> (the first matching rule wins), <code>task_grouping</code> (<code>none</code>, <code>by_tag</code>, <code>by_folder</code>) and passthrough job <code>settings</code>. The spec imports no Databricks or Spark library. Rendering is a pure function of the plan, the options and a few locations the caller supplies (project root, manifest path, the target's artifacts root, whether its state store is shared, <code>cancel_grace</code>); the core needs no new input for it.</p>
+<p>A job is named <code>pipeloom_&lt;project&gt;_&lt;pipeline&gt;_&lt;target&gt;</code> and carries the tags <code>pipeloom_job</code> (<code>&lt;project&gt;.&lt;pipeline&gt;.&lt;target&gt;</code>), <code>pipeloom_plan_hash</code>, <code>pipeloom_settings_hash</code> (sha256 of the canonical settings without that tag) and <code>pipeloom_version</code>. User tags are merged and ours win. Equal settings hashes mean a deploy is a no-op.</p>
+<p>Tasks run a plugin wrapper: <code>python_wheel_task</code> with package <code>pipeloom_databricks</code> and entry point <code>pipeloom_databricks_task</code>. Parameters are <code>--opt=value</code> strings, so an empty value stays one argument. They carry dynamic references (<code>{{job.parameters.pipeloom_run_id}}</code>, <code>{{job.id}}</code>, <code>{{task.name}}</code>, <code>{{job.start_time.timestamp_ms}}</code>); the start time is passed as milliseconds because the <code>iso_datetime</code> format is undocumented. A one-time run (<code>runs/submit</code>) gets the run id, the full-refresh flag and the start time as literals and no job references. It may use serverless compute only.</p>
+<p>Each unit is a task named by its unit id; with grouping, a group is a task named <code>tag_&lt;first tag&gt;</code> (<code>tag_untagged</code>) or <code>dir_&lt;folder of the model file&gt;</code> (<code>dir_root</code>). Group dependencies come from unit parents; groups that wait for each other are PLD003. A group must run on one compute. A finalize task, <code>pipeloom__finalize</code>, depends on every leaf, runs with <code>run_if: ALL_DONE</code>, one retry and a 1,800 s timeout, on the default compute. Tasks are sorted by key, finalize last. Retries and the retry delay are the model's (a group takes the largest); <code>timeout_seconds</code> is the model timeout plus <code>cancel_grace</code> plus 300 s, summed over a group whose every member has a timeout.</p>
+<p>Task keys replace characters outside <code>[A-Za-z0-9_-]</code> with <code>_</code>. A key above 100 characters, a key shared by several ids and a key equal to the finalize key are shortened to 91 characters, <code>_</code> and 8 hex characters of the sha256 of the raw id; every id in a collision gets the suffix, so keys do not depend on order. A job above 1,000 tasks, finalize included, is PLD001 with a hint to set <code>task_grouping</code> or split pipelines. PLD002 stays reserved and is never emitted, because submit and create share the limit. Invalid options for the plan or target are PLD004 (environment version 1, an unknown compute, more than 10 serverless environments, a key in <code>settings</code> that pipeloom owns (<code>name</code> too) or a <code>pipeloom_</code> tag, a <code>${secret:</code> reference, an artifacts root that is unset or relative, a state store that is not shared, a group on two computes, an ephemeral run on a job cluster, an unknown pipeline or one that selects no unit). A compute rule that matches no model is the warning PLD005.</p>
+<p>The wrapper (<code>pipeloom_databricks.task</code>, a <code>[project.scripts]</code> entry plus a lazy function of the same name in the package, so both Databricks lookups find it) has the subcommands <code>unit</code> and <code>finalize</code>. It rejects any parameter that still holds <code>{{</code> (PLD013, exit 1), turns an empty run id into <code>dbx-&lt;job run id&gt;</code>, turns <code>start_ms</code> into <code>--run-started-at</code>, and calls <code>pipeloom run</code> or <code>pipeloom finalize</code> in the same process, so an active Spark session stays the active one. A group task recomputes its members with <code>build_tasks</code> from the shipped manifest (an unknown group exits 1). It passes <code>databricks_job_id</code>, <code>databricks_job_run_id</code>, <code>databricks_task_key</code> and <code>databricks_task_run_id</code> as orchestrator ids and exits with the core's code. Finalize scopes the run to the units of its pipeline, spelled as <code>unit:</code> selectors, because the shipped manifest has an empty selection and a bare <code>finalize --manifest</code> would scope no unit.</p>
+<p>After a unit task the wrapper sets the task value <code>pipeloom</code> (<code>v</code>, <code>run_id</code>, <code>status</code> and, per unit, status, attempt, rows written, duration, target version, error code and warning count) read from the newest attempt files. Above 32,768 bytes units are dropped from the end and <code>truncated</code> is true. Task values are documented for notebooks only, so setting one is best effort: a failure prints one line on stderr and never changes the exit code. Only <code>task_values.py</code> (with the client modules) imports <code>databricks.sdk</code>, and only on a Databricks runtime.</p>
+<p><code>pipeloom databricks bundle --target T --out DIR [--pipeline NAME]... [--bundle-root PATH] [--check]</code> writes, per pipeline, <code>pipeloom_&lt;project&gt;_&lt;pipeline&gt;_&lt;target&gt;.job.yml</code> (with a header comment saying it is generated) and the stable <code>.manifest.json</code> into a bundle. Paths are bundle variables: <code>${workspace.file_path}/&lt;project dir relative to the bundle root&gt;</code> and <code>${workspace.file_path}/&lt;out relative to the bundle root&gt;/&lt;file&gt;</code>. The bundle root is <code>--bundle-root</code> or the nearest folder above <code>--out</code> with <code>databricks.yml</code>; none, or a project or output folder outside it, is exit 2. <code>--check</code> writes nothing and exits 1 listing the files that differ. The plugin registers the group in <code>pipeloom.commands</code>.</p>
+<p><code>pipeloom_databricks.testing.jobsim.simulate_job</code> runs a rendered job locally: it substitutes the references, runs the tasks in dependency order through the wrapper, and honors <code>run_if</code>, <code>only</code> and a repair (<code>rerun</code>). The Spark engine's <code>active</code> mode, when <code>DATABRICKS_RUNTIME_VERSION</code> is set and no session is active, attaches with <code>builder.getOrCreate()</code> and no conf, because a wheel task starts without a session; it never configures or stops that session.</p>
+<p>Run, repair and finalize states (second half). <code>run</code> finds the job by tag and compares its <code>pipeloom_settings_hash</code> tag with the local render: a missing job is PLD007 and a different hash PLD008, unless <code>--ensure</code> deploys first. <code>--select</code> and <code>--exclude</code> resolve on the plan, intersect the pipeline's units and become <code>only</code> (task keys, groups deduplicated, plus finalize); a partly selected group runs whole with a warning, and an empty selection is exit 2. With <code>--run-id</code> the start carries <code>idempotency_token = sha256("&lt;job_id&gt;:&lt;run_id&gt;")</code>. <code>--ephemeral</code> uploads as deploy does and submits with the token <code>sha256(run_id)</code>; a selection prunes the submitted tasks and finalize waits for the selection's leaves. A repair of a finished run reruns tasks that ended FAILED, TIMEDOUT, CANCELED, UPSTREAM_FAILED, UPSTREAM_CANCELED or MAXIMUM_CONCURRENT_RUNS_REACHED plus finalize, passes <code>latest_repair_id</code> from the run history, and a run still active is PLD014. After a repair <code>--wait</code> keeps polling until the run reports the new repair id. The finalize wrapper calls <code>connect(profile=None, env=os.environ)</code> and <code>get_run</code>, and maps each unit without an attempt file: EXCLUDED to <code>excluded</code>, UPSTREAM_FAILED and UPSTREAM_CANCELED to <code>skipped</code> (upstream_failed), CANCELED and TIMEDOUT to <code>cancelled</code>, FAILED to <code>failed</code> with PLD011 and the termination message. The map goes to core as <code>--unit-states</code>. A client error prints one warning and passes no states, so those units count as not run. A one-time run has no job run id in its task parameters, so its finalize asks for nothing.</p>
+<p>Output is byte-deterministic: JSON with 2-space indent, ASCII only and LF, keys in field order; bundle YAML from <code>yaml.safe_dump</code> without key sorting. Environment dependencies default to the pinned distributions (<code>pipeloom</code>, <code>pipeloom-databricks</code> and every plugin in the plan, <code>name==version</code>, sorted).</p>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<p>The job is a plain JSON document that a person can read, diff and send to the Jobs API unchanged, and rendering is testable with goldens and no workspace. The renderer needs three inputs the plan does not hold (artifacts root, state sharing, cancel grace), which the caller reads from the bound target. Tasks of a pipeline ignore dependencies on units outside it. Platform behaviors that only a live run can confirm (references in wheel task parameters, <code>only</code> with an <code>ALL_DONE</code> finalize) are guarded by the wrapper and checked by the manual workflow, not here.</p>
+<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
+<p>Accepted (first half: rendering, wrapper and bundle command; second half: run, repair and finalize states).</p>
+<h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
+<p>2026-11-05</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
