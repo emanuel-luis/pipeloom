@@ -29,7 +29,7 @@ from pipeloom.engine.types import (
     WriteConfig,
     WriteResult,
 )
-from pipeloom_spark import errors, io, sqltext
+from pipeloom_spark import errors, io, quality, sqltext
 from pipeloom_spark.catalog import DeltaPathCatalog, SparkSessionCatalog, schema_of
 from pipeloom_spark.session import SessionHandle, open_session
 from pipeloom_spark.spec import CAPABILITIES, SparkEngineOptions
@@ -156,12 +156,13 @@ class SparkEngineSession:
         return self._writer.applied(self.catalog.ident(target), token)
 
     def evaluate(self, rel: Relation, checks: Sequence[ExpectationSpec]) -> QualityCounts:
-        raise NotImplementedError("the spark engine does not evaluate expectations yet")
+        return quality.evaluate(rel, checks, self.schema(rel))
 
     def apply_drops(
         self, rel: Relation, checks: Sequence[ExpectationSpec], *, quarantine: QuarantineMeta | None
     ) -> DropResult:
-        raise NotImplementedError("the spark engine does not evaluate expectations yet")
+        kept, dropped = quality.apply_drops(rel, checks, self.schema(rel), quarantine)
+        return DropResult(_rel(kept), None if dropped is None else _rel(dropped))
 
     # -- relations ----------------------------------------------------------------------------
 
