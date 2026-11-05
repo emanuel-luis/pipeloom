@@ -491,3 +491,30 @@ def test_a_reused_run_id_keeps_its_start_and_a_mismatch_is_exit_2(root: Path) ->
     other = pipeloom(root, "-s", "a", "--run-id", "r1", "--run-started-at", "2026-01-03T00:00:00Z")
     assert other.exit_code == 2 and codes(other) == {"PLX108"}
     assert "2026-01-02T03:04:05" in other.stderr and "2026-01-03T00:00:00" in other.stderr
+
+
+VARS_YML = """config_version: 1
+name: p
+vars: {out: default_out}
+targets:
+  ci:
+    engine: {kind: memory}
+    catalog: {kind: memory}
+    artifacts: {root: "${var:out}"}
+"""
+
+
+def test_manifest_vars_bind_the_project_and_explicit_vars_win(tmp_path: Path) -> None:
+    root = make_project(tmp_path, {"pipeloom.yml": VARS_YML, "models/m.yml": MODELS})
+    path = root / "m.json"
+    argv = ["compile", "--project-dir", str(root), "--target", "ci", "--out", str(path)]
+    argv += ["--vars", '{"out": "from_manifest"}']
+    assert CliRunner().invoke(main, argv, env=ENV).exit_code == 0
+    assert pipeloom(root, "--manifest", str(path), "-s", "a", "--run-id", "r1").exit_code == 0
+    assert (root / "from_manifest/runs/r1/run_results.json").is_file()
+    assert not (root / "default_out").exists()
+    r = pipeloom(
+        root, "--manifest", str(path), "-s", "a", "--run-id", "r2", "--vars", '{"out": "x"}'
+    )
+    assert r.exit_code == 0, r.stderr
+    assert (root / "x/runs/r2/run_results.json").is_file()

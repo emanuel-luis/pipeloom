@@ -15,6 +15,7 @@ from pipeloom.artifacts.layout import RunPaths
 from pipeloom.cli._events import Invocation
 from pipeloom.cli._options import (
     log_format_option,
+    manifest_vars,
     orchestrator_context,
     orchestrator_id_option,
     plugin_option,
@@ -23,10 +24,11 @@ from pipeloom.cli._options import (
     target_option,
 )
 from pipeloom.cli.run import _plan_hash, _run_id, _started_at
-from pipeloom.diagnostics import Diagnostic
+from pipeloom.diagnostics import Diagnostic, Report
 from pipeloom.events.bus import EventSink
 from pipeloom.events.sinks.runfile import RunFileSink
 from pipeloom.graph.selectors import Selection
+from pipeloom.plan.manifest import read_manifest
 from pipeloom.runtime.finalize_run import (
     ExternalUnitState,
     FinalizeOptions,
@@ -149,10 +151,11 @@ def finalize(
     if unit_states is not None and unit_states_json is not None:
         raise click.UsageError("--unit-states and --unit-states-json cannot be used together")
     unit_states = unit_states or unit_states_json
+    plan = read_manifest(manifest, Report()) if manifest is not None else None
     opts = ProjectOptions(
         project_dir=project_dir,
         target=target,
-        vars=vars_,
+        vars=manifest_vars(plan, vars_),
         plugins=plugins,
         env=os.environ,
     )

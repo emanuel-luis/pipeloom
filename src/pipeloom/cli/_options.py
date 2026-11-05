@@ -10,6 +10,7 @@ import click
 
 from pipeloom.config.yaml import parse_yaml
 from pipeloom.diagnostics import Report
+from pipeloom.plan.model import Plan
 from pipeloom.platform import check_orchestrator_id
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -102,6 +103,11 @@ def project_options(func: F) -> F:
         help="Directory that holds pipeloom.yml.",
     )(func)
     return func
+
+
+def manifest_vars(plan: Plan | None, vars_: Mapping[str, Any]) -> dict[str, Any]:
+    """The manifest's vars as the base and the explicit --vars on top; --vars alone without a plan."""
+    return {**(plan.metadata.vars if plan else {}), **vars_}
 
 
 def select_options(func: F) -> F:
