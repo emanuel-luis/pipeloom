@@ -1503,7 +1503,9 @@ naming the path and never the value.</p>
 <h2 id="unity-catalog">Unity Catalog<a class="headerlink" href="#unity-catalog" title="Permanent link">&para;</a></h2>
 <p><code>catalog: {kind: unity, catalog: main}</code> works with the Spark engine only. Tables and views are
 addressed as <code>`catalog`.`schema`.`name`</code>; the option fills in the catalog when the target's
-naming leaves it empty. A schema is created only when it does not exist yet, so a principal
+naming leaves it empty. A model's <code>catalog</code> setting (or a folder <code>_defaults.yml</code>) wins over both,
+so each layer can write to its own catalog. pipeloom never creates a catalog: every catalog a
+model names must exist, and the principal needs <code>USE CATALOG</code> on it. A schema is created only when it does not exist yet, so a principal
 without <code>CREATE SCHEMA</code> can write to an existing one.</p>
 <h2 id="limits-and-unconfirmed-facts">Limits and unconfirmed facts<a class="headerlink" href="#limits-and-unconfirmed-facts" title="Permanent link">&para;</a></h2>
 <ul>

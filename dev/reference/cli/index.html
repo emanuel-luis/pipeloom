@@ -1317,6 +1317,10 @@
                              (process).
   --out PATH                 Manifest file, relative to the project dir unless
                              absolute.  [default: target/manifest.json]
+  --stable                   Blank generated_at, invocation_id and the
+                             selection so the same project and target always
+                             give the same bytes. `run --manifest` then runs
+                             every model unless --select is given.
   --warn-error               Exit 1 on warnings too.
   --help                     Show this message and exit.
 </code></pre>

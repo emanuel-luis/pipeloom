@@ -280,6 +280,20 @@
       "additionalProperties": false,
       "description": "Settings a model may inherit from defaults.",
       "properties": {
+        "catalog": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Catalog of the target relation; wins over the naming strategy's catalog.",
+          "title": "Catalog"
+        },
         "cluster_by": {
           "anyOf": [
             {

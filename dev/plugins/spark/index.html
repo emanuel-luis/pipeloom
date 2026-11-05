@@ -1484,12 +1484,16 @@ fails and tells you to use mode <code>active</code>. Classic and Connect cannot 
 <p><code>boundary: task</code> with local Spark starts one JVM per unit. It works, and it is slow.</p>
 <h2 id="catalogs">Catalogs<a class="headerlink" href="#catalogs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>delta_path</code>: Delta tables at <code>&lt;root&gt;/&lt;schema&gt;/&lt;name&gt;</code>; the target's catalog name is ignored. No
+<li><code>delta_path</code>: Delta tables at <code>&lt;root&gt;/&lt;schema&gt;/&lt;name&gt;</code>, or <code>&lt;root&gt;/&lt;catalog&gt;/&lt;schema&gt;/&lt;name&gt;</code> when
+  the target has a catalog (a model's <code>catalog</code> setting or the naming option). No
   metastore, and it works across processes. <code>root</code> may be a URI such as <code>s3://</code> or <code>abfss://</code>. It
   cannot hold views.</li>
 <li><code>spark_catalog</code>: tables and views by name through the session catalog (<code>catalog</code> option, else
   the current catalog). It is the base the Unity Catalog support of a later release reuses. A view
-  is created with <code>CREATE OR REPLACE VIEW</code> over a table, <code>delta</code> or <code>parquet</code> input.</li>
+  is created with <code>CREATE OR REPLACE VIEW</code> over a table, <code>delta</code> or <code>parquet</code> input. A model's
+  <code>catalog</code> setting wins over the <code>catalog</code> option. pipeloom creates schemas, never catalogs: the
+  catalog must exist, and on a local session it must be registered in the Spark conf
+  (<code>spark.sql.catalog.&lt;name&gt;</code>).</li>
 </ul>
 <h2 id="capabilities">Capabilities<a class="headerlink" href="#capabilities" title="Permanent link">&para;</a></h2>
 <table>

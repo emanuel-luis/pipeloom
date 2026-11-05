@@ -3725,7 +3725,7 @@
 <p>A view or an ephemeral model writes no rows of its own, so it cannot carry expectations. Put them on a table that reads it.</p>
 <h3 id="plp412">PLP412<a class="headerlink" href="#plp412" title="Permanent link">&para;</a></h3>
 <p>Quarantine relation collides with a model. Severity: error. Status: active. Since: 0.3.</p>
-<p>A model's quarantine table is named <model>__quarantine, and another model already has that name in the same schema.</p>
+<p>A model's quarantine table is named <model>__quarantine, and another model already has that name in the same catalog and schema.</p>
 <h3 id="plp413">PLP413<a class="headerlink" href="#plp413" title="Permanent link">&para;</a></h3>
 <p>Intermediate model with a write option. Severity: error. Status: active. Since: 0.3.</p>
 <p>An intermediate model is rewritten whole at a location of its own. It cannot be incremental, use a strategy other than overwrite, or set partition_by.</p>

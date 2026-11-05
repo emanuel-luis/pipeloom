@@ -1266,7 +1266,7 @@ per run even if the unit is retried. If the model output changes, the quarantine
 (new columns are added); an incompatible type change fails with PLM202 naming the quarantine
 table.</p>
 <p>A view or an ephemeral model cannot carry expectations (PLP411), and no other model may be called
-<code>&lt;model&gt;__quarantine</code> in the same schema (PLP412). An engine that does not declare the <code>quality</code>
+<code>&lt;model&gt;__quarantine</code> in the same catalog and schema (PLP412). An engine that does not declare the <code>quality</code>
 capability is rejected with PLC510.</p>
 <h2 id="what-the-run-records">What the run records<a class="headerlink" href="#what-the-run-records" title="Permanent link">&para;</a></h2>
 <ul>
