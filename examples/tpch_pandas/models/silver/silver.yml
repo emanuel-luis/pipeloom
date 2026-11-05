@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json
+# Silver: one row per order with its customer, nation and region; one row per line item with its
+# net revenue.
+models:
+  - name: orders_enriched
+    python: tpch_pandas.silver:orders_enriched
+    inputs:
+      orders: {ref: orders}
+      customer: {ref: customer}
+      nation: {ref: nation}
+      region: {ref: region}
+    tags: [silver]
+    expectations:
+      - {name: keys_present, check: {not_null: [order_key, customer_key]}, on_violation: fail}
+      - {name: order_key_unique, check: {unique: [order_key]}, on_violation: fail}
+  - name: lineitem_revenue
+    python: tpch_pandas.silver:lineitem_revenue
+    inputs: {lineitem: {ref: lineitem}}
+    tags: [silver]
+    expectations:
+      - {name: keys_present, check: {not_null: [order_key, line_number]}, on_violation: fail}

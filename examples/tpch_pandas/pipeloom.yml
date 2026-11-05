@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
+config_version: 1
+name: tpch_pandas
+python_paths: [src]
+vars:
+  tpch_dir: ../data/tpch
+defaults:
+  models: {materialized: table}
+targets:
+  dev:
+    engine: {kind: pandas}
+    catalog: {kind: filesystem, root: target/warehouse}
+    naming: {kind: none, schema: tpch}
+    state: {kind: json, path: .pipeloom/state}
