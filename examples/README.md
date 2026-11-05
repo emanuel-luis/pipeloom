@@ -60,8 +60,8 @@ $ uv run pipeloom run --project-dir examples/tpch_polars --target dev
 $ uv run pipeloom run --project-dir examples/tpch_pandas --target dev
 ```
 
-Without a checkout, install `pipeloom[polars]` or `pipeloom[pandas]` and run the same commands.
-Relative source locations resolve against the project directory. Point a project at other data
+To use a project outside this checkout, copy its folder, install `pipeloom[polars]` or
+`pipeloom[pandas]`, and run `pipeloom run --project-dir <folder> --target dev`. Relative source locations resolve against the project directory. Point a project at other data
 with `--vars '{"tpch_dir": "/path/to/tpch"}'`.
 
 ## Run on Spark

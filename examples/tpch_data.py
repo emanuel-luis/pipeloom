@@ -17,7 +17,14 @@ from pathlib import Path
 
 import duckdb
 
-TABLES = ("orders", "lineitem", "customer", "nation", "region")
+KEYS = {
+    "orders": "o_orderkey",
+    "lineitem": "l_orderkey, l_linenumber",
+    "customer": "c_custkey",
+    "nation": "n_nationkey",
+    "region": "r_regionkey",
+}
+TABLES = tuple(KEYS)
 
 
 def main() -> None:
@@ -37,9 +44,12 @@ def main() -> None:
             f"CAST({name} AS DOUBLE) AS {name}" if kind.startswith("DECIMAL") else name
             for name, kind, *_ in columns
         )
-        # ORDER BY the first column keeps the file stable between runs.
+        # Ordering by the full key keeps the file stable between runs.
+        order = KEYS[table]
         path = (args.out / f"{table}.parquet").as_posix()
-        con.execute(f"COPY (SELECT {select} FROM {table} ORDER BY 1) TO '{path}' (FORMAT parquet)")
+        con.execute(
+            f"COPY (SELECT {select} FROM {table} ORDER BY {order}) TO '{path}' (FORMAT parquet)"
+        )
         count = con.execute(f"SELECT count(*) FROM {table}").fetchone()[0]  # type: ignore[index]
         print(f"{path}: {count} rows")
 
