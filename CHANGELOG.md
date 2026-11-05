@@ -20,6 +20,10 @@ All notable changes to this project are documented here. The format follows
 - `tools/versions.py` accepts a root extra that pins a distribution with an extra, as in `pipeloom-spark[local]==X.Y.Z`.
 - `EngineContract`: `test_metrics` and `test_two_threads_materialize_at_once` skip for an engine without the `overwrite` strategy.
 
+### Fixed
+
+- Intermediate cleanup no longer keeps a resumed run that crashed again forever: a run whose manifest is newer than its `run_results.json` is now judged like a run without results (deleted once idle for `max(ttl, 1h)`), so an active resumed run is still kept.
+
 ## [0.3.0] - 2026-11-04
 
 pipeloom 0.3 adds incremental models, merge and replace_partitions, schema-change policies, expectations with quarantine, retries, timeouts and cancellation, on plugin API (0, 3).
