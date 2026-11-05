@@ -69,14 +69,28 @@ jobs:
     # Not a required check yet: two green runs on main first.
     needs: [lint]
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     permissions:
       contents: read
-    # Classic and Connect cannot share a Python process: one leg each, in parallel.
+    # Classic and Connect cannot share a Python process: separate legs, in parallel. The classic
+    # tests are split in two legs by module to keep each under the timeout.
     strategy:
       fail-fast: false
       matrix:
-        mode: [classic, connect]
+        include:
+          - leg: classic-contract
+            mode: classic
+            args: >-
+              --cov -k "not (TestClassicSparkCatalog and schema_policy)"
+              plugins/pipeloom-spark/tests/test_contract_classic.py
+          - leg: classic-rest
+            mode: classic
+            args: >-
+              --cov plugins/pipeloom-spark/tests
+              --ignore=plugins/pipeloom-spark/tests/test_contract_classic.py
+          - leg: connect
+            mode: connect
+            args: -m spark_connect plugins/pipeloom-spark/tests
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
@@ -94,17 +108,15 @@ jobs:
           key: ivy-${{ runner.os }}-${{ hashFiles('uv.lock') }}
           restore-keys: ivy-${{ runner.os }}-
       - run: uv sync --locked --all-packages --group spark
-      # The classic leg leaves out the schema-policy matrix on spark_catalog: the connect leg
-      # runs it on the same catalog. Coverage comes from the classic leg only.
-      - name: Spark tests (${{ matrix.mode }})
+      # The classic contract leg leaves out the schema-policy matrix on spark_catalog: the
+      # connect leg runs it on the same catalog. Coverage comes from the classic legs only.
+      - name: Spark tests (${{ matrix.leg }})
         env:
           PIPELOOM_TEST_SPARK: ${{ matrix.mode }}
           # also the tests that start a second JVM (the state store's cross-process lock)
           PIPELOOM_TEST_SPARK_HEAVY: "1"
-          ARGS: >-
-            ${{ matrix.mode == 'connect' && '-m spark_connect'
-            || '--cov -k "not (TestClassicSparkCatalog and schema_policy)"' }}
-        run: eval "uv run pytest -q -p no:cacheprovider plugins/pipeloom-spark/tests $ARGS"
+          ARGS: ${{ matrix.args }}
+        run: eval "uv run pytest -q -p no:cacheprovider $ARGS"
 
   build:
     needs: [lint]
