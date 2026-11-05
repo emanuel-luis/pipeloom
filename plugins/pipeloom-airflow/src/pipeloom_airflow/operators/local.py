@@ -213,10 +213,16 @@ class PipeloomFinalizeOperator(_ChildOperator):
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(document, f, ensure_ascii=True)
+            # A stable manifest has an empty `selected`, and the core keeps it when no selector
+            # is given, so finalize would see no unit in scope and drop every external state.
+            # Without a render selection, name the rendered units instead.
+            select = self.select
+            if not select and not self.exclude:
+                select = tuple(sorted(f"unit:{u}" for us in self.task_units.values() for u in us))
             argv = self.command.finalize_argv(
                 _python(self.venv_dir),
                 ctx,
-                select=self.select,
+                select=select,
                 exclude=self.exclude,
                 unit_states_path=path,
             )

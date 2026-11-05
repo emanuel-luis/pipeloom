@@ -87,7 +87,7 @@ def test_a_failed_unit_fails_finalize(af_project: Project, af_plan: Plan) -> Non
     states = run_units(af_plan, {"AFPROJ_MODE": "permanent"})
     with pytest.raises(AirflowFailException, match=f"pipeloom run {RID} failed"):
         finalize(af_plan, states)
-    assert set(statuses(af_project).values()) != {"success"}
+    assert "failed" in statuses(af_project).values()
 
 
 def test_a_success_without_an_attempt_file_is_pla004(af_project: Project, af_plan: Plan) -> None:
@@ -95,17 +95,13 @@ def test_a_success_without_an_attempt_file_is_pla004(af_project: Project, af_pla
     plan, _ = af_plan
     unit = next(t.unit_id for t in plan.tasks if t.models == ("base",))
     paths = RunPaths(af_project[0] / "target", RID)
-    numbers = paths.attempt_numbers(unit)
-    assert numbers == [1]
-    for n in numbers:
-        Path(paths.attempt(unit, n)).unlink()
-    try:
+    assert paths.attempt_numbers(unit) == [1]
+    paths.attempt(unit, 1).unlink()
+    with pytest.raises(AirflowFailException, match=f"pipeloom run {RID} failed"):
         finalize(af_plan, states)
-    except AirflowFailException:
-        pass
-    else:
-        pytest.fail(f"finalize passed: {states} {json.dumps(results(af_project))[:3000]}")
-    assert "PLA004" in json.dumps(results(af_project))
+    rows = {r["unit_id"]: r for r in results(af_project)["results"]}
+    assert rows[unit]["status"] == "failed" and rows[unit]["error"]["code"] == "PLA004"
+    assert len(rows) == len(plan.tasks)
 
 
 def test_finalize_without_a_virtualenv_fails(af_plan: Plan, tmp_path: Path) -> None:

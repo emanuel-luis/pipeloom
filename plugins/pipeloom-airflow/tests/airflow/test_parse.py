@@ -19,6 +19,8 @@ from pipeloom_airflow import naming
 
 HERE = Path(__file__).resolve().parent
 Plan = tuple[Any, Any]
+SCALE = float(os.environ.get("PIPELOOM_TEST_PARSE_BUDGET_SCALE", "1"))
+"""Parse budgets times this; the WSL script sets 3 because /mnt/<drive> imports are slow."""
 
 
 @pytest.fixture
@@ -80,7 +82,7 @@ def test_a_pipeloom_dag_parses_into_the_unit_graph(
     tmp_path: Path, af_project: Any, af_plan: Plan, wide: Any, dag_file: str
 ) -> None:
     result = parse(tmp_path, dag_file, af_project, wide)
-    assert result["parse_s"] < 2.0, result["parse_s"]
+    assert result["parse_s"] < 2.0 * SCALE, result["parse_s"]
     (dag,) = result["dags"].values()
     plan = af_plan[0]
     tasks = dag["tasks"]
@@ -98,7 +100,7 @@ def test_a_pipeloom_dag_parses_into_the_unit_graph(
     by_model = {t.models[0]: t.task_id for t in plan.tasks}
     assert tasks[by_model["child"]]["upstream"] == [by_model["base"]]
     if dag_file == "shop_local.py":
-        assert tasks[by_model["base"]]["outlets"] == ["pipeloom://afproj/dev/base"]
+        assert tasks[by_model["base"]]["outlets"] == ["pipeloom://afproj/dev/main.base"]
 
 
 @pytest.mark.timeout(240)
@@ -119,7 +121,7 @@ def test_a_task_group_nests_the_units_between_other_tasks(
 @pytest.mark.timeout(240)
 def test_500_units_parse_within_the_budget(tmp_path: Path, af_project: Any, wide: Any) -> None:
     result = parse(tmp_path, "wide_500.py", af_project, wide)
-    assert result["parse_s"] < 8.0, result["parse_s"]
+    assert result["parse_s"] < 8.0 * SCALE, result["parse_s"]
     tasks = result["dags"]["wide_500"]["tasks"]
     assert len(tasks) == 501
     assert len(tasks[naming.FINALIZE_ID]["upstream"]) == 500

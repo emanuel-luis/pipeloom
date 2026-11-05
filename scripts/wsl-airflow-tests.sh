@@ -18,5 +18,13 @@ export PIPELOOM_TEST_AIRFLOW=1
 for name in $(env | sed -n 's/^\(AIRFLOW_CONN_[^=]*\|AIRFLOW__SECRETS__[^=]*\)=.*/\1/p'); do
     unset "$name"
 done
+# Sources on /mnt/<drive> import several times slower than on a Linux file system, so the parse
+# budgets get a factor here; CI runs them unscaled.
+export PIPELOOM_TEST_PARSE_BUDGET_SCALE="${PIPELOOM_TEST_PARSE_BUDGET_SCALE:-3}"
 uv sync --locked --all-packages --group airflow
-uv run pytest -q -p no:cacheprovider plugins/pipeloom-airflow/tests "$@"
+# PIPELOOM_AIRFLOW_PIN (for example 3.2.2) installs that Airflow over the locked one, to test the
+# floor; give it its own PIPELOOM_WSL_VENV so the locked environment stays as it is.
+if [ -n "${PIPELOOM_AIRFLOW_PIN:-}" ]; then
+    uv pip install --python "$UV_PROJECT_ENVIRONMENT" "apache-airflow==$PIPELOOM_AIRFLOW_PIN"
+fi
+uv run --no-sync pytest -q -p no:cacheprovider plugins/pipeloom-airflow/tests "$@"

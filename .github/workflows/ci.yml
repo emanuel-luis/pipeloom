@@ -104,6 +104,48 @@ jobs:
             || '--cov -k "not (TestClassicSparkCatalog and schema_policy)"' }}
         run: eval "uv run pytest -q -p no:cacheprovider plugins/pipeloom-spark/tests $ARGS"
 
+  airflow:
+    # Not a required check yet: two green runs on main first. Airflow gets a throwaway home and
+    # a sqlite database under $RUNNER_TEMP; the test conftest refuses anything else.
+    needs: [lint]
+    name: airflow (${{ matrix.leg }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        leg: [latest, floor]
+    env:
+      UV_PYTHON: "3.12"
+      PIPELOOM_TEST_AIRFLOW: "1"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: true
+      - name: Throwaway Airflow home
+        run: |
+          echo "AIRFLOW_HOME=$RUNNER_TEMP/airflow-home" >> "$GITHUB_ENV"
+          echo "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:///$RUNNER_TEMP/airflow-home/airflow.db" >> "$GITHUB_ENV"
+      - name: Airflow tests (locked latest)
+        if: matrix.leg == 'latest'
+        run: |
+          uv sync --locked --all-packages --group airflow
+          uv run pytest -q -p no:cacheprovider plugins/pipeloom-airflow/tests --cov=pipeloom_airflow
+      # The floor: the oldest supported Airflow on the oldest supported Python, outside the lock.
+      - name: Airflow tests (3.2.2 floor)
+        if: matrix.leg == 'floor'
+        run: |
+          uv venv "$RUNNER_TEMP/af-floor" --python 3.11
+          uv pip install --python "$RUNNER_TEMP/af-floor" -e . -e plugins/pipeloom-airflow \
+            -e plugins/pipeloom-polars "apache-airflow==3.2.2" pytest pytest-timeout
+          "$RUNNER_TEMP/af-floor/bin/python" -m pytest -q -p no:cacheprovider \
+            plugins/pipeloom-airflow/tests -m "not airflow_e2e"
+
   build:
     needs: [lint]
     runs-on: ubuntu-latest
