@@ -41,6 +41,9 @@ spark = "pipeloom_spark.spec:ENGINE_SPEC"
 delta_path = "pipeloom_spark.spec:DELTA_PATH_SPEC"
 spark_catalog = "pipeloom_spark.spec:SPARK_CATALOG_SPEC"
 
+[project.entry-points."pipeloom.state_stores"]
+table = "pipeloom_spark.spec:TABLE_STATE_SPEC"
+
 [tool.uv.sources]
 pipeloom = { workspace = true }
 

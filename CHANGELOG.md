@@ -21,6 +21,9 @@ All notable changes to this project are documented here. The format follows
 - Spark Delta writes (ADR-0032): `append`, `overwrite`, `merge` and `replace_partitions` (`replaceWhere`), the `view`, `incremental` and `intermediate` materializations, idempotent writes (`txnAppId`, `txnVersion` and a token in `userMetadata`; a MERGE is followed by an empty token commit) and row and byte metrics read from the commit history. No Spark conf is set.
 - PLM207: Delta skipped the write because a later transaction version exists for the model (a newer or overlapping run, or clock skew); permanent for retries. `txn_guard: false` turns the guard off.
 - `EngineContract`: `test_metrics` and `test_two_threads_materialize_at_once` skip for an engine without the `overwrite` strategy.
+- Spark expectations and quarantine: the Spark engine declares `quality` and evaluates every count and aggregate of a model's checks in one Spark job; dropped rows go to the quarantine table with the usual `_pipeloom_*` columns.
+- `table` state store in `pipeloom-spark` (ADR-0033): watermarks, runs, units and the run lock in one Delta table, by catalog name (`table`) or by path (`path`). Compare-and-set and the lease lock are single `MERGE` statements, Delta conflicts are retried, and the store reuses the engine's Spark session. It is shared (`shared=True`), so `boundary: task` can use it.
+- Spark tests that start a second JVM opt in with `PIPELOOM_TEST_SPARK_HEAVY=1`. CI does not set it yet: on CI the child JVM stalled while resolving the Delta packages.
 
 ## [0.3.0] - 2026-11-04
 
