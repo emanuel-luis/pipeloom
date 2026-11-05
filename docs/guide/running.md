@@ -42,11 +42,33 @@ unit that already committed under that token is not written twice. Rerunning a f
 with the same id leaves the data byte-identical. Attempt files keep counting up
 (`attempt-2.json`, and so on), and `run_results.json` reports the newest attempt of each unit.
 
+Every engine sees one start time for the run. By default it is the time the run began, and a
+reused run id keeps the start recorded the first time. `--run-started-at ISO8601` (or
+`PIPELOOM_RUN_STARTED_AT`) sets it instead, for an orchestrator that wants every task to share the
+job's start time. The value needs a UTC offset (`2026-11-05T03:00:00+00:00` or a trailing `Z`) and
+needs `--run-id`. Giving a different value for a run id that already has a start is PLX108 and
+exit code 2. The Spark engine derives its Delta write version from this time.
+
 `--full-refresh` rebuilds append tables from scratch. It takes an optional `true` or `false`, so
 an orchestrator can pass a templated value.
 
 To run exactly the plan you compiled earlier, pass `--manifest target/runs/<id>/manifest.json`.
 Add `--expect-plan-hash <sha256>` to stop with PLX103 when the plan changed.
+
+## Intermediates
+
+A model with `materialized: intermediate` is persisted for the length of the run, so units in
+other processes (`boundary: task`) can read it. The result goes to
+`<artifacts.root>/runs/<run_id>/intermediate/<model>` and `relation_name` in `run_results.json` is
+that location. An intermediate takes no `incremental` block, no `partition_by` and no strategy
+other than overwrite (PLP413).
+
+The target setting `artifacts: {intermediate_ttl: 1d}` (default `1d`) says how long the data
+stays. With `0` the folder is deleted at the end of a run that succeeded; a failed run keeps it.
+At the end of every run, finalize also deletes the intermediates of other runs once
+they are older than the TTL those runs recorded. A run that left no results, or was resumed and
+stopped again, is deleted after it has been idle for the longer of the TTL and one hour. A
+deletion that fails is a warning in `run.warnings`, never a failed run.
 
 ## Locks
 
