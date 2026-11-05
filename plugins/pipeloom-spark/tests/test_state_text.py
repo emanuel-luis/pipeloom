@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -28,7 +31,9 @@ def test_cas_swaps_on_expected_or_a_replay_and_inserts_only_from_none() -> None:
 
 
 def test_lock_takes_only_an_expired_lease() -> None:
-    assert TAKE_LOCK.startswith("WHEN MATCHED AND t.expires_us <= s.acquired_us THEN UPDATE")
+    assert TAKE_LOCK.startswith(
+        "WHEN MATCHED AND (t.expires_us <= s.acquired_us OR t.owner = s.owner) THEN UPDATE"
+    )
     assert "WHEN NOT MATCHED THEN INSERT" in TAKE_LOCK
 
 
@@ -52,3 +57,14 @@ def test_release_filters_on_the_owner() -> None:
 def test_options_need_exactly_one_location(kwargs: dict[str, str]) -> None:
     with pytest.raises(ValidationError, match="exactly one"):
         TableStateOptions(**kwargs)
+
+
+@pytest.mark.parametrize("uri", ["s3://b/state", "abfss://c@a.dfs.core.windows.net/s", "dbfs:/s"])
+def test_a_uri_path_is_kept(uri: str) -> None:
+    opts = TableStateOptions.model_validate({"path": uri}, context={"project_dir": "/proj"})
+    assert opts.path == uri
+
+
+def test_a_relative_path_resolves_against_the_project() -> None:
+    opts = TableStateOptions.model_validate({"path": "st"}, context={"project_dir": "/proj"})
+    assert opts.path == os.fspath(Path("/proj") / "st")

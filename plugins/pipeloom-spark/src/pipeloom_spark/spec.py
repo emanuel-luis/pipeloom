@@ -7,7 +7,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import AfterValidator, Field, ValidationInfo, model_validator
 
-from pipeloom.config.types import ProjectPath, resolve_project_path
+from pipeloom.config.types import resolve_project_path
 from pipeloom.engine.protocols import Catalog, Engine
 from pipeloom.engine.types import CatalogCapabilities, EngineCapabilities, StateStoreCapabilities
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
@@ -63,8 +63,8 @@ class DeltaPathOptions(OptionsModel):
 class TableStateOptions(OptionsModel):
     table: str | None = None
     """Catalog table name, for example `ops._pipeloom_state`."""
-    path: ProjectPath | None = None
-    """Directory of a path-based Delta table. Set exactly one of `table` and `path`."""
+    path: RootPath | None = None
+    """Directory or URI of a path-based Delta table. Set exactly one of `table` and `path`."""
     session: SparkEngineOptions = Field(default_factory=SparkEngineOptions)
     """Used only when no Spark session exists yet; the store reuses the engine's session."""
 
