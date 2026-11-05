@@ -1,6 +1,6 @@
 # pipeloom architecture
 
-> **Status:** 0.2 implements everything in 0.1 plus `pipeloom run`: the ready-queue scheduler, the thread and process executors, the polars and pandas engines, the filesystem catalog, the sqlite and json state stores, run artifacts and the contract suites. Incremental writes, expectations, retries, timeouts, Spark and the orchestrator integrations are designed here and arrive in later versions (section 16).
+> **Status:** 0.4 implements everything up to 0.3 (the scheduler, the polars and pandas engines, incremental models, merge and replace_partitions, expectations and quarantine, retries, timeouts, cancellation) plus the `pipeloom-spark` engine with Delta writes, intermediates and the `table` state store. The Databricks and Airflow integrations are designed here and arrive in later versions (section 16).
 > Decisions are recorded as ADRs in [adr/](adr/README.md). Diagrams are D2 sources in [diagrams/](diagrams/) with committed SVGs.
 
 ## 1. Vision, goals, non-goals, principles
@@ -73,8 +73,10 @@ CLI / Python API (pipeloom.api.Project)
   ├─ plugins    entry-point discovery, built-in table, API-version gate
   ├─ builtins   naming strategies, filesystem catalog spec, env secret provider
   └─ testing    contract suites, RecordingSink, FakeClock, MemoryEngine
-Plugins: pipeloom-pandas | -polars | -spark | -databricks | -airflow | -openlineage
+Plugins: pipeloom-pandas | -polars | -spark (0.4) | planned: -databricks | -airflow | -openlineage
 ```
+
+`pipeloom-spark` depends only on `pipeloom`. pyspark is not a dependency of it: the extra `local` brings `pyspark[connect]` and `delta-spark`, and `pipeloom[spark]` pulls `pipeloom-spark[local]` ([ADR-0031](adr/0031-spark-engine.md)). Databricks runtimes and Databricks Connect ship their own pyspark, so there the plugin is installed without extras.
 
 ![Distributions and core modules, with the import direction and the entry-point groups each plugin fills. The core never imports a plugin.](diagrams/02-packages.svg)
 
@@ -222,6 +224,7 @@ class EngineSession(Protocol):
     def evaluate(self, rel: Relation, checks: Sequence["ExpectationSpec"]) -> "QualityCounts": ...  # raw counts; the core judges
     def apply_drops(self, rel: Relation, checks: Sequence["ExpectationSpec"], *, quarantine: "QuarantineMeta | None") -> "DropResult": ...
     def align(self, rel: Relation, schema: Schema) -> Relation: ...  # schema order, missing columns as typed nulls, cast
+    def write_intermediate(self, rel: Relation, ref: "IntermediateRef", token: str) -> "WriteResult": ...  # overwrite at ref.location; a repeated token writes nothing (0.4)
     def applied_token(self, target: "TargetRef", token: str) -> "WriteResult | None": ...  # stored result with skipped=True
     def unit_scope(self, unit_id: str) -> ContextManager[None]: ...  # tags this thread's work so cancel can find it
     def is_transient(self, exc: BaseException) -> bool | None: ...   # True retryable, False permanent, None no opinion
@@ -244,7 +247,7 @@ class Catalog(Protocol):
     def apply_grants(self, target: "TargetRef", grants: Sequence["Grant"]) -> None: ...
     def maintain(self, target: "TargetRef", ops: Sequence["MaintenanceOp"]) -> None: ...  # explicit (L8)
 
-class MetricsProvider(Protocol):
+class MetricsProvider(Protocol):                      # plugin-internal since 0.4: not part of the core API
     def before_write(self, target: "TargetRef") -> "MetricsToken": ...
     def after_write(self, target: "TargetRef", token: "MetricsToken", result: "WriteResult") -> "WriteMetrics": ...
 
@@ -289,7 +292,7 @@ class SecretProvider(Protocol):
     def resolve(self, path: str) -> str: ...
 ```
 
-The engine protocols above omit `Writer`, `MetricsProvider`, `Catalog.apply_grants` and `Catalog.maintain`; they arrive with the versions that need them (section 16). `ReadSpec.format` accepts `"table"` to read a catalog table through `ReadSpec.table`. The plugin API is (0, 2) in 0.2 ([ADR-0021](adr/0021-plugin-api-0-2.md)) and (0, 3) in 0.3 ([ADR-0024](adr/0024-plugin-api-0-3.md)); while the major version is 0 a plugin must match exactly.
+The engine protocols above omit `Writer`, `Catalog.apply_grants` and `Catalog.maintain`; they arrive with the versions that need them (section 16). `MetricsProvider` is shown for the shape of the `before_write` and `after_write` pair; with one implementation, the Spark engine's `DeltaMetrics`, it stays plugin-internal in 0.4 and the core has no such protocol. `ReadSpec.format` accepts `"table"` to read a catalog table through `ReadSpec.table`. The plugin API is (0, 2) in 0.2 ([ADR-0021](adr/0021-plugin-api-0-2.md)) and (0, 3) in 0.3 ([ADR-0024](adr/0024-plugin-api-0-3.md)) and (0, 4) in 0.4 ([ADR-0030](adr/0030-plugin-api-0-4-and-intermediates.md)); while the major version is 0 a plugin must match exactly.
 
 **0.3 contract additions.**
 - `WriteConfig` carries `strategy`, `unique_key`, `partition_by`, `update_condition` (engine dialect; `source.` and `target.` qualifiers, a bare name means source), `deletes` (`DeleteSpec`), `columns` (the final schema, chosen by the core) and `commit_meta`.
@@ -297,6 +300,13 @@ The engine protocols above omit `Writer`, `MetricsProvider`, `Catalog.apply_gran
 - `evaluate` and `apply_drops` need the `quality` capability. Engines count and split rows; the core judges (section 10).
 - `pipeloom.engine.errors`: `TransientError` (raise it to force a retryable failure), `CommitConflict` (a transient error for a table commit race) and `WriteKeyError` (PLM206).
 - `pipeloom.engine.types` also holds `ColumnChange`, `SchemaDiff`, `ExpectationSpec`, `QualityCounts`, `QuarantineMeta`, `DropResult`, `can_widen` and `diff_schemas`.
+
+**0.4 contract additions (plugin API (0, 4), [ADR-0030](adr/0030-plugin-api-0-4-and-intermediates.md)).**
+- `RuntimeContext` gains `run_started_at` (timezone-aware UTC, the same in every invocation of a run) and `artifacts_root` (absolute POSIX path or URI). The engine session opens before any state-store call and before the run lock, so it has no `run_started_at`; the core passes it in `WriteConfig.run_started_at` and `IntermediateRef.run_started_at`.
+- `EngineSession.write_intermediate(rel, ref, token)` persists an `intermediate` model at `IntermediateRef.location`; `ReadSpec(format="intermediate", location=...)` reads it back.
+- `CatalogCapabilities(views=)` is static data on a catalog spec, so L5 can report PLC507 without importing the catalog.
+- `unit_scope` spans a unit's reads, body, checks and write, because a lazy engine does its work at the write.
+- `WriteRefusedError` is what an engine raises when its idempotency guard refuses a write; the core reports PLM207 (section 7).
 
 **ADR-0002: Engine abstraction.**
 - Context: the spec (section 4) lists coupling in the return type, reads, schema, temporary views, writes, merge, metrics and catalog SQL.
@@ -351,11 +361,11 @@ Each finding is a `Diagnostic(code, severity, message, hint, location{file,line,
 | L1 schema | PLS | PLS101 unknown field (with "did you mean"); PLS102 type mismatch; PLS103 unsupported `config_version`; PLS104 literal value in a secret-like field; PLS105 required field missing; PLS106 `${env:X}` unset or unknown `${var:x}`; PLS107 malformed interpolation; PLS108 exactly one of a set of fields required |
 | L2 references | PLR | PLR201 unknown ref (fuzzy suggestion); PLR202 duplicate model name; PLR203 unknown source; PLR204 unknown target or plugin kind; PLR205 duplicate source; PLR206 a `model_paths` entry does not exist (warning); PLR207 no target selected |
 | L3 graph | PLG | PLG301 cycle (prints the path); PLG302 self-reference; PLG303 selector matched nothing; PLG304 unknown selector method; PLG305 malformed selector; PLG306 `unit:` selector names an unknown unit (0.2) |
-| L4 plan semantics | PLP | PLP401 merge or scd2 without `unique_key`; PLP402 incremental without `column`; PLP403 aggregate expectation with `drop`; PLP404 `incremental.input` not in `inputs`; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 `replace_partitions` without `partition_by`; PLP408 ephemeral model with no consumer (warning); PLP409 a view needs a SQL model with no inlined ephemerals (0.2); PLP410 append with a lookback above zero reloads rows (warning, 0.3); PLP411 expectations on a view or ephemeral model (0.3); PLP412 `<model>__quarantine` is also a model in the same schema (0.3) |
-| L5 capability | PLC | PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 `boundary: task` with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries > 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 `frame_api: narwhals` without a portable engine; PLC509 materialization unsupported by the engine (0.3: the memory, polars and pandas engines accept `incremental`; `intermediate` is still rejected); PLC510 expectations on an engine without the `quality` capability (0.3) |
+| L4 plan semantics | PLP | PLP401 merge or scd2 without `unique_key`; PLP402 incremental without `column`; PLP403 aggregate expectation with `drop`; PLP404 `incremental.input` not in `inputs`; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 `replace_partitions` without `partition_by`; PLP408 ephemeral model with no consumer (warning); PLP409 a view needs a SQL model with no inlined ephemerals (0.2); PLP410 append with a lookback above zero reloads rows (warning, 0.3); PLP411 expectations on a view or ephemeral model (0.3); PLP412 `<model>__quarantine` is also a model in the same schema (0.3); PLP413 an `intermediate` model with `incremental`, a strategy other than overwrite, or `partition_by` (0.4) |
+| L5 capability | PLC | PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 `boundary: task` with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries > 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 `frame_api: narwhals` without a portable engine; PLC509 materialization unsupported by the engine (0.3: the memory, polars and pandas engines accept `incremental`; 0.4: they and the Spark engine accept `intermediate`); PLC510 expectations on an engine without the `quality` capability (0.3) |
 | L6 static code | PLK | PLK601 callable file or function not found; PLK602 parameters do not match inputs; PLK603 SQL references undeclared table (warning, active when the `sqlglot` extra is installed, 0.2); PLK604 callable name bound by something other than a def (warning); PLK605 SQL not parseable for that check (warning, 0.2) |
 | L7 preflight (opt-in, connects) | PLF | PLF701 engine unreachable; PLF702 source missing; PLF703 target schema drift detected |
-| Runtime | PLX, PLM, PLQ, PLE, PLU | PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict (data already written; permanent); PLM205 watermark unusable (missing column, family mismatch or a lookback on a non-temporal column, 0.3); PLM206 write key invalid (missing key column or duplicate merge key, 0.3); PLQ301 expectation failed or `max_drop_ratio` exceeded; PLQ302 expectation names an unknown column or an `expr` the engine rejects (0.3); PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX105 run lock held (0.2); PLX106 unit process exited without a result (0.2); PLX107 manifest invalid (0.2); PLM204 input read failed (0.2) |
+| Runtime | PLX, PLM, PLQ, PLE, PLU | PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict (data already written; permanent); PLM205 watermark unusable (missing column, family mismatch or a lookback on a non-temporal column, 0.3); PLM206 write key invalid (missing key column or duplicate merge key, 0.3); PLM207 write refused by the idempotency guard: the engine skipped it because the model already has a later transaction version, nothing was written, permanent (0.4); PLQ301 expectation failed or `max_drop_ratio` exceeded; PLQ302 expectation names an unknown column or an `expr` the engine rejects (0.3); PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX105 run lock held (0.2); PLX106 unit process exited without a result (0.2); PLX107 manifest invalid (0.2); PLM204 input read failed (0.2) |
 | Renderers | PLD, PLA | PLD001 task limit exceeded; PLD002 submit above 100 tasks; PLA001 unsupported execution mode |
 
 **Commands:**
@@ -390,13 +400,14 @@ The transition table is checked in code (`pipeloom.runtime.states`). `retrying -
 Source: [04-state-machines.d2](diagrams/04-state-machines.d2).
 
 **Policies** (ADR-0029):
-- **Retries:** `retries` (default 0), `retry_delay` (default 1s) and `retry_on` (`transient`, the default, or `any`). The scheduler keeps a retry heap and never sleeps: a failed attempt with retries left moves `running -> retrying`, emits `unit.retrying` and holds no worker slot while it waits. `pipeloom.runtime.retry.classify` decides the category, in this order: `TransientError` anywhere in the cause chain; the engine's `is_transient` opinion; `ConnectionError` or `TimeoutError` in the chain; in the read, write and state phases an `OSError` other than FileNotFoundError, PermissionError (a Windows sharing violation is transient), IsADirectoryError, NotADirectoryError and FileExistsError; PLX106 is transient. Everything else is permanent. PLQ301, PLQ302, PLM202, PLM203, PLM205 and PLM206 are always permanent, so `retry_on: transient` never repeats them; `retry_on: any` retries every failed attempt and therefore repeats deterministic failures. PLC505 rejects retries on an append model whose engine has no idempotent writes.
+- **Retries:** `retries` (default 0), `retry_delay` (default 1s) and `retry_on` (`transient`, the default, or `any`). The scheduler keeps a retry heap and never sleeps: a failed attempt with retries left moves `running -> retrying`, emits `unit.retrying` and holds no worker slot while it waits. `pipeloom.runtime.retry.classify` decides the category, in this order: `TransientError` anywhere in the cause chain; the engine's `is_transient` opinion; `ConnectionError` or `TimeoutError` in the chain; in the read, write and state phases an `OSError` other than FileNotFoundError, PermissionError (a Windows sharing violation is transient), IsADirectoryError, NotADirectoryError and FileExistsError; PLX106 is transient. Everything else is permanent. PLQ301, PLQ302, PLM202, PLM203, PLM205, PLM206 and PLM207 are always permanent, so `retry_on: transient` never repeats them; `retry_on: any` retries every failed attempt and therefore repeats deterministic failures. PLC505 rejects retries on an append model whose engine has no idempotent writes.
 - **Backoff:** with `n` the retry number and `base` the `retry_delay`, `d = min(max(base, 300 s), base * 2^(n-1))` and the wait is `d * (0.5 + 0.5 * u)`, where `u` comes from `random.Random(f"{run_id}:{unit_id}:{n}")`. Delays fall in [d/2, d] and are reproducible.
 - **Retry ownership:** the owner of the schedule retries. `pipeloom run --select unit:...` runs with `retries=0`, so a child of the process executor and a unit run by an external orchestrator never retry inside; the orchestrator (or the parent scheduler) owns the retry and the attempt number.
 - **Timeouts:** per-attempt `timeout`, never retried. A timed-out unit is `timed_out` (PLX102), its descendants are skipped and the run fails.
   - The thread executor runs one daemon thread per attempt. It cannot kill a thread: it sets the attempt's cancel token, calls `EngineSession.cancel(unit_id)` once, writes the `timed_out` attempt file itself and drops whatever the thread reports later. The runner checks the token before reading, after the body, before the write and around the quarantine write, never between the start of the table write and the end of the watermark swap. A thread that is still working can therefore still commit after the verdict; the first terminal attempt file wins (`write_json_once`), finalize lets a scheduler `timed_out` or `cancelled` verdict beat a later result and records `late_result: <status>` in `warnings[]`, and `run.completed` reports `abandoned_threads`.
   - The process executor starts each child in its own process group. The child enforces the timeout with its own thread executor; the parent's deadline is `timeout + cancel_grace`, after which it kills the child and everything it started (`killpg` on POSIX, `taskkill /T /F` on Windows, only while the child has not been reaped).
 - **Cancellation:** the first SIGINT or SIGTERM (SIGINT or Ctrl+Break on Windows) asks for a graceful stop: nothing new starts, pending, queued and retrying units are cancelled, and running units are asked to stop and get `cancel_grace` (default 30 s; target setting `cancel_grace` and flag `--cancel-grace`) to finish. Units that finish in time keep their real result; the rest are marked `cancelled` (PLX104). The run emits one `run.cancel_requested`, ends `cancelled` and exits 130. A second signal is a hard stop that skips the grace and abandons live thread attempts; a third raises KeyboardInterrupt. `RunControl.request_stop` does the same from the API. A unit invocation (child process) handles the same signals and exits 130.
+- **Cancel on Spark:** `unit_scope` adds one tag to the unit for the length of its reads, body, checks and write, and `cancel(unit_id)` interrupts the jobs that carry it: a session tag (`addTag`, `interruptTag`) on Spark Connect, a SparkContext job tag (`addJobTag`, `cancelJobsWithTag`) on classic Spark. Job groups are not used, since Connect has none. A job that has not started when the first interrupt arrives is not seen, so the engine repeats the interrupt for up to a minute or until the scope ends. Cancel stops Spark jobs, not Python code between jobs, and a Delta commit either completes or does not happen ([ADR-0031](adr/0031-spark-engine.md)).
 - **Windows:** a graceful stop of a child is `CTRL_BREAK_EVENT` to its process group (`CTRL_C_EVENT` cannot target one), followed by a kill after `cancel_grace`. There are no job objects in 0.3: a grandchild of a child that exits on its own survives. On POSIX the executor sweeps the child's process group after it exits.
 - **Failure isolation:** skip-downstream is the default. Independent branches continue. `--fail-fast` stops dequeuing after the first failure.
 - **Concurrency guard:** `StateStore.lock("<project>/<target>", run_id)` blocks a second concurrent run on the same target (PLX105). The lock is a 60 s lease that a heartbeat thread renews every 20 s, so a crashed run frees it within a minute. `--no-lock` is the escape hatch. Unit mode (`--select unit:<id>`) takes no lock and does not finalize: the owning invocation does ([ADR-0020](adr/0020-execution-model-0-2.md)).
@@ -406,7 +417,7 @@ Source: [04-state-machines.d2](diagrams/04-state-machines.d2).
 - Options: persisted intermediates everywhere (simple, costs IO); inlining (free IO, recomputes); a hybrid.
 - Choice: the hybrid, decided at compile time.
   - `ephemeral` models are inlined. Their bodies run inside each consuming unit. Under `boundary: process` the result is memoized per run, so it is computed once.
-  - `intermediate` models are persisted to `<artifacts.root>/runs/<run_id>/intermediate/<model>` (or a scratch schema the catalog provides). Finalize deletes them after `intermediate_ttl`.
+  - `intermediate` models are persisted to `<artifacts.root>/runs/<run_id>/intermediate/<model>` (a scratch schema the catalog provides is planned for 0.5). Finalize deletes them after `intermediate_ttl` (section 11).
   - `view` creates a catalog view where the engine supports it, never a session view.
 - Consequences: the same plan runs in one process or many. PLP406 warns when an ephemeral model fans out to more than `ephemeral_fanout_warn` (default 3) units and suggests `intermediate`.
 
@@ -433,7 +444,7 @@ The watermark is committed after the write, and a retry with the same token repl
 **State stores:**
 - `sqlite`: core, local, single host.
 - `json`: core, a directory; atomic rename for local and volume paths.
-- `table`: a spark-plugin table in the catalog. `boundary: task` requires `table` or `json` on a shared path.
+- `table`: `pipeloom-spark`, shared. One Delta table, partitioned by `kind` (`watermark`, `run`, `unit`, `lock`), addressed by catalog name (`table`) or by path (`path`), exactly one of the two. A row is found by `(kind, key)`. Every insert or replace is one `MERGE INTO` whose source is a one-row DataFrame: the watermark compare-and-set and the lease lock are single statements, a lost race gives a clean false or `LockHeld`, and a Delta concurrent-modification error is retried up to 10 times with jitter. Renewal and release are filtered `UPDATE` and `DELETE`. Times come from the client clock. The store reuses the engine's session and stops only a session it built ([ADR-0033](adr/0033-delta-table-state-store.md)). `boundary: task` requires `table` or `json` on a shared path.
 
 **Write strategies.** All return a `WriteResult` (section 5), with fields `None` when unknown. The strategy of a model that sets none is `default_strategy(materialized)`: append for `incremental`, overwrite otherwise.
 
@@ -447,7 +458,21 @@ The watermark is committed after the write, and a retry with the same token repl
 
 A full refresh writes append, merge and replace_partitions as overwrite. A first build (the target does not exist) keeps its strategy, because into an absent table every strategy writes the same rows and merge still checks its key. On filesystem tables (ADR-0025) every strategy writes one part file per partition when `partition_by` is set; replace_partitions swaps whole files without reading the others, and a merge rewrites the whole table in 0.3 as read-modify-write under a commit lock and an expected version. SCD2 is planned (section 16).
 
-**Idempotency:** each write receives `token = "<run_id>:<model>"`. Engines with transactional idempotency use it (for Delta, an app id per model and a monotonic version from the run start epoch). Engines without it declare `idempotent_writes=False`.
+**Idempotency:** each write receives `token = "<run_id>:<model>"`. Engines with transactional idempotency use it. Engines without it declare `idempotent_writes=False`.
+
+**Delta mapping (`pipeloom-spark`, [ADR-0032](adr/0032-delta-writes-and-idempotency.md)).** All Delta statements are SQL text or DataFrameWriter options; no Spark conf is set, on any session.
+- Token: `txnAppId` is `pipeloom/<project>/<model>` (suffix `#quarantine` or `#intermediate` for those writes), `txnVersion` is the run start in epoch milliseconds, and `userMetadata` is `{"pipeloom": {"v": 1, "token", "commit_meta", "result"?}}`.
+- Check: before writing, `DESCRIBE HISTORY ... LIMIT 100` is scanned for the token, and a hit returns the stored result with `skipped=True`. When a write produced no commit carrying the token, the scan repeats (a racing attempt may have won), then the full history; a token found nowhere means Delta refused the write because a later `txnVersion` exists for this app id, and the engine raises `WriteRefusedError` (PLM207). A newer run, an overlapping run (`--no-lock`) or a host clock that ran behind trips the guard; `txn_guard: false` turns it off, leaving only the history check.
+- MERGE and migration: Delta applies `txnAppId` to a MERGE only through session confs, which would leak into other units of the session, and a migration overwrite or `mergeSchema` commit runs before the guarded write. So with the guard on, a merge into an existing table, and any write that needs a migration, first makes an empty claim commit with the real `txnAppId`, `txnVersion` and `userMetadata` `{"pipeloom": {"v": 1, "claim": token}}`. It has no `token` key, so the token scan and the metrics ignore it. Delta refuses it when a later version exists, so PLM207 comes before any data or schema change for every strategy. Later commits of that write use the app id `<app>@<token>` with version 1, which still keeps two attempts of the same token from both committing. A SQL `MERGE INTO` is then followed by an empty append carrying the token and the stored result; re-running the MERGE with the same batch converges, so a crash between the commits is safe, and the retry finds its own claim. A claim is void once a later run of the same model has committed, so that retry gets PLM207 instead of merging over the later run's data ([ADR-0032](adr/0032-delta-writes-and-idempotency.md)).
+
+| Strategy | Delta write |
+|---|---|
+| append | `mode("append")`; `mergeSchema` when the final columns add columns |
+| overwrite | `mode("overwrite")` with `overwriteSchema`, so any schema policy result is accepted |
+| replace_partitions | `replaceWhere` over the distinct partition tuples of the persisted batch (more than 10,000 tuples fails and recommends merge); works on physically partitioned and unpartitioned tables; an empty batch writes only the token commit |
+| merge | the claim commit, SQL `MERGE INTO`, then the token commit; null keys never match and insert; soft deletes are counted and moved from updated to deleted; a merge into a missing table is the first load, an append |
+
+The schema policy (above) is applied by the core; the engine maps its result. Added columns go in the write itself (`mergeSchema`); a merge first makes an empty `mergeSchema` append instead. Removed or widened columns first run one migration commit: the table is read, aligned to the final columns and overwritten with `overwriteSchema`, keeping its partitioning. A migration commit carries no `txn` options and no token, so it never counts in the metrics; with the guard on, the claim commit before it takes the write version.
 
 **Schema-change policy (`on_schema_change`):**
 - `fail` (default): any column added, removed or changed in type raises PLM202.
@@ -552,14 +577,14 @@ Long engine (JVM) traces are trimmed to the first user frame and the root cause.
 **Per-run metadata (`run_results.run`):**
 - `run_id`, `parent_run_id`, `invocation_ids[]`, `project`, `target`, `plan_hash`, `selector`, `args`, `full_refresh`.
 - `status`, `started_at`, `ended_at`, `duration_ms`, `counts{status: n}`, `totals{rows_written, bytes_written}`.
-- `identity{user, host, orchestrator}`, `pipeloom_version`, `plugins{name: version}`, `python_version`, `git_sha` (if available), `exit_code`.
+- `identity{user, host, orchestrator}`, `pipeloom_version`, `plugins{name: version}`, `python_version`, `git_sha` (if available), `exit_code`, `intermediate_ttl` (seconds; the TTL this run was finalized with, which other runs use to judge its intermediates) and `warnings[]` (run-level messages, such as `intermediate_cleanup_failed: <run_id>: <error>`).
 
 **Metrics capture (L5):**
 - `MetricsProvider.before_write` records the target version.
-- `after_write` reads commit history for versions in (before, after] and sums operation metrics. One model writes one target per run, so no global tag is needed.
+- `after_write` reads commit history for versions in (before, after] and sums operation metrics. In the Spark engine only the commits whose `userMetadata` token equals the write's own count, plus the newest MERGE commit for a merge (a SQL MERGE carries no token, so a concurrent MERGE on the same table can be mistaken for it in the metrics, never in the data). Migration commits carry no token and are not counted. Metrics are `rows_written`, `rows_inserted`, `rows_updated`, `rows_deleted`, `bytes_written` and `target_version`, each null when the commits do not report it.
 - Engines without history count rows instead: `count` on eager frames, or the writer's return value.
 
-**Artifacts.** Layout: `<artifacts.root>/runs/<run_id>/{manifest.json, run_results.json, events/<invocation_id>.jsonl, units/<unit_id>/attempt-<n>.json, logs/<unit_id>-attempt-<n>.log}`. `artifacts.root` defaults to `target`. Finalize copies the run's `manifest.json` and `run_results.json` to the root.
+**Artifacts.** Layout: `<artifacts.root>/runs/<run_id>/{manifest.json, run_results.json, events/<invocation_id>.jsonl, units/<unit_id>/attempt-<n>.json, logs/<unit_id>-attempt-<n>.log}`. `artifacts.root` defaults to `target`. An `intermediate` model's result lives under `runs/<run_id>/intermediate/<model>`. `artifacts.intermediate_ttl` (default 1d; 0 deletes the folder at the end of a succeeded run) governs it: finalize deletes the folders of other runs once expired, each judged by the TTL recorded in its own `run_results.json` (0 counts as one hour, since only a failed run is left with data) against its last activity, the newest modification time under its run folder. A run without results, or resumed after them (manifest newer than `run_results.json`), expires after `max(ttl, 1h)` idle. A deletion failure is a warning in `run.warnings`, never a run failure. Finalize copies the run's `manifest.json` and `run_results.json` to the root.
 - `results[]` has one row per persisted model, sorted by unit id; an ephemeral model appears in `ephemeral_inlined` of the units that inline it. Every row has every key, and fields 0.2 does not fill are null or empty.
 - `manifest.json` (`pipeloom.manifest/1`): `metadata{pipeloom_version, plugins, config_version, plan_hash, project, target, boundary, python_paths, vars, env_vars, generated_at, invocation_id}`, `nodes{unique_id: resolved config, body, inputs, relation, unit_ids, checksum}`, `sources`, `units{unit_id: [unique_ids]}`, `unit_parent_map{unit_id: [unit_ids]}`, `parent_map`, `child_map`, `selectors{select, exclude, selected}`.
   - `plan_hash` is the sha256 of the canonical JSON (sorted keys, no spaces) of `nodes`, `sources`, `units`, `unit_parent_map`, `parent_map`, `child_map` and `metadata` reduced to `project`, `target`, `boundary` and `config_version`. Selection, versions, timestamps and ids do not change it. A `per_user` naming strategy puts the user into the relations, so use `none` where the hash must match across machines.
@@ -598,6 +623,12 @@ Source: [06-databricks.d2](diagrams/06-databricks.d2).
 - Alternative: `compute: job_cluster` emits a shared `job_clusters[]` entry plus wheel `libraries`.
 - Per-model `databricks.compute: <key>` overrides.
 - On Databricks the engine uses the active session and never builds one.
+
+**Notes for 0.5 (what 0.4 leaves in place).**
+- `mode: active` never builds, configures or stops a session, and `auto` picks it when `DATABRICKS_RUNTIME_VERSION` is set. The 0.5 environments pin `pipeloom-spark` without extras, so the runtime's own pyspark is used.
+- The `spark_catalog` catalog is the base of the `unity` catalog: names through the session catalog, views through `CREATE OR REPLACE VIEW`.
+- `--run-started-at` (environment `PIPELOOM_RUN_STARTED_AT`) is how a rendered task gives every task the same run start, taken from the job start time; it needs an offset and `--run-id`. The Delta write version derives from it.
+- Intermediates on a remote Spark Connect server need a shared `artifacts.root` (a Volume path) in 0.4, because client and server must see the same files. A catalog scratch schema is the 0.5 alternative to a Volume.
 
 **Job lifecycle:**
 - The default is a saved job: `jobs/create`, or `reset` when it already exists, found by tag `pipeloom_job=<project>.<pipeline>.<target>`, then `run-now`. Saved jobs give run history, repair, `only`-subset runs and up to 1,000 tasks.
@@ -723,7 +754,7 @@ Catalog, state-store and sink contract suites follow the same pattern.
 
 **CI:**
 - ruff check and format; mypy `--strict`; pytest with coverage.
-- Matrix: Python 3.11-3.14 on Ubuntu, Windows and macOS. Spark tests on Ubuntu with Java 17.
+- Matrix: Python 3.11-3.14 on Ubuntu, Windows and macOS. Spark tests run in their own `spark` job on Ubuntu with Java 17: the plugin suite as a parallel matrix of three legs (classic contract, classic rest and Connect), because classic and Connect cannot share a Python process. They opt in through the test-only variable `PIPELOOM_TEST_SPARK=classic|connect` (and need pyspark importable, `java` on PATH and a non-Windows host; otherwise they skip). Tests that start a second JVM also need `PIPELOOM_TEST_SPARK_HEAVY=1`, which CI does not set ([ADR-0033](adr/0033-delta-table-state-store.md) explains why). The job runs on every PR with no path filter and is meant to become a required check after two green runs on main.
 - `uv build` plus installing the wheel into a clean venv plus `pipeloom --version`.
 - Docs build with `--strict` and D2 compile.
 
@@ -743,7 +774,7 @@ Catalog, state-store and sink contract suites follow the same pattern.
 - **0.1:** config models, loader with line marks, L0-L6, graph, selectors (`name`, `+name`, `name+`, `tag:`, `path:`, `materialized:`), plan, manifest, schema export, event bus with console and jsonl sinks. CLI: `validate`, `compile`, `ls`, `graph`, `schema`, `plugins`. A `MemoryEngine` for tests. Deferred to 0.2: PLC503 and PLK603, the `~/.pipeloom/profiles.yml` file, `PIPELOOM_*` variables beyond `PIPELOOM_TARGET`, `PIPELOOM_PROJECT_DIR` and `PIPELOOM_LOG_FORMAT`, and Narwhals support.
 - **0.2:** scheduler, thread and process executors, `pipeloom-polars` and `pipeloom-pandas`, table/view/ephemeral, append and overwrite, sqlite and json state, run_results, the contract suite. pandas has no SQL models or views yet (PLC502, PLC507), so SQL on pandas is deferred. `incremental` and `intermediate` are rejected with PLC509 until their versions. PLK603 and PLK605 need the `sqlglot` extra.
 - **0.3 (delivered):** incremental models with watermarks, merge and replace_partitions on filesystem tables (format /2), schema-change policies, expectations and quarantine, retries with backoff, per-attempt timeouts, graceful and hard cancellation, plugin API (0, 3). SCD2 and `intermediate` moved out of 0.3.
-- **0.4:** `pipeloom-spark` (Delta and Spark Connect), metrics from commit history, intermediates, idempotent writes, the `table` state store.
+- **0.4 (delivered):** `pipeloom-spark` (local Spark, Spark Connect and an active session; the `delta_path` and `spark_catalog` catalogs), Delta writes with append, overwrite, merge and replace_partitions, idempotent writes through transaction ids and a token in the commit, metrics from commit history, expectations and quarantine on Spark, the `table` state store, `intermediate` materialization on every engine, `--run-started-at`, plugin API (0, 4). pyspark is an opt-in extra. SCD2 stays planned.
 - **0.5:** `pipeloom-databricks`: renderer, bundle YAML, deploy, run, repair, finalize, task values, task grouping.
 - **0.6:** `pipeloom-airflow`: LOCAL, VIRTUALENV and KUBERNETES modes, then DATABRICKS mode.
 - **0.7:** `pipeloom-openlineage`, SCD2, deletes, `pipeloom retry` (`result:fail+`), `state:modified`.
