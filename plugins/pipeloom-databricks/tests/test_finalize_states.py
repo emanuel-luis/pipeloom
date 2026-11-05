@@ -40,10 +40,12 @@ def finalize_argv(s: Sim, fake: FakeDatabricks, *, job_run_id: str, run_id: str)
         f"--job-run-id={job_run_id}",
         "--start-ms=1700000000000",
     ]
-    with pytest.raises(SystemExit) as stop:
+    try:
         main(argv, client_factory=lambda: fake)
-    assert isinstance(stop.value.code, int)
-    return stop.value.code
+    except SystemExit as stop:
+        assert isinstance(stop.code, int)
+        return stop.code
+    return 0
 
 
 def run_of(*tasks: TaskRunInfo) -> RunInfo:

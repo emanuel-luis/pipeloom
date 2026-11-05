@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The format follows
 ### Fixed
 
 - `pipeloom run` and `pipeloom finalize` with `--manifest` now bind the project with the manifest's vars (an explicit `--vars` still wins). This fixes Databricks jobs ignoring the vars given at deploy time.
+- The Databricks task entry point returns on success instead of raising `SystemExit(0)`. Serverless runs it under IPython, which reported every successful task as failed.
 
 ## [0.6.0] - 2026-11-05
 
