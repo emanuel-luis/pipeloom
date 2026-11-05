@@ -15,8 +15,8 @@ from pipeloom_airflow._compat import (
     Context,
 )
 from pipeloom_airflow.databricks.launch import client_for
-from pipeloom_airflow.databricks.mirror import Verdict, run_from_snapshot, task_verdict
-from pipeloom_airflow.databricks.triggers import DatabricksRunTrigger
+from pipeloom_airflow.databricks.mirror import Verdict, run_ended, run_from_snapshot, task_verdict
+from pipeloom_airflow.databricks.triggers import DatabricksRunTrigger, transient
 from pipeloom_databricks.api import ApiError
 
 
@@ -86,18 +86,27 @@ class PipeloomDatabricksTaskSensor(BaseSensorOperator):
         client = client_for(self.conn_id, self.client_factory, report)
         if client is None:
             raise AirflowFailException("\n".join(format_diagnostic(d) for d in report.sorted()))
+        repair_id = launch.get("repair_id")
+        repair_id = repair_id if isinstance(repair_id, int) else None
         try:
             run = client.get_run(job_run_id)
         except ApiError as err:
-            raise AirflowException(
-                f"PLD009 Databricks API request failed (HTTP {err.status}): {err}"
-            ) from err
-        verdict = task_verdict(
-            run, self.task_key, baseline_attempt=baseline, max_attempts=self.max_attempts
-        )
-        if verdict is not None:
-            self._settle(verdict, run.run_page_url)
-            return
+            if not transient(err):
+                raise AirflowException(
+                    f"PLD009 Databricks API request failed (HTTP {err.status}): {err}"
+                ) from err
+            # a throttled or failing API says nothing about the task: the trigger keeps trying
+        else:
+            verdict = task_verdict(
+                run,
+                self.task_key,
+                baseline_attempt=baseline,
+                max_attempts=self.max_attempts,
+                ended=run_ended(run, repair_id, False),
+            )
+            if verdict is not None:
+                self._settle(verdict, run.run_page_url)
+                return
         self.defer(
             trigger=DatabricksRunTrigger(
                 conn_id=self.conn_id,
@@ -107,6 +116,7 @@ class PipeloomDatabricksTaskSensor(BaseSensorOperator):
                 max_attempts=self.max_attempts,
                 poll_interval=self.poll_interval,
                 client_factory=self.client_factory,
+                repair_id=repair_id,
             ),
             method_name="execute_complete",
             timeout=timedelta(seconds=self.timeout),
