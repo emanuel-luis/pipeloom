@@ -1,5 +1,6 @@
 # PipeloomDag in LOCAL or KUBERNETES mode (one task per unit) versus DATABRICKS mode (launch,
-# mirror sensors, repair path). Illustrates section 13 (ADR-0012) in docs/architecture.md.
+# mirror sensors, repair path). Illustrates section 13 (ADR-0012, ADR-0037 to ADR-0039) in
+# docs/architecture.md.
 ...@_style
 
 title: "Airflow: execution modes" {
@@ -11,9 +12,9 @@ title: "Airflow: execution modes" {
 direction: down
 
 manifest: "manifest.json\nparse time: no engine imports,\nno connections" {class: source}
-rid: "run id: af- plus 16 hex of\nsha256(dag_id + Airflow run_id),\nstable across task retries" {class: check}
+rid: "run id: af- plus 16 hex of sha256 over\ndag_id, run_id (and group id in a\ntask group), NUL separated;\nstable across task retries" {class: check}
 
-local: "LOCAL or KUBERNETES" {
+local: "LOCAL, VIRTUALENV or KUBERNETES" {
   class: group
   label.near: top-right
   u1: "unit task: stg_orders\nPipeloomRunOperator or pod\nairflow retries own the count" {class: process}
@@ -22,12 +23,12 @@ local: "LOCAL or KUBERNETES" {
   u1 -> u2: "all_success"
   u2 -> fin
 }
-store: "Shared artifact store\nunit files, run_results.json\n(open: fsspec leads)" {class: store}
+store: "Shared POSIX artifacts.root\nunit files, run_results.json\n(no file visible: PLA004)" {class: store}
 
 dbxmode: "DATABRICKS" {
   class: group
-  launch: "launch (deferrable)\nfind job by tag or create it,\nrun-now with pipeloom_run_id,\nrepair if a failed run exists" {class: process}
-  s1: "sensor: stg_orders\nmirrors task state" {class: process}
+  launch: "launch\nfind job by tag or deploy it,\nrun-now with pipeloom_run_id,\nattach or repair on a retry" {class: process}
+  s1: "sensor: stg_orders\none get_run, then defers (per_task)\nor reads the launch snapshot (shared)" {class: process}
   s2: "sensor: fct_orders\nsuccess, failed or skipped" {class: process}
   fin: "pipeloom_finalize\nall_done" {class: process}
   launch -> s1
