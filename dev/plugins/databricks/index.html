@@ -1517,7 +1517,8 @@ without <code>CREATE SCHEMA</code> can write to an existing one.</p>
 </ul>
 <p>Some behaviors cannot be confirmed from public documentation, so the code guards them and a
 manually dispatched workflow, <code>databricks-live</code>, checks them against a real workspace (see
-CONTRIBUTING). Until it has passed for your runtime, treat these as unconfirmed:</p>
+CONTRIBUTING). It passed all its checks on serverless environment version 5 on 2026-11-05 (pipeloom
+0.6.1). Until it has passed for your runtime, treat these as unconfirmed:</p>
 <ul>
 <li>dynamic value references such as <code>{{job.run_id}}</code> inside wheel task parameters;</li>
 <li>an empty parameter default resolving to <code>dbx-&lt;job run id&gt;</code>;</li>
