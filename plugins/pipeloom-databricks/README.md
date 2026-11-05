@@ -48,7 +48,10 @@ targets:
   pipeline, found by its `pipeloom_job` tag. It prints one JSON line per pipeline. `--dry-run`
   prints the job settings and connects to nothing. The upload holds `pipeloom.yml`, the model
   files and the `*.py` files below `python_paths` (virtual environments, `dist`, `build` and
-  similar folders are skipped). Notebooks and files above 10 MB are refused (PLD012).
+  similar folders are skipped). Other files below `python_paths` are not uploaded, so a Python
+  model that reads a file next to it (`.sql`, `.json`, `.csv`) works locally but not on
+  Databricks; keep such data in a table or a volume. Notebooks and files above 10 MB are refused
+  (PLD012).
 - Connection: `--profile`, else a `DATABRICKS_CONFIG_PROFILE` you set, else `DATABRICKS_HOST`
   with credentials, else the Databricks runtime, else PLD010. pipeloom never picks a profile
   by itself. Other codes: PLD006 (two jobs with the same tag), PLD009 (API error).
