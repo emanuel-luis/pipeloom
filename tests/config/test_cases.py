@@ -44,6 +44,9 @@ def test_case(
             for e in spec.get("entry_points", [])
         ],
     )
+    if "task" in spec:
+        run_task_case(code, spec["task"], golden)
+        return
     if "cli" in spec:
         run_cli_case(code, spec, project_dir, golden)
         return
@@ -197,6 +200,20 @@ def run_render_case(
     as_json = json.dumps([d.to_json() for d in diagnostics], indent=2, ensure_ascii=True)
     golden(f"diagnostics/{code}.txt", text)
     golden(f"diagnostics/{code}.json", as_json + "\n")
+
+
+def run_task_case(code: str, args: list[str], golden: Callable[[str, str], None]) -> None:
+    """Run the Databricks task wrapper, which has its own entry point. It prints diagnostics on
+    stderr as text, or as one JSON object per line when PIPELOOM_LOG_FORMAT is json."""
+    from pipeloom_databricks.task import cli
+
+    as_text = CliRunner().invoke(cli, args, env={"PIPELOOM_LOG_FORMAT": "text"})
+    as_json = CliRunner().invoke(cli, args, env={"PIPELOOM_LOG_FORMAT": "json"})
+    assert as_text.exit_code == as_json.exit_code == 1, as_text.stderr
+    found = [json.loads(line) for line in as_json.stderr.splitlines()]
+    assert code in {d["code"] for d in found}
+    golden(f"diagnostics/{code}.json", json.dumps(found, indent=2, ensure_ascii=True) + "\n")
+    golden(f"diagnostics/{code}.txt", as_text.stderr.replace("\r\n", "\n"))
 
 
 def run_cli_case(

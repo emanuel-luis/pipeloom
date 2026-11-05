@@ -1,0 +1,23 @@
+task:
+  - unit
+  - --project-dir=/Workspace/pipeloom/shop
+  - --manifest=/Workspace/pipeloom/shop/manifest.json
+  - --target=prod
+  - --pipeline=main
+  - --unit=a
+  - --plan-hash=0000000000000000000000000000000000000000000000000000000000000000
+  - "--run-id={{job.parameters.pipeloom_run_id}}"
+  - --full-refresh=false
+  - --job-id=7
+  - "--job-run-id={{job.run_id}}"
+  - --task-key=a
+  - --task-run-id=8
+  - --start-ms=1700000000000
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    engine: {kind: memory}
+    catalog: {kind: memory}
+    targets:
+      prod: {}

@@ -17,6 +17,10 @@ All notable changes to this project are documented here. The format follows
 - `pipeloom-databricks` (ADR-0035, first half), new in this release: a renderer for the `deploy` block (`kind: databricks`) that turns a plan into Databricks Jobs settings JSON, bundle YAML and `runs/submit` bodies. Rendering is pure (no network, no SDK, no credentials) and byte-deterministic. Supports serverless and job-cluster compute, `compute_rules`, several pipelines, `task_grouping` (`none`, `by_tag`, `by_folder`) and a finalize task. Install with `pipeloom[databricks]`.
 - PLD001 (more than 1,000 tasks), PLD003 (task groups form a cycle), PLD004 (invalid Databricks deploy options) and the warning PLD005 (a compute rule matches no model). PLD002 stays reserved and is never emitted.
 - `tools/versions.py` checks and bumps a member that pins another member (`pipeloom-spark~=X.Y.0` in `pipeloom-databricks`). `import-linter` keeps the core free of `pipeloom_databricks` and `databricks`, and the SDK out of every plugin module except the client ones.
+- `pipeloom databricks bundle --target T --out DIR` (command added by `pipeloom-databricks` through `pipeloom.commands`) writes a job file and a stable manifest per pipeline into a Declarative Automation Bundle, with `${workspace.file_path}` paths; `--check` lists stale files and exits 1. Tasks run the new `pipeloom_databricks_task` wrapper, which resolves the run id, rejects unresolved `{{...}}` parameters (PLD013), calls the core in process, sets a size-capped task value (best effort) and exits with the core's code.
+- `pipeloom_databricks.testing.jobsim.simulate_job` runs a rendered job locally through the wrapper, with `run_if`, `only` and repairs.
+- PLD013: a task parameter still holds a `{{...}}` reference.
+- `pipeloom-spark`: with `DATABRICKS_RUNTIME_VERSION` set and no active session, mode `active` attaches with `SparkSession.builder.getOrCreate()` and no conf (a wheel task starts without a session). The session is never configured or stopped. `active_session()` tries the thread's session first, then the default session another thread built.
 
 ## [0.4.0] - 2026-11-05
 

@@ -32,7 +32,16 @@ targets:
 - A pipeline job runs only its own units. An upstream model in another pipeline is read from
   its persisted output, so schedule that pipeline first.
 - Diagnostics: PLD001 (task limit), PLD003 (group cycle), PLD004 (invalid deploy options),
-  PLD005 (compute rule that matches no model).
+  PLD005 (compute rule that matches no model), PLD013 (unresolved task parameter).
+- Bundles: `pipeloom databricks bundle --target prod --out resources` writes one job file and
+  one manifest per pipeline into a Declarative Automation Bundle (the output folder must lie
+  inside the bundle, next to `databricks.yml`; add the job files to its `include`). Paths use
+  `${workspace.file_path}`. `--check` lists stale files and exits 1.
+- Tasks run `pipeloom_databricks_task`, a wrapper that calls pipeloom in the task's own process,
+  so an existing Spark session is reused. A parameter that Databricks left as `{{...}}` stops
+  the task with PLD013. After a unit task the wrapper sets the task value `pipeloom`, a small
+  summary of its units (best effort).
+- `pipeloom_databricks.testing.jobsim.simulate_job` runs a rendered job locally for tests.
 - Deploying, running and repairing jobs arrive in later releases of this package.
 
 License: Apache-2.0.

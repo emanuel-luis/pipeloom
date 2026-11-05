@@ -2,7 +2,7 @@
 
 ## Context
 
-pipeloom 0.5 deploys a plan as a Databricks job. ADR-0011 sketched the job shape and ADR-0012 the orchestrator modes, and both left facts to verify. ADR-0034 gave the core the hooks (a `deploy` block, a stable manifest, plugin commands, `pipeloom finalize`). This ADR covers the plugin side. It is written in halves: this half is rendering, which is pure and needs no workspace; the second half (deploy, run, repair, find by tag, upload, task values) arrives with the client and amends this record. It amends ADR-0011 and ADR-0012.
+pipeloom 0.5 deploys a plan as a Databricks job. ADR-0011 sketched the job shape and ADR-0012 the orchestrator modes, and both left facts to verify. ADR-0034 gave the core the hooks (a `deploy` block, a stable manifest, plugin commands, `pipeloom finalize`). This ADR covers the plugin side. It is written in halves: the first is rendering, which is pure and needs no workspace, and the wrapper and bundle command that need none either; the second half (deploy, run, repair, find by tag, upload) arrives with the client and amends this record. It amends ADR-0011 and ADR-0012.
 
 Facts checked against the public Jobs API documentation: a task key is 1 to 100 characters of `[A-Za-z0-9_-]`; jobs/create, reset, update and runs/submit all accept at most 1,000 tasks; a job has at most 10 environments; an environment has an `environment_version` (a string, 1 to 6) and `dependencies`; a job run's result comes from its leaf tasks.
 
@@ -26,6 +26,14 @@ Each unit is a task named by its unit id; with grouping, a group is a task named
 
 Task keys replace characters outside `[A-Za-z0-9_-]` with `_`. A key above 100 characters, a key shared by several ids and a key equal to the finalize key are shortened to 91 characters, `_` and 8 hex characters of the sha256 of the raw id; every id in a collision gets the suffix, so keys do not depend on order. A job above 1,000 tasks, finalize included, is PLD001 with a hint to set `task_grouping` or split pipelines. PLD002 stays reserved and is never emitted, because submit and create share the limit. Invalid options for the plan or target are PLD004 (environment version 1, an unknown compute, more than 10 serverless environments, a key in `settings` that pipeloom owns (`name` too) or a `pipeloom_` tag, a `${secret:` reference, an artifacts root that is unset or relative, a state store that is not shared, a group on two computes, an ephemeral run on a job cluster, an unknown pipeline or one that selects no unit). A compute rule that matches no model is the warning PLD005.
 
+The wrapper (`pipeloom_databricks.task`, a `[project.scripts]` entry plus a lazy function of the same name in the package, so both Databricks lookups find it) has the subcommands `unit` and `finalize`. It rejects any parameter that still holds `{{` (PLD013, exit 1), turns an empty run id into `dbx-<job run id>`, turns `start_ms` into `--run-started-at`, and calls `pipeloom run` or `pipeloom finalize` in the same process, so an active Spark session stays the active one. A group task recomputes its members with `build_tasks` from the shipped manifest (an unknown group exits 1). It passes `databricks_job_id`, `databricks_job_run_id`, `databricks_task_key` and `databricks_task_run_id` as orchestrator ids and exits with the core's code. Finalize scopes the run to the units of its pipeline, spelled as `unit:` selectors, because the shipped manifest has an empty selection and a bare `finalize --manifest` would scope no unit.
+
+After a unit task the wrapper sets the task value `pipeloom` (`v`, `run_id`, `status` and, per unit, status, attempt, rows written, duration, target version, error code and warning count) read from the newest attempt files. Above 32,768 bytes units are dropped from the end and `truncated` is true. Task values are documented for notebooks only, so setting one is best effort: a failure prints one line on stderr and never changes the exit code. Only `task_values.py` (with the client modules) imports `databricks.sdk`, and only on a Databricks runtime.
+
+`pipeloom databricks bundle --target T --out DIR [--pipeline NAME]... [--bundle-root PATH] [--check]` writes, per pipeline, `pipeloom_<project>_<pipeline>_<target>.job.yml` (with a header comment saying it is generated) and the stable `.manifest.json` into a bundle. Paths are bundle variables: `${workspace.file_path}/<project dir relative to the bundle root>` and `${workspace.file_path}/<out relative to the bundle root>/<file>`. The bundle root is `--bundle-root` or the nearest folder above `--out` with `databricks.yml`; none, or a project or output folder outside it, is exit 2. `--check` writes nothing and exits 1 listing the files that differ. The plugin registers the group in `pipeloom.commands`.
+
+`pipeloom_databricks.testing.jobsim.simulate_job` runs a rendered job locally: it substitutes the references, runs the tasks in dependency order through the wrapper, and honors `run_if`, `only` and a repair (`rerun`). The Spark engine's `active` mode, when `DATABRICKS_RUNTIME_VERSION` is set and no session is active, attaches with `builder.getOrCreate()` and no conf, because a wheel task starts without a session; it never configures or stops that session.
+
 Output is byte-deterministic: JSON with 2-space indent, ASCII only and LF, keys in field order; bundle YAML from `yaml.safe_dump` without key sorting. Environment dependencies default to the pinned distributions (`pipeloom`, `pipeloom-databricks` and every plugin in the plan, `name==version`, sorted).
 
 ## Consequences
@@ -34,7 +42,7 @@ The job is a plain JSON document that a person can read, diff and send to the Jo
 
 ## Status
 
-Accepted (first half: rendering).
+Accepted (first half: rendering, wrapper and bundle command).
 
 ## Date
 

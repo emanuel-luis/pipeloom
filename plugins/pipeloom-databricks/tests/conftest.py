@@ -1,14 +1,22 @@
 from __future__ import annotations
 
+import json
+import re
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import pytest
+from pydantic import JsonValue
 
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.diagnostics import Report
+from pipeloom.plan.manifest import manifest_bytes
 from pipeloom.plan.model import Plan
+from pipeloom_databricks import render as render_module
+from pipeloom_databricks.jobs_model import to_json
 from pipeloom_databricks.render import Locations, RenderedJob, render_job
 
 GOLDENS = Path(__file__).parent / "goldens"
@@ -26,8 +34,8 @@ LOCS = Locations(
 Deploy = Callable[..., Plan]
 
 
-def compile_dir(project_dir: Path) -> Plan:
-    outcome = Project(ProjectOptions(project_dir=project_dir, target="ci", env={})).compile()
+def compile_dir(project_dir: Path, target: str = "ci") -> Plan:
+    outcome = Project(ProjectOptions(project_dir=project_dir, target=target, env={})).compile()
     assert outcome.value is not None, [d.message for d in outcome.diagnostics]
     return outcome.value
 
@@ -93,6 +101,115 @@ def models_plan(tmp_path: Path) -> Callable[[Mapping[str, str]], Plan]:
             encoding="utf-8",
         )
         return compile_dir(tmp_path)
+
+    return make
+
+
+SIM_PROJECT = """config_version: 1
+name: sim
+engine: {{kind: memory, root: "{tables}"}}
+catalog: {{kind: memory, root: "{tables}"}}
+state: {{kind: json, path: "{state}"}}
+artifacts: {{root: "{artifacts}"}}
+deploy:
+  kind: databricks
+  pipelines: {{main: {{}}, extra: {{select: ["e"]}}}}
+  task_grouping: {grouping}
+targets:
+  prod: {{}}
+"""
+SIM_MODELS = """sources:
+  - {name: raw, format: memory, location: raw_in}
+models:
+  - {name: a, sql: select 1 as x, tags: [grp]}
+  - {name: b, sql: select * from a, inputs: {a: {ref: a}}, tags: [grp]}
+  - {name: c, sql: select * from raw, inputs: {raw: {source: raw}}, tags: [bad]}
+  - {name: d, sql: select * from c, inputs: {c: {ref: c}}, tags: [bad]}
+  - {name: e, sql: select 3 as x}
+"""
+
+
+@dataclass
+class Sim:
+    """A project that runs on the memory engine, with its rendered job and shipped manifest."""
+
+    root: Path
+    artifacts: Path
+    tables: Path
+    manifest: Path
+    plan: Plan
+    settings: dict[str, JsonValue]
+
+    def run_dir(self, run_id: str) -> Path:
+        return self.artifacts / "runs" / run_id
+
+    def results(self, run_id: str) -> dict[str, Any]:
+        doc: dict[str, Any] = json.loads(
+            (self.run_dir(run_id) / "run_results.json").read_bytes().decode("utf-8")
+        )
+        return doc
+
+    def rows(self, run_id: str) -> dict[str, dict[str, Any]]:
+        return {r["unit_id"]: r for r in self.results(run_id)["results"]}
+
+    def attempts(self, run_id: str, unit: str) -> list[str]:
+        folder = self.run_dir(run_id) / "units" / unit
+        return sorted(p.name for p in folder.glob("attempt-*.json")) if folder.is_dir() else []
+
+    def make_source_available(self) -> None:
+        """Create the table that model c reads, so c stops failing."""
+        # A relative source location is read as a path below the project dir.
+        key = quote((self.root.resolve() / "raw_in").as_posix(), safe="")
+        (self.tables / f"{key}.json").write_text('[{"x": 1}]', encoding="utf-8")
+
+
+@pytest.fixture
+def sim(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[..., Sim]:
+    """sim(grouping="none") -> a Sim whose models are a -> b, c -> d (c fails until its source
+    exists) and e. Models a and b share the tag grp, c and d the tag bad."""
+    # Production rejects a drive path as an artifacts root; these projects live under a Windows
+    # temp dir, so the check also accepts `C:/...` here.
+    monkeypatch.setattr(
+        render_module, "_ABSOLUTE", re.compile(r"^(/|[A-Za-z]:/|[A-Za-z][A-Za-z0-9+.-]+:/)")
+    )
+    for name in (
+        "DATABRICKS_RUNTIME_VERSION",
+        "PIPELOOM_TARGET",
+        "PIPELOOM_WORKERS",
+        "PIPELOOM_LOG_FORMAT",
+        "PIPELOOM_RUN_STARTED_AT",
+        "PIPELOOM_DISABLE_PLUGIN_AUTOLOAD",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+    def make(grouping: str = "none") -> Sim:
+        root, artifacts, tables = tmp_path / "proj", tmp_path / "art", tmp_path / "tables"
+        files = {
+            "pipeloom.yml": SIM_PROJECT.format(
+                tables=tables.as_posix(),
+                state=(tmp_path / "state").as_posix(),
+                artifacts=artifacts.as_posix(),
+                grouping=grouping,
+            ),
+            "models/m.yml": SIM_MODELS,
+        }
+        for rel, text in files.items():
+            path = root / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(text.encode("utf-8"))
+        plan = compile_dir(root, "prod")
+        manifest = tmp_path / "manifest.json"
+        manifest.write_bytes(manifest_bytes(plan, stable=True))
+        locs = Locations(
+            project_root=root.as_posix(),
+            manifest_path=manifest.as_posix(),
+            artifacts_root=artifacts.as_posix(),
+            state_shared=True,
+        )
+        report = Report()
+        job = render_job(plan, "main", locs, report, versions=VERSIONS)
+        assert job is not None, [d.message for d in report.sorted()]
+        return Sim(root, artifacts, tables, manifest, plan, to_json(job.settings))
 
     return make
 
