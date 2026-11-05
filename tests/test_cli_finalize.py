@@ -535,3 +535,23 @@ def test_write_json_once_still_raises_other_os_errors(
     monkeypatch.setattr(os, "rename", refuse)
     with pytest.raises(OSError, match="disk"):
         write_json_once(tmp_path / "a.json", {})
+
+
+def test_finalize_manifest_vars_bind_the_project_and_explicit_vars_win(tmp_path: Path) -> None:
+    yml = YML.replace("name: p\n", "name: p\nvars: {out: default_out}\n").replace(
+        "    catalog: {kind: memory}\n",
+        '    catalog: {kind: memory}\n    artifacts: {root: "${var:out}"}\n',
+    )
+    root = make_project(tmp_path, {"pipeloom.yml": yml, "models/m.yml": MODELS})
+    out = root / "m.json"
+    assert (
+        invoke("compile", root, "--out", str(out), "--vars", '{"out": "from_manifest"}').exit_code
+        == 0
+    )
+    r = finalize(root, "--manifest", str(out))
+    assert r.exit_code == 0, r.stderr
+    assert (root / "from_manifest/runs/r1/run_results.json").is_file()
+    assert not (root / "default_out").exists()
+    r = finalize(root, "--manifest", str(out), "--vars", '{"out": "x"}')
+    assert r.exit_code == 0, r.stderr
+    assert (root / "x/runs/r1/run_results.json").is_file()

@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `pipeloom run` and `pipeloom finalize` with `--manifest` now bind the project with the manifest's vars (an explicit `--vars` still wins). This fixes Databricks jobs ignoring the vars given at deploy time.
+
 ## [0.6.0] - 2026-11-05
 
 pipeloom 0.6 adds the `pipeloom-airflow` plugin: `PipeloomDag` and `PipeloomTaskGroup` render a project as one Airflow task per unit, run in LOCAL, VIRTUALENV or KUBERNETES mode, or mirror a deployed Databricks job in DATABRICKS mode. Airflow 3.2 or later; Airflow is an optional extra. Plugin API stays (0, 4).

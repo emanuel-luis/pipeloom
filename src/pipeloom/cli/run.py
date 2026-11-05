@@ -15,6 +15,7 @@ from pipeloom.artifacts.layout import RunPaths
 from pipeloom.cli._events import Invocation
 from pipeloom.cli._options import (
     log_format_option,
+    manifest_vars,
     orchestrator_context,
     orchestrator_id_option,
     plugin_option,
@@ -184,17 +185,16 @@ def run(
     if run_started_at is not None and run_id is None:
         raise click.UsageError("--run-started-at needs --run-id")
     chosen = cast("Literal['process', 'task'] | None", boundary)
-    if manifest is not None and chosen is not None:
-        plan = read_manifest(manifest, Report())
-        if plan is not None and plan.metadata.boundary != chosen:
-            raise click.UsageError(
-                f"--boundary {chosen} differs from the manifest's boundary "
-                f"{plan.metadata.boundary}; compile again to change it"
-            )
+    plan = read_manifest(manifest, Report()) if manifest is not None else None
+    if plan is not None and chosen is not None and plan.metadata.boundary != chosen:
+        raise click.UsageError(
+            f"--boundary {chosen} differs from the manifest's boundary "
+            f"{plan.metadata.boundary}; compile again to change it"
+        )
     opts = ProjectOptions(
         project_dir=project_dir,
         target=target,
-        vars=vars_,
+        vars=manifest_vars(plan, vars_),
         plugins=plugins,
         boundary=chosen,
         env=os.environ,
