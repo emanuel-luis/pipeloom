@@ -542,6 +542,12 @@ _ACTIVE_05: Final = (
         "Compute rule matches no model",
         "No model of the plan matches the select selectors of a compute rule, so the rule never applies.",
     ),
+    (
+        "PLD013",
+        E,
+        "Dynamic value reference not resolved in a task parameter",
+        "A parameter of a Databricks task still holds a {{...}} reference, so the platform did not substitute it. The task stops before it runs anything. Check the job's parameters and the Databricks runtime that runs the task.",
+    ),
 )
 
 

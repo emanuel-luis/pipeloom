@@ -26,11 +26,12 @@ class SessionHandle:
 
 
 def active_session() -> Any | None:
-    """The session `SparkSession.active()` returns, or None when there is none (or no pyspark)."""
+    """The session `SparkSession.getActiveSession()` returns, or None when there is none (or no
+    pyspark)."""
     try:
         from pyspark.sql import SparkSession
 
-        return SparkSession.active()
+        return SparkSession.getActiveSession()
     except Exception:  # noqa: BLE001 - no pyspark, or no active session: both mean none
         return None
 
@@ -80,9 +81,16 @@ def _open(opts: SparkEngineOptions, env: Mapping[str, str]) -> Iterator[SessionH
     if mode == "active":
         if opts.conf:
             raise ValueError("`conf` cannot be set with mode active: that session is not ours")
-        from pyspark.sql import SparkSession
+        spark = active_session()
+        if spark is None and env.get("DATABRICKS_RUNTIME_VERSION"):
+            # A wheel task starts without an active session. The runtime owns the context, so
+            # this attaches to it: no conf, and it is never stopped here.
+            from pyspark.sql import SparkSession
 
-        yield SessionHandle(SparkSession.active(), "active", False)
+            spark = SparkSession.builder.getOrCreate()
+        if spark is None:
+            raise RuntimeError("mode active needs a Spark session, and none is active")
+        yield SessionHandle(spark, "active", False)
         return
     spark = _build(opts, mode, env)
     try:
