@@ -242,7 +242,11 @@ def _plan_from_manifest(
         )
         return None, bound
     sel = opts.selection
-    if sel.select or sel.exclude:
+    recorded = plan.selection
+    # A stable manifest records no selection at all: select every model, as a compile without
+    # selectors does. A selector that matched nothing at compile time keeps `select` non-empty.
+    blank = not (recorded.select or recorded.exclude or recorded.selected)
+    if sel.select or sel.exclude or blank:
         try:
             chosen = apply_to_plan(sel, plan, report)
         except SelectorError as err:
