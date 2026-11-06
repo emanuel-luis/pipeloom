@@ -411,6 +411,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#selection-by-state-and-defer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selection by state and defer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#intermediates" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1117,6 +1128,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#selection-by-state-and-defer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selection by state and defer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#intermediates" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1254,6 +1276,37 @@ exit code 2. The Spark engine derives its Delta write version from this time.</p
 an orchestrator can pass a templated value.</p>
 <p>To run exactly the plan you compiled earlier, pass <code>--manifest target/runs/&lt;id&gt;/manifest.json</code>.
 Add <code>--expect-plan-hash &lt;sha256&gt;</code> to stop with PLX103 when the plan changed.</p>
+<h2 id="selection-by-state-and-defer">Selection by state and defer<a class="headerlink" href="#selection-by-state-and-defer" title="Permanent link">&para;</a></h2>
+<p>Compile production once with a stable manifest and keep it as the reference:</p>
+<pre><code class="language-bash">pipeloom compile --target prod --stable --out state/manifest.json
+</code></pre>
+<p><code>--state DIR</code> on <code>run</code>, <code>compile</code>, <code>ls</code> and <code>graph</code> reads <code>DIR/manifest.json</code> (and
+<code>DIR/run_results.json</code> when it is there). <code>target</code> works too, because every run copies both files to
+the artifacts root. A relative <code>DIR</code> is relative to the project dir. A missing folder, or a manifest
+or run results of another project, is PLX110.</p>
+<ul>
+<li><code>state:modified</code> selects the models that are new or whose body, config or inputs differ from the
+  reference, and the persisted models that inline a modified ephemeral model. The comparison ignores
+  the target, so a <code>dev</code> project and a <code>prod</code> reference match when nothing changed.</li>
+<li><code>state:new</code> selects the models the reference does not have.</li>
+<li><code>result:fail</code>, <code>result:skip</code>, <code>result:cancelled</code> and <code>result:succeeded</code> select by the status of
+  the model in the reference run results (<code>fail</code> includes timeouts). They need the run results
+  (PLG308).</li>
+</ul>
+<p>The graph operators work as usual, so <code>state:modified+</code> is the models that changed and everything
+downstream. A state or result atom without <code>--state</code> is PLG307. A change to a variable or an
+environment value interpolated into a model's config counts as a change; a change to a source does
+not.</p>
+<p><code>pipeloom run --state state --defer</code> reads every parent the run does not build from the relation
+the reference manifest records for it, so a dev run of one model reads the production upstreams. The
+plan and its hash stay the same. The relation is not checked first: a table that is missing, or that
+your target cannot read, fails the child with PLM204 and a hint that names the relation. An
+intermediate parent, or one the reference lacks, is read from this target and PLX112 warns. <code>--defer</code>
+is refused (PLX111) for <code>-s unit:</code> runs, for <code>boundary: task</code> and when the reference was compiled for
+another catalog kind. With a filesystem catalog the reference's <code>root</code> must be the same as yours.</p>
+<p>The dev loop:</p>
+<pre><code class="language-bash">pipeloom run --target dev --state state -s &quot;state:modified+&quot; --defer
+</code></pre>
 <h2 id="intermediates">Intermediates<a class="headerlink" href="#intermediates" title="Permanent link">&para;</a></h2>
 <p>A model with <code>materialized: intermediate</code> is persisted for the length of the run, so units in
 other processes (<code>boundary: task</code>) can read it. The result goes to

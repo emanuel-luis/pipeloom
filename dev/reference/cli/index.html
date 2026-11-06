@@ -1546,6 +1546,11 @@ folder named after the project in the current directory.</p>
                              are unioned.
   --exclude SELECTOR         Remove the models this selector matches from the
                              selection. Repeatable.
+  --state DIR                Folder of a reference manifest.json (and
+                             optionally run_results.json), for the state: and
+                             result: selectors. Relative to the project dir
+                             unless absolute. `compile --stable` or the
+                             artifacts root (target) both work.
   --log-format [text|json]   Diagnostics and events on stderr: readable text
                              or one JSON object per line.  [default: text]
   --boundary [process|task]  Where units run; default is the target's boundary
@@ -1640,6 +1645,12 @@ the run. A unit marked excluded gets no row. Exit codes: 0 ok, 1 a unit failed, 
                                   Repeatable, all are unioned.
   --exclude SELECTOR              Remove the models this selector matches from
                                   the selection. Repeatable.
+  --state DIR                     Folder of a reference manifest.json (and
+                                  optionally run_results.json), for the state:
+                                  and result: selectors. Relative to the
+                                  project dir unless absolute. `compile
+                                  --stable` or the artifacts root (target)
+                                  both work.
   --log-format [text|json]        Diagnostics and events on stderr: readable
                                   text or one JSON object per line.  [default:
                                   text]
@@ -1688,6 +1699,11 @@ out: the project name, the engine and, on databricks, the catalog.</p>
                             are unioned.
   --exclude SELECTOR        Remove the models this selector matches from the
                             selection. Repeatable.
+  --state DIR               Folder of a reference manifest.json (and
+                            optionally run_results.json), for the state: and
+                            result: selectors. Relative to the project dir
+                            unless absolute. `compile --stable` or the
+                            artifacts root (target) both work.
   --log-format [text|json]  Diagnostics and events on stderr: readable text or
                             one JSON object per line.  [default: text]
   --output [text|json]      One model name per line, or a JSON list.
@@ -1771,6 +1787,17 @@ process executor uses it.</p>
                                Repeatable, all are unioned.
   --exclude SELECTOR           Remove the models this selector matches from
                                the selection. Repeatable.
+  --state DIR                  Folder of a reference manifest.json (and
+                               optionally run_results.json), for the state:
+                               and result: selectors. Relative to the project
+                               dir unless absolute. `compile --stable` or the
+                               artifacts root (target) both work.
+  --defer                      Read the parents this run does not select from
+                               the relations of the --state manifest instead
+                               of this target's, so a dev run of one model
+                               reads the production tables. Needs --state.
+                               Refused for unit invocations and the task
+                               boundary (PLX111).
   --log-format [text|json]     Diagnostics and events on stderr: readable text
                                or one JSON object per line.  [default: text]
   --manifest FILE              Run the plan of this manifest instead of
