@@ -193,6 +193,15 @@ class PolarsSession:
             raise TypeError(f"the polars engine takes a LazyFrame, not {type(native).__name__}")
         return _rel(native)
 
+    def from_rows(self, rows: Sequence[Mapping[str, Any]], schema: Schema) -> Relation:
+        frame = pl.DataFrame(
+            [dict(r) for r in rows], schema=[(c.name, io.polars_dtype(c.dtype)) for c in schema]
+        )
+        return _rel(frame.lazy())
+
+    def to_rows(self, rel: Relation) -> list[dict[str, Any]]:
+        return portable.to_rows(rel.native)
+
     def persist(self, rel: Relation) -> Relation:
         return _rel(rel.native.collect().lazy())
 

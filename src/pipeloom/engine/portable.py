@@ -107,6 +107,12 @@ def _plain(value: Any) -> Any:
     return value
 
 
+def to_rows(native: Any) -> list[dict[str, Any]]:
+    """The rows of a frame as plain Python values; missing values are None."""
+    frame = _collect(nw.from_native(native))
+    return [{k: _plain(v) for k, v in row.items()} for row in frame.rows(named=True)]
+
+
 def count(native: Any) -> int:
     return int(_collect(nw.from_native(native).select(nw.len())).item())
 
