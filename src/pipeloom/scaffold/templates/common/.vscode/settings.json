@@ -1,0 +1,18 @@
+{
+  "yaml.schemas": {
+    "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json": [
+      "pipeloom.yml",
+      "pipeloom.yaml"
+    ],
+    "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/defaults.json": [
+      "models/**/_defaults.yml",
+      "models/**/_defaults.yaml"
+    ],
+    "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json": [
+      "models/**/*.yml",
+      "models/**/*.yaml",
+      "!models/**/_defaults.yml",
+      "!models/**/_defaults.yaml"
+    ]
+  }
+}
