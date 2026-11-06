@@ -1,6 +1,6 @@
 # pipeloom architecture
 
-> **Status:** 0.4 implements everything up to 0.3 (the scheduler, the polars and pandas engines, incremental models, merge and replace_partitions, expectations and quarantine, retries, timeouts, cancellation) plus the `pipeloom-spark` engine with Delta writes, intermediates and the `table` state store. The Databricks and Airflow integrations are designed here and arrive in later versions (section 16).
+> **Status:** 0.7 implements the versions listed in section 16: the scheduler, the polars, pandas and Spark engines, incremental models, merge and replace_partitions, expectations and quarantine, retries, timeouts and cancellation, the Databricks and Airflow integrations, and per-model catalogs. Planned work lives in the [roadmap](roadmap.md).
 > Decisions are recorded as ADRs in [adr/](adr/README.md). Diagrams are D2 sources in [diagrams/](diagrams/) with committed SVGs.
 
 ## 1. Vision, goals, non-goals, principles
@@ -867,9 +867,7 @@ Catalog, state-store and sink contract suites follow the same pattern.
 - **0.5 (delivered):** `pipeloom-databricks`: renderer, bundle YAML, direct deploy, run, repair, finalize with task states, task values, task grouping, compute rules, the `unity` catalog, the `databricks` secret provider and the manual live workflow. The core gained the `deploy` block, `pipeloom.commands`, `--orchestrator-id`, `pipeloom finalize` and runtime secret resolution (ADR-0034 to ADR-0036). Plugin API stays (0, 4).
 - **0.6 (delivered):** `pipeloom-airflow`: LOCAL, VIRTUALENV, KUBERNETES and DATABRICKS modes (live `per_task` and `shared` polling), `PipeloomDag` and `PipeloomTaskGroup`, the PROJECT compile cache, `pipeloom finalize --unit-states-json`, `pipeloom_databricks.api.connect_explicit`, PLA001 to PLA007, the `airflow` CI job. Later: the DOCKER mode and an `airflow` secret provider (connections and variables); a `dag.test()` end-to-end test of DATABRICKS mode needs a file-backed Databricks fake or the live workflow.
 - **0.7 (delivered):** a `catalog` setting per model and per folder that wins over the naming strategy's catalog, path catalogs that map a catalog to a leading directory (ADR-0040), and `pipeloom compile --stable` for reproducible manifests. Plugin API stays (0, 4).
-- **0.8:** `pipeloom init` (ADR-0041), `pipeloom-openlineage`, SCD2, deletes, `pipeloom retry` (`result:fail+`), `state:modified`.
-- **0.9:** hardening, performance, docs completeness, API freeze candidates, the deprecation policy.
-- **1.0:** `config_version: 1`, plugin API 1.0, manifest, event and run_results schemas v1 all declared stable.
+- **0.8 and later:** planned in the [roadmap](roadmap.md), starting with `pipeloom init` (ADR-0041) and block-style YAML.
 
 ## 17. ADR list and diagrams
 

@@ -6,14 +6,14 @@ Pipelines are declared in YAML and compiled into an immutable plan. The same pla
 polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG.
 Every run produces a single event stream and artifacts you can query.
 
-**Status: 0.3, alpha.** pipeloom reads a YAML project, validates it in layers (YAML, schema,
+**Status: 0.7, alpha.** pipeloom reads a YAML project, validates it in layers (YAML, schema,
 references, graph, plan semantics, engine capabilities, Python callables), builds the dependency
-graph, compiles the execution plan into a manifest and runs it on polars or pandas. Tables are
-written to a filesystem catalog (parquet, csv or ndjson), run state goes to a sqlite or json store,
-and every run writes `run_results.json`. 0.3 adds incremental models with a
-watermark, merge and replace_partitions writes, schema-change policies, and expectations with
-quarantine, plus retries with backoff, per-attempt timeouts and graceful cancellation. Not yet:
-Spark and the orchestrator integrations.
+graph, compiles the execution plan into a manifest and runs it on polars, pandas or Spark. It
+writes incremental models with a watermark, merge and replace_partitions, applies schema-change
+policies and expectations with quarantine, and retries, times out and cancels units. Every run
+writes `run_results.json`. The `pipeloom-databricks` and `pipeloom-airflow` plugins deploy a
+project as a Databricks job or an Airflow DAG with one task per model. What comes next is in the
+[roadmap](docs/roadmap.md).
 
 ```console
 $ pip install "pipeloom[polars]"   # or pipeloom[pandas]
