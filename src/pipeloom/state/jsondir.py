@@ -43,6 +43,7 @@ from pipeloom.state.types import (
     StateStore,
     UnitRecord,
     Watermark,
+    page_runs,
 )
 
 SCHEMA = "pipeloom.state/1"
@@ -183,6 +184,13 @@ class JsonDirStore:
     def get_run(self, run_id: str) -> RunRecord | None:
         data = _read_json(self._run_dir(run_id) / "run.json")
         return None if data is None else codec.run_from_json(data)
+
+    def list_runs(
+        self, project: str, target: str, limit: int, before: str | None = None
+    ) -> tuple[RunRecord, ...]:
+        found = (_read_json(f) for f in (self._root / "runs").glob("*/run.json"))
+        runs = (codec.run_from_json(d) for d in found if d is not None)
+        return page_runs(runs, project, target, limit, before)
 
     def record_unit(self, record: UnitRecord) -> None:
         path = (

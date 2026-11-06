@@ -34,6 +34,7 @@ from pipeloom.state.types import (
     StateKey,
     UnitRecord,
     Watermark,
+    page_runs,
 )
 from pipeloom_spark import errors
 from pipeloom_spark.spec import TableStateOptions
@@ -297,6 +298,13 @@ class DeltaStateStore:
     def get_run(self, run_id: str) -> RunRecord | None:
         row = self._get("run", _key(run_id))
         return None if row is None else codec.run_from_json(json.loads(row["data"]))
+
+    def list_runs(
+        self, project: str, target: str, limit: int, before: str | None = None
+    ) -> tuple[RunRecord, ...]:
+        rows = self._select("run", project=project, target=target)
+        runs = (codec.run_from_json(json.loads(r["data"])) for r in rows)
+        return page_runs(runs, project, target, limit, before)
 
     def record_unit(self, record: UnitRecord) -> None:
         self._merge(

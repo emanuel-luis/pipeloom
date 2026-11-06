@@ -308,6 +308,7 @@ class StateStore(Protocol):
     def get_run(self, run_id: str) -> "RunRecord | None": ...
     def record_unit(self, record: "UnitRecord") -> None: ...         # keyed by (run_id, unit_id, attempt)
     def list_units(self, run_id: str) -> tuple["UnitRecord", ...]: ...  # sorted by (unit_id, attempt)
+    def list_runs(self, project: str, target: str, limit: int, before: str | None = None) -> tuple["RunRecord", ...]: ...  # 0.9: newest first; before is a run id
     def lock(self, scope: str, run_id: str) -> ContextManager["LockInfo"]: ...  # non-blocking; raises LockHeld; 60 s lease renewed every 20 s
     def close(self) -> None: ...
 
@@ -345,7 +346,7 @@ class SecretProvider(Protocol):
     def resolve(self, path: str) -> str: ...
 ```
 
-The engine protocols above omit `Writer`, `Catalog.apply_grants` and `Catalog.maintain`; they arrive with the versions that need them (section 16). `MetricsProvider` is shown for the shape of the `before_write` and `after_write` pair; with one implementation, the Spark engine's `DeltaMetrics`, it stays plugin-internal in 0.4 and the core has no such protocol. `ReadSpec.format` accepts `"table"` to read a catalog table through `ReadSpec.table`. The plugin API is (0, 2) in 0.2 ([ADR-0021](adr/0021-plugin-api-0-2.md)) and (0, 3) in 0.3 ([ADR-0024](adr/0024-plugin-api-0-3.md)) and (0, 4) in 0.4 ([ADR-0030](adr/0030-plugin-api-0-4-and-intermediates.md)); while the major version is 0 a plugin must match exactly.
+The engine protocols above omit `Writer`, `Catalog.apply_grants` and `Catalog.maintain`; they arrive with the versions that need them (section 16). `MetricsProvider` is shown for the shape of the `before_write` and `after_write` pair; with one implementation, the Spark engine's `DeltaMetrics`, it stays plugin-internal in 0.4 and the core has no such protocol. `ReadSpec.format` accepts `"table"` to read a catalog table through `ReadSpec.table`. The plugin API is (0, 2) in 0.2 ([ADR-0021](adr/0021-plugin-api-0-2.md)) and (0, 3) in 0.3 ([ADR-0024](adr/0024-plugin-api-0-3.md)) and (0, 4) in 0.4 ([ADR-0030](adr/0030-plugin-api-0-4-and-intermediates.md)) and (0, 5) in 0.9 ([ADR-0047](adr/0047-run-history-and-webhook.md)); while the major version is 0 a plugin must match exactly.
 
 **0.3 contract additions.**
 - `WriteConfig` carries `strategy`, `unique_key`, `partition_by`, `update_condition` (engine dialect; `source.` and `target.` qualifiers, a bare name means source), `deletes` (`DeleteSpec`), `columns` (the final schema, chosen by the core) and `commit_meta`.
@@ -360,6 +361,9 @@ The engine protocols above omit `Writer`, `Catalog.apply_grants` and `Catalog.ma
 - `CatalogCapabilities(views=)` is static data on a catalog spec, so L5 can report PLC507 without importing the catalog.
 - `unit_scope` spans a unit's reads, body, checks and write, because a lazy engine does its work at the write.
 - `WriteRefusedError` is what an engine raises when its idempotency guard refuses a write; the core reports PLM207 (section 7).
+
+**0.9 contract additions (plugin API (0, 5), [ADR-0047](adr/0047-run-history-and-webhook.md)).**
+- `StateStore.list_runs(project, target, limit, before=None)` returns the runs of one project and target, newest first by `(started_at, run_id)`, at most `limit`; `before` is a run id to page from, and an unknown one raises `UnknownRun`. `pipeloom.state.types.page_runs` does the ordering and paging for any store. The core calls it through `pipeloom.state.types.list_runs`, which raises `ListRunsUnsupported` (PLX117) for a store that lacks the method.
 
 **ADR-0002: Engine abstraction.**
 - Context: the spec (section 4) lists coupling in the return type, reads, schema, temporary views, writes, merge, metrics and catalog SQL.

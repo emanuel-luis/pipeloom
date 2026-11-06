@@ -23,7 +23,7 @@ def _build(_opts: Any) -> object:
     return object()
 
 
-API05: PluginSpec[object] = PluginSpec("future", "future", "engines", (0, 5), _build, FakeOptions)
+API06: PluginSpec[object] = PluginSpec("future", "future", "engines", (0, 6), _build, FakeOptions)
 API02: PluginSpec[object] = PluginSpec("old", "old", "engines", (0, 2), _build, FakeOptions)
 MEMORY_CLONE: PluginSpec[object] = PluginSpec(
     "memory", "memory", "engines", API_VERSION, _build, FakeOptions

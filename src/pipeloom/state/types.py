@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -106,8 +106,59 @@ class StateStore(Protocol):
         """Sorted by (unit_id, attempt)."""
         ...
 
+    def list_runs(
+        self, project: str, target: str, limit: int, before: str | None = None
+    ) -> tuple[RunRecord, ...]:
+        """The runs of `project` and `target`, newest first by (started_at, run_id), at most
+        `limit`. With `before`, the runs that come after that run id; `UnknownRun` when it names
+        no run of this project and target. Plugin API (0, 5); `page_runs` does the ordering."""
+        ...
+
     def lock(self, scope: str, run_id: str) -> AbstractContextManager[LockInfo]:
         """Take the lock without waiting; raise `LockHeld` when it is held. Renewed while held."""
         ...
 
     def close(self) -> None: ...
+
+
+class UnknownRun(LookupError):
+    """A run id names no run of the project and target."""
+
+    def __init__(self, run_id: str) -> None:
+        super().__init__(f"run {run_id} not found")
+        self.run_id = run_id
+
+
+class ListRunsUnsupported(Exception):
+    """The state store has no `list_runs` (it was written before plugin API (0, 5))."""
+
+
+def page_runs(
+    runs: Iterable[RunRecord], project: str, target: str, limit: int, before: str | None = None
+) -> tuple[RunRecord, ...]:
+    """What `StateStore.list_runs` returns, from every run record a store holds."""
+    if limit < 1:
+        raise ValueError("limit must be at least 1")
+    mine = sorted(
+        (r for r in runs if r.project == project and r.target == target),
+        key=lambda r: (r.started_at, r.run_id),
+        reverse=True,
+    )
+    if before is not None:
+        ids = [r.run_id for r in mine]
+        if before not in ids:
+            raise UnknownRun(before)
+        mine = mine[ids.index(before) + 1 :]
+    return tuple(mine[:limit])
+
+
+def list_runs(
+    store: object, project: str, target: str, limit: int, before: str | None = None
+) -> tuple[RunRecord, ...]:
+    """Call `store.list_runs`; `ListRunsUnsupported` when the store lacks it. Plugins implement
+    the protocol structurally, so this is where the default lives."""
+    method = getattr(store, "list_runs", None)
+    if method is None:
+        raise ListRunsUnsupported(f"state store {type(store).__name__} cannot list runs")
+    runs: tuple[RunRecord, ...] = method(project, target, limit, before)
+    return runs
