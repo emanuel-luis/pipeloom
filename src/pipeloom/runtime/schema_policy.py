@@ -14,10 +14,10 @@ from pipeloom.diagnostics import JsonValue
 from pipeloom.engine.errors import WriteKeyError
 from pipeloom.engine.protocols import EngineSession
 from pipeloom.engine.types import (
+    SCD2_COLUMNS,
     Column,
     ColumnChange,
     ExpectationSpec,
-    SCD2_COLUMNS,
     Relation,
     Schema,
     SchemaDiff,
