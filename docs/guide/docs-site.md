@@ -48,8 +48,8 @@ usage error (exit 2) that names the file.
 When the results come from a different plan than the one shown, the page still matches rows to models by id and adds
 a note that the plan changed since that run.
 
-The output depends only on its inputs, so the same manifest and results give the same bytes. The page shows the
-manifest's `generated_at` unless it is blank, as in `pipeloom compile --stable`.
+The output depends only on its inputs and holds no wall-clock time, so the same manifest and results give the same
+bytes.
 
 ## Serve
 

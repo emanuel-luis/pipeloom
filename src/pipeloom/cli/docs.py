@@ -113,8 +113,6 @@ def generate(
         outcome = project.compile(Selection())
         bound = project.bind().value
         diags = outcome.diagnostics
-        if outcome.value is None and any(d.code in ("PLG304", "PLG305") for d in diags):
-            inv.finish(diags, 2, bound=bound)
         plan = outcome.value
         if plan is None or bound is None:
             inv.finish(diags, 1, bound=bound)
@@ -123,15 +121,16 @@ def generate(
             found = artifacts_root(bound, project_dir) / "run_results.json"
             results_path = found if found.is_file() else None
     results = _load_results(results_path, plan.metadata.project) if results_path else None
-    folder = out if out is not None else Path(DEFAULT_DIR)
-    folder = folder if folder.is_absolute() else project_dir / folder
+    chosen = out if out is not None else Path(DEFAULT_DIR)
+    folder = chosen if chosen.is_absolute() else project_dir / chosen
     folder.mkdir(parents=True, exist_ok=True)
     content = render_site(plan, results).encode("utf-8")
     page = folder / "index.html"
     page.write_bytes(content)
-    shown = page.as_posix()
-    inv.artifact(PurePosixPath(shown), content, "docs")
-    click.echo(shown)
+    # like compile: the event path is relative to the project dir unless --out is absolute
+    reported = page if chosen.is_absolute() else chosen / "index.html"
+    inv.artifact(PurePosixPath(reported.as_posix()), content, "docs")
+    click.echo(page.as_posix())
     inv.finish([d for d in diags if d.severity is not Severity.ERROR], 0, bound=bound)
 
 

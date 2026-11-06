@@ -176,9 +176,7 @@ def _header(plan: Plan, results: Mapping[str, Any] | None) -> str:
     parts = [
         f"<h1>{_e(m.project)}</h1>",
         f'<p class="meta">target {_e(m.target)}, pipeloom {_e(m.pipeloom_version)}, '
-        f"plan {_e(m.plan_hash[:12])}"
-        + (f", compiled {_e(m.generated_at)}" if m.generated_at else "")
-        + "</p>",
+        f"plan {_e(m.plan_hash[:12])}</p>",
     ]
     if results is not None:
         run = results["run"]

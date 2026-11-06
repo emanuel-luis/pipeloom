@@ -105,8 +105,36 @@ def test_output_is_deterministic(project: Path, tmp_path: Path) -> None:
             cli("docs", "generate", "--project-dir", str(project), "--out", str(out)).exit_code == 0
         )
         pages.append(page_of(out))
-    strip = re.compile(r", compiled [^<]*")
-    assert strip.sub("", pages[0]) == strip.sub("", pages[1])
+    assert pages[0] == pages[1]
+    assert "compiled" not in pages[0]  # no wall-clock time on the page
+
+
+def artifact_path(result: Result) -> str:
+    events = [json.loads(line) for line in result.stderr.splitlines()]
+    (found,) = [e for e in events if e["type"] == "artifact.written"]
+    return str(found["data"]["path"])
+
+
+def test_artifact_event_path_is_relative_unless_out_is_absolute(
+    project: Path, tmp_path: Path
+) -> None:
+    base = ["docs", "generate", "--project-dir", str(project), "--log-format", "json"]
+    default = cli(*base)
+    assert default.exit_code == 0 and artifact_path(default) == "target/docs/index.html"
+    rel = cli(*base, "--out", "site")
+    assert artifact_path(rel) == "site/index.html"
+    absolute = tmp_path / "abs"
+    result = cli(*base, "--out", str(absolute))
+    assert artifact_path(result) == (absolute / "index.html").as_posix()
+    assert result.stdout.strip() == (absolute / "index.html").as_posix()
+
+
+def test_bad_plugin_spec_exits_1(project: Path) -> None:
+    # PLU003, an ordinary error. PLG304 and PLG305 (exit 2 in compile) are selector errors, and
+    # docs generate has no selector options, so it has no such branch.
+    result = cli("docs", "generate", "--project-dir", str(project), "--plugin", "nope:X")
+    assert result.exit_code == 1 and "PLU003" in result.stderr
+    assert not (project / "target" / "docs").exists()
 
 
 def test_target_vars_plugin_and_log_format(tmp_path: Path) -> None:
@@ -147,7 +175,6 @@ def test_golden_graph_of_the_shop(tmp_path: Path, golden: Callable[[str, str], N
     assert cli("docs", "generate", "--manifest", str(manifest), "--out", str(out)).exit_code == 0
     page = page_of(out)
     golden("docs/shop_graph.svg", svg_of(page) + "\n")
-    assert "compiled" not in page  # a stable manifest has a blank generated_at
     assert "last run" not in page  # --manifest alone reads no results
 
 
