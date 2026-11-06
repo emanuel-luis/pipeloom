@@ -1460,7 +1460,7 @@
 <h1 id="roadmap">Roadmap<a class="headerlink" href="#roadmap" title="Permanent link">&para;</a></h1>
 <p>Status: plan as of 2026-11-06, written against 0.7.0. This page replaces the planned versions that section 16 of
 <a href="../architecture/#16-roadmap">architecture.md</a> used to list; section 16 keeps the record of what each delivered
-version contains. Items that change a decision name the ADR they need: ADRs up to 0041 exist, and 0042 to 0049
+version contains. Items that change a decision name the ADR they need: ADRs up to 0043 exist, and 0044 to 0049
 are proposed.</p>
 <p>Terms such as unit, run, boundary and artifacts root are defined in the
 <a href="../architecture/#2-glossary">glossary</a>. In short, a unit is one schedulable node of the plan (a persisted model
@@ -1754,6 +1754,8 @@ so the first step is to publish it as a contract.</p>
 <h2 id="4-milestones">4. Milestones<a class="headerlink" href="#4-milestones" title="Permanent link">&para;</a></h2>
 <p>Each milestone has one headline and is sized for one maintainer. Items in the tables link back to the themes above.</p>
 <h3 id="08-the-first-hour-and-fast-loops">0.8: the first hour and fast loops<a class="headerlink" href="#08-the-first-hour-and-fast-loops" title="Permanent link">&para;</a></h3>
+<p>Delivered in 0.8.0. The docs site lays its graph out in Python instead of a vendored JavaScript library
+(<a href="../adr/0043-docs-site/">ADR-0043</a>).</p>
 <table>
 <thead>
 <tr>
@@ -1780,7 +1782,7 @@ so the first step is to publish it as a contract.</p>
 </tr>
 <tr>
 <td><code>state:modified</code>, <code>state:new</code> and <code>result:</code> selectors, <code>--state</code>, <code>--defer</code></td>
-<td>ADR-0042 (proposed)</td>
+<td><a href="../adr/0042-state-selection-and-defer/">ADR-0042</a></td>
 <td>changing one SQL body selects exactly that node, and <code>--defer</code> reads an unselected parent from the reference relation (golden test)</td>
 </tr>
 <tr>
