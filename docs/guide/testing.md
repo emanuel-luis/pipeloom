@@ -125,10 +125,63 @@ validate, 2 for a usage error, 130 when interrupted.
 Unit tests never change the manifest or the plan hash, so adding one selects nothing under
 `state:modified`.
 
+## Data tests
+
+Expectations judge each batch before it is written. Data tests judge the whole written table
+afterwards, which is where a foreign key check belongs:
+
+```yaml
+models:
+  - name: orders
+    sql: select * from raw_orders
+    inputs:
+      raw_orders:
+        source: raw_orders
+    data_tests:
+      - name: customer_exists
+        check:
+          relationships:
+            column: customer_id
+            to:
+              ref: customers
+            field: id
+      - name: order_id_unique
+        check:
+          unique:
+            - order_id
+        on_violation: warn
+```
+
+A check is one of `not_null` (a list of columns), `unique` (a list of columns) or
+`relationships`. A relationships violation is a row whose non-null `column` matches no `field`
+value of the parent named in `to` (a `ref` or a `source`); NaN counts as null, and parent nulls
+never match. `on_violation` is `fail` (the default) or `warn`.
+
+Data tests run under `pipeloom build`, inside each unit after its write and its watermark commit,
+and again when a retry replays a write. They read the whole table, incremental models included,
+so set `on_violation: warn` where a full scan on every build is too slow. The parent is read like
+an input, so `--defer` reads it from the reference. Each result is an entry of
+`results[].expectations` in `run_results.json` with `scope: table` (expectations carry
+`scope: batch`). A failed `warn` test adds a warning; a failed `fail` test is PLQ303: the unit
+fails, its descendants are skipped and the run exits 1, but the data stays written.
+
+Tables, incremental, intermediate and view models take data tests. On an ephemeral model they are
+PLP415, as is a relationships parent that is the model itself, one of its descendants, an
+ephemeral model, or a model whose own relationships lead back here.
+
+## build
+
+`pipeloom build` takes the flags of `run`. It runs the unit tests of the selected models first;
+if one fails it stops with exit 1 before a run id exists and before anything is written. Then it
+runs the selection with data tests on, ordering each model after its relationship parents.
+`run_results.json` records `args.data_tests: true`, and `pipeloom retry --from` keeps it.
+
 ## Problems
 
 | Code | Meaning |
 | --- | --- |
+| PLP415 | Data tests on an ephemeral model, or a relationships parent that is the model itself, a descendant, an ephemeral model, or closes a cycle |
+| PLQ303 | A data test with `on_violation: fail` found violations; the data stays written |
 | PLR208 | A case names an unknown model, gives an alias that is not an input, leaves an input without rows, or reuses a case name |
 | PLX114 | The output differs from `expect` |
 | PLX115 | The case cannot run: a CSV is missing, a value does not cast, an untyped all-null column, the body raised, or the engine has no `from_rows` or `to_rows` |
