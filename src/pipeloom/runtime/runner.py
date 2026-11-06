@@ -135,8 +135,10 @@ def _scd2_target(existing: Schema | None, batch: Schema, full_refresh: bool) -> 
     clash = sorted(system & {c.name for c in batch})
     if clash:
         raise WriteKeyError(f"the batch has scd2 system column(s) {', '.join(clash)}")
-    if existing is None or full_refresh:
-        return existing
+    if existing is None:
+        return None
+    if full_refresh:  # the history is dropped; the policy still sees business columns only
+        return strip_scd2(existing)
     missing = sorted(system - {c.name for c in existing})
     if missing:
         raise WriteKeyError(

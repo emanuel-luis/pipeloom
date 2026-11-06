@@ -136,6 +136,8 @@ def test_a_full_refresh_drops_the_history(tmp_path: Path) -> None:
     assert run(root, "r2", 1).exit_code == 0
     assert run(root, "r3", 2, full_refresh=True).exit_code == 0
     assert table(root) == [(1, "a2", DAY[2], None, True)]
+    doc = json.loads((root / "target" / "runs" / "r3" / "run_results.json").read_bytes())
+    assert doc["results"][0]["schema_changes"] == []  # no system column reads as removed
 
 
 def test_a_target_without_system_columns_needs_a_full_refresh(tmp_path: Path) -> None:
