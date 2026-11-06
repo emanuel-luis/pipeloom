@@ -16,7 +16,7 @@ from pipeloom_spark.sqltext import has_scheme
 
 CAPABILITIES = EngineCapabilities(
     formats=frozenset({"delta", "parquet", "csv", "json", "ndjson"}),
-    strategies=frozenset({"append", "overwrite", "merge", "replace_partitions"}),
+    strategies=frozenset({"append", "overwrite", "merge", "replace_partitions", "scd2"}),
     materializations=frozenset({"table", "ephemeral", "view", "incremental", "intermediate"}),
     sql_models=True,
     views=True,
