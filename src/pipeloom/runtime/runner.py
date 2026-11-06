@@ -20,6 +20,7 @@ from pipeloom.engine.errors import WriteKeyError, WriteRefusedError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
 from pipeloom.engine.types import (
     ROW_CHECKS,
+    SCD2_COLUMNS,
     Column,
     DeleteSpec,
     ExpectationSpec,
@@ -27,6 +28,7 @@ from pipeloom.engine.types import (
     QuarantineMeta,
     ReadSpec,
     Relation,
+    Schema,
     TargetRef,
     WriteConfig,
     WriteResult,
@@ -67,6 +69,7 @@ from pipeloom.runtime.schema_policy import (
     changes_json,
     check_contract,
     resolve_columns,
+    strip_scd2,
 )
 from pipeloom.secrets.redaction import Redactor
 from pipeloom.state.types import StateKey, StateStore, UnitRecord
@@ -123,6 +126,23 @@ class _Inc:
     state: IncrementalState | None = None
     batch: Relation | None = None
     """The filtered input: the rows this attempt processes."""
+
+
+def _scd2_target(existing: Schema | None, batch: Schema, full_refresh: bool) -> Schema | None:
+    """The business columns of an scd2 target, for the schema policy. Raises `WriteKeyError`
+    when the batch has a system column or an existing target lacks them."""
+    system = {c.name for c in SCD2_COLUMNS}
+    clash = sorted(system & {c.name for c in batch})
+    if clash:
+        raise WriteKeyError(f"the batch has scd2 system column(s) {', '.join(clash)}")
+    if existing is None or full_refresh:
+        return existing
+    missing = sorted(system - {c.name for c in existing})
+    if missing:
+        raise WriteKeyError(
+            f"the target has no scd2 column(s) {', '.join(missing)}; run with --full-refresh"
+        )
+    return strip_scd2(existing)
 
 
 def _commit_meta(row: Mapping[str, Any], meta: Mapping[str, JsonValue]) -> dict[str, JsonValue]:
@@ -1085,18 +1105,35 @@ class ModelRunner:
             batch = self._session.schema(rel)
             self._catalog.ensure_namespace(target.namespace)
             policy = write.on_schema_change
+            existing = self._catalog.table_schema(target)
+            scd2 = strategy == "scd2"
+            if scd2:
+                existing = _scd2_target(existing, batch, self._rt.full_refresh)
+            keys = (*(write.unique_key or ()), *node.config.partition_by)
             columns, diff, action = resolve_columns(
                 policy,
-                self._catalog.table_schema(target),
+                existing,
                 batch,
                 strategy=strategy,
                 full_refresh=self._rt.full_refresh,
-                keys=(*(write.unique_key or ()), *node.config.partition_by),
+                keys=(*keys, *(write.tracked_columns or ())) if scd2 else keys,
             )
             if not diff.empty and action != "none":
                 row["schema_changes"] = changes_json(policy, diff, action)
                 self._schema_changed(node, target, policy, action, diff.to_json())
-            row["schema_hash"] = schema_hash((c.name, c.dtype, c.nullable) for c in columns)
+            stored = (*columns, *SCD2_COLUMNS) if scd2 else columns
+            row["schema_hash"] = schema_hash((c.name, c.dtype, c.nullable) for c in stored)
+            tracked: tuple[str, ...] = ()
+            if scd2:
+                skip = {
+                    *(write.unique_key or ()),
+                    *([write.deletes.column] if write.deletes else []),
+                }
+                tracked = tuple(
+                    write.tracked_columns
+                    if write.tracked_columns is not None
+                    else (c.name for c in columns if c.name not in skip)
+                )
             same = [(c.name, c.dtype) for c in batch] == [(c.name, c.dtype) for c in columns]
             keep = same and action in ("none", "replaced")
             if not keep:
@@ -1115,6 +1152,8 @@ class ModelRunner:
                 columns=None if keep else columns,
                 options=dict(write.options),
                 run_started_at=self._rt.run_started_at,
+                tracked_columns=tracked,
+                full_refresh=self._rt.full_refresh,
             )
             self._check()
             if before_write is not None:
