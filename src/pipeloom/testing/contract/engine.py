@@ -28,10 +28,14 @@ from pipeloom.artifacts.layout import RunPaths
 from pipeloom.config.models import (
     CheckConfig,
     ColumnConfig,
+    DataCheckConfig,
+    DataTestConfig,
     ExpectationConfig,
     GivenConfig,
+    InputConfig,
     QualityConfig,
     RangeCheck,
+    RelationshipsCheck,
     ResolvedModelConfig,
     UnitTestConfig,
 )
@@ -57,6 +61,7 @@ from pipeloom.plan.model import (
     PlanMetadata,
     PlanNode,
     PlanSelection,
+    PlanSource,
     PythonBody,
     SqlBody,
 )
@@ -228,9 +233,17 @@ class _FnLoader(CallableLoader):
 
 
 def _run_one(
-    h: EngineHarness, s: EngineSession, tmp_path: Path, node: PlanNode, fn: Callable[..., Any]
+    h: EngineHarness,
+    s: EngineSession,
+    tmp_path: Path,
+    node: PlanNode,
+    fn: Callable[..., Any],
+    *,
+    sources: Mapping[str, PlanSource] | None = None,
+    data_tests: bool = False,
 ) -> ModelResult | None:
-    """Run one unit made of `node` through the real `ModelRunner`, as `pipeloom run` would."""
+    """Run one unit made of `node` through the real `ModelRunner`, as `pipeloom run` would.
+    `sources` are what data tests may name as their parent."""
     clock = FakeClock()
     unit = node.name
     plan = Plan(
@@ -249,7 +262,7 @@ def _run_one(
             invocation_id="contract",
         ),
         nodes={node.unique_id: node},
-        sources={},
+        sources=dict(sources or {}),
         units={unit: ExecutionUnit(unit_id=unit, nodes=(node.unique_id,), parents=())},
         parent_map={node.unique_id: ()},
         child_map={node.unique_id: ()},
@@ -282,6 +295,7 @@ def _run_one(
                 loader=_FnLoader(fn),
                 memo=None,
                 executor_name="thread",
+                data_tests=data_tests,
             )
             done = runner.run_unit(UnitHandle(unit, 1, 1), 0.0, CancelToken())
     finally:
@@ -738,6 +752,91 @@ class EngineContract:
         assert result.error.code == "PLM208", result.error.message
         assert problem in result.error.message
         assert result.error.category == "permanent"
+
+    # -- data tests (ADR-0045) --------------------------------------------------------------
+
+    def test_orphans_matches_the_reference(self, h: EngineHarness, tmp_path: Path) -> None:
+        """Null and NaN keys never count, parent nulls never match, duplicates count each."""
+        schema = (Column("k", "float64"),)
+        child = [{"k": 1.0}, {"k": 2.0}, {"k": 2.0}, {"k": None}, {"k": float("nan")}, {"k": 5.0}]
+        parent = [{"k": 1.0}, {"k": 1.0}, {"k": None}, {"k": 9.0}]
+        want = reference.orphans_rows(child, "k", parent, "k")
+        assert want == 3
+        with self.session(h, tmp_path) as s:
+            got = s.orphans(
+                s.relation(h.make_native(child, schema)),
+                "k",
+                s.relation(h.make_native(parent, schema)),
+                "k",
+            )
+        assert got == want
+
+    def test_data_tests_after_write(self, h: EngineHarness, tmp_path: Path) -> None:
+        """One table unit with data tests on: entries with scope table, and a failed
+        relationships test is PLQ303, permanent, with the table still written."""
+        requires(h, "strategies", "overwrite")
+        requires(h, "quality")
+        target = _target("t_data")
+        config = ResolvedModelConfig()
+        tests = (
+            DataTestConfig(
+                name="id_in_parent",
+                check=DataCheckConfig(
+                    relationships=RelationshipsCheck(
+                        column="id", to=InputConfig(source="parent"), field="id"
+                    )
+                ),
+            ),
+            DataTestConfig(name="id_set", check=DataCheckConfig(not_null=["id"])),
+        )
+        node = PlanNode(
+            unique_id="model.contract.t_data",
+            name="t_data",
+            file="models/m.yml",
+            line=1,
+            materialized="table",
+            body=PythonBody(callable="m:build", file="src/m.py"),
+            inputs={},
+            relation=target,
+            unit_ids=("t_data",),
+            config=config.model_copy(
+                update={"write": config.write.model_copy(update={"strategy": "overwrite"})}
+            ),
+            tags=(),
+            checksum="",
+            data_tests=tests,
+        )
+        parent = PlanSource(
+            unique_id="source.contract.parent",
+            name="parent",
+            file="models/m.yml",
+            format=None,
+            location=None,
+            table="main.t_parent",
+            options={},
+            tags=(),
+        )
+        with self.session(h, tmp_path) as s:
+            self.write(s, h, "t_parent", ROWS[:1], "overwrite", "seed")
+            native = h.make_native(ROWS, SCHEMA)
+            result = _run_one(
+                h,
+                s,
+                tmp_path,
+                node,
+                lambda ctx: native,
+                sources={parent.unique_id: parent},
+                data_tests=True,
+            )
+            assert h.catalog.exists(target)  # the data stays written
+            assert len(self.read_table(s, h, "t_data")) == len(ROWS)
+        assert result is not None and result.error is not None
+        assert result.error.code == "PLQ303", result.error.message
+        assert result.error.category == "permanent"
+        entries = {e["name"]: e for e in result.row["expectations"]}
+        assert {e["scope"] for e in entries.values()} == {"table"}
+        assert entries["id_in_parent"]["failed"] == len(ROWS) - 1
+        assert entries["id_set"]["failed"] == 0
 
     # -- unit tests (ADR-0045) --------------------------------------------------------------
 
