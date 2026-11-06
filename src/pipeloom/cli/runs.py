@@ -117,7 +117,7 @@ def _unit(run_id: str, row: Mapping[str, Any]) -> UnitRecord:
 def _line(r: RunRecord) -> str:
     took = "-" if r.ended_at is None else f"{(r.ended_at - r.started_at).total_seconds():.1f}s"
     counts = " ".join(f"{k}={v}" for k, v in sorted(r.counts.items()) if v)
-    return "\t".join((r.run_id, r.status, r.started_at.isoformat(), took, counts))
+    return f"{r.run_id}\t{r.status}\t{r.started_at.isoformat()}\t{took}\t{counts}"
 
 
 class _Context:

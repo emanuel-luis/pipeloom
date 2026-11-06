@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Plugin API (0, 5), [ADR-0047](docs/adr/0047-run-history-and-webhook.md): `StateStore.list_runs(project, target, limit, before=None)` returns the runs of one project and target, newest first, paged by a run id. The sqlite, json and Spark `table` stores implement it, `page_runs` does the ordering for any store, and the state store contract suite checks it. Plugins built for (0, 4) fail with PLU001; every first-party plugin moves with the core.
+- `pipeloom runs ls` lists the last runs of a target (`--limit`, `--before RUN_ID` for the next page, `--output json`) and `pipeloom runs show RUN_ID` shows one run with its unit attempts. Both read the state store, or with `--artifacts` the `runs/*/run_results.json` files under the artifacts root. New codes: PLX117 (state store cannot list runs) and PLX118 (run not found).
+- A built-in `webhook` sink posts selected events as JSON (`text` for Slack and Teams, plus the event) to a URL given as `${secret:...}`, which is never logged. By default it posts once when a run fails; `events`, `statuses`, `min_level`, `timeout` and `max_failures` tune it. After `max_failures` failed posts in a row it stops and the bus reports one `sink.disabled` warning. stdlib HTTP only, meant for `buffered: true`.
+
 ## [0.8.0] - 2026-11-06
 
 pipeloom 0.8 is about the first hour and fast loops. `pipeloom init` scaffolds a project with editor completion set up (polars and pandas projects run out of the box), and `pipeloom new model` adds models to it. `pipeloom explain` prints what a diagnostic code means. `--state` with the `state:modified`, `state:new` and `result:` selectors picks what changed or what failed, and `--defer` reads the parents a run does not build from a reference such as production. `pipeloom retry --from` reruns what a run did not finish. `pipeloom docs generate` and `docs serve` write a one-file docs and lineage site. Plugin API stays (0, 4). Artifacts only gain fields: `run_results` `args` (`state`, `defer`), `run.parent_run_id`, `model.input_read` (`relation`, `deferred`) and `run.started` (`parent_run_id`).

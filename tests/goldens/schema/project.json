@@ -308,6 +308,142 @@
                 ],
                 "title": "jsonl",
                 "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "buffer_size": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "pattern": "^\\$\\{.+\\}$",
+                        "type": "string"
+                      }
+                    ],
+                    "default": 10000,
+                    "description": "Events held by a buffered sink before the oldest is dropped.",
+                    "title": "Buffer Size"
+                  },
+                  "buffered": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "pattern": "^\\$\\{.+\\}$",
+                        "type": "string"
+                      }
+                    ],
+                    "default": false,
+                    "description": "Run the sink on a background thread.",
+                    "title": "Buffered"
+                  },
+                  "events": {
+                    "default": [
+                      "run.completed"
+                    ],
+                    "description": "Event types to post.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "title": "Events",
+                    "type": "array"
+                  },
+                  "failure_budget": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "pattern": "^\\$\\{.+\\}$",
+                        "type": "string"
+                      }
+                    ],
+                    "default": 5,
+                    "description": "Consecutive failures before the sink is disabled.",
+                    "title": "Failure Budget"
+                  },
+                  "kind": {
+                    "const": "webhook",
+                    "description": "Posts selected events as JSON to a webhook URL given as a secret."
+                  },
+                  "max_failures": {
+                    "anyOf": [
+                      {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "pattern": "^\\$\\{.+\\}$",
+                        "type": "string"
+                      }
+                    ],
+                    "default": 3,
+                    "description": "Failed posts in a row before the sink stops posting.",
+                    "title": "Max Failures"
+                  },
+                  "min_level": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "warning",
+                          "error"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "description": "Also post every event at or above this level. Off by default.",
+                    "title": "Min Level"
+                  },
+                  "secret_url": {
+                    "description": "The webhook URL, as ${secret:provider/path}. Only http and https; never logged.",
+                    "title": "Secret Url",
+                    "type": "string"
+                  },
+                  "statuses": {
+                    "default": [
+                      "failed"
+                    ],
+                    "description": "A run.completed event is posted only with one of these statuses.",
+                    "items": {
+                      "enum": [
+                        "succeeded",
+                        "failed",
+                        "cancelled"
+                      ],
+                      "type": "string"
+                    },
+                    "title": "Statuses",
+                    "type": "array"
+                  },
+                  "timeout": {
+                    "anyOf": [
+                      {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+                        "type": "string"
+                      }
+                    ],
+                    "default": 10,
+                    "description": "Seconds to wait for each post, as 10 or 30s.",
+                    "title": "Timeout"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "secret_url"
+                ],
+                "title": "webhook",
+                "type": "object"
               }
             ]
           },

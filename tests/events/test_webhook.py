@@ -100,7 +100,9 @@ BODY = "def body(ctx):\n    raise RuntimeError('boom')\n"
 def test_a_failed_run_posts_exactly_once(hook: Hook, tmp_path: Path) -> None:
     root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": MODELS, "src/m.py": BODY})
     args = ["run", "--project-dir", str(root), "--target", "dev", "--run-id", "r1"]
-    done = CliRunner().invoke(main, [*args, "--log-format", "json"], env={**ENV, "PL_HOOK": hook.url})
+    done = CliRunner().invoke(
+        main, [*args, "--log-format", "json"], env={**ENV, "PL_HOOK": hook.url}
+    )
     assert done.exit_code == 1, done.stderr
     (body,) = hook.bodies
     assert body["event"]["type"] == "run.completed" and body["event"]["data"]["status"] == "failed"

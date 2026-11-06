@@ -26,11 +26,9 @@ _SHOWN_FAILURES = 3
 class WebhookOptions(OptionsModel):
     secret_url: str
     """The webhook URL, as ${secret:provider/path}. Only http and https; never logged."""
-    events: list[str] = Field(default_factory=lambda: ["run.completed"])
+    events: tuple[str, ...] = ("run.completed",)
     """Event types to post."""
-    statuses: list[Literal["succeeded", "failed", "cancelled"]] = Field(
-        default_factory=lambda: ["failed"]
-    )
+    statuses: tuple[Literal["succeeded", "failed", "cancelled"], ...] = ("failed",)
     """A run.completed event is posted only with one of these statuses."""
     min_level: Literal["warning", "error"] | None = None
     """Also post every event at or above this level. Off by default."""
@@ -104,7 +102,7 @@ class WebhookSink:
         if self._url is None or not self.wanted(event):
             return
         body = json.dumps({"text": summary(event), "event": event.to_json()}, ensure_ascii=True)
-        request = urllib.request.Request(  # noqa: S310 - the scheme is checked in __init__
+        request = urllib.request.Request(
             self._url,
             data=body.encode("utf-8"),
             method="POST",
@@ -112,7 +110,7 @@ class WebhookSink:
         )
         reason = ""
         try:
-            with urllib.request.urlopen(request, timeout=self._timeout) as response:  # noqa: S310
+            with urllib.request.urlopen(request, timeout=self._timeout) as response:
                 if not 200 <= response.status < 300:
                     reason = f"HTTP {response.status}"
         except urllib.error.HTTPError as err:
