@@ -512,9 +512,9 @@ The watermark is committed after the write, and a retry with the same token repl
 | overwrite | replace data and schema | same |
 | replace_partitions | replace partitions present in the batch (`partition_by` required) | overwrite |
 | merge | `unique_key` equality; optional `update_condition`; an optional `deletes` block with `column`, `value` and `mode` (`hard` or `soft`); a missing key column or a duplicate key in the batch is PLM206; rows with a null key never match | overwrite |
-| scd2 | `unique_key`, `tracked_columns` (default all), columns `valid_from`, `valid_to`, `is_current`, row hash; deletes close the current row | rebuild |
+| scd2 | `unique_key`, `tracked_columns` (default all but the key and the delete column), columns `valid_from`, `valid_to`, `is_current`; tracked columns compared null-safely; hard deletes close the current row ([ADR-0008](adr/0008-incremental-and-state.md#amendment-09-scd2)) | rebuild |
 
-A full refresh writes append, merge and replace_partitions as overwrite. A first build (the target does not exist) keeps its strategy, because into an absent table every strategy writes the same rows and merge still checks its key. On filesystem tables (ADR-0025) every strategy writes one part file per partition when `partition_by` is set; replace_partitions swaps whole files without reading the others, and a merge rewrites the whole table in 0.3 as read-modify-write under a commit lock and an expected version. SCD2 is planned (section 16).
+A full refresh writes append, merge and replace_partitions as overwrite. A first build (the target does not exist) keeps its strategy, because into an absent table every strategy writes the same rows and merge still checks its key. On filesystem tables (ADR-0025) every strategy writes one part file per partition when `partition_by` is set; replace_partitions swaps whole files without reading the others, and a merge rewrites the whole table in 0.3 as read-modify-write under a commit lock and an expected version. An scd2 write rewrites the whole table the same way.
 
 **Idempotency:** each write receives `token = "<run_id>:<model>"`. Engines with transactional idempotency use it. Engines without it declare `idempotent_writes=False`.
 
