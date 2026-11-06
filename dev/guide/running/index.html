@@ -411,6 +411,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#retrying-a-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retrying a run
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#selection-by-state-and-defer" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1156,6 +1167,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#retrying-a-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retrying a run
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#selection-by-state-and-defer" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1304,6 +1326,24 @@ exit code 2. The Spark engine derives its Delta write version from this time.</p
 an orchestrator can pass a templated value.</p>
 <p>To run exactly the plan you compiled earlier, pass <code>--manifest target/runs/&lt;id&gt;/manifest.json</code>.
 Add <code>--expect-plan-hash &lt;sha256&gt;</code> to stop with PLX103 when the plan changed.</p>
+<h2 id="retrying-a-run">Retrying a run<a class="headerlink" href="#retrying-a-run" title="Permanent link">&para;</a></h2>
+<p><code>pipeloom retry --from RUN_ID</code> runs again what that run did not finish: the units that failed,
+timed out, were skipped or were cancelled. Fix the model, then retry.</p>
+<pre><code class="language-console">$ pipeloom run --run-id nightly-1        # bad fails, its child is skipped
+$ pipeloom retry --from nightly-1        # runs bad and its child, nothing else
+</code></pre>
+<p>The retry is a new run with its own id (<code>--run-id</code> sets it and must differ from <code>--from</code>). Its
+<code>run_results.json</code> and its state record name the original in <code>parent_run_id</code>. The project is
+compiled again, so the fix is picked up. The retry inherits the vars (<code>--vars</code> wins),
+<code>--full-refresh</code> (<code>--full-refresh</code> or <code>--no-full-refresh</code> wins), <code>--state</code> and <code>--defer</code> of the
+run it retries. It takes no <code>--select</code> or <code>--exclude</code>: the parent's rows already say what to run.
+When nothing failed, it prints <code>run nightly-1 has nothing to retry</code> and exits 0 without a run
+folder.</p>
+<p>The parent must be a finished run of the same project and target in the artifacts root;
+anything else is PLX113 (for another target, the hint says which <code>--target</code> to use). A unit that
+failed after its write committed is written again if it appends, because the new run id gives
+it a new idempotency token. To continue the same run instead, run it again with its own
+<code>--run-id</code>.</p>
 <h2 id="selection-by-state-and-defer">Selection by state and defer<a class="headerlink" href="#selection-by-state-and-defer" title="Permanent link">&para;</a></h2>
 <p>Compile production once with a stable manifest and keep it as the reference:</p>
 <pre><code class="language-bash">pipeloom compile --target prod --stable --out state/manifest.json

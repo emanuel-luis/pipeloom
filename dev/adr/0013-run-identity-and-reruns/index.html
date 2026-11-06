@@ -1052,6 +1052,45 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-08-pipeloom-retry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (0.8): pipeloom retry
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Amendment (0.8): pipeloom retry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#decision_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#risk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risk
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1086,7 +1125,7 @@
 <li><code>run_id</code> is either caller-supplied or generated as <code>YYYYMMDDTHHMMSSZ-&lt;6 hex&gt;</code>, matching <code>[A-Za-z0-9._-]{1,64}</code>.</li>
 <li>Orchestrators derive it deterministically: <code>dbx-&lt;job_run_id&gt;</code> or <code>af-&lt;hash&gt;</code>.</li>
 <li>Orchestrator retries and repairs keep the <code>run_id</code> and increment the <code>attempt</code>.</li>
-<li>Local <code>pipeloom retry --from &lt;run_id&gt;</code> creates a new run with <code>parent_run_id</code>, selecting <code>result:fail+</code> (failed units plus their skipped descendants).</li>
+<li>Local <code>pipeloom retry --from &lt;run_id&gt;</code> creates a new run with <code>parent_run_id</code> that runs the failed, skipped and cancelled units of the parent (see the 0.8 amendment).</li>
 <li>Writes are idempotent through the token <code>&lt;run_id&gt;:&lt;model&gt;</code>.</li>
 </ul>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
@@ -1096,9 +1135,24 @@
 <li>Run records go to the state store for history.</li>
 </ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted</p>
+<p>Accepted. Amended in 0.8 (<code>pipeloom retry</code>).</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
 <p>2026-10-29</p>
+<h2 id="amendment-08-pipeloom-retry">Amendment (0.8): pipeloom retry<a class="headerlink" href="#amendment-08-pipeloom-retry" title="Permanent link">&para;</a></h2>
+<h3 id="decision_1">Decision<a class="headerlink" href="#decision_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>pipeloom retry --from RUN_ID</code> runs the units that run RUN_ID did not finish, in a new run. The parent is the folder <code>&lt;artifacts root&gt;/runs/RUN_ID</code> of the bound target. It is read with the <code>--state</code> reference loader of <a href="../0042-state-selection-and-defer/">ADR-0042</a>: its <code>manifest.json</code> and <code>run_results.json</code>.</li>
+<li>The selection is <code>result:fail</code>, <code>result:skip</code> and <code>result:cancelled</code>, only for the values that occur in the parent's rows, against a reference built from the parent folder. It is deliberately not <code>result:fail+</code>: the <code>+</code> follows the current graph and would pull in descendants the parent never selected, for example when the parent ran with <code>--select</code>. The rows of the parent already say what it selected, so the failed units and the descendants that were skipped because of them are exactly the set to run again. A parent with none of the three has nothing to retry: the command prints <code>run &lt;id&gt; has nothing to retry</code> and exits 0 without a run folder.</li>
+<li>The retry also selects every <code>intermediate</code> model that a retried unit reads, directly or through other intermediate models, even when the parent built it. An intermediate model lives under the folder of the run that built it, so the retry cannot read the parent's copy; it builds its own, which is safe because an intermediate model always overwrites.</li>
+<li>Inherited defer never defers a model whose row in the parent is <code>succeeded</code>. Such a model is unselected in the retry and would otherwise be read from the reference, so the retry would build on production upstreams instead of what the parent built in this target. Those models are read from this target (<code>RunOptions.not_deferred</code>).</li>
+<li>The vars are read before the project loads, so a model that needs <code>${var:x}</code> loads with the parent's vars. The parent folder is found under the target's artifacts root, or under <code>&lt;project dir&gt;/target</code> when the project cannot bind yet. If the parent cannot be found and the project fails to load, the load errors stay, with a hint to pass the vars with <code>--vars</code>.</li>
+<li>The command takes no <code>--select</code>, <code>--exclude</code>, <code>--manifest</code>, <code>--expect-plan-hash</code>, <code>--run-started-at</code>, <code>--state</code> or <code>--defer</code>. It inherits from the parent: the vars of its manifest (<code>--vars</code> on top), <code>full_refresh</code> (an explicit <code>--full-refresh</code> or <code>--no-full-refresh</code> wins), and <code>state</code> and <code>defer</code> from the <code>args</code> of its <code>run_results.json</code>. Select and exclude are not inherited.</li>
+<li>The project is compiled fresh, so a fixed model is the point of the retry. A plan hash that differs from the parent's is expected and is not checked.</li>
+<li>The retry gets its own run id (generated, or <code>--run-id</code>, which must differ from <code>--from</code>) and records the parent as <code>parent_run_id</code> in <code>run_results.json</code>, the state store record and the <code>run.started</code> event. Reusing the id of a retry continues that retry and keeps its parent.</li>
+<li>A parent that has no <code>run_results.json</code> (it never existed, never finished or is still running), that belongs to another project or that ran another target is PLX113. A parent that is still running and holds the run lock gets PLX105 from the normal lock path.</li>
+</ul>
+<h3 id="risk">Risk<a class="headerlink" href="#risk" title="Permanent link">&para;</a></h3>
+<p>A unit can fail after its write committed (PLM203). The retry runs under a new run id, so the idempotency token <code>&lt;run_id&gt;:&lt;model&gt;</code> is new and an append writes the rows again. Retries that must not duplicate keep the original run id instead (run again with <code>--run-id</code> set to the parent's id, which continues that run and replays tokens).</p>
 
 
 

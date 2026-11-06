@@ -1641,7 +1641,7 @@ paths, listens on localhost by default and ships as a separate distribution, so 
   reads the production upstreams. Defer changes only how the runner resolves reads, never the plan hash (the
   fingerprint that ties a run to its compiled plan).</li>
 <li><code>pipeloom retry --from &lt;run_id&gt;</code> (0.8), as <a href="../adr/0013-run-identity-and-reruns/">ADR-0013</a> designs it: a new run
-  with <code>parent_run_id</code> that selects <code>result:fail+</code>.</li>
+  with <code>parent_run_id</code> that selects the failed, skipped and cancelled units of the parent.</li>
 <li>Sample data on Spark and Databricks (0.9). A source can point at a CSV inside the project. The polars and pandas
   engines already read it, and <code>pipeloom-spark</code> needs the same reader on volumes. This covers what dbt seeds do
   without a new materialization.</li>

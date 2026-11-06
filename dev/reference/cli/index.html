@@ -1012,6 +1012,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pipeloom-retry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        retry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pipeloom-run" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1514,6 +1525,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pipeloom-retry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        retry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pipeloom-run" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1912,6 +1934,56 @@ out: the project name, the engine and, on databricks, the catalog.</p>
   --log-format [text|json]        Diagnostics and events on stderr: readable
                                   text or one JSON object per line.  [default:
                                   text]
+  --help                          Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-retry">pipeloom retry<a class="headerlink" href="#pipeloom-retry" title="Permanent link">&para;</a></h4>
+<p>Run again what a finished run did not finish. Exit codes as <code>run</code>; 1 also for PLX113.</p>
+<p>Selects the units of run RUN_ID that failed, timed out, were skipped or were cancelled, and
+runs them in a new run that records RUN_ID as its parent. The project is compiled again, so
+a fixed model is picked up. The retry inherits the vars (<code>--vars</code> wins), <code>--full-refresh</code>,
+<code>--state</code> and <code>--defer</code> of the run it retries.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom retry [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY         Directory that holds pipeloom.yml.
+                                  [default: .]
+  --vars TEXT                     Variables as a YAML or JSON mapping; they
+                                  override the vars block.
+  --target TEXT                   Target to bind; default_target or the only
+                                  target when omitted.
+  --plugin MODULE:ATTR            A PluginSpec to load besides the installed
+                                  plugins. Repeatable.
+  --log-format [text|json]        Diagnostics and events on stderr: readable
+                                  text or one JSON object per line.  [default:
+                                  text]
+  --from RUN_ID                   The finished run to retry: its failed,
+                                  skipped and cancelled units run again.
+                                  [required]
+  --run-id TEXT                   Name of the new run; it must differ from
+                                  --from. Default: a timestamp and a suffix.
+  --full-refresh / --no-full-refresh
+                                  Rebuild append tables from scratch. Default:
+                                  what the retried run did.
+  --orchestrator-id KEY=VALUE     An id the orchestrator gave this run, such
+                                  as job_run_id=42. It goes into the attempt
+                                  files, the run results and the context of
+                                  every event. Repeatable; a later duplicate
+                                  wins. Key: [a-z][a-z0-9_]{0,63}; value: 1 to
+                                  256 printable characters.
+  --fail-fast                     After the first failure, start no more
+                                  units.
+  --no-lock                       Do not take the run lock.
+  --workers INTEGER RANGE         Units to run at once. Default: the target's
+                                  setting, else min(4, CPUs).  [x&gt;=1]
+  --boundary [process|task]       process runs units on threads here; task
+                                  runs each in its own process. Default: the
+                                  target's boundary.
+  --warn-error                    Exit 1 on warnings too.
+  --cancel-grace DURATION         After a stop request (Ctrl+C, SIGTERM) or a
+                                  timeout, how long running units may finish
+                                  before they are killed, as 30s, 2m or 30.
+                                  Default: the setting, else 30s.
   --help                          Show this message and exit.
 </code></pre>
 <h4 id="pipeloom-run">pipeloom run<a class="headerlink" href="#pipeloom-run" title="Permanent link">&para;</a></h4>

@@ -1207,7 +1207,7 @@ left no attempt file is reported as failed with PLX106, with the end of its log 
 </tr>
 </tbody>
 </table>
-<p><code>run</code> holds <code>run_id</code>, <code>parent_run_id</code> (null in 0.2), <code>invocation_ids</code> (every invocation that
+<p><code>run</code> holds <code>run_id</code>, <code>parent_run_id</code> (null, or the run <code>pipeloom retry --from</code> retried), <code>invocation_ids</code> (every invocation that
 worked on the run), <code>project</code>, <code>target</code>, <code>plan_hash</code>, <code>selector</code>, <code>full_refresh</code>, <code>status</code>
 (<code>succeeded</code>, <code>failed</code> or <code>cancelled</code>), <code>started_at</code>, <code>ended_at</code>, <code>duration_ms</code>, <code>counts</code>
 (<code>total</code> and one number per unit status), <code>totals</code> (<code>rows_written</code> and <code>bytes_written</code> of
