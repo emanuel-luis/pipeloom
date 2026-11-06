@@ -282,6 +282,39 @@ class ColumnConfig(_Model):
     """False makes a null in the column a contract violation."""
 
 
+class RelationshipsCheck(_Model):
+    """Every non-null `column` value of the model must exist in `field` of `to`."""
+
+    column: str
+    """Column of the model that holds the key."""
+    to: InputConfig
+    """The parent: another model (ref) or a source."""
+    field: str
+    """Column of the parent the key must match."""
+
+
+class DataCheckConfig(_Model):
+    not_null: list[str] | None = None
+    unique: list[str] | None = None
+    relationships: RelationshipsCheck | None = None
+
+    @model_validator(mode="after")
+    def _one_check(self) -> DataCheckConfig:
+        _exactly_one(self, tuple(type(self).model_fields))
+        return self
+
+
+class DataTestConfig(_Model):
+    """A check run against the whole written table after the write (ADR-0045)."""
+
+    name: Identifier
+    """Name shown in results."""
+    check: DataCheckConfig
+    """The check."""
+    on_violation: Literal["warn", "fail"] = "fail"
+    """warn records the count; fail fails the unit with PLQ303 (the data stays written)."""
+
+
 class GivenConfig(_Model):
     """Rows for a unit test: inline or from a CSV file."""
 
@@ -333,6 +366,8 @@ class ModelConfig(ModelSettings):
     """Model contract: the exact output columns, checked before every write (PLM208)."""
     unit_tests: list[UnitTestConfig] | None = None
     """Cases `pipeloom test` runs on given rows (ADR-0045)."""
+    data_tests: list[DataTestConfig] | None = None
+    """Checks `pipeloom build` runs against the written table (ADR-0045)."""
 
     @model_validator(mode="after")
     def _sql_or_python(self) -> ModelConfig:

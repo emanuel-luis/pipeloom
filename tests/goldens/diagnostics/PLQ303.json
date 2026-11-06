@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLQ303",
+    "severity": "error",
+    "message": "model 'a' failed data test(s): id_set: ValueError: id_set",
+    "hint": "the data stays written; fix the data or its parent, or set on_violation: warn",
+    "location": {
+      "file": "models/m.yml",
+      "line": 2,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {
+      "unit": "a",
+      "category": "permanent"
+    }
+  }
+]

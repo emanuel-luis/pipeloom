@@ -10,7 +10,7 @@ from typing import Any, Final
 
 from pydantic import ValidationError
 
-from pipeloom.config.models import ColumnConfig, ResolvedModelConfig
+from pipeloom.config.models import ColumnConfig, DataTestConfig, ResolvedModelConfig
 from pipeloom.diagnostics import Location, Report
 from pipeloom.plan.model import Plan, PlanNode
 
@@ -26,23 +26,31 @@ def canonical_json(value: Any) -> bytes:
 
 
 def node_checksum(
-    config: ResolvedModelConfig, body: bytes, columns: Sequence[ColumnConfig] | None = None
+    config: ResolvedModelConfig,
+    body: bytes,
+    columns: Sequence[ColumnConfig] | None = None,
+    data_tests: Sequence[DataTestConfig] | None = None,
 ) -> str:
     """sha256 of the canonical config plus the body bytes, with CRLF read as LF, plus the
-    contract columns when the model declares them (so a model without one keeps its checksum)."""
+    contract columns and the data tests when the model declares them (so a model without them
+    keeps its checksum)."""
     digest = hashlib.sha256(canonical_json(config.model_dump(mode="json", by_alias=True)))
     digest.update(b"\0")
     digest.update(body.replace(b"\r\n", b"\n"))
     if columns is not None:
         digest.update(b"\0")
         digest.update(canonical_json([c.model_dump(mode="json") for c in columns]))
+    if data_tests is not None:
+        digest.update(b"\0data_tests\0")
+        digest.update(canonical_json([t.model_dump(mode="json") for t in data_tests]))
     return digest.hexdigest()
 
 
 def _node(node: PlanNode) -> dict[str, Any]:
     out = node.model_dump(mode="json", by_alias=True)
-    if out["columns"] is None:  # additive field: absent without a contract
-        del out["columns"]
+    for key in ("columns", "data_tests"):  # additive fields: absent when not declared
+        if out[key] is None:
+            del out[key]
     return out
 
 

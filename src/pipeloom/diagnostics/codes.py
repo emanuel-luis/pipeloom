@@ -488,7 +488,7 @@ _ACTIVE_03: Final = (
         "PLC510",
         E,
         "Expectations on an engine without quality",
-        "The selected engine does not declare the quality capability, so it cannot evaluate expectations or count nulls in non-nullable contract columns.",
+        "The selected engine does not declare the quality capability, so it cannot evaluate expectations or data tests, or count nulls in non-nullable contract columns.",
     ),
 )
 
@@ -736,6 +736,18 @@ _ACTIVE_09: Final = (
         E,
         "Unit test cannot run",
         "A unit test could not run: a CSV file is missing or unreadable, a value does not cast to its column type, a column holds only nulls and declares no type, the model body raised, or the engine lacks from_rows or to_rows (plugin API 0.5). Declare columns on the given, or upgrade the engine plugin.",
+    ),
+    (
+        "PLP415",
+        E,
+        "Data tests that cannot run",
+        "data_tests is set on an ephemeral model, which writes no table to test, or a relationships check names as its parent the model itself, a descendant, an ephemeral model, or a model that closes a cycle among relationship edges. Test the relationship on a table that is not upstream of its parent.",
+    ),
+    (
+        "PLQ303",
+        E,
+        "Data test failed",
+        "A data test with on_violation: fail found violations in the written table: nulls, duplicate keys, or child keys with no parent row. Data tests run after the write and the watermark commit, so the data stays written; the unit fails, its descendants are skipped and the run exits 1. Permanent: only retry_on: any retries it.",
     ),
 )
 

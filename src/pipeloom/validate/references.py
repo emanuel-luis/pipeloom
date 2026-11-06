@@ -56,6 +56,24 @@ def check_references(project: ResolvedProject, report: Report) -> None:
                 hint=suggest(binding.name, model_names if is_ref else source_names),
                 context={"model": m.name, "input": alias, key: binding.name},
             )
+        for i, test in enumerate(m.entry.data_tests or ()):
+            rel = test.check.relationships
+            if rel is None:
+                continue
+            is_ref = rel.to.ref is not None
+            name = rel.to.ref if is_ref else rel.to.source
+            if name in (model_names if is_ref else source_names):
+                continue
+            key = "ref" if is_ref else "source"
+            report.add(
+                "PLR201" if is_ref else "PLR203",
+                f"unknown {key} '{name}' in data test '{test.name}' of model '{m.name}'",
+                location=project.locate(
+                    m.file, f"{m.pointer}/data_tests/{i}/check/relationships/to/{key}"
+                ),
+                hint=suggest(name or "", model_names if is_ref else source_names),
+                context={"model": m.name, "data_test": test.name, key: name},
+            )
     _check_unit_tests(project, report, model_names)
 
 

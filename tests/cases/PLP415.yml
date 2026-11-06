@@ -1,0 +1,36 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine:
+          kind: memory
+  models/m.yml: |
+    models:
+      - name: a
+        sql: select 1 as id
+        materialized: ephemeral
+        data_tests:
+          - name: id_set
+            check:
+              not_null:
+                - id
+      - name: b
+        sql: select id from a
+        inputs:
+          a:
+            ref: a
+        data_tests:
+          - name: b_in_c
+            check:
+              relationships:
+                column: id
+                to:
+                  ref: c
+                field: id
+      - name: c
+        sql: select id from b
+        inputs:
+          b:
+            ref: b

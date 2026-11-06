@@ -1,0 +1,34 @@
+[
+  {
+    "code": "PLP415",
+    "severity": "error",
+    "message": "ephemeral model 'a' cannot have data tests",
+    "hint": "move the data tests to a table that reads it",
+    "location": {
+      "file": "models/m.yml",
+      "line": 6,
+      "col": 9,
+      "json_pointer": "/models/0/data_tests/0"
+    },
+    "context": {
+      "model": "a",
+      "data_test": "id_set"
+    }
+  },
+  {
+    "code": "PLP415",
+    "severity": "error",
+    "message": "data test 'b_in_c' of model 'b' relates it to descendant 'c'",
+    "hint": "test the relationship on a table that is not upstream of the parent",
+    "location": {
+      "file": "models/m.yml",
+      "line": 16,
+      "col": 9,
+      "json_pointer": "/models/1/data_tests/0"
+    },
+    "context": {
+      "model": "b",
+      "data_test": "b_in_c"
+    }
+  }
+]
