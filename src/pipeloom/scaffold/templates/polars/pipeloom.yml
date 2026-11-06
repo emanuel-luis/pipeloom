@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
+config_version: 1
+name: {{name}}
+defaults:
+  models:
+    materialized: table
+targets:
+  dev:
+    engine:
+      kind: polars
+    # Tables are parquet directories under target/warehouse/<schema>/<table>/.
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+    naming:
+      kind: none
+    state:
+      kind: json
+      path: .pipeloom/state

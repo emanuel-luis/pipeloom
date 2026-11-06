@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json
+# Silver: typed orders with a positive amount.
+models:
+  - name: orders_clean
+    sql: |
+      select
+        cast(order_id as bigint) as order_id,
+        cast(customer_id as bigint) as customer_id,
+        cast(order_date as date) as order_date,
+        cast(amount as double) as amount
+      from orders
+      where amount > 0
+    inputs:
+      orders:
+        ref: orders
+    tags: [silver]
+    expectations:
+      - name: order_id_present
+        check:
+          not_null: [order_id]
+        on_violation: fail
+      - name: order_id_unique
+        check:
+          unique: [order_id]
+        on_violation: fail

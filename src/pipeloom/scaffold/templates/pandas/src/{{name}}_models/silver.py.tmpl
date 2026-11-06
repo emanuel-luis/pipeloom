@@ -1,0 +1,14 @@
+"""Silver: typed orders with a positive amount."""
+
+from typing import Any
+
+import pandas as pd
+
+
+def orders_clean(ctx: Any, orders: Any) -> Any:
+    out = orders[orders["amount"] > 0].copy()
+    out["order_id"] = out["order_id"].astype("int64")
+    out["customer_id"] = out["customer_id"].astype("int64")
+    out["order_date"] = pd.to_datetime(out["order_date"])
+    out["amount"] = out["amount"].astype("float64")
+    return out[["order_id", "customer_id", "order_date", "amount"]].reset_index(drop=True)

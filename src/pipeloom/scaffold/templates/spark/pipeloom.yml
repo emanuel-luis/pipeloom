@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
+# Local Spark needs Java 17 or 21, so it runs on Linux, macOS, WSL or in a container, never in
+# Windows Python. Install it with: pip install "pipeloom[spark]"
+config_version: 1
+name: {{name}}
+defaults:
+  models:
+    materialized: table
+targets:
+  dev:
+    engine:
+      kind: spark
+      mode: local
+    # Tables are Delta directories under target/warehouse/<schema>/<table>/.
+    catalog:
+      kind: delta_path
+      root: target/warehouse
+    naming:
+      kind: none
+    state:
+      kind: json
+      path: .pipeloom/state
