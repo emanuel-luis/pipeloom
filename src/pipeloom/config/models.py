@@ -282,6 +282,40 @@ class ColumnConfig(_Model):
     """False makes a null in the column a contract violation."""
 
 
+class GivenConfig(_Model):
+    """Rows for a unit test: inline or from a CSV file."""
+
+    rows: list[dict[str, Any]] | None = None
+    """The rows, one mapping per row."""
+    csv: RelativePosixPath | None = None
+    """A CSV file with a header, relative to the project dir; an empty field is null."""
+    columns: list[ColumnConfig] | None = None
+    """Logical types of the columns; others are taken from the upstream contract or inferred."""
+
+    @model_validator(mode="after")
+    def _rows_or_csv(self) -> GivenConfig:
+        _exactly_one(self, ("rows", "csv"))
+        return self
+
+
+class UnitTestConfig(_Model):
+    """A unit test: the model body run on given input rows, compared with expected rows."""
+
+    name: Identifier
+    """Name of the case, unique per model."""
+    given: dict[Identifier, GivenConfig] = Field(default_factory=dict)
+    """Rows for every input alias of the model."""
+    expect: GivenConfig
+    """Expected output rows; only their columns are compared, in any order."""
+
+
+class FileUnitTestConfig(UnitTestConfig):
+    """A unit test in a file's top-level `unit_tests` list."""
+
+    model: Identifier
+    """The model the case tests."""
+
+
 class ModelConfig(ModelSettings):
     """One model."""
 
@@ -297,6 +331,8 @@ class ModelConfig(ModelSettings):
     """Local aliases bound to refs or sources."""
     columns: list[ColumnConfig] | None = None
     """Model contract: the exact output columns, checked before every write (PLM208)."""
+    unit_tests: list[UnitTestConfig] | None = None
+    """Cases `pipeloom test` runs on given rows (ADR-0045)."""
 
     @model_validator(mode="after")
     def _sql_or_python(self) -> ModelConfig:
@@ -350,6 +386,8 @@ class ModelFile(_Model):
 
     sources: list[SourceConfig] = Field(default_factory=list)
     models: list[ModelConfig] = Field(default_factory=list)
+    unit_tests: list[FileUnitTestConfig] = Field(default_factory=list)
+    """Unit tests of models defined in any file."""
 
 
 class DefaultsFile(_Model):

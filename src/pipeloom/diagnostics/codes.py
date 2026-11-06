@@ -719,6 +719,24 @@ _ACTIVE_09: Final = (
         "Run not found",
         "pipeloom runs show, or runs ls --before, names a run id that the state store (or, with --artifacts, the artifacts root) does not hold for this project and target. Check the target, or list the runs with pipeloom runs ls.",
     ),
+    (
+        "PLR208",
+        E,
+        "Unit test reference",
+        "A unit test names a model that does not exist, gives rows for an alias that is not an input of the model, leaves an input alias without rows, or reuses a case name of its model.",
+    ),
+    (
+        "PLX114",
+        E,
+        "Unit test failed",
+        "pipeloom test ran the model body on the given rows and the output differs from expect. The message lists up to 10 missing and 10 unexpected rows; the unit_test.failed event holds up to 50 of each. Rows compare as a multiset over the expect columns.",
+    ),
+    (
+        "PLX115",
+        E,
+        "Unit test cannot run",
+        "A unit test could not run: a CSV file is missing or unreadable, a value does not cast to its column type, a column holds only nulls and declares no type, the model body raised, or the engine lacks from_rows or to_rows (plugin API 0.5). Declare columns on the given, or upgrade the engine plugin.",
+    ),
 )
 
 

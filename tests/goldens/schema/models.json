@@ -232,6 +232,45 @@
       "title": "ExpectationConfig",
       "type": "object"
     },
+    "FileUnitTestConfig": {
+      "additionalProperties": false,
+      "description": "A unit test in a file's top-level `unit_tests` list.",
+      "properties": {
+        "expect": {
+          "$ref": "#/$defs/GivenConfig",
+          "description": "Expected output rows; only their columns are compared, in any order."
+        },
+        "given": {
+          "description": "Rows for every input alias of the model.",
+          "patternProperties": {
+            "^[A-Za-z_][A-Za-z0-9_]*$": {
+              "$ref": "#/$defs/GivenConfig"
+            }
+          },
+          "title": "Given",
+          "type": "object"
+        },
+        "model": {
+          "description": "The model the case tests.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Model",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name of the case, unique per model.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "expect",
+        "model"
+      ],
+      "title": "FileUnitTestConfig",
+      "type": "object"
+    },
     "FreshnessCheck": {
       "additionalProperties": false,
       "properties": {
@@ -258,6 +297,60 @@
         "max_age"
       ],
       "title": "FreshnessCheck",
+      "type": "object"
+    },
+    "GivenConfig": {
+      "additionalProperties": false,
+      "description": "Rows for a unit test: inline or from a CSV file.",
+      "properties": {
+        "columns": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ColumnConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Logical types of the columns; others are taken from the upstream contract or inferred.",
+          "title": "Columns"
+        },
+        "csv": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A CSV file with a header, relative to the project dir; an empty field is null.",
+          "title": "Csv"
+        },
+        "rows": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The rows, one mapping per row.",
+          "title": "Rows"
+        }
+      },
+      "title": "GivenConfig",
       "type": "object"
     },
     "IncrementalConfig": {
@@ -662,6 +755,22 @@
           "description": "Time limit per attempt.",
           "title": "Timeout"
         },
+        "unit_tests": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/UnitTestConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cases `pipeloom test` runs on given rows (ADR-0045).",
+          "title": "Unit Tests"
+        },
         "write": {
           "anyOf": [
             {
@@ -913,6 +1022,38 @@
       "title": "SourceConfig",
       "type": "object"
     },
+    "UnitTestConfig": {
+      "additionalProperties": false,
+      "description": "A unit test: the model body run on given input rows, compared with expected rows.",
+      "properties": {
+        "expect": {
+          "$ref": "#/$defs/GivenConfig",
+          "description": "Expected output rows; only their columns are compared, in any order."
+        },
+        "given": {
+          "description": "Rows for every input alias of the model.",
+          "patternProperties": {
+            "^[A-Za-z_][A-Za-z0-9_]*$": {
+              "$ref": "#/$defs/GivenConfig"
+            }
+          },
+          "title": "Given",
+          "type": "object"
+        },
+        "name": {
+          "description": "Name of the case, unique per model.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "expect"
+      ],
+      "title": "UnitTestConfig",
+      "type": "object"
+    },
     "WriteConfig": {
       "additionalProperties": false,
       "properties": {
@@ -1041,6 +1182,14 @@
         "$ref": "#/$defs/SourceConfig"
       },
       "title": "Sources",
+      "type": "array"
+    },
+    "unit_tests": {
+      "description": "Unit tests of models defined in any file.",
+      "items": {
+        "$ref": "#/$defs/FileUnitTestConfig"
+      },
+      "title": "Unit Tests",
       "type": "array"
     }
   },

@@ -1,0 +1,50 @@
+[
+  {
+    "code": "PLR208",
+    "severity": "error",
+    "message": "unit test 'wrong_alias' does not give input 'src' of model 'a'",
+    "hint": "every input alias of the model needs given rows",
+    "location": {
+      "file": "models/m.yml",
+      "line": 11,
+      "col": 15,
+      "json_pointer": "/models/0/unit_tests/0/name"
+    },
+    "context": {
+      "model": "a",
+      "unit_test": "wrong_alias"
+    }
+  },
+  {
+    "code": "PLR208",
+    "severity": "error",
+    "message": "unit test 'wrong_alias' gives 'source', which is not an input of model 'a'",
+    "hint": "did you mean 'src'?",
+    "location": {
+      "file": "models/m.yml",
+      "line": 14,
+      "col": 13,
+      "json_pointer": "/models/0/unit_tests/0/given/source"
+    },
+    "context": {
+      "model": "a",
+      "unit_test": "wrong_alias"
+    }
+  },
+  {
+    "code": "PLR208",
+    "severity": "error",
+    "message": "unit test 'unknown_model' names unknown model 'b'",
+    "hint": null,
+    "location": {
+      "file": "models/m.yml",
+      "line": 21,
+      "col": 12,
+      "json_pointer": "/unit_tests/0/model"
+    },
+    "context": {
+      "model": "b",
+      "unit_test": "unknown_model"
+    }
+  }
+]

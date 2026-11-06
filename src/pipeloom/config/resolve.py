@@ -20,6 +20,7 @@ from pipeloom.config.models import (
     ModelSettings,
     ResolvedModelConfig,
     SourceConfig,
+    UnitTestConfig,
 )
 from pipeloom.config.yaml import LoadedDocument
 from pipeloom.diagnostics import Location
@@ -73,6 +74,17 @@ class ResolvedModel:
 
 
 @dataclass(frozen=True)
+class ResolvedUnitTest:
+    model: str
+    """Name of the tested model."""
+    name: str
+    file: str
+    pointer: str
+    """JSON pointer of the case, for example `/models/0/unit_tests/1` or `/unit_tests/0`."""
+    config: UnitTestConfig
+
+
+@dataclass(frozen=True)
 class ResolvedProject:
     bound: BoundProject
     models: Mapping[str, ResolvedModel]
@@ -83,6 +95,8 @@ class ResolvedProject:
     shadowed_sources: tuple[ResolvedSource, ...]
     docs: Mapping[str, LoadedDocument]
     interpolations: tuple[InterpolationRecord, ...]
+    unit_tests: tuple[ResolvedUnitTest, ...] = ()
+    """Every unit test, in file order (ADR-0045)."""
 
     @property
     def name(self) -> str:
@@ -156,6 +170,7 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
     sources: dict[str, ResolvedSource] = {}
     shadowed_models: list[ResolvedModel] = []
     shadowed_sources: list[ResolvedSource] = []
+    unit_tests: list[ResolvedUnitTest] = []
     fields = ModelConfig.model_fields
     for lf in loaded.model_files:
         chain = [_dump(s) for s in _chain(lf.path, roots, defaults)]
@@ -177,6 +192,12 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
                 inputs=inputs,
                 own_fields=frozenset(fields[n].alias or n for n in entry.model_fields_set),
             )
+            for j, case in enumerate(entry.unit_tests or ()):
+                unit_tests.append(
+                    ResolvedUnitTest(
+                        entry.name, case.name, lf.path, f"{m.pointer}/unit_tests/{j}", case
+                    )
+                )
             if m.unique_id in models:
                 shadowed_models.append(m)
             else:
@@ -189,6 +210,10 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
                 shadowed_sources.append(s)
             else:
                 sources[s.unique_id] = s
+        for j, fcase in enumerate(lf.config.unit_tests):
+            unit_tests.append(
+                ResolvedUnitTest(fcase.model, fcase.name, lf.path, f"/unit_tests/{j}", fcase)
+            )
     docs = {f.path: f.doc for f in loaded.model_files}
     docs.update({f.path: f.doc for f in loaded.defaults_files})
     return ResolvedProject(
@@ -199,4 +224,5 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
         shadowed_sources=tuple(shadowed_sources),
         docs=docs,
         interpolations=loaded.interpolations,
+        unit_tests=tuple(unit_tests),
     )
