@@ -1,0 +1,2645 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+      
+      
+      
+        <link rel="canonical" href="https://emanuel-luis.github.io/pipeloom/0.8.0/architecture/">
+      
+      
+        <link rel="prev" href="../reference/errors/">
+      
+      
+        <link rel="next" href="../roadmap/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Architecture - pipeloom</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#pipeloom-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="pipeloom" class="md-header__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            pipeloom
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Architecture
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="pipeloom" class="md-nav__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    pipeloom
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/running/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/write-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge, replace_partitions and schema changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/retries-and-cancellation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retries, timeouts and cancellation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/docs-site/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs site
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/polars/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/pandas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pandas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/spark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spark
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/databricks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/airflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Airflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/databricks-cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/errors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-vision-goals-non-goals-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Vision, goals, non-goals, principles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-glossary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Glossary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-architecture-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Architecture overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-core-protocols" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Core protocols
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-plugin-system-and-plugin-api-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Plugin system and plugin API version
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-validation-layers-and-error-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Validation layers and error catalog
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-execution-and-scheduler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Execution and scheduler
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-incremental-processing-write-strategies-schema-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Incremental processing, write strategies, schema change
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-data-quality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Data quality
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-events-logs-and-run-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Events, logs and run metadata
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-the-databricks-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. The Databricks plugin
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-the-airflow-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. The Airflow plugin
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-security-and-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Security and secrets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-testing-ci-release-docs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Testing, CI, release, docs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Roadmap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-adr-list-and-diagrams" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17. ADR list and diagrams
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-package-skeleton-for-now" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. Package skeleton for now
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification-plan-for-the-skeleton-commit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification plan (for the skeleton commit)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#risks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resolved-defaults-2026-10-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolved defaults (2026-10-29)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-vision-goals-non-goals-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Vision, goals, non-goals, principles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-glossary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Glossary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-architecture-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Architecture overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-core-protocols" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Core protocols
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-plugin-system-and-plugin-api-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Plugin system and plugin API version
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-validation-layers-and-error-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Validation layers and error catalog
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-execution-and-scheduler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Execution and scheduler
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-incremental-processing-write-strategies-schema-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Incremental processing, write strategies, schema change
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-data-quality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Data quality
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-events-logs-and-run-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Events, logs and run metadata
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-the-databricks-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. The Databricks plugin
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-the-airflow-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. The Airflow plugin
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-security-and-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Security and secrets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-testing-ci-release-docs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Testing, CI, release, docs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Roadmap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-adr-list-and-diagrams" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17. ADR list and diagrams
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-package-skeleton-for-now" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. Package skeleton for now
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification-plan-for-the-skeleton-commit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification plan (for the skeleton commit)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#risks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resolved-defaults-2026-10-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolved defaults (2026-10-29)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="pipeloom-architecture">pipeloom architecture<a class="headerlink" href="#pipeloom-architecture" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Status:</strong> 0.7 implements the versions listed in section 16: the scheduler, the polars, pandas and Spark engines, incremental models, merge and replace_partitions, expectations and quarantine, retries, timeouts and cancellation, the Databricks and Airflow integrations, and per-model catalogs. Planned work lives in the <a href="../roadmap/">roadmap</a>.
+Decisions are recorded as ADRs in <a href="../adr/">adr/</a>. Diagrams are D2 sources in <a href="diagrams/">diagrams/</a> with committed SVGs.</p>
+</blockquote>
+<h2 id="1-vision-goals-non-goals-principles">1. Vision, goals, non-goals, principles<a class="headerlink" href="#1-vision-goals-non-goals-principles" title="Permanent link">&para;</a></h2>
+<p><strong>Vision.</strong> A small, typed framework. Pipelines are declared in YAML and compiled into an immutable plan. That plan runs the same way on pandas, polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG. Every run produces a single event stream and artifacts you can query.</p>
+<p><strong>Goals:</strong> declarative YAML with layered validation and editor completion; an engine-agnostic core with one plugin per tool; end-to-end events and styled logs; persisted metadata for each run and each model; a Databricks one-job renderer; a cosmos-style Airflow integration; open-source hygiene.</p>
+<p><strong>Non-goals (through 1.0):</strong> streaming; a scheduler service, or any UI that starts, schedules or changes runs (<a href="../adr/0043-docs-site/">ADR-0043</a>); a portable SQL dialect; Jinja templating; running user code at compile time; Airflow 2 support.</p>
+<p><strong>Principles. Each answers a lesson (L) from the concept spec.</strong>
+1. One event stream. Logs, metrics, artifacts and lineage subscribe to it (L1).
+2. Dependencies are declared, never traced. Tracing is an opt-in static check that warns (L2).
+3. No module-level registries. A <code>Project</code> object owns plugins and config (L3).
+4. Docs, the CLI reference, the JSON Schema and the error catalog are all generated from code. Every CLI flag has a test (L4).
+5. No session-global mutation. Every engine setting lives in a context manager with guaranteed cleanup. Metrics never depend on global commit tags (L5, L10).
+6. Ready-queue scheduling with no level barriers (L6).
+7. Execution units never share in-memory state. Ephemeral models are inlined; intermediates are persisted (L7).
+8. Maintenance operations (compaction, clustering) run only when declared (L8).
+9. Each declared write option is either applied by every strategy or rejected at validation (L9).
+10. Platform behavior is injected: clock, identity, catalog, secrets (L11).
+11. Incremental logic is a declared key plus a lookback, with a watermark store (L12).
+12. Retries, timeouts, data quality, persisted metadata, selectors, schema-change policy, SCD2 and deletes are all first-class (L13).
+13. YAML first, with JSON Schema (L14).</p>
+<h2 id="2-glossary">2. Glossary<a class="headerlink" href="#2-glossary" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Project:</strong> a directory with <code>pipeloom.yml</code> and model files.</li>
+<li><strong>Model:</strong> a named dataset built from declared inputs by a Python callable or a SQL body.</li>
+<li><strong>Source:</strong> an external dataset declared in YAML.</li>
+<li><strong>Target:</strong> a named runtime environment (engine, catalog, naming, state store).</li>
+<li><strong>Materialization:</strong> <code>table</code>, <code>incremental</code>, <code>view</code>, <code>ephemeral</code> or <code>intermediate</code>.</li>
+<li><strong>Write strategy:</strong> <code>append</code>, <code>overwrite</code>, <code>replace_partitions</code>, <code>merge</code> or <code>scd2</code>.</li>
+<li><strong>Plan:</strong> an immutable compiled graph of resolved models.</li>
+<li><strong>Execution unit:</strong> one schedulable node of the plan. It holds one persisted model plus any ephemeral models inlined into it.</li>
+<li><strong>Boundary:</strong> <code>process</code> (all units in one process) or <code>task</code> (each unit in its own process or orchestrator task).</li>
+<li><strong>Manifest:</strong> the serialized plan (<code>manifest.json</code>).</li>
+<li><strong>Run:</strong> one execution of a plan, identified by <code>run_id</code>.</li>
+<li><strong>Invocation:</strong> one process taking part in a run.</li>
+<li><strong>Attempt:</strong> one try of a unit.</li>
+<li><strong>Watermark:</strong> the high-water value of an incremental key.</li>
+<li><strong>Expectation:</strong> a data-quality rule with <code>warn</code>, <code>drop</code> or <code>fail</code>.</li>
+<li><strong>Sink:</strong> an event subscriber.</li>
+<li><strong>Renderer:</strong> turns a plan into an orchestrator artifact.</li>
+<li><strong>Executor:</strong> runs units.</li>
+<li><strong>Plugin API version:</strong> the version of the protocol contract between the core and plugins.</li>
+</ul>
+<h2 id="3-architecture-overview">3. Architecture overview<a class="headerlink" href="#3-architecture-overview" title="Permanent link">&para;</a></h2>
+<p><img alt="pipeloom in context: a pipeline author writes a YAML project, the core compiles and runs it on engine plugins, writes artifacts and events, and renders jobs for Databricks and Airflow." src="../diagrams/01-context.svg" /></p>
+<p>Source: <a href="../diagrams/01-context.d2">01-context.d2</a>.</p>
+<p><strong>Layers.</strong> Arrows point toward dependencies. The core never imports a plugin, and an import-linter contract enforces this in CI.</p>
+<pre><code>CLI / Python API (pipeloom.api.Project)
+  ├─ diagnostics  Diagnostic, Report, Outcome and the error-code catalog (`pipeloom.diagnostics.codes`); a leaf package
+  ├─ platform   Clock and Identity seams
+  ├─ config     YAML loader with line marks, pydantic models, defaults resolution, target binding, schema export
+  ├─ validate   L2 references, L4 plan semantics, L5 capabilities, L6 static code (L0-L1 live in config, L3 in graph)
+  ├─ graph      DAG, selectors, topological order, cycle paths
+  ├─ plan       Plan, ExecutionUnit, Manifest, plan_hash
+  ├─ runtime    Scheduler, Executor(thread|process), ModelRunner, ModelContext
+  ├─ engine     protocols, logical types, capabilities, portable helpers (Narwhals)
+  ├─ incremental / quality / state
+  ├─ events     Event models, EventBus, console/jsonl/file sinks
+  ├─ artifacts  manifest.json, run_results.json writers
+  ├─ secrets    env provider, interpolation, redaction
+  ├─ plugins    entry-point discovery, built-in table, API-version gate
+  ├─ builtins   naming strategies, filesystem catalog spec, env secret provider
+  └─ testing    contract suites, RecordingSink, FakeClock, MemoryEngine
+Plugins: pipeloom-pandas | -polars | -spark (0.4) | planned: -databricks | -airflow | -openlineage
+</code></pre>
+<p><code>pipeloom-spark</code> depends only on <code>pipeloom</code>. pyspark is not a dependency of it: the extra <code>local</code> brings <code>pyspark[connect]</code> and <code>delta-spark</code>, and <code>pipeloom[spark]</code> pulls <code>pipeloom-spark[local]</code> (<a href="../adr/0031-spark-engine/">ADR-0031</a>). Databricks runtimes and Databricks Connect ship their own pyspark, so there the plugin is installed without extras.</p>
+<p><img alt="Distributions and core modules, with the import direction and the entry-point groups each plugin fills. The core never imports a plugin." src="../diagrams/02-packages.svg" /></p>
+<p>Source: <a href="../diagrams/02-packages.d2">02-packages.d2</a>.</p>
+<p><strong>Lifecycle.</strong> Each stage is a pure function from the previous stage's output. Every stage emits events.</p>
+<ol>
+<li><strong>Load:</strong> discover YAML files, then parse them while recording file, line and column for every node.</li>
+<li><strong>Validate schema:</strong> pydantic models (L0-L1).</li>
+<li><strong>Resolve graph:</strong> bind refs and sources, apply defaults and precedence, apply naming strategies to get physical names, apply selectors (L2-L3). A model's <code>schema</code> goes to the naming strategy; a model's <code>catalog</code> (model file, folder <code>_defaults.yml</code> or <code>defaults.models</code>, same cascade as <code>schema</code>) replaces the catalog of the relation the strategy returns, so naming strategies keep transforming only the schema (<a href="../adr/0040-per-model-catalog/">ADR-0040</a>). Path catalogs (<code>filesystem</code>, <code>delta_path</code>) lay a table out at <code>&lt;root&gt;/&lt;catalog&gt;/&lt;schema&gt;/&lt;name&gt;/</code> when the relation has a catalog; catalogs with a catalog level (<code>spark_catalog</code>, <code>unity</code>) never create the catalog, only the schema.</li>
+<li><strong>Validate plan:</strong> semantics, plugin capabilities and static code checks (L4-L6).</li>
+<li><strong>Compile:</strong> fuse ephemeral models into units for the chosen boundary, then freeze. Output is <code>Plan</code> plus <code>manifest.json</code> with a <code>plan_hash</code> (sha256 of the canonical JSON of nodes, sources, units, edges and the project, target, boundary and config version; selection, versions, timestamps and ids are excluded).</li>
+<li><strong>Execute:</strong> the scheduler runs units through an executor. Orchestrated tasks run <code>pipeloom run --manifest ... --select unit:&lt;id&gt; --expect-plan-hash &lt;h&gt;</code>.</li>
+<li><strong>Finalize:</strong> merge per-invocation results, write <code>run_results.json</code>, commit run state, flush and close sinks.</li>
+</ol>
+<p><strong>Commands.</strong> <code>init</code> (scaffold a new project, <a href="../adr/0041-pipeloom-init/">ADR-0041</a>), <code>new model</code> (add a model file and, for Python, its stub; ADR-0041 amendment), <code>validate</code>, <code>compile</code>, <code>ls</code>, <code>graph</code>, <code>run</code>, <code>retry</code> (run again what a finished run did not finish, ADR-0013 amendment), <code>finalize</code>, <code>docs generate|serve</code> (a read-only one-file site, <a href="../adr/0043-docs-site/">ADR-0043</a>), <code>schema export</code>, <code>explain</code> (print a diagnostic code's catalog entry and docs link) and <code>plugins list</code>; plugins add their own through <code>pipeloom.commands</code> (for example <code>pipeloom databricks</code>).</p>
+<p><img alt="The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize." src="../diagrams/03-lifecycle.svg" /></p>
+<p>Source: <a href="../diagrams/03-lifecycle.d2">03-lifecycle.d2</a>.</p>
+<h2 id="4-configuration">4. Configuration<a class="headerlink" href="#4-configuration" title="Permanent link">&para;</a></h2>
+<p><strong>Project file.</strong></p>
+<pre><code class="language-yaml"># yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
+config_version: 1
+name: shop
+model_paths: [models]
+python_paths: [src]            # added to sys.path at execution only
+vars:
+  country: BR
+defaults:
+  models:
+    materialized: table
+    retries: 1
+    timeout: 30m
+targets:
+  dev:
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: ./warehouse
+    naming:
+      kind: per_user
+    state:
+      kind: sqlite
+      path: .pipeloom/state.db
+    workers: 4
+  prod:
+    engine:
+      kind: spark
+    catalog:
+      kind: unity
+      catalog: main
+    naming:
+      kind: prefix
+      schema_prefix: prod_
+    state:
+      kind: table
+      table: ops._pipeloom_state
+    artifacts:
+      root: /Volumes/main/ops/pipeloom
+    deploy:                                  # 0.5: a plugin block, validated against `renderers`
+      kind: databricks
+      pipelines:
+        main: {}
+        daily:
+          select: [&quot;tag:daily&quot;]
+      compute:
+        default:
+          kind: serverless
+          environment_version: &quot;5&quot;
+      task_grouping: none
+events:
+  sinks:
+    - kind: console
+    - kind: jsonl
+      path: target/events.jsonl
+      failure_budget: 5
+</code></pre>
+<p><strong>Model files.</strong> Any <code>*.yml</code> under <code>model_paths</code>.</p>
+<pre><code class="language-yaml">sources:
+  - name: raw_orders
+    format: parquet
+    location: data/raw/orders/
+models:
+  - name: stg_orders
+    sql: |
+      select order_id, customer_id, amount, updated_at from raw_orders
+    inputs:
+      raw_orders:
+        source: raw_orders
+  - name: fct_orders
+    python: shop.marts.orders:build          # module:function
+    inputs:
+      orders:
+        ref: stg_orders
+      customers:
+        ref: dim_customers
+    materialized: incremental
+    incremental:
+      input: orders
+      column: updated_at
+      lookback: 2d
+    write:
+      strategy: merge
+      unique_key: [order_id]
+      on_schema_change: append_new_columns
+    partition_by: [order_date]
+    expectations:
+      - name: amount_non_negative
+        check:
+          range:
+            column: amount
+            min: 0
+        on_violation: drop
+    tags: [finance, daily]
+</code></pre>
+<p><code>_defaults.yml</code> files set folder-level defaults. They cascade from the model's own folder up to its <code>model_paths</code> root, nearest first; mappings merge deeply, lists replace and <code>tags</code> is an ordered union without duplicates.</p>
+<p><strong>ADR-0003: Model authoring.</strong>
+- Context: L2 and L14 require declared dependencies and YAML validation. Users still need a real transformation language.
+- Options: YAML-only (too weak for transformations), YAML plus Python, YAML plus SQL, or YAML plus both.
+- Choice: YAML declares every model. The body is either a Python callable or a SQL body. The <code>inputs</code> map binds local aliases to <code>ref</code> or <code>source</code>.
+  - A Python callable is called as <code>build(ctx, **inputs)</code>. Each alias becomes a keyword argument holding a relation.
+  - SQL refers to aliases as table names. The engine registers them as named relations for that query only.
+  - At compile time pipeloom imports nothing from the project. L6 parses the callable's file with <code>ast</code> to check that the function exists and that its parameters equal <code>ctx</code> plus the input aliases.
+  - Opt-in SQL table-reference checking via the sqlglot extra warns on mismatch.
+- Consequences: graphs are cheap to build, so Airflow can parse DAG files safely. No Jinja. Reads of undeclared tables through <code>ctx.engine.native</code> are a documented escape hatch outside lineage.</p>
+<p><strong>JSON Schema.</strong> <code>pipeloom schema export --out schemas/</code> writes <code>project.json</code>, <code>models.json</code> and <code>defaults.json</code> (draft 2020-12) from the pydantic models.
+- Plugin option models (engine, catalog, sink, state) are composed as <code>oneOf</code> branches on <code>kind</code>, using the plugins that are installed (<code>--plugins builtin</code> limits it to the built-ins).
+- The docs site publishes the schemas of the built-in plugins under <code>latest/schema/v1/</code> (and under each version folder).
+- The modeline above enables completion in editors that use yaml-language-server.</p>
+<p><strong>Precedence.</strong>
+- Runtime settings (highest first): CLI flags; <code>PIPELOOM_*</code> environment variables (for example <code>PIPELOOM_TARGET</code>, <code>PIPELOOM_WORKERS</code>); an optional git-ignored user file <code>~/.pipeloom/profiles.yml</code> with per-target overrides; the <code>targets.&lt;t&gt;</code> block; then top-level project keys.
+- Model config: the model entry; <code>_defaults.yml</code> files from the nearest folder up to the <code>model_paths</code> root; then <code>defaults.models</code>; then built-in defaults.
+- Targets may change runtime keys only (engine options, catalog, naming, state, workers, artifacts, deploy). <code>deploy</code> is a runtime key like the others: the target block wins over the top-level one. The core validates its options with the <code>config_model</code> of the <code>renderers</code> plugin it names (the factory is never called), records them in the manifest as <code>metadata.deploy</code> (not part of the plan hash) and resolves nothing in them at runtime except <code>${secret:...}</code> references in plugin options. They may not change model semantics, so plans differ across targets only in physical names and runtime settings.
+- Interpolation: <code>${env:NAME}</code>, <code>${env:NAME:-default}</code> and <code>${var:name}</code> resolve at compile time and are recorded in the manifest. <code>${secret:provider/path}</code> resolves only at runtime (section 14).</p>
+<h2 id="5-core-protocols">5. Core protocols<a class="headerlink" href="#5-core-protocols" title="Permanent link">&para;</a></h2>
+<pre><code class="language-python">from typing import Any, Protocol, Mapping, Sequence, Iterator, ContextManager
+from dataclasses import dataclass
+from datetime import datetime
+
+@dataclass(frozen=True)
+class Column: name: str; dtype: str; nullable: bool = True   # logical type: int64, decimal(18,2), timestamp[UTC]...
+Schema = tuple[Column, ...]
+
+@dataclass(frozen=True)
+class Relation:                      # opaque handle; never inspected by core
+    native: Any                      # pandas/polars frame, Spark DataFrame...
+    engine: str
+    lazy: bool
+
+@dataclass(frozen=True)
+class EngineCapabilities:
+    formats: frozenset[str]; strategies: frozenset[str]
+    sql_models: bool; views: bool; idempotent_writes: bool
+    cancel: bool; bytes_metrics: bool; portable: bool   # Narwhals-compatible frames
+    quality: bool                                       # evaluate and apply_drops (0.3)
+    materializations: frozenset[str]                    # table, view, ephemeral (0.2)
+
+@dataclass(frozen=True)
+class StateStoreCapabilities: shared: bool              # visible to every process and task of a run
+
+class Engine(Protocol):
+    name: str
+    version: str                                       # recorded as engine_version in run_results
+    capabilities: EngineCapabilities
+    def session(self, ctx: &quot;RuntimeContext&quot;, *, catalog: &quot;Catalog&quot;) -&gt; ContextManager[&quot;EngineSession&quot;]: ...  # one per invocation, thread-safe, cleanup guaranteed (L10)
+
+class EngineSession(Protocol):
+    native: Any                                        # escape hatch
+    def reader(self, fmt: str) -&gt; &quot;Reader&quot;: ...
+    def materializer(self, strategy: str) -&gt; &quot;Materializer&quot;: ...
+    def sql(self, query: str, inputs: Mapping[str, Relation]) -&gt; Relation: ...
+    def schema(self, rel: Relation) -&gt; Schema: ...
+    def count(self, rel: Relation) -&gt; int: ...
+    def filter_since(self, rel: Relation, column: str, lower: Any, *, inclusive: bool = True) -&gt; Relation: ...  # strict (&gt;) when not inclusive
+    def relation(self, native: Any) -&gt; Relation: ...   # check a model's return value and wrap it; TypeError for a foreign type
+    def persist(self, rel: Relation) -&gt; Relation: ...  # in-memory copy for results shared by several units
+    def create_view(self, target: &quot;TargetRef&quot;, query: str, inputs: Mapping[str, &quot;ReadSpec&quot;]) -&gt; &quot;WriteResult&quot;: ...  # catalog view, never a session view
+    def max_value(self, rel: Relation, column: str) -&gt; Any: ...      # a plain Python value, never numpy or pandas
+    def evaluate(self, rel: Relation, checks: Sequence[&quot;ExpectationSpec&quot;]) -&gt; &quot;QualityCounts&quot;: ...  # raw counts; the core judges
+    def apply_drops(self, rel: Relation, checks: Sequence[&quot;ExpectationSpec&quot;], *, quarantine: &quot;QuarantineMeta | None&quot;) -&gt; &quot;DropResult&quot;: ...
+    def align(self, rel: Relation, schema: Schema) -&gt; Relation: ...  # schema order, missing columns as typed nulls, cast
+    def write_intermediate(self, rel: Relation, ref: &quot;IntermediateRef&quot;, token: str) -&gt; &quot;WriteResult&quot;: ...  # overwrite at ref.location; a repeated token writes nothing (0.4)
+    def applied_token(self, target: &quot;TargetRef&quot;, token: str) -&gt; &quot;WriteResult | None&quot;: ...  # stored result with skipped=True
+    def unit_scope(self, unit_id: str) -&gt; ContextManager[None]: ...  # tags this thread's work so cancel can find it
+    def is_transient(self, exc: BaseException) -&gt; bool | None: ...   # True retryable, False permanent, None no opinion
+    def cancel(self, unit_id: str) -&gt; None: ...        # cooperative; no-op if not capable
+
+class Reader(Protocol):
+    def read(self, spec: &quot;ReadSpec&quot;) -&gt; Relation: ...            # source or upstream target
+class Writer(Protocol):                                           # format-level primitive
+    def write(self, rel: Relation, target: &quot;TargetRef&quot;, mode: str, opts: &quot;WriteOptions&quot;) -&gt; None: ...
+
+class Materializer(Protocol):                                     # one per strategy
+    strategy: str
+    def materialize(self, rel: Relation, target: &quot;TargetRef&quot;, cfg: &quot;WriteConfig&quot;,
+                    token: str) -&gt; &quot;WriteResult&quot;: ...             # token = idempotency key; cfg.run_started_at = the run's start (the session opens before it is resolved)
+
+class Catalog(Protocol):
+    def exists(self, target: &quot;TargetRef&quot;) -&gt; bool: ...
+    def ensure_namespace(self, ns: &quot;Namespace&quot;) -&gt; None: ...      # idempotent, cached per invocation
+    def table_schema(self, target: &quot;TargetRef&quot;) -&gt; Schema | None: ...
+    def apply_grants(self, target: &quot;TargetRef&quot;, grants: Sequence[&quot;Grant&quot;]) -&gt; None: ...
+    def maintain(self, target: &quot;TargetRef&quot;, ops: Sequence[&quot;MaintenanceOp&quot;]) -&gt; None: ...  # explicit (L8)
+
+class MetricsProvider(Protocol):                      # plugin-internal since 0.4: not part of the core API
+    def before_write(self, target: &quot;TargetRef&quot;) -&gt; &quot;MetricsToken&quot;: ...
+    def after_write(self, target: &quot;TargetRef&quot;, token: &quot;MetricsToken&quot;, result: &quot;WriteResult&quot;) -&gt; &quot;WriteMetrics&quot;: ...
+
+class StateStore(Protocol):
+    def get_watermark(self, key: &quot;StateKey&quot;) -&gt; &quot;Watermark | None&quot;: ...
+    def cas_watermark(self, key: &quot;StateKey&quot;, expected: &quot;Watermark | None&quot;, new: &quot;Watermark&quot;) -&gt; bool: ...
+    def record_run(self, record: &quot;RunRecord&quot;) -&gt; None: ...           # insert or replace
+    def get_run(self, run_id: str) -&gt; &quot;RunRecord | None&quot;: ...
+    def record_unit(self, record: &quot;UnitRecord&quot;) -&gt; None: ...         # keyed by (run_id, unit_id, attempt)
+    def list_units(self, run_id: str) -&gt; tuple[&quot;UnitRecord&quot;, ...]: ...  # sorted by (unit_id, attempt)
+    def lock(self, scope: str, run_id: str) -&gt; ContextManager[&quot;LockInfo&quot;]: ...  # non-blocking; raises LockHeld; 60 s lease renewed every 20 s
+    def close(self) -&gt; None: ...
+
+class EventSink(Protocol):
+    name: str
+    def handle(self, event: &quot;Event&quot;) -&gt; None: ...
+    def flush(self) -&gt; None: ...
+    def close(self) -&gt; None: ...
+
+class Renderer(Protocol):
+    name: str
+    def render(self, plan: &quot;Plan&quot;, options: Mapping[str, Any]) -&gt; Mapping[str, bytes]: ...  # path -&gt; content
+    # 0.5: the core only binds a renderer's options; it never builds one. The Databricks plugin
+    # keeps rendering internal (`render_job`) and exposes `pipeloom_databricks.api`, so this
+    # protocol stays a plugin-internal convention and is not called by the core.
+
+class Executor(Protocol):
+    name: str
+    boundary: str                                    # &quot;process&quot; | &quot;task&quot;
+    def submit(self, unit_id: str, *, queued_at: float) -&gt; &quot;UnitHandle&quot;: ...
+    def wait_any(self, timeout: float | None) -&gt; &quot;UnitCompletion | None&quot;: ...  # None on timeout or wake
+    def cancel(self, handle: &quot;UnitHandle&quot;, reason: str, *, final: bool = False) -&gt; bool: ...  # timeout and final also abandon the unit
+    def has_terminal_event(self, handle: &quot;UnitHandle&quot;) -&gt; bool: ...  # a child process already emitted its own
+    def wake(self) -&gt; None: ...                      # unblocks wait_any; safe from a signal handler
+    def shutdown(self, *, wait: bool) -&gt; None: ...
+
+class Clock(Protocol):
+    def now(self) -&gt; datetime: ...                   # timezone-aware UTC
+    def monotonic(self) -&gt; float: ...
+
+class IdentityProvider(Protocol):
+    def current(self) -&gt; &quot;Identity&quot;: ...             # user, host, orchestrator, orchestrator ids
+
+class SecretProvider(Protocol):
+    def resolve(self, path: str) -&gt; str: ...
+</code></pre>
+<p>The engine protocols above omit <code>Writer</code>, <code>Catalog.apply_grants</code> and <code>Catalog.maintain</code>; they arrive with the versions that need them (section 16). <code>MetricsProvider</code> is shown for the shape of the <code>before_write</code> and <code>after_write</code> pair; with one implementation, the Spark engine's <code>DeltaMetrics</code>, it stays plugin-internal in 0.4 and the core has no such protocol. <code>ReadSpec.format</code> accepts <code>"table"</code> to read a catalog table through <code>ReadSpec.table</code>. The plugin API is (0, 2) in 0.2 (<a href="../adr/0021-plugin-api-0-2/">ADR-0021</a>) and (0, 3) in 0.3 (<a href="../adr/0024-plugin-api-0-3/">ADR-0024</a>) and (0, 4) in 0.4 (<a href="../adr/0030-plugin-api-0-4-and-intermediates/">ADR-0030</a>); while the major version is 0 a plugin must match exactly.</p>
+<p><strong>0.3 contract additions.</strong>
+- <code>WriteConfig</code> carries <code>strategy</code>, <code>unique_key</code>, <code>partition_by</code>, <code>update_condition</code> (engine dialect; <code>source.</code> and <code>target.</code> qualifiers, a bare name means source), <code>deletes</code> (<code>DeleteSpec</code>), <code>columns</code> (the final schema, chosen by the core) and <code>commit_meta</code>.
+- <code>WriteResult(rows_inserted, rows_updated, rows_deleted, rows_written, bytes_written, target_version, skipped, commit_meta)</code>. <code>commit_meta</code> is stored with the idempotency token and returned on a replay, so a replayed write hands back the watermark and the quality summary of the original attempt.
+- <code>evaluate</code> and <code>apply_drops</code> need the <code>quality</code> capability. Engines count and split rows; the core judges (section 10).
+- <code>pipeloom.engine.errors</code>: <code>TransientError</code> (raise it to force a retryable failure), <code>CommitConflict</code> (a transient error for a table commit race) and <code>WriteKeyError</code> (PLM206).
+- <code>pipeloom.engine.types</code> also holds <code>ColumnChange</code>, <code>SchemaDiff</code>, <code>ExpectationSpec</code>, <code>QualityCounts</code>, <code>QuarantineMeta</code>, <code>DropResult</code>, <code>can_widen</code> and <code>diff_schemas</code>.</p>
+<p><strong>0.4 contract additions (plugin API (0, 4), <a href="../adr/0030-plugin-api-0-4-and-intermediates/">ADR-0030</a>).</strong>
+- <code>RuntimeContext</code> gains <code>run_started_at</code> (timezone-aware UTC, the same in every invocation of a run) and <code>artifacts_root</code> (absolute POSIX path or URI). The engine session opens before any state-store call and before the run lock, so it has no <code>run_started_at</code>; the core passes it in <code>WriteConfig.run_started_at</code> and <code>IntermediateRef.run_started_at</code>.
+- <code>EngineSession.write_intermediate(rel, ref, token)</code> persists an <code>intermediate</code> model at <code>IntermediateRef.location</code>; <code>ReadSpec(format="intermediate", location=...)</code> reads it back.
+- <code>CatalogCapabilities(views=)</code> is static data on a catalog spec, so L5 can report PLC507 without importing the catalog.
+- <code>unit_scope</code> spans a unit's reads, body, checks and write, because a lazy engine does its work at the write.
+- <code>WriteRefusedError</code> is what an engine raises when its idempotency guard refuses a write; the core reports PLM207 (section 7).</p>
+<p><strong>ADR-0002: Engine abstraction.</strong>
+- Context: the spec (section 4) lists coupling in the return type, reads, schema, temporary views, writes, merge, metrics and catalog SQL.
+- Options:
+  - (a) A hand-written protocol per plugin: full control, more code per engine.
+  - (b) Narwhals as the core abstraction: it has no write, SQL or catalog API, and only lazy PySpark.
+  - (c) Ibis: heavy, its write support is unverified, and it pushes users into an expression API.
+  - (d) A hybrid.
+- Choice: (d).
+  - The core contract is the hand-written protocols above. Plugins own IO, writes, merge, catalogs, metrics and cancellation.
+  - The core depends on Narwhals (it has no dependencies of its own) only for <code>pipeloom.engine.portable</code>. That module gives default <code>count</code>, <code>filter_since</code>, <code>max_value</code>, <code>schema</code> and <code>evaluate</code> that pandas, polars and PySpark plugins may reuse, through <code>narwhals.stable.v2</code>.
+  - Model bodies receive native frames by default. <code>frame_api: narwhals</code> on a model passes Narwhals frames, so portable models work on any engine with <code>capabilities.portable</code>.
+- Consequences: no lowest-common-denominator API for Spark users. Engines can override portable defaults for speed. Narwhals stays a replaceable implementation detail.</p>
+<h2 id="6-plugin-system-and-plugin-api-version">6. Plugin system and plugin API version<a class="headerlink" href="#6-plugin-system-and-plugin-api-version" title="Permanent link">&para;</a></h2>
+<p><strong>ADR-0004: Discovery.</strong>
+- Options: entry points (stdlib <code>importlib.metadata</code>, the pytest model), pluggy (1:N hook fan-out), or a dbt-style namespace import.
+- Choice: entry points. pipeloom picks one implementation per role by <code>kind</code>, which is 1-of-N selection, not hook fan-out, so pluggy adds a dependency without a matching need.</p>
+<p><strong>Groups:</strong>
+- <code>pipeloom.engines</code>
+- <code>pipeloom.catalogs</code>
+- <code>pipeloom.state_stores</code>
+- <code>pipeloom.sinks</code>
+- <code>pipeloom.secret_providers</code>
+- <code>pipeloom.executors</code>
+- <code>pipeloom.renderers</code>
+- <code>pipeloom.naming</code>
+- <code>pipeloom.commands</code> (0.5, ADR-0034): a Click command or group that a plugin adds to the <code>pipeloom</code> CLI. <code>pipeloom plugins list --group commands</code> lists them from metadata; a command is imported only when invoked, built-in names win and a command that cannot be imported exits 1.</p>
+<p>Each entry point resolves to a <code>PluginSpec(name, kind, api_version: tuple[int, int], factory, config_model, compatible_engines)</code>.</p>
+<p><strong>Rules:</strong>
+- Discovery reads metadata only. A plugin is imported only when a config names its <code>kind</code>.
+- <code>pipeloom plugins list</code> imports nothing.
+- <code>PIPELOOM_DISABLE_PLUGIN_AUTOLOAD=1</code> restricts loading to <code>--plugin module:spec</code>.
+- Duplicate <code>kind</code> names within a group are error PLU002.</p>
+<p><strong>Plugin API version.</strong> <code>pipeloom.plugins.API_VERSION = (MAJOR, MINOR)</code>, independent of the package version.
+- MINOR covers additive changes: new optional protocol methods with defaults, new capabilities.
+- MAJOR covers breaking protocol changes.
+- The core accepts plugins with the same MAJOR and MINOR ≤ its own. Otherwise it raises PLU001 naming the installed and required versions.
+- Before 1.0 the API is <code>0.x</code> and any minor may break. Plugin API 1.0 ships with pipeloom 1.0.</p>
+<h2 id="7-validation-layers-and-error-catalog">7. Validation layers and error catalog<a class="headerlink" href="#7-validation-layers-and-error-catalog" title="Permanent link">&para;</a></h2>
+<p>Each finding is a <code>Diagnostic(code, severity, message, hint, location{file,line,col,json_pointer}, context)</code>. Diagnostics serialize to JSON. The catalog lives in code (<code>pipeloom.diagnostics.codes</code>) and generates the docs page. Codes are never reused.</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Prefix</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L0 parse</td>
+<td>PLY</td>
+<td>PLY001 YAML syntax, several documents or an alias bomb; PLY002 duplicate key; PLY003 not valid UTF-8; PLY004 project or model file missing or unreadable</td>
+</tr>
+<tr>
+<td>L1 schema</td>
+<td>PLS</td>
+<td>PLS101 unknown field (with "did you mean"); PLS102 type mismatch; PLS103 unsupported <code>config_version</code>; PLS104 literal value in a secret-like field; PLS105 required field missing; PLS106 <code>${env:X}</code> unset or unknown <code>${var:x}</code>; PLS107 malformed interpolation; PLS108 exactly one of a set of fields required</td>
+</tr>
+<tr>
+<td>L2 references</td>
+<td>PLR</td>
+<td>PLR201 unknown ref (fuzzy suggestion); PLR202 duplicate model name; PLR203 unknown source; PLR204 unknown target or plugin kind; PLR205 duplicate source; PLR206 a <code>model_paths</code> entry does not exist (warning); PLR207 no target selected</td>
+</tr>
+<tr>
+<td>L3 graph</td>
+<td>PLG</td>
+<td>PLG301 cycle (prints the path); PLG302 self-reference; PLG303 selector matched nothing; PLG304 unknown selector method; PLG305 malformed selector; PLG306 <code>unit:</code> selector names an unknown unit (0.2); PLG307 <code>state:</code> or <code>result:</code> selector without <code>--state</code> (0.8); PLG308 <code>result:</code> selector and the <code>--state</code> folder has no run results (0.8)</td>
+</tr>
+<tr>
+<td>L4 plan semantics</td>
+<td>PLP</td>
+<td>PLP401 merge or scd2 without <code>unique_key</code>; PLP402 incremental without <code>column</code>; PLP403 aggregate expectation with <code>drop</code>; PLP404 <code>incremental.input</code> not in <code>inputs</code>; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 <code>replace_partitions</code> without <code>partition_by</code>; PLP408 ephemeral model with no consumer (warning); PLP409 a view needs a SQL model with no inlined ephemerals (0.2); PLP410 append with a lookback above zero reloads rows (warning, 0.3); PLP411 expectations on a view or ephemeral model (0.3); PLP412 <code>&lt;model&gt;__quarantine</code> is also a model in the same catalog and schema (0.3); PLP413 an <code>intermediate</code> model with <code>incremental</code>, a strategy other than overwrite, or <code>partition_by</code> (0.4)</td>
+</tr>
+<tr>
+<td>L5 capability</td>
+<td>PLC</td>
+<td>PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 <code>boundary: task</code> with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries &gt; 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 <code>frame_api: narwhals</code> without a portable engine; PLC509 materialization unsupported by the engine (0.3: the memory, polars and pandas engines accept <code>incremental</code>; 0.4: they and the Spark engine accept <code>intermediate</code>); PLC510 expectations on an engine without the <code>quality</code> capability (0.3)</td>
+</tr>
+<tr>
+<td>L6 static code</td>
+<td>PLK</td>
+<td>PLK601 callable file or function not found; PLK602 parameters do not match inputs; PLK603 SQL references undeclared table (warning, active when the <code>sqlglot</code> extra is installed, 0.2); PLK604 callable name bound by something other than a def (warning); PLK605 SQL not parseable for that check (warning, 0.2)</td>
+</tr>
+<tr>
+<td>L7 preflight (opt-in, connects)</td>
+<td>PLF</td>
+<td>PLF701 engine unreachable; PLF702 source missing; PLF703 target schema drift detected</td>
+</tr>
+<tr>
+<td>Runtime</td>
+<td>PLX, PLM, PLQ, PLE, PLU</td>
+<td>PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict (data already written; permanent); PLM205 watermark unusable (missing column, family mismatch or a lookback on a non-temporal column, 0.3); PLM206 write key invalid (missing key column or duplicate merge key, 0.3); PLM207 write refused by the idempotency guard: the engine skipped it because the model already has a later transaction version, nothing was written, permanent (0.4); PLQ301 expectation failed or <code>max_drop_ratio</code> exceeded; PLQ302 expectation names an unknown column or an <code>expr</code> the engine rejects (0.3); PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX105 run lock held (0.2); PLX106 unit process exited without a result (0.2); PLX107 manifest invalid (0.2); PLM204 input read failed (0.2); PLX109 a <code>${secret:provider/path}</code> reference could not be resolved (0.5); PLX110 the <code>--state</code> folder is unusable as a reference (0.8); PLX111 <code>--defer</code> refused: unit invocation, <code>boundary: task</code> or another catalog kind (0.8); PLX112 an unselected parent is read from this target instead of the reference (warning, 0.8)</td>
+</tr>
+<tr>
+<td>Renderers</td>
+<td>PLD, PLA</td>
+<td>PLD001 job above 1,000 tasks including finalize; PLD002 reserved, never emitted (<code>runs/submit</code> shares the 1,000-task limit); PLD003 task groups form a cycle; PLD004 invalid deploy options; PLD005 compute rule matches no model (warning); PLD006 two jobs carry one <code>pipeloom_job</code> tag; PLD007 job or run not found; PLD008 deployed job out of date; PLD009 Databricks API request failed; PLD010 no connection configured; PLD011 task ended without a unit result; PLD012 project file cannot be uploaded; PLD013 dynamic value reference not resolved; PLD014 run still active; PLD015 partly selected task group runs whole (warning); PLA001 unsupported execution mode, or its extra is missing (0.6); PLA002 invalid Airflow plugin configuration (0.6); PLA003 selection renders no unit (warning, 0.6); PLA004 unit task ended without a visible unit result (0.6); PLA005 unsupported Airflow version (0.6); PLA006 PROJECT compile cache unusable (warning, 0.6); PLA007 target boundary is not <code>task</code> (warning, 0.6)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Commands:</strong>
+- <code>pipeloom validate</code> runs L0-L6.
+- <code>--preflight</code> adds L7.
+- Exit codes: 0 means OK, 1 means errors, 2 means usage error, 130 means interrupted.</p>
+<h2 id="8-execution-and-scheduler">8. Execution and scheduler<a class="headerlink" href="#8-execution-and-scheduler" title="Permanent link">&para;</a></h2>
+<p><strong>ADR-0006: Scheduler.</strong> A ready-queue scheduler with no level barrier (L6).
+- When a unit reaches a terminal state, each child's count of pending parents goes down by one. A child whose count reaches zero is enqueued.
+- Ready units are ordered by descending count of downstream units, then by name, which is deterministic.
+- <code>workers</code> caps concurrency. <code>pool</code> tags (a later milestone) cap per-resource concurrency.</p>
+<p><strong>Unit state machine.</strong></p>
+<pre><code>pending → queued → running → succeeded | failed | timed_out | cancelled
+                    running → retrying → running
+pending → skipped   (an upstream is failed, timed_out or skipped)
+queued  → skipped   (fail_fast stopped the run)
+pending → cancelled (run cancelled)
+queued  → cancelled (run cancelled)
+</code></pre>
+<p>The transition table is checked in code (<code>pipeloom.runtime.states</code>). <code>retrying -&gt; cancelled</code> is part of it: a stop request, or fail-fast, cancels a unit that waits for its next attempt. A skipped unit carries a reason: <code>upstream_failed</code> (with the failed upstream) or <code>fail_fast</code>; <code>pipeloom finalize</code> adds <code>not_run</code> for a unit with neither an attempt file nor an orchestrator state (ADR-0034).</p>
+<p><strong>Run state machine:</strong> <code>created → compiled → running → succeeded | failed | cancelled</code>. A run with warnings is still <code>succeeded</code>.</p>
+<p><img alt="The unit and run state machines, including the retry, timeout, skip and cancel transitions." src="../diagrams/04-state-machines.svg" /></p>
+<p>Source: <a href="../diagrams/04-state-machines.d2">04-state-machines.d2</a>.</p>
+<p><strong>Policies</strong> (ADR-0029):
+- <strong>Retries:</strong> <code>retries</code> (default 0), <code>retry_delay</code> (default 1s) and <code>retry_on</code> (<code>transient</code>, the default, or <code>any</code>). The scheduler keeps a retry heap and never sleeps: a failed attempt with retries left moves <code>running -&gt; retrying</code>, emits <code>unit.retrying</code> and holds no worker slot while it waits. <code>pipeloom.runtime.retry.classify</code> decides the category, in this order: <code>TransientError</code> anywhere in the cause chain; the engine's <code>is_transient</code> opinion; <code>ConnectionError</code> or <code>TimeoutError</code> in the chain; in the read, write and state phases an <code>OSError</code> other than FileNotFoundError, PermissionError (a Windows sharing violation is transient), IsADirectoryError, NotADirectoryError and FileExistsError; PLX106 is transient. Everything else is permanent. PLQ301, PLQ302, PLM202, PLM203, PLM205, PLM206 and PLM207 are always permanent, so <code>retry_on: transient</code> never repeats them; <code>retry_on: any</code> retries every failed attempt and therefore repeats deterministic failures. PLC505 rejects retries on an append model whose engine has no idempotent writes.
+- <strong>Backoff:</strong> with <code>n</code> the retry number and <code>base</code> the <code>retry_delay</code>, <code>d = min(max(base, 300 s), base * 2^(n-1))</code> and the wait is <code>d * (0.5 + 0.5 * u)</code>, where <code>u</code> comes from <code>random.Random(f"{run_id}:{unit_id}:{n}")</code>. Delays fall in [d/2, d] and are reproducible.
+- <strong>Retry ownership:</strong> the owner of the schedule retries. <code>pipeloom run --select unit:...</code> runs with <code>retries=0</code>, so a child of the process executor and a unit run by an external orchestrator never retry inside; the orchestrator (or the parent scheduler) owns the retry and the attempt number.
+- <strong>Timeouts:</strong> per-attempt <code>timeout</code>, never retried. A timed-out unit is <code>timed_out</code> (PLX102), its descendants are skipped and the run fails.
+  - The thread executor runs one daemon thread per attempt. It cannot kill a thread: it sets the attempt's cancel token, calls <code>EngineSession.cancel(unit_id)</code> once, writes the <code>timed_out</code> attempt file itself and drops whatever the thread reports later. The runner checks the token before reading, after the body, before the write and around the quarantine write, never between the start of the table write and the end of the watermark swap. A thread that is still working can therefore still commit after the verdict; the first terminal attempt file wins (<code>write_json_once</code>), finalize lets a scheduler <code>timed_out</code> or <code>cancelled</code> verdict beat a later result and records <code>late_result: &lt;status&gt;</code> in <code>warnings[]</code>, and <code>run.completed</code> reports <code>abandoned_threads</code>.
+  - The process executor starts each child in its own process group. The child enforces the timeout with its own thread executor; the parent's deadline is <code>timeout + cancel_grace</code>, after which it kills the child and everything it started (<code>killpg</code> on POSIX, <code>taskkill /T /F</code> on Windows, only while the child has not been reaped).
+- <strong>Cancellation:</strong> the first SIGINT or SIGTERM (SIGINT or Ctrl+Break on Windows) asks for a graceful stop: nothing new starts, pending, queued and retrying units are cancelled, and running units are asked to stop and get <code>cancel_grace</code> (default 30 s; target setting <code>cancel_grace</code> and flag <code>--cancel-grace</code>) to finish. Units that finish in time keep their real result; the rest are marked <code>cancelled</code> (PLX104). The run emits one <code>run.cancel_requested</code>, ends <code>cancelled</code> and exits 130. A second signal is a hard stop that skips the grace and abandons live thread attempts; a third raises KeyboardInterrupt. <code>RunControl.request_stop</code> does the same from the API. A unit invocation (child process) handles the same signals and exits 130.
+- <strong>Cancel on Spark:</strong> <code>unit_scope</code> adds one tag to the unit for the length of its reads, body, checks and write, and <code>cancel(unit_id)</code> interrupts the jobs that carry it: a session tag (<code>addTag</code>, <code>interruptTag</code>) on Spark Connect, a SparkContext job tag (<code>addJobTag</code>, <code>cancelJobsWithTag</code>) on classic Spark. Job groups are not used, since Connect has none. A job that has not started when the first interrupt arrives is not seen, so the engine repeats the interrupt for up to a minute or until the scope ends. Cancel stops Spark jobs, not Python code between jobs, and a Delta commit either completes or does not happen (<a href="../adr/0031-spark-engine/">ADR-0031</a>).
+- <strong>Windows:</strong> a graceful stop of a child is <code>CTRL_BREAK_EVENT</code> to its process group (<code>CTRL_C_EVENT</code> cannot target one), followed by a kill after <code>cancel_grace</code>. There are no job objects in 0.3: a grandchild of a child that exits on its own survives. On POSIX the executor sweeps the child's process group after it exits.
+- <strong>Failure isolation:</strong> skip-downstream is the default. Independent branches continue. <code>--fail-fast</code> stops dequeuing after the first failure.
+- <strong>Concurrency guard:</strong> <code>StateStore.lock("&lt;project&gt;/&lt;target&gt;", run_id)</code> blocks a second concurrent run on the same target (PLX105). The lock is a 60 s lease that a heartbeat thread renews every 20 s, so a crashed run frees it within a minute. <code>--no-lock</code> is the escape hatch. Unit mode (<code>--select unit:&lt;id&gt;</code>) takes no lock and does not finalize: the owning invocation does (<a href="../adr/0020-execution-model-0-2/">ADR-0020</a>).</p>
+<p><strong>ADR-0007: Data handoff.</strong>
+- Context: L7. With <code>boundary: task</code>, no in-memory or temporary-view handoff is possible.
+- Options: persisted intermediates everywhere (simple, costs IO); inlining (free IO, recomputes); a hybrid.
+- Choice: the hybrid, decided at compile time.
+  - <code>ephemeral</code> models are inlined. Their bodies run inside each consuming unit. Under <code>boundary: process</code> the result is memoized per run, so it is computed once.
+  - <code>intermediate</code> models are persisted to <code>&lt;artifacts.root&gt;/runs/&lt;run_id&gt;/intermediate/&lt;model&gt;</code> (a scratch schema the catalog provides is planned). Finalize deletes them after <code>intermediate_ttl</code> (section 11).
+  - <code>view</code> creates a catalog view where the engine supports it, never a session view.
+- Consequences: the same plan runs in one process or many. PLP406 warns when an ephemeral model fans out to more than <code>ephemeral_fanout_warn</code> (default 3) units and suggests <code>intermediate</code>.</p>
+<h2 id="9-incremental-processing-write-strategies-schema-change">9. Incremental processing, write strategies, schema change<a class="headerlink" href="#9-incremental-processing-write-strategies-schema-change" title="Permanent link">&para;</a></h2>
+<p><strong>ADR-0008: Incremental and state.</strong> A declared key plus a lookback (L12), with watermarks in a <code>StateStore</code>.</p>
+<p><strong>Incremental config:</strong></p>
+<pre><code class="language-yaml">incremental:
+  input: orders
+  column: updated_at
+  lookback: 2d
+  watermark_source: state  # or: target
+</code></pre>
+<p><strong>Algorithm per unit:</strong>
+1. Look up the idempotency token with <code>EngineSession.applied_token</code>. A write that already used it is replayed: no read, no body, no write; the stored <code>commit_meta</code> gives the schema fields, the quality outcome and the watermark, and the unit goes straight to step 6 (ADR-0027).
+2. <code>is_incremental</code> is true when the materialization is <code>incremental</code>, the target exists, the run is not a full refresh, and a watermark exists. With <code>watermark_source: state</code> the watermark is <code>state.get_watermark(project, target, model)</code>; with no stored value and an existing target it is seeded from <code>max(column)</code> of the target (<code>watermark_seeded: target</code> in <code>warnings[]</code>). With <code>watermark_source: target</code> it is <code>max(column)</code> of the target and the state store is never written. The column's type family (timestamp with zone, timestamp without, date, integer, decimal, float, string) must match the stored one; a missing column or a mismatch is PLM205.
+3. The input is filtered with <code>filter_since</code>. Without a lookback the bound is strict: <code>column &gt; w</code>. With a lookback it is inclusive: <code>column &gt;= w - lookback</code>, in seconds on timestamps and in whole days (rounded up) on dates; a lookback on any other family is PLM205. The body sees <code>ctx.is_incremental</code>, <code>ctx.watermark</code> and <code>ctx.lower_bound</code>, set only when the unit is incremental.
+4. The batch maximum <code>m</code> is computed on the filtered input. The new watermark is <code>max(w, m)</code> when incremental (<code>m</code> may be empty or below <code>w</code> because of the lookback) and <code>m</code> otherwise; an empty first batch leaves the state alone.
+5. Write, with the intended watermark in <code>WriteConfig.commit_meta</code>.
+6. <code>cas_watermark(expected, new)</code>, where <code>expected</code> is the value read from state in step 2 (none when seeded); emit <code>state.watermark_committed</code>. A store treats a stored value equal to <code>new</code> and written by the same run as success, which covers a crash between the swap and the attempt file. Any other mismatch is PLM203: the data is already written, the unit fails, and the error is permanent.</p>
+<p>The watermark is committed after the write, and a retry with the same token replays the stored value instead of reading the input again (ADR-0027). A crash between the two commits exactly the original batch's watermark on retry, even when new input arrived. Append is safe only when the engine has idempotent writes (otherwise PLC505 forbids retries).</p>
+<p><strong>State stores:</strong>
+- <code>sqlite</code>: core, local, single host.
+- <code>json</code>: core, a directory; atomic rename for local and volume paths.
+- <code>table</code>: <code>pipeloom-spark</code>, shared. One Delta table, partitioned by <code>kind</code> (<code>watermark</code>, <code>run</code>, <code>unit</code>, <code>lock</code>), addressed by catalog name (<code>table</code>) or by path (<code>path</code>), exactly one of the two. A row is found by <code>(kind, key)</code>. Every insert or replace is one <code>MERGE INTO</code> whose source is a one-row DataFrame: the watermark compare-and-set and the lease lock are single statements, a lost race gives a clean false or <code>LockHeld</code>, and a Delta concurrent-modification error is retried up to 10 times with jitter. Renewal and release are filtered <code>UPDATE</code> and <code>DELETE</code>. Times come from the client clock. The store reuses the engine's session and stops only a session it built (<a href="../adr/0033-delta-table-state-store/">ADR-0033</a>). <code>boundary: task</code> requires <code>table</code> or <code>json</code> on a shared path.</p>
+<p><strong>Write strategies.</strong> All return a <code>WriteResult</code> (section 5), with fields <code>None</code> when unknown. The strategy of a model that sets none is <code>default_strategy(materialized)</code>: append for <code>incremental</code>, overwrite otherwise.</p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Semantics</th>
+<th>Full refresh</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>append</td>
+<td>insert all rows</td>
+<td>overwrite</td>
+</tr>
+<tr>
+<td>overwrite</td>
+<td>replace data and schema</td>
+<td>same</td>
+</tr>
+<tr>
+<td>replace_partitions</td>
+<td>replace partitions present in the batch (<code>partition_by</code> required)</td>
+<td>overwrite</td>
+</tr>
+<tr>
+<td>merge</td>
+<td><code>unique_key</code> equality; optional <code>update_condition</code>; an optional <code>deletes</code> block with <code>column</code>, <code>value</code> and <code>mode</code> (<code>hard</code> or <code>soft</code>); a missing key column or a duplicate key in the batch is PLM206; rows with a null key never match</td>
+<td>overwrite</td>
+</tr>
+<tr>
+<td>scd2</td>
+<td><code>unique_key</code>, <code>tracked_columns</code> (default all), columns <code>valid_from</code>, <code>valid_to</code>, <code>is_current</code>, row hash; deletes close the current row</td>
+<td>rebuild</td>
+</tr>
+</tbody>
+</table>
+<p>A full refresh writes append, merge and replace_partitions as overwrite. A first build (the target does not exist) keeps its strategy, because into an absent table every strategy writes the same rows and merge still checks its key. On filesystem tables (ADR-0025) every strategy writes one part file per partition when <code>partition_by</code> is set; replace_partitions swaps whole files without reading the others, and a merge rewrites the whole table in 0.3 as read-modify-write under a commit lock and an expected version. SCD2 is planned (section 16).</p>
+<p><strong>Idempotency:</strong> each write receives <code>token = "&lt;run_id&gt;:&lt;model&gt;"</code>. Engines with transactional idempotency use it. Engines without it declare <code>idempotent_writes=False</code>.</p>
+<p><strong>Delta mapping (<code>pipeloom-spark</code>, <a href="../adr/0032-delta-writes-and-idempotency/">ADR-0032</a>).</strong> All Delta statements are SQL text or DataFrameWriter options; no Spark conf is set, on any session.
+- Token: <code>txnAppId</code> is <code>pipeloom/&lt;project&gt;/&lt;model&gt;</code> (suffix <code>#quarantine</code> or <code>#intermediate</code> for those writes), <code>txnVersion</code> is the run start in epoch milliseconds, and <code>userMetadata</code> is <code>{"pipeloom": {"v": 1, "token", "commit_meta", "result"?}}</code>.
+- Check: before writing, <code>DESCRIBE HISTORY ... LIMIT 100</code> is scanned for the token, and a hit returns the stored result with <code>skipped=True</code>. When a write produced no commit carrying the token, the scan repeats (a racing attempt may have won), then the full history; a token found nowhere means Delta refused the write because a later <code>txnVersion</code> exists for this app id, and the engine raises <code>WriteRefusedError</code> (PLM207). A newer run, an overlapping run (<code>--no-lock</code>) or a host clock that ran behind trips the guard; <code>txn_guard: false</code> turns it off, leaving only the history check.
+- MERGE and migration: Delta applies <code>txnAppId</code> to a MERGE only through session confs, which would leak into other units of the session, and a migration overwrite or <code>mergeSchema</code> commit runs before the guarded write. So with the guard on, a merge into an existing table, and any write that needs a migration, first makes an empty claim commit with the real <code>txnAppId</code>, <code>txnVersion</code> and <code>userMetadata</code> <code>{"pipeloom": {"v": 1, "claim": token}}</code>. It has no <code>token</code> key, so the token scan and the metrics ignore it. Delta refuses it when a later version exists, so PLM207 comes before any data or schema change for every strategy. Later commits of that write use the app id <code>&lt;app&gt;@&lt;token&gt;</code> with version 1, which still keeps two attempts of the same token from both committing. A SQL <code>MERGE INTO</code> is then followed by an empty append carrying the token and the stored result; re-running the MERGE with the same batch converges, so a crash between the commits is safe, and the retry finds its own claim. A claim is void once a later run of the same model has committed, so that retry gets PLM207 instead of merging over the later run's data (<a href="../adr/0032-delta-writes-and-idempotency/">ADR-0032</a>).</p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Delta write</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>append</td>
+<td><code>mode("append")</code>; <code>mergeSchema</code> when the final columns add columns</td>
+</tr>
+<tr>
+<td>overwrite</td>
+<td><code>mode("overwrite")</code> with <code>overwriteSchema</code>, so any schema policy result is accepted</td>
+</tr>
+<tr>
+<td>replace_partitions</td>
+<td><code>replaceWhere</code> over the distinct partition tuples of the persisted batch (more than 10,000 tuples fails and recommends merge); works on physically partitioned and unpartitioned tables; an empty batch writes only the token commit</td>
+</tr>
+<tr>
+<td>merge</td>
+<td>the claim commit, SQL <code>MERGE INTO</code>, then the token commit; null keys never match and insert; soft deletes are counted and moved from updated to deleted; a merge into a missing table is the first load, an append</td>
+</tr>
+</tbody>
+</table>
+<p>The schema policy (above) is applied by the core; the engine maps its result. Added columns go in the write itself (<code>mergeSchema</code>); a merge first makes an empty <code>mergeSchema</code> append instead. Removed or widened columns first run one migration commit: the table is read, aligned to the final columns and overwritten with <code>overwriteSchema</code>, keeping its partitioning. A migration commit carries no <code>txn</code> options and no token, so it never counts in the metrics; with the guard on, the claim commit before it takes the write version.</p>
+<p><strong>Schema-change policy (<code>on_schema_change</code>):</strong>
+- <code>fail</code> (default): any column added, removed or changed in type raises PLM202.
+- <code>ignore</code>: the final schema is the target's. The batch is aligned to it: extra columns dropped, missing ones filled with nulls, values cast to the target types (a failed cast is PLM201).
+- <code>append_new_columns</code>: the target's columns followed by the new ones, nullable, in batch order. Removed columns stay; a type change is PLM202.
+- <code>sync_all_columns</code>: the batch's columns. A type change is accepted only when <code>can_widen(target, batch)</code> (wider integer, int to float64, float32 to float64, decimals that keep every digit, finer timestamp units with the same zone, null to anything); otherwise PLM202.</p>
+<p>The core decides the final schema (<code>pipeloom.runtime.schema_policy.resolve_columns</code>) and passes it as <code>WriteConfig.columns</code>; the engine only aligns the batch with <code>EngineSession.align</code>. A batch that differs from the target only by a lossless widening of the target's type is cast up to the target's types under every policy.</p>
+<p>Every non-empty diff emits <code>model.schema_changed</code> (<code>relation</code>, <code>policy</code>, <code>action</code>: applied, ignored, rejected or replaced, and <code>changes</code>) and is copied to <code>schema_changes[]</code> of the run results. The policy applies only to strategies that keep existing rows (append, merge, replace_partitions) on an existing target outside a full refresh; overwrite, a full refresh and a first build use the batch schema and report the diff as <code>replaced</code>. Tables read every committed file through the table's current schema (schema-on-read), so append and widening never rewrite old files. See ADR-0026.</p>
+<p>Table properties, <code>partition_by</code>, clustering and grants are applied by every strategy or rejected (PLP405). Maintenance (<code>optimize</code>, <code>vacuum</code>, clustering changes) runs only from <code>maintenance:</code> blocks with an explicit schedule (<code>every_n_runs</code>), never by default (L8).</p>
+<h2 id="10-data-quality">10. Data quality<a class="headerlink" href="#10-data-quality" title="Permanent link">&para;</a></h2>
+<p><strong>ADR-0009: Expectations.</strong> DLT-style actions plus quarantine, evaluated after the transformation and before the write.</p>
+<pre><code class="language-yaml">expectations:
+  - name: id_not_null
+    check:
+      not_null: [order_id]
+    on_violation: fail
+  - name: status_known
+    check:
+      accepted_values:
+        column: status
+        values: [new, paid, shipped]
+    on_violation: drop
+  - name: amount_ok
+    expr: &quot;amount &gt;= 0 and amount &lt; 1e6&quot;   # engine-dialect, non-portable
+    on_violation: warn
+  - name: unique_id
+    check:
+      unique: [order_id]                   # aggregate
+    on_violation: fail
+quality:
+  quarantine: true
+  max_drop_ratio: 0.05
+</code></pre>
+<ul>
+<li><strong>Row-level checks:</strong> <code>not_null</code>, <code>accepted_values</code>, <code>range</code>, <code>regex</code>, <code>expr</code>. Allowed actions: warn, drop, fail.</li>
+<li><strong>Aggregate checks:</strong> <code>unique</code>, <code>row_count {min,max}</code>, <code>freshness {column, max_age}</code>. Allowed actions: warn, fail; <code>drop</code> is PLP403. They see only the batch, after the drops; for an incremental model that is the new rows, not the table.</li>
+<li><strong>Engines count, the core judges</strong> (ADR-0028). <code>EngineSession.evaluate</code> returns raw counts: the total, violating rows per row check, rows that violate at least one drop check, and aggregate values. <code>pipeloom.quality.judge</code> decides pass or fail, the drop ratio, PLQ301 and the events. A pure-Python reference (<code>pipeloom.testing.reference</code>) defines the semantics and the contract suite compares every engine with it. Unlike DLT, counts are kept on <code>fail</code> too.</li>
+<li><strong>Null and NaN semantics:</strong> a null input passes every check except <code>not_null</code>; NaN counts as null; <code>range</code> bounds are inclusive; <code>regex</code> is an unanchored search and needs a string column; <code>accepted_values</code> compares exactly; <code>expr</code> true passes, null passes, false fails. <code>unique</code> counts rows minus distinct keys and ignores rows with a null key part. Freshness is <code>now - max(column)</code> computed by the core with the run's clock; a naive timestamp reads as UTC and an all-null column fails.</li>
+<li><strong><code>expr</code> dialects:</strong> polars takes a SQL expression for <code>pl.sql_expr</code>; pandas takes a restricted Python expression (names, literals, operators, <code>in</code> with a tuple; no calls, attributes or <code>@name</code>; anything else is PLQ302); the memory engine takes a sqlite expression. An <code>expr</code> never runs code.</li>
+<li><strong>Order:</strong> row checks run on the full output; if a drop check failed the rows are split (<code>apply_drops</code>); aggregates then run on the kept rows (one <code>evaluate</code> call when nothing can drop). A lazy relation is persisted first (<code>cached: true</code> in the event).</li>
+<li><strong>Drop:</strong> filters rows that fail any <code>drop</code> check. A failed <code>fail</code> check, or a drop ratio above <code>quality.max_drop_ratio</code>, fails the unit with PLQ301 before it writes; the counts are still recorded.</li>
+<li><strong>Quarantine:</strong> dropped rows are appended to <code>&lt;target&gt;__quarantine</code> under the token <code>&lt;run_id&gt;:&lt;model&gt;#quarantine</code>, so a replay writes them once. The table has the model's columns plus <code>_pipeloom_run_id</code> (string), <code>_pipeloom_failed</code> (list of the failing drop-check names; JSON text in a string column on csv catalogs) and <code>_pipeloom_ts</code> (timestamp[us, UTC]). Its schema policy is <code>append_new_columns</code>.</li>
+</ul>
+<h2 id="11-events-logs-and-run-metadata">11. Events, logs and run metadata<a class="headerlink" href="#11-events-logs-and-run-metadata" title="Permanent link">&para;</a></h2>
+<p><strong>ADR-0010: Events.</strong> One typed stream (L1) and a synchronous in-process bus.</p>
+<p><strong>Envelope (<code>pipeloom.event/1</code>):</strong>
+- <code>id</code> (uuid4 hex), <code>run_id</code>, <code>invocation_id</code>, <code>seq</code> (monotonic per invocation, assigned under the bus lock), <code>ts</code> (RFC 3339 UTC, microseconds), <code>type</code>, <code>level</code>, <code>unit_id</code>, <code>model</code>, <code>attempt</code>, <code>data</code> (typed payload), <code>context</code> (orchestrator ids).
+- Cross-invocation ordering is by (<code>ts</code>, <code>invocation_id</code>, <code>seq</code>).</p>
+<p><strong>Event types:</strong>
+- Run: <code>run.started</code>, <code>run.compiled</code> (plan summary), <code>run.cancel_requested</code>, <code>run.completed</code>.
+- Unit: <code>unit.queued</code>, <code>unit.started</code>, <code>unit.retrying</code>, <code>unit.succeeded</code>, <code>unit.failed</code>, <code>unit.timed_out</code>, <code>unit.cancelled</code>, <code>unit.skipped</code>.
+- Payloads added in 0.3 for control: <code>unit.retrying{attempt, next_attempt, delay_ms, error}</code> (warning; <code>attempt</code> is the one that failed); <code>unit.timed_out{timeout_s, attempt}</code>; <code>unit.cancelled{reason: cancel|timeout}</code>; <code>run.cancel_requested{signal, grace_s}</code> (<code>signal</code> is SIGINT, SIGTERM or SIGBREAK, or null for an API stop).
+- Model: <code>model.input_read</code> (0.8 adds <code>relation</code> and <code>deferred</code>: a read that <code>--defer</code> sent to the reference's relation), <code>model.quality_evaluated</code>, <code>model.schema_changed</code>, <code>model.written</code>, <code>model.log</code> (user <code>ctx.log</code>).
+- State: <code>state.watermark_committed</code>.
+- Payloads added in 0.3: <code>model.written</code> gains <code>skipped</code> (a replayed token); <code>model.quality_evaluated</code> carries <code>total_rows</code>, <code>results[]</code>, <code>rows_dropped</code>, <code>rows_quarantined</code>, <code>drop_ratio</code>, <code>cached</code> and <code>failures[]</code> (it is a warning when anything warned, dropped or failed); <code>model.schema_changed</code> carries <code>relation</code>, <code>policy</code>, <code>action</code> and <code>changes[]</code> (a warning when rejected); <code>state.watermark_committed</code> carries <code>column</code>, <code>dtype</code>, <code>before</code>, <code>after</code>, <code>source</code> and <code>seeded</code>.
+- Other: <code>sink.disabled</code>, <code>artifact.written</code>, <code>diagnostic</code> (validation warnings).
+- <code>run.completed</code> also carries <code>abandoned_threads</code>, the number of timed-out or cancelled unit threads that were still alive when the run ended (a thread cannot be killed; it ends with the process).
+- <code>run.completed</code> carries the status, exit code, counts, totals, <code>failures[]</code> (one entry per failed unit with its diagnostic) and <code>artifacts[]</code> (POSIX paths of the files the run wrote), so the console prints the failure block and the artifacts line from it.</p>
+<p><strong>Bus and sinks:</strong>
+- The bus fans out to sinks in the order they are configured.
+- Each sink has a <code>failure_budget</code> (default 5 consecutive errors). When exhausted, the sink is disabled and <code>sink.disabled</code> goes to the remaining sinks.
+- <code>buffered: true</code> wraps a sink in a bounded queue and worker thread for slow transports, with drop-oldest and a count of drops.
+- A redaction filter masks registered secret values before any sink sees an event.
+- Built-in sinks: <code>console</code>, <code>jsonl</code> (stdout or file), <code>file</code> (per-invocation event files under artifacts), <code>artifacts</code> (always on; builds the result files).
+- <code>pipeloom-openlineage</code> maps units to OpenLineage jobs: <code>&lt;project&gt;.&lt;model&gt;</code>, with a parent run facet for the pipeline run, the error facet, and input and output datasets from the manifest. The output-statistics facet is used if available (unverified).
+- <code>RecordingSink</code> in <code>pipeloom.testing</code> asserts ordered events.</p>
+<p><img alt="The event bus fans out to sinks through a redaction filter. Each sink has a failure budget, slow sinks can be buffered, and the artifacts sink writes the result files." src="../diagrams/05-events.svg" /></p>
+<p>Source: <a href="../diagrams/05-events.d2">05-events.d2</a>.</p>
+<p><strong>Console library: rich.</strong> It provides styled tables, colors and live progress in one dependency. structlog would still need a renderer for those. JSON lines need only the stdlib.</p>
+<p><strong>Sample console output (<code>--log-format text</code>):</strong></p>
+<pre><code>14:02:11 pipeloom 0.5.0 | project shop | target dev | engine polars | run 20261029T140211Z-7f3a9c
+14:02:11 plan: 6 units (3 table, 2 incremental, 1 view; 1 ephemeral inlined) | workers 4
+14:02:12 1/6 OK    stg_customers ......... table          1,204 rows    88 KB   0.41s
+14:02:12 2/6 OK    stg_orders ............ table          9,812 rows   412 KB   0.77s
+14:02:13 3/6 WARN  fct_orders ............ merge  +311 ~42 -0  1 expectation warned  1.12s
+14:02:13 4/6 FAIL  fct_payments .......... append  PLX101 KeyError: 'amount'        0.20s
+14:02:13 5/6 SKIP  rpt_revenue ........... upstream fct_payments failed
+14:02:14 6/6 OK    dim_customers ......... table          1,204 rows            0.35s
+14:02:14 finished in 2.9s | OK 3 | WARN 1 | FAIL 1 | SKIP 1 | rows written 12,573
+         fct_payments  PLX101 model raised KeyError: 'amount'
+                       hint: column missing in input 'payments' (ref stg_payments)
+                       at src/shop/marts/payments.py:14 in build
+14:02:14 artifacts: target/run_results.json, target/manifest.json, target/events.jsonl
+</code></pre>
+<p>Long engine (JVM) traces are trimmed to the first user frame and the root cause. The full trace goes to JSON events only.</p>
+<p><strong>Per-model metadata (<code>run_results.results[]</code>):</strong>
+- Identity: <code>unique_id</code> (<code>model.&lt;project&gt;.&lt;name&gt;</code>), <code>unit_id</code>, <code>materialization</code>, <code>strategy</code>, <code>relation_name</code>.
+- Status: <code>status</code>, <code>attempt</code>, <code>retries_used</code>.
+- Timing: <code>started_at</code>, <code>ended_at</code>, <code>duration_ms</code>, <code>queue_wait_ms</code>.
+- Rows: <code>rows_read{input: n|null}</code>, <code>rows_written</code>, <code>rows_inserted</code>, <code>rows_updated</code>, <code>rows_deleted</code>, <code>rows_dropped</code>, <code>rows_quarantined</code>.
+- Bytes and version: <code>bytes_written</code>, <code>bytes_read</code> (null unless the engine reports it), <code>target_version</code>.
+- Incremental: <code>watermark_before</code>, <code>watermark_after</code>, <code>is_incremental</code>, <code>full_refresh</code>.
+- Schema: <code>schema_hash</code>, <code>schema_changes[]{kind, column, old, new, action}</code>.
+- Quality: <code>expectations[]{name, kind, action, passed, failed, value}</code> (<code>passed</code> is null and <code>value</code> is set for aggregate checks), <code>warnings[]</code> (expectation warnings and <code>watermark_seeded: target</code>). A replayed unit restores them from the stored commit metadata.
+- Error: <code>{code, category, message, hint, exception_type, trace_excerpt}</code>.
+- Runtime: <code>engine</code>, <code>engine_version</code>, <code>executor</code>, <code>orchestrator_ids</code> (Databricks job, run and task run ids; Airflow dag, run, task and try as <code>airflow_dag_id</code>, <code>airflow_run_id</code>, <code>airflow_task_id</code> and <code>airflow_try_number</code>; filled from <code>--orchestrator-id</code>, ADR-0034), <code>idempotency_token</code>.</p>
+<p><strong>Per-run metadata (<code>run_results.run</code>):</strong>
+- <code>run_id</code>, <code>parent_run_id</code> (null, or the run that <code>pipeloom retry --from</code> retried; 0.8), <code>invocation_ids[]</code>, <code>project</code>, <code>target</code>, <code>plan_hash</code>, <code>selector</code>, <code>args</code>, <code>full_refresh</code>. <code>args</code> records the command line values that shaped the run, among them <code>state</code> (the <code>--state</code> folder, POSIX, relative to the project dir when possible, else absolute; null without the flag) and <code>defer</code> (0.8).
+- <code>status</code>, <code>started_at</code>, <code>ended_at</code>, <code>duration_ms</code>, <code>counts{status: n}</code>, <code>totals{rows_written, bytes_written}</code>.
+- <code>identity{user, host, orchestrator}</code>, <code>pipeloom_version</code>, <code>plugins{name: version}</code>, <code>python_version</code>, <code>git_sha</code> (if available), <code>exit_code</code>, <code>intermediate_ttl</code> (seconds; the TTL this run was finalized with, which other runs use to judge its intermediates) and <code>warnings[]</code> (run-level messages, such as <code>intermediate_cleanup_failed: &lt;run_id&gt;: &lt;error&gt;</code>).</p>
+<p><strong>Metrics capture (L5):</strong>
+- <code>MetricsProvider.before_write</code> records the target version.
+- <code>after_write</code> reads commit history for versions in (before, after] and sums operation metrics. In the Spark engine only the commits whose <code>userMetadata</code> token equals the write's own count, plus the newest MERGE commit for a merge (a SQL MERGE carries no token, so a concurrent MERGE on the same table can be mistaken for it in the metrics, never in the data). Migration commits carry no token and are not counted. Metrics are <code>rows_written</code>, <code>rows_inserted</code>, <code>rows_updated</code>, <code>rows_deleted</code>, <code>bytes_written</code> and <code>target_version</code>, each null when the commits do not report it.
+- Engines without history count rows instead: <code>count</code> on eager frames, or the writer's return value.</p>
+<p><strong>Artifacts.</strong> Layout: <code>&lt;artifacts.root&gt;/runs/&lt;run_id&gt;/{manifest.json, run_results.json, events/&lt;invocation_id&gt;.jsonl, units/&lt;unit_id&gt;/attempt-&lt;n&gt;.json, logs/&lt;unit_id&gt;-attempt-&lt;n&gt;.log}</code>. <code>artifacts.root</code> defaults to <code>target</code>. An <code>intermediate</code> model's result lives under <code>runs/&lt;run_id&gt;/intermediate/&lt;model&gt;</code>. <code>artifacts.intermediate_ttl</code> (default 1d; 0 deletes the folder at the end of a succeeded run) governs it: finalize deletes the folders of other runs once expired, each judged by the TTL recorded in its own <code>run_results.json</code> (0 counts as one hour, since only a failed run is left with data) against its last activity, the newest modification time under its run folder. A run without results, or resumed after them (manifest newer than <code>run_results.json</code>), expires after <code>max(ttl, 1h)</code> idle. A deletion failure is a warning in <code>run.warnings</code>, never a run failure. Finalize copies the run's <code>manifest.json</code> and <code>run_results.json</code> to the root.
+- <code>results[]</code> has one row per persisted model, sorted by unit id; an ephemeral model appears in <code>ephemeral_inlined</code> of the units that inline it. Every row has every key, and fields 0.2 does not fill are null or empty.
+- <code>manifest.json</code> (<code>pipeloom.manifest/1</code>): <code>metadata{pipeloom_version, plugins, config_version, plan_hash, project, target, boundary, python_paths, vars, env_vars, generated_at, invocation_id}</code>, <code>nodes{unique_id: resolved config, body, inputs, relation, unit_ids, checksum}</code>, <code>sources</code>, <code>units{unit_id: [unique_ids]}</code>, <code>unit_parent_map{unit_id: [unit_ids]}</code>, <code>parent_map</code>, <code>child_map</code>, <code>selectors{select, exclude, selected}</code>.
+  - <code>plan_hash</code> is the sha256 of the canonical JSON (sorted keys, no spaces) of <code>nodes</code>, <code>sources</code>, <code>units</code>, <code>unit_parent_map</code>, <code>parent_map</code>, <code>child_map</code> and <code>metadata</code> reduced to <code>project</code>, <code>target</code>, <code>boundary</code> and <code>config_version</code>. Selection, versions, timestamps and ids do not change it. A <code>per_user</code> naming strategy puts the user into the relations, so use <code>none</code> where the hash must match across machines.
+  - A node <code>checksum</code> is the sha256 of its canonical config plus its body (the SQL text, or the callable and its file bytes), with CRLF read as LF.
+- <code>run_results.json</code> (<code>pipeloom.run_results/1</code>): <code>metadata</code>, <code>args</code>, <code>run</code>, <code>results[]</code>.
+- Finalize merges unit files and picks the latest attempt per unit. Run records also go to the state store for history.
+- <code>pipeloom finalize --run-id ID</code> (0.5, ADR-0034) closes a run that an orchestrator drove unit by unit. A unit takes its attempt file, else the state given with <code>--unit-states</code> (<code>pipeloom.unit_states/1</code>: <code>skipped</code>, <code>cancelled</code>, <code>failed</code> or <code>excluded</code>), else it is <code>skipped</code> with the reason <code>not_run</code>, which does not fail the run; <code>excluded</code> drops the unit. <code>orchestrator_ids</code> come from <code>--orchestrator-id KEY=VALUE</code>. It exits 0, 1 or 130 and rewrites the same results when repeated.</p>
+<h2 id="12-the-databricks-plugin">12. The Databricks plugin<a class="headerlink" href="#12-the-databricks-plugin" title="Permanent link">&para;</a></h2>
+<p><strong><code>pipeloom-databricks</code></strong> depends on <code>pipeloom-spark</code> and <code>databricks-sdk</code> (<code>&gt;=0.50,&lt;1</code>). It provides the <code>unity</code> catalog, the <code>databricks</code> secret provider, the <code>databricks</code> renderer (the <code>deploy</code> block), the <code>pipeloom databricks</code> commands (<code>bundle</code>, <code>deploy</code>, <code>run</code>, <code>repair</code>), the task wrapper and task-value publishing. There is no <code>databricks</code> executor: ADR-0020 picks executors by boundary, and Databricks is an orchestrator. User guide: <a href="../plugins/databricks/">Databricks plugin</a>. Amended by ADR-0035 and ADR-0036; the sections below are the delivered design.</p>
+<p><img alt="A plan is rendered to Databricks job settings or bundle YAML. Model tasks write unit files to the volume, a finalize task writes run_results.json, and task values carry a summary." src="../diagrams/06-databricks.svg" /></p>
+<p>Source: <a href="../diagrams/06-databricks.d2">06-databricks.d2</a>.</p>
+<p><strong>ADR-0011 (amended by ADR-0035): Rendering.</strong></p>
+<p><strong>Task type.</strong> Each unit (or group) becomes one <code>python_wheel_task</code> that runs the plugin wrapper, not the core CLI:</p>
+<pre><code class="language-json">{&quot;task_key&quot;: &quot;fct_orders&quot;, &quot;depends_on&quot;: [{&quot;task_key&quot;: &quot;stg_orders&quot;}],
+ &quot;python_wheel_task&quot;: {&quot;package_name&quot;: &quot;pipeloom_databricks&quot;, &quot;entry_point&quot;: &quot;pipeloom_databricks_task&quot;,
+   &quot;parameters&quot;: [&quot;unit&quot;, &quot;--project-dir=&lt;root&gt;&quot;, &quot;--manifest=&lt;root&gt;/&lt;stable manifest&gt;&quot;,
+     &quot;--target=prod&quot;, &quot;--pipeline=main&quot;, &quot;--unit=fct_orders&quot;, &quot;--plan-hash=&lt;h&gt;&quot;,
+     &quot;--run-id={{job.parameters.pipeloom_run_id}}&quot;, &quot;--full-refresh={{job.parameters.full_refresh}}&quot;,
+     &quot;--job-id={{job.id}}&quot;, &quot;--job-run-id={{job.run_id}}&quot;, &quot;--task-key={{task.name}}&quot;,
+     &quot;--task-run-id={{task.run_id}}&quot;, &quot;--start-ms={{job.start_time.timestamp_ms}}&quot;]},
+ &quot;environment_key&quot;: &quot;pipeloom_default&quot;, &quot;max_retries&quot;: 1, &quot;min_retry_interval_millis&quot;: 60000,
+ &quot;timeout_seconds&quot;: 1800}
+</code></pre>
+<ul>
+<li>The wrapper is a <code>[project.scripts]</code> entry plus a lazy function of the same name in the package, so both Databricks lookups find it. It resolves the run id (empty means <code>dbx-&lt;job run id&gt;</code>), turns <code>start_ms</code> into <code>--run-started-at</code>, rejects a parameter that still holds <code>{{</code> (PLD013), calls the core CLI in the same process so an active Spark session stays the active one, passes the Databricks ids as orchestrator ids and exits with the core's code. Values use <code>--opt=value</code> so an empty value stays one argument.</li>
+<li>Task keys use <code>[A-Za-z0-9_-]</code>, at most 100 characters (a long or colliding key gets <code>_</code> and 8 hex characters of the sha256 of the original). Groups are <code>tag_&lt;tag&gt;</code> or <code>dir_&lt;folder&gt;</code>.</li>
+<li>The project is either synced by a bundle or uploaded by <code>deploy</code>. <code>python_paths</code> are prepended at execution.</li>
+<li>Model tasks keep <code>run_if: ALL_SUCCESS</code>, which maps skip-downstream onto Databricks "upstream failed". Tasks are sorted by key, finalize last.</li>
+</ul>
+<p><strong>Compute.</strong>
+- Default: serverless, with one <code>environments[]</code> entry per compute (<code>pipeloom_&lt;compute&gt;</code>) whose <code>spec.environment_version</code> defaults to "5" (Python 3.12; version 1 is below the floor) and whose <code>dependencies</code> pin <code>pipeloom</code>, <code>pipeloom-databricks</code> and every plugin in the plan at the recorded version (Spark without extras). <code>dependencies</code> can be set to install from elsewhere.
+- Alternative: <code>kind: job_cluster</code> emits a shared <code>job_clusters[]</code> entry plus <code>libraries</code>, pinned from PyPI by default.
+- Compute comes from the target's <code>compute_rules</code> (selectors, first match wins, then <code>default_compute</code>), not from a model key: compute is a runtime key (section 4). A rule that matches no model is PLD005.
+- The Spark engine's <code>active</code> mode uses the existing session. When none is active and <code>DATABRICKS_RUNTIME_VERSION</code> is set (a wheel task starts without one), it attaches with <code>builder.getOrCreate()</code> and no conf, and never configures or stops that session.</p>
+<p><strong>Job lifecycle.</strong>
+- The default is a saved job: <code>jobs/create</code>, or <code>reset</code> when it exists, found by the tag <code>pipeloom_job=&lt;project&gt;.&lt;pipeline&gt;.&lt;target&gt;</code> (name lookup first, then a scan of all jobs; two matches are PLD006). Saved jobs give run history, repair, <code>only</code>-subset runs and up to 1,000 tasks. Equal settings hashes make a deploy a no-op; <code>reset</code> overwrites edits made in the UI.
+- Tags: <code>pipeloom_job</code>, <code>pipeloom_plan_hash</code>, <code>pipeloom_settings_hash</code> (sha256 of the canonical settings without that tag) and <code>pipeloom_version</code>; user tags merge and ours win.
+- Job settings: <code>max_concurrent_runs: 1</code>, queueing enabled, <code>parameters</code> <code>pipeloom_run_id</code> (default empty) and <code>full_refresh</code> (default <code>false</code>). The deploy block's <code>settings</code> pass through, except the keys pipeloom owns (PLD004).
+- <code>runs/submit</code> is used only with <code>pipeloom databricks run --ephemeral</code> (dev, serverless only). It shares the 1,000-task limit, so PLD002 is reserved and never emitted.</p>
+<p><strong>Bundles and direct deploy.</strong>
+- <code>pipeloom databricks bundle --target prod --out resources/</code> writes, per pipeline, <code>pipeloom_&lt;project&gt;_&lt;pipeline&gt;_&lt;target&gt;.job.yml</code> and a stable manifest next to it. The output must lie inside the bundle; paths use <code>${workspace.file_path}</code>; <code>--check</code> lists stale files. <code>databricks bundle deploy</code> remains the user's step.
+- <code>pipeloom databricks deploy</code> renders the same settings, uploads the project (content addressed, only <code>pipeloom.yml</code>, model files, <code>*.py</code> below <code>python_paths</code> and the stable manifest) to <code>&lt;workspace_root&gt;/&lt;project&gt;/&lt;pipeline&gt;/&lt;target&gt;/&lt;hash&gt;</code>, then creates or resets the job. A folder with the marker <code>_pipeloom/complete</code> is never uploaded again; the current folder and the two newest others are kept.
+- A <code>load_resources</code> hook for Python bundle resources is on the roadmap.</p>
+<p><strong>Run identity and metadata.</strong>
+- An empty <code>pipeloom_run_id</code> resolves to <code>dbx-&lt;job run id&gt;</code>. Repairs keep the same job run id, so the pipeloom <code>run_id</code> is stable and the attempt number increments.
+- Each task writes its unit file to <code>artifacts.root</code> (a UC Volume path); this is the source of truth.
+- After a unit task the wrapper calls <code>taskValues.set("pipeloom", {...})</code> with status, rows written, duration, target version, warnings and error code, dropping units from the end above 32 KiB (Databricks allows 48 KiB). Task values are documented for notebooks only, so this is best effort and never changes the exit code.
+- A final task <code>pipeloom__finalize</code> depends on every leaf with <code>run_if: ALL_DONE</code>, one retry and a 1,800 s timeout. It reads task states from the Jobs API (best effort), gives them to <code>pipeloom finalize --unit-states</code> (EXCLUDED to excluded; UPSTREAM_* to skipped; CANCELED or TIMEDOUT to cancelled; FAILED to failed with PLD011) and writes <code>run_results.json</code>. A job run's result comes from its leaf tasks, so a succeeding finalize would hide a failure: finalize exits 1 when the run failed.</p>
+<p><strong>Task limit.</strong>
+- <code>jobs/create</code>, <code>reset</code> and <code>runs/submit</code> allow up to 1,000 tasks including finalize.
+- Above the limit the plan fails with PLD001, with the hint to set <code>task_grouping: by_tag | by_folder</code>. That fuses models into multi-model tasks, run with <code>--unit</code> selectors through the in-process scheduler; membership is recomputed from the shipped manifest, which keeps the parameters short. Grouping applies whenever it is set, so the job shape does not flip at the 1,001st model. Alternatively, split into separate pipelines by selector.
+- No automatic job chaining before 1.0.</p>
+<p><strong>Subset and reruns.</strong>
+- <code>pipeloom databricks run --select tag:x</code> resolves on the plan, maps units to task keys (groups deduplicated), adds finalize and calls <code>run-now</code> with <code>only</code>. A partly selected group runs whole (PLD015). With <code>--run-id</code>, the start carries <code>idempotency_token = sha256("&lt;job_id&gt;:&lt;run_id&gt;")</code>.
+- <code>pipeloom databricks repair --run-id</code> reruns the tasks in FAILED, TIMEDOUT, CANCELED, UPSTREAM_FAILED, UPSTREAM_CANCELED or MAXIMUM_CONCURRENT_RUNS_REACHED plus finalize, with <code>latest_repair_id</code> from the run history. A run that is still active is PLD014.</p>
+<p><strong>Unity Catalog and secrets.</strong> The <code>unity</code> catalog subclasses the Spark session catalog (three-part backticked names, schema created only when absent). The <code>databricks</code> secret provider resolves <code>${secret:databricks/&lt;scope&gt;/&lt;key&gt;}</code> through the client with no profile; failures are PLX109. Connection order: <code>--profile</code>, a user-set <code>DATABRICKS_CONFIG_PROFILE</code>, <code>DATABRICKS_HOST</code> with credentials, runtime authentication, else PLD010 (ADR-0036).</p>
+<h2 id="13-the-airflow-plugin">13. The Airflow plugin<a class="headerlink" href="#13-the-airflow-plugin" title="Permanent link">&para;</a></h2>
+<p><strong><code>pipeloom-airflow</code></strong> supports Airflow 3.2 up to 4.0 (<code>apache-airflow&gt;=3.2,&lt;4</code>, installed through the <code>airflow</code> extra; the package has no hard Airflow dependency, see <a href="../adr/0037-airflow-packaging-and-rendering/">ADR-0037</a>). It imports <code>from airflow.sdk import DAG, TaskGroup, BaseOperator, BaseSensorOperator, Asset</code>. Triggers come from the Airflow 3 trigger base (verify the module path per minor version).</p>
+<pre><code class="language-python">from pipeloom_airflow.config import ProjectConfig, RenderConfig, ExecutionConfig, ExecutionMode, LoadMode
+from pipeloom_airflow.dag import PipeloomDag
+
+shop_daily = PipeloomDag(
+    dag_id=&quot;shop_daily&quot;, schedule=&quot;@daily&quot;, start_date=datetime(2026, 1, 1),
+    project_config=ProjectConfig(project_dir=&quot;/opt/pipelines/shop&quot;, manifest_path=&quot;/opt/pipelines/shop/target/manifest.json&quot;),
+    target=&quot;prod&quot;,
+    render_config=RenderConfig(load_method=LoadMode.MANIFEST, select=(&quot;tag:daily&quot;,), emit_assets=True),
+    execution_config=ExecutionConfig(mode=ExecutionMode.DATABRICKS, databricks_conn_id=&quot;databricks_default&quot;),
+)
+</code></pre>
+<p><code>PipeloomTaskGroup</code> takes the same configs inside an existing DAG. <code>ExecutionConfig</code> fields: <code>mode</code>, <code>project_dir</code> and <code>manifest_path</code> (where units execute, defaulting to <code>ProjectConfig</code>'s), <code>virtualenv_dir</code>, <code>kubernetes</code> (<code>KubernetesConfig(image, namespace, python, pod_kwargs)</code>), <code>env</code>, and the <code>databricks_*</code> fields: <code>conn_id</code>, <code>pipeline</code>, <code>ensure_job</code>, <code>poll</code>, <code>poll_interval</code>, <code>timeout</code> (the user guide, <a href="../plugins/airflow/">Airflow</a>, lists them with defaults). The package has extras <code>airflow</code>, <code>kubernetes</code> (adds the cncf-kubernetes provider <code>&gt;=10.25,&lt;11</code>) and <code>databricks</code> (adds <code>pipeloom-databricks</code>, not the Databricks provider).</p>
+<p><strong>ADR-0012: Airflow rendering.</strong></p>
+<p><strong>Load methods (parse time):</strong>
+- <code>MANIFEST</code> (recommended): reads a precompiled <code>manifest.json</code>.
+- <code>PROJECT</code>: compiles YAML. This is safe because no user code runs (ADR-0003), and it is cached by a hash of the inputs.
+- Neither imports engines or connects to anything.</p>
+<p><strong>Execution modes:</strong>
+- <code>LOCAL</code>: <code>PipeloomRunOperator</code> per unit runs <code>pipeloom run --select unit:&lt;id&gt; --run-id &lt;rid&gt;</code> (with <code>--manifest</code> in MANIFEST mode, and always <code>--expect-plan-hash</code>) in a child process group.
+- <code>VIRTUALENV</code>: the same, using a prebuilt venv path.
+- <code>KUBERNETES</code>: <code>PipeloomKubernetesOperator</code>, a <code>KubernetesPodOperator</code> from the cncf provider extra with a user image. Never deferrable.
+- <code>DATABRICKS</code>: described below.
+- <code>DOCKER</code>: later (PLA001 in 0.6).</p>
+<p><strong>Artifact store (ADR-0038).</strong> The target's <code>artifacts.root</code> must be one shared POSIX directory for every unit task and the finalize task: any path under the LocalExecutor, NFS, EFS or SMB under Celery, a ReadWriteMany claim or a CSI mount (through <code>pod_kwargs</code>) on Kubernetes. fsspec is rejected for 0.6 because create-once files and atomic replace are not portable across its backends, and state stores and filesystem catalogs need shared storage anyway. A unit task that succeeded with no visible attempt file fails finalize with PLA004.</p>
+<p><strong>Retries.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Retries owned by</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LOCAL, VIRTUALENV</td>
+<td>Airflow: model <code>retries</code> and <code>retry_delay</code></td>
+<td>A unit invocation never retries itself. Exit 2: no retry. Exit 130: retry. Exit 1: no retry when the terminal error is permanent and <code>retry_on</code> is <code>transient</code>.</td>
+</tr>
+<tr>
+<td>KUBERNETES</td>
+<td>Airflow, same counts</td>
+<td><code>retry_on</code> is not enforced: Airflow sees only the pod result.</td>
+</tr>
+<tr>
+<td>DATABRICKS</td>
+<td>Databricks task retries</td>
+<td>Sensors have no retries; the launch retries twice and attaches to its run.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Shared behavior:</strong>
+- One Airflow task per unit. <code>group_by</code> only nests visual task groups (not in DATABRICKS mode). The cancel grace (SIGKILL delay, pod termination grace, execution timeout slack) is the core default of 30 s, because the manifest does not carry the target's <code>cancel_grace</code>.
+- Trigger rule <code>all_success</code>, so skip-downstream maps to <code>upstream_failed</code>.
+- A <code>pipeloom_finalize</code> task runs with <code>all_done</code>, reads the Airflow task states and exits 1 when the pipeloom run failed, so the DAG run fails.
+- <code>rid</code> is <code>af-</code> plus 16 hex characters of sha256 of the NUL-separated dag_id, Airflow run_id and, inside a task group, the group id (ADR-0037), stable across task retries. A clear-and-rerun of failed tasks therefore continues the same pipeloom run.
+- With <code>emit_assets</code>, each model task declares <code>Asset(uri=&lt;target URI&gt;)</code> outlets.</p>
+<p><img alt="PipeloomDag in LOCAL or KUBERNETES mode has one task per unit. DATABRICKS mode has a launch task, one mirror sensor per model and a finalize task, with repair handled in Databricks." src="../diagrams/07-airflow-modes.svg" /></p>
+<p>Source: <a href="../diagrams/07-airflow-modes.d2">07-airflow-modes.d2</a>.</p>
+<p><strong>Databricks mode.</strong>
+- Options: (a) <code>DatabricksWorkflowTaskGroup</code> with <code>DatabricksTaskOperator</code> children; (b) one <code>run-now</code> of the bundle-deployed job, with per-model status mirroring.
+- Option (a) builds the job spec from Airflow operators at parse time. That duplicates the pipeloom renderer, forces job name <code>&lt;dag_id&gt;.&lt;group_id&gt;</code>, fixes <code>max_concurrent_runs=1</code>, and disables "Repair All Failed Tasks" on Airflow 3.
+- Choice: (b). The plugin calls <code>pipeloom_databricks.api</code> (stable since 0.5): <code>find_job</code>, <code>deploy</code> (as <code>ensure_job</code>), <code>run_job</code>, <code>find_run</code>, <code>repair</code>, <code>task_states</code> and <code>task_key_map</code>, with the <code>DatabricksClient</code> protocol and <code>FakeDatabricks</code> for tests.
+  - A <code>launch</code> task (<code>PipeloomDatabricksRunOperator</code>) finds the job by tag, or deploys it at run time with <code>databricks_ensure_job</code> (PLD007 or PLD008 otherwise). It calls <code>run-now</code> with <code>job_parameters {pipeloom_run_id: rid}</code> and pushes the Databricks run id to XCom. It compiles the project on the worker and checks the plan hash (PLX103).
+  - If a Databricks run already exists for <code>rid</code>, it attaches to it, or repairs it when tasks failed (for example after a cleared <code>launch</code>), recording each rerun task's attempt count as a baseline.
+  - Each model gets a <code>PipeloomDatabricksTaskSensor</code> that mirrors the task state of its <code>task_key</code>: success, failed (<code>AirflowFailException</code> with the Databricks task message and the run page URL), or skipped (<code>AirflowSkipException</code> for upstream-failed or excluded tasks). A last sensor on the job's finalize task, trigger rule <code>all_done</code>, is <code>pipeloom_finalize</code>.
+  - The sensors keep the plan's dependencies, so the Airflow graph is the pipeline graph.
+  - Poll modes (ADR-0039). <code>per_task</code> (default): the launch returns after run-now or repair, each sensor makes one <code>get_run</code> call and defers on its own <code>DatabricksRunTrigger</code> without a verdict. <code>shared</code>: the launch defers on one whole-run trigger and the sensors read its final snapshot from XCom, with no call. Every deferral is bounded by <code>databricks_timeout</code> (default 24 hours).
+- Consequences: one job definition whether the run is triggered by Airflow, the Databricks UI or the CLI, and repair stays in Databricks. Reruns go through <code>launch</code>. Polling load in <code>per_task</code> is one call per waiting sensor per interval; <code>shared</code> is one call per interval but results show only when the run is over.</p>
+<h2 id="14-security-and-secrets">14. Security and secrets<a class="headerlink" href="#14-security-and-secrets" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Secrets never appear as literals in YAML. Fields whose names match secret patterns accept only <code>${secret:...}</code> or <code>${env:...}</code> (PLS104).</li>
+<li><code>${secret:&lt;provider&gt;/&lt;path&gt;}</code> resolves at runtime inside the executing process through the <code>pipeloom.secret_providers</code> group. Providers: <code>env</code> (core), <code>file</code> (core, mode-checked), <code>databricks</code> (secret scopes, <code>${secret:databricks/&lt;scope&gt;/&lt;key&gt;}</code>, 0.5), <code>airflow</code> (connections and variables; later, no plugin registers it yet). A reference that cannot be resolved is PLX109, naming the path and never the value.</li>
+<li>Connections. Airflow DATABRICKS mode maps the Airflow connection itself (host; token in the password or <code>extra.token</code>; <code>extra.service_principal_oauth</code> with the client id as login) and builds the client with <code>pipeloom_databricks.api.connect_explicit</code>, so no profile, <code>~/.databrickscfg</code> or worker <code>DATABRICKS_*</code> variable changes the authentication. Errors name the connection id, never a value (PLD010); secrets pass through Airflow's <code>mask_secret</code> and a trigger serializes only the connection id (ADR-0039). The PROJECT compile cache stores a sha256 fingerprint of each environment variable the plan read, never its value (ADR-0037).</li>
+<li>The manifest, events and artifacts store only the references. Resolved values are registered with the redaction filter.</li>
+<li>Discovery never imports plugins until a config names them. <code>PIPELOOM_DISABLE_PLUGIN_AUTOLOAD</code> exists for locked-down hosts.</li>
+<li>Supply chain:</li>
+<li>Trusted publishing (OIDC) with PEP 740 attestations.</li>
+<li>Actions pinned by commit SHA, with Dependabot updates.</li>
+<li>No <code>pull_request_target</code> workflows.</li>
+<li>Integration secrets only in protected environments, never for fork PRs.</li>
+<li>Private vulnerability reporting through <code>SECURITY.md</code>.</li>
+<li>Grants are declared in YAML and applied by the catalog. pipeloom never escalates privileges.</li>
+</ul>
+<h2 id="15-testing-ci-release-docs">15. Testing, CI, release, docs<a class="headerlink" href="#15-testing-ci-release-docs" title="Permanent link">&para;</a></h2>
+<p><strong>Tests:</strong>
+- Unit tests per package.
+- Property tests (hypothesis) for the scheduler: random DAGs, injected failures and timeouts. Invariants: a unit starts only after all parents succeed; every unit reaches exactly one terminal state; no level barrier, checked with timed fakes.
+- Golden tests for the manifest and diagnostics.
+- CLI tests for every flag via <code>click.testing.CliRunner</code> (L4).
+- A synthetic, deterministic "shop" dataset (customers, orders, payments) generated in <code>pipeloom.testing.data</code>.</p>
+<p><strong>Engine contract suite (<code>pipeloom.testing.contract.EngineContract</code>).</strong> Every engine plugin subclasses it with a factory fixture, and each test is skipped unless the matching capability is declared. It covers:
+- read for each declared format;
+- logical-type round trip;
+- <code>sql</code> alias binding;
+- each strategy, including merge deletes, SCD2 history and replace_partitions;
+- the idempotent retry of each strategy with the same token;
+- the schema-change policy matrix, and <code>align</code> (cells that write a changed schema are skipped unless the harness sets <code>schema_on_read</code>, meaning old files are read through the table's current schema);
+- incremental <code>filter_since</code> (strict and inclusive bounds) and <code>max_value</code> types;
+- <code>evaluate</code> counts and <code>apply_drops</code> against the reference;
+- metrics fields that are non-null where declared;
+- <code>cancel</code> stops long work;
+- session cleanup restores settings (L10).</p>
+<p>Catalog, state-store and sink contract suites follow the same pattern.</p>
+<p><strong>Renderer tests:</strong>
+- Databricks: snapshot JSON and YAML, the limits, and task-key sanitizing.
+- Airflow: DAG-bag parse with no network access, with a parse-time budget, and per-mode task graphs. Pure modules (configs, loading, rendering, argv, states) run on every matrix cell with no Airflow installed; a test proves <code>airflow</code> stays out of <code>sys.modules</code>.
+  - The <code>airflow</code> CI job (Ubuntu) runs the Airflow-importing tests against the locked latest Airflow and against the 3.2.2 floor. Tests opt in with <code>PIPELOOM_TEST_AIRFLOW=1</code> and refuse to start unless <code>AIRFLOW_HOME</code> is a throwaway directory under the temporary directory, the database is a sqlite file under it, and no <code>AIRFLOW_CONN_*</code> or <code>AIRFLOW__SECRETS__*</code> variable is set.
+  - DAG-bag parses run in a subprocess with an explicit environment, a socket audit hook that forbids connections, and a sqlite file that must never be created. Budgets: 2 seconds for the shop DAGs, 4 for Kubernetes, 8 for 500 units (Airflow parses the file before every task, so this is also task start-up cost).
+- Live Databricks and Airflow tests run only in a manually dispatched workflow.
+- Databricks (0.5, ADR-0036): the <code>databricks-live</code> workflow (<code>on: workflow_dispatch</code> only, protected environment <code>databricks-live</code>, <code>permissions: contents: read</code>, 60-minute timeout, no profile file) builds the wheels, uploads them to a volume, deploys <code>tests/fixtures/databricks_live</code> and prints <code>CHECK &lt;fact&gt; ok|failed</code> for the facts offline tests cannot confirm: dynamic references in wheel parameters, the empty run id default, <code>only</code> with an <code>ALL_DONE</code> finalize, <code>job.start_time</code> across repairs, files on <code>/Volumes</code>, a Spark session in a wheel task. It deletes what it created unless <code>keep_job</code> is set. No other workflow and no test reaches a workspace; the check logic is unit-tested against <code>FakeDatabricks</code>.</p>
+<p><strong>CI:</strong>
+- ruff check and format; mypy <code>--strict</code>; pytest with coverage.
+- Matrix: Python 3.11-3.14 on Ubuntu, Windows and macOS. Spark tests run in their own <code>spark</code> job on Ubuntu with Java 17: the plugin suite as a parallel matrix of three legs (classic contract, classic rest and Connect), because classic and Connect cannot share a Python process. They opt in through the test-only variable <code>PIPELOOM_TEST_SPARK=classic|connect</code> (and need pyspark importable, <code>java</code> on PATH and a non-Windows host; otherwise they skip). Tests that start a second JVM also need <code>PIPELOOM_TEST_SPARK_HEAVY=1</code>, which CI does not set (<a href="../adr/0033-delta-table-state-store/">ADR-0033</a> explains why). The job runs on every PR with no path filter and is meant to become a required check after two green runs on main.
+- <code>uv build</code> plus installing the wheel into a clean venv plus <code>pipeloom --version</code>.
+- Docs build with <code>--strict</code> and D2 compile.</p>
+<p><strong>Release (ADR-0016):</strong>
+- SemVer per distribution, with lockstep versions for first-party distributions during 0.x and one tag <code>vX.Y.Z</code>.
+- The tag workflow checks that the tag equals the version, builds, then publishes to PyPI by trusted publishing through the protected <code>pypi</code> environment, then creates the GitHub release with notes from <code>CHANGELOG.md</code> (Keep a Changelog).
+- <code>config_version</code>, the manifest and event schema versions, and the plugin API version are versioned separately.</p>
+<p><strong>Docs:</strong>
+- mkdocs-material with mkdocstrings (API), mkdocs-click (CLI), generated error-code and JSON Schema pages, and D2-rendered SVGs.
+- Versioned with mike on GitHub Pages.
+- ADRs in <code>docs/adr/</code>.</p>
+<h2 id="16-roadmap">16. Roadmap<a class="headerlink" href="#16-roadmap" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>0.0.2:</strong> reserve the name; skeleton (section 18); CI, release, governance; this document and the ADRs.</li>
+<li><strong>0.1:</strong> config models, loader with line marks, L0-L6, graph, selectors (<code>name</code>, <code>+name</code>, <code>name+</code>, <code>tag:</code>, <code>path:</code>, <code>materialized:</code>; 0.2 adds <code>unit:</code>, 0.8 adds <code>state:modified</code>, <code>state:new</code> and <code>result:</code> with <code>--state</code>, <a href="../adr/0042-state-selection-and-defer/">ADR-0042</a>), plan, manifest, schema export, event bus with console and jsonl sinks. CLI: <code>validate</code>, <code>compile</code>, <code>ls</code>, <code>graph</code>, <code>schema</code>, <code>plugins</code>. A <code>MemoryEngine</code> for tests. Deferred to 0.2: PLC503 and PLK603, the <code>~/.pipeloom/profiles.yml</code> file, <code>PIPELOOM_*</code> variables beyond <code>PIPELOOM_TARGET</code>, <code>PIPELOOM_PROJECT_DIR</code> and <code>PIPELOOM_LOG_FORMAT</code>, and Narwhals support.</li>
+<li><strong>0.2:</strong> scheduler, thread and process executors, <code>pipeloom-polars</code> and <code>pipeloom-pandas</code>, table/view/ephemeral, append and overwrite, sqlite and json state, run_results, the contract suite. pandas has no SQL models or views yet (PLC502, PLC507), so SQL on pandas is deferred. <code>incremental</code> and <code>intermediate</code> are rejected with PLC509 until their versions. PLK603 and PLK605 need the <code>sqlglot</code> extra.</li>
+<li><strong>0.3 (delivered):</strong> incremental models with watermarks, merge and replace_partitions on filesystem tables (format /2), schema-change policies, expectations and quarantine, retries with backoff, per-attempt timeouts, graceful and hard cancellation, plugin API (0, 3). SCD2 and <code>intermediate</code> moved out of 0.3.</li>
+<li><strong>0.4 (delivered):</strong> <code>pipeloom-spark</code> (local Spark, Spark Connect and an active session; the <code>delta_path</code> and <code>spark_catalog</code> catalogs), Delta writes with append, overwrite, merge and replace_partitions, idempotent writes through transaction ids and a token in the commit, metrics from commit history, expectations and quarantine on Spark, the <code>table</code> state store, <code>intermediate</code> materialization on every engine, <code>--run-started-at</code>, plugin API (0, 4). pyspark is an opt-in extra. SCD2 stays planned.</li>
+<li><strong>0.5 (delivered):</strong> <code>pipeloom-databricks</code>: renderer, bundle YAML, direct deploy, run, repair, finalize with task states, task values, task grouping, compute rules, the <code>unity</code> catalog, the <code>databricks</code> secret provider and the manual live workflow. The core gained the <code>deploy</code> block, <code>pipeloom.commands</code>, <code>--orchestrator-id</code>, <code>pipeloom finalize</code> and runtime secret resolution (ADR-0034 to ADR-0036). Plugin API stays (0, 4).</li>
+<li><strong>0.6 (delivered):</strong> <code>pipeloom-airflow</code>: LOCAL, VIRTUALENV, KUBERNETES and DATABRICKS modes (live <code>per_task</code> and <code>shared</code> polling), <code>PipeloomDag</code> and <code>PipeloomTaskGroup</code>, the PROJECT compile cache, <code>pipeloom finalize --unit-states-json</code>, <code>pipeloom_databricks.api.connect_explicit</code>, PLA001 to PLA007, the <code>airflow</code> CI job. Later: the DOCKER mode and an <code>airflow</code> secret provider (connections and variables); a <code>dag.test()</code> end-to-end test of DATABRICKS mode needs a file-backed Databricks fake or the live workflow.</li>
+<li><strong>0.7 (delivered):</strong> a <code>catalog</code> setting per model and per folder that wins over the naming strategy's catalog, path catalogs that map a catalog to a leading directory (ADR-0040), and <code>pipeloom compile --stable</code> for reproducible manifests. Plugin API stays (0, 4).</li>
+<li><strong>0.8 (delivered):</strong> <code>pipeloom init</code> with editor setup and <code>pipeloom new model</code> (ADR-0041 and its amendment), block-style YAML, <code>pipeloom explain</code>, the <code>state:modified</code>, <code>state:new</code> and <code>result:</code> selectors with <code>--state</code> and <code>--defer</code> (ADR-0042), <code>pipeloom retry --from</code> (ADR-0013 amendment), and <code>pipeloom docs generate|serve</code>, a read-only one-file docs and lineage site (ADR-0043). Plugin API stays (0, 4).</li>
+<li><strong>0.9 and later:</strong> planned in the <a href="../roadmap/">roadmap</a>.</li>
+</ul>
+<h2 id="17-adr-list-and-diagrams">17. ADR list and diagrams<a class="headerlink" href="#17-adr-list-and-diagrams" title="Permanent link">&para;</a></h2>
+<p>Each ADR is Context, Options, Choice, Consequences, as written in the sections above.</p>
+<table>
+<thead>
+<tr>
+<th>ADR</th>
+<th>Topic</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0001</td>
+<td>Record architecture decisions</td>
+<td><code>docs/adr/</code></td>
+</tr>
+<tr>
+<td>0002</td>
+<td>Engine abstraction: protocols plus Narwhals helpers</td>
+<td>§5</td>
+</tr>
+<tr>
+<td>0003</td>
+<td>Model authoring: YAML plus Python or SQL, declared inputs</td>
+<td>§4</td>
+</tr>
+<tr>
+<td>0004</td>
+<td>Plugin discovery via entry points; eight groups, a ninth (<code>pipeloom.commands</code>) in 0.5</td>
+<td>§6</td>
+</tr>
+<tr>
+<td>0005</td>
+<td>Packaging (see below)</td>
+<td>§17</td>
+</tr>
+<tr>
+<td>0006</td>
+<td>Ready-queue scheduler</td>
+<td>§8</td>
+</tr>
+<tr>
+<td>0007</td>
+<td>Data handoff: execution units, inlining, intermediates</td>
+<td>§8</td>
+</tr>
+<tr>
+<td>0008</td>
+<td>Incremental key, watermark state, strategies</td>
+<td>§9</td>
+</tr>
+<tr>
+<td>0009</td>
+<td>Expectations and quarantine</td>
+<td>§10</td>
+</tr>
+<tr>
+<td>0010</td>
+<td>Events, sinks, artifacts; rich for the console</td>
+<td>§11</td>
+</tr>
+<tr>
+<td>0011</td>
+<td>Databricks job rendering (amended by 0035)</td>
+<td>§12</td>
+</tr>
+<tr>
+<td>0012</td>
+<td>Airflow rendering and modes</td>
+<td>§13</td>
+</tr>
+<tr>
+<td>0013</td>
+<td>Run identity, idempotency, reruns (see below)</td>
+<td>§17</td>
+</tr>
+<tr>
+<td>0014</td>
+<td>Secrets by reference</td>
+<td>§14</td>
+</tr>
+<tr>
+<td>0015</td>
+<td>Python ≥ 3.11; click CLI; pydantic v2; hatchling; mypy strict</td>
+<td>§17</td>
+</tr>
+<tr>
+<td>0016</td>
+<td>Versioning, release, plugin API version</td>
+<td>§15</td>
+</tr>
+<tr>
+<td>0034</td>
+<td>Core orchestration hooks (amends 0004, 0010, 0013, 0014)</td>
+<td>§4, §6, §11</td>
+</tr>
+<tr>
+<td>0035</td>
+<td>Databricks rendering and job lifecycle (amends 0011, 0012)</td>
+<td>§12</td>
+</tr>
+<tr>
+<td>0036</td>
+<td>Databricks client and connection</td>
+<td>§12, §15</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ADR-0005: Packaging.</strong>
+- Options:
+  - One distribution with extras. Its entry points are registered even when the extra's dependencies are missing, which leads to import errors at load. It also couples dependency bounds.
+  - Separate distributions in separate repos: high overhead.
+  - Separate <code>pipeloom-&lt;plugin&gt;</code> distributions in one uv workspace.
+- Choice: the uv workspace. The core is distribution <code>pipeloom</code> at the repo root; plugins live in <code>plugins/pipeloom-&lt;name&gt;/</code> with import package <code>pipeloom_&lt;name&gt;</code> (no namespace packages).
+- Convenience extras on <code>pipeloom</code> (for example <code>pipeloom[polars]</code>) just depend on the plugin distribution.
+- PyPI now: publish <code>pipeloom</code> 0.0.2 only. Plugin names get published with their first functional release, which avoids PEP 541 placeholder squatting.
+- Pending trusted publishers may be registered for the plugin names. Assumption: a pending publisher does not reserve a name; verify.
+- <code>[tool.uv.workspace]</code> is added in 0.2 with the first plugin (whether uv accepts an empty members glob is unverified).</p>
+<p><strong>ADR-0013: Run identity.</strong>
+- <code>run_id</code> is either caller-supplied or generated as <code>YYYYMMDDTHHMMSSZ-&lt;6 hex&gt;</code>, matching <code>[A-Za-z0-9._-]{1,64}</code>.
+- Orchestrators derive it deterministically: <code>dbx-&lt;job_run_id&gt;</code> or <code>af-&lt;hash&gt;</code>.
+- Orchestrator retries and repairs keep the <code>run_id</code> and increment the <code>attempt</code>.
+- Local <code>pipeloom retry --from &lt;run_id&gt;</code> creates a new run with <code>parent_run_id</code>, that runs the failed, skipped and cancelled units of the parent (0.8 amendment: it selects those <code>result:</code> values from the parent folder, not <code>result:fail+</code>, so it never runs a unit the parent did not select).
+- Writes are idempotent through the token <code>&lt;run_id&gt;:&lt;model&gt;</code>.</p>
+<p><strong>ADR-0015: Python version.</strong> Python 3.10 reaches end of life in October 2026, so the floor is 3.11.</p>
+<p><strong>D2 diagrams (<code>docs/diagrams/</code>):</strong>
+1. <code>01-context.d2</code>: users, YAML project, CLI and API, engines, catalogs, orchestrators, event consumers.
+2. <code>02-packages.d2</code>: distributions, core modules, import direction, the entry-point groups each plugin fills.
+3. <code>03-lifecycle.d2</code>: load → validate → resolve → validate plan → compile → execute → finalize, with the artifacts and error prefixes of each stage.
+4. <code>04-state-machines.d2</code>: unit and run state machines, including retry, timeout, skip and cancel transitions.
+5. <code>05-events.d2</code>: event bus fan-out to sinks, redaction, failure budget, buffered sinks, the artifact writer.
+6. <code>06-databricks.d2</code>: plan → job settings or bundle YAML; tasks, finalize, run-id propagation, artifacts on the volume, task values.
+7. <code>07-airflow-modes.d2</code>: PipeloomDag in LOCAL, VIRTUALENV or KUBERNETES mode (one task per unit, shared artifact root) versus DATABRICKS mode (launch, mirror sensors, repair path).</p>
+<h2 id="18-package-skeleton-for-now">18. Package skeleton for now<a class="headerlink" href="#18-package-skeleton-for-now" title="Permanent link">&para;</a></h2>
+<pre><code>pipeloom/
+├── .github/
+│   ├── workflows/ci.yml            # ruff, mypy --strict, pytest matrix (3.11-3.14 on Ubuntu, Windows and macOS), uv build + wheel smoke, docs --strict, d2 compile
+│   ├── workflows/release.yml       # on tag v*: verify tag==version, uv build, one PyPI publish job per distribution (env pypi or pypi-&lt;plugin&gt;), GitHub release
+│   ├── workflows/docs.yml          # mkdocs + mike deploy on main and tags
+│   ├── dependabot.yml              # ecosystems: uv, github-actions; weekly; grouped
+│   ├── CODEOWNERS
+│   ├── pull_request_template.md
+│   └── ISSUE_TEMPLATE/{bug_report.yml, feature_request.yml, config.yml}
+├── docs/
+│   ├── index.md
+│   ├── architecture.md
+│   ├── adr/README.md               # index + status table
+│   ├── adr/0000-template.md
+│   ├── adr/0001-record-architecture-decisions.md … 0016-versioning-and-plugin-api.md
+│   └── diagrams/01-context.d2 … 07-airflow-modes.d2
+├── src/pipeloom/
+│   ├── __init__.py                 # __version__ = importlib.metadata.version(&quot;pipeloom&quot;)
+│   ├── __main__.py                 # from pipeloom.cli import main; main()
+│   ├── cli.py                      # @click.group() + @click.version_option(package_name=&quot;pipeloom&quot;, prog_name=&quot;pipeloom&quot;)
+│   └── py.typed
+├── tests/
+│   ├── test_version.py             # __version__ equals installed metadata
+│   └── test_cli.py                 # CliRunner: `--version` exit 0, output &quot;pipeloom, version X&quot;; `python -m pipeloom --version`
+├── pyproject.toml                  # see below
+├── uv.lock
+├── mkdocs.yml
+├── .pre-commit-config.yaml         # ruff, ruff-format, mypy, end-of-file, check-yaml
+├── .editorconfig  .gitignore  .python-version (3.12)
+├── README.md  LICENSE (Apache-2.0)  NOTICE
+├── CONTRIBUTING.md                 # uv setup, DCO sign-off, ADR process, tests per flag
+├── CODE_OF_CONDUCT.md              # Contributor Covenant 2.1
+├── SECURITY.md                     # GitHub private vulnerability reporting, supported versions
+├── GOVERNANCE.md                   # single-maintainer model, path to maintainers
+└── CHANGELOG.md                    # Keep a Changelog; [0.0.2] entry
+</code></pre>
+<p>The core sits at the repo root so <code>README</code> and <code>LICENSE</code> ship in the distribution without copies.</p>
+<p><strong><code>pyproject.toml</code> essentials:</strong>
+- <code>[build-system] requires = ["hatchling"]</code>
+- <code>[project]</code>:
+  - <code>name = "pipeloom"</code>, <code>version = "0.0.2"</code>, <code>requires-python = "&gt;=3.11"</code>
+  - <code>license = "Apache-2.0"</code>, <code>license-files = ["LICENSE", "NOTICE"]</code>, <code>readme = "README.pypi.md"</code>
+  - <code>dependencies = ["click&gt;=8.1"]</code>
+  - <code>[project.scripts] pipeloom = "pipeloom.cli:main"</code>
+  - classifiers including <code>Typing :: Typed</code>
+  - <code>authors</code>: to be filled by the maintainer
+- <code>[dependency-groups]</code>: <code>dev = ["pytest", "pytest-cov", "mypy", "ruff", "pre-commit"]</code>, <code>docs = ["mkdocs-material", "mkdocstrings[python]", "mkdocs-click", "mike"]</code>
+- Tool configs: <code>[tool.ruff]</code>, <code>[tool.mypy] strict = true</code>, <code>[tool.pytest.ini_options]</code>.</p>
+<hr />
+<h2 id="verification-plan-for-the-skeleton-commit">Verification plan (for the skeleton commit)<a class="headerlink" href="#verification-plan-for-the-skeleton-commit" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>uv sync &amp;&amp; uv run pytest -q &amp;&amp; uv run mypy --strict src &amp;&amp; uv run ruff check</code></li>
+<li><code>uv build</code>, then install the wheel into a clean venv and run <code>pipeloom --version</code> and <code>python -m pipeloom --version</code>.</li>
+<li><code>mkdocs build --strict</code>, and <code>d2</code> compile of all diagrams.</li>
+<li>The first tag, <code>v0.0.2</code>, is the real release: there is no TestPyPI dry run.</li>
+</ul>
+<h2 id="risks">Risks<a class="headerlink" href="#risks" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The orchestrator thread executor's timeouts are cooperative. Code that ignores cancellation keeps running until the process ends.</li>
+<li>In Airflow DATABRICKS mode the <code>per_task</code> sensors poll per model. Large DAGs need a longer poll interval or <code>databricks_poll="shared"</code>.</li>
+<li>Unverified facts are marked inline: serverless <code>environment_version</code>, the task-key length limit, whether pending publishers reserve names, pydantic's draft-2020-12 output, whether uv accepts an empty workspace, and the OpenLineage output-statistics facet. Verify each before implementing it.</li>
+<li>Narwhals stable-API drift: pinning to <code>stable.v2</code> limits it.</li>
+<li>Lockstep versioning means plugin-only fixes still bump every distribution during 0.x.</li>
+</ul>
+<h2 id="resolved-defaults-2026-10-29">Resolved defaults (2026-10-29)<a class="headerlink" href="#resolved-defaults-2026-10-29" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Airflow 3 only (ADR-0012).</li>
+<li>Only <code>pipeloom</code> is published now. Plugin names are published with their first functional release (ADR-0005).</li>
+<li>Docs and JSON Schema URLs live at <code>https://emanuel-luis.github.io/pipeloom/</code>. The repo has been public since 2026-11-02.</li>
+<li>DCO sign-off. The author and CODEOWNERS are Emanuel Luis. Security reports go through GitHub private vulnerability reporting or email.</li>
+<li>The shared artifact store for the Airflow LOCAL and KUBERNETES modes: decided in 0.6 as one shared POSIX <code>artifacts.root</code> with a PLA004 sentinel; fsspec is deferred (ADR-0038).</li>
+<li>CI runs Python 3.11 to 3.14 on Ubuntu, Windows and macOS. While the repo was private it ran one Windows and one macOS job on 3.12 only, because macOS minutes cost 10x; the full matrix came back when the repo went public on 2026-11-02.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
