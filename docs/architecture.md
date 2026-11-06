@@ -9,7 +9,7 @@
 
 **Goals:** declarative YAML with layered validation and editor completion; an engine-agnostic core with one plugin per tool; end-to-end events and styled logs; persisted metadata for each run and each model; a Databricks one-job renderer; a cosmos-style Airflow integration; open-source hygiene.
 
-**Non-goals (through 1.0):** streaming; a scheduler service or UI; a portable SQL dialect; Jinja templating; running user code at compile time; Airflow 2 support.
+**Non-goals (through 1.0):** streaming; a scheduler service, or any UI that starts, schedules or changes runs ([ADR-0043](adr/0043-docs-site.md)); a portable SQL dialect; Jinja templating; running user code at compile time; Airflow 2 support.
 
 **Principles. Each answers a lesson (L) from the concept spec.**
 1. One event stream. Logs, metrics, artifacts and lineage subscribe to it (L1).
@@ -92,7 +92,7 @@ Source: [02-packages.d2](diagrams/02-packages.d2).
 6. **Execute:** the scheduler runs units through an executor. Orchestrated tasks run `pipeloom run --manifest ... --select unit:<id> --expect-plan-hash <h>`.
 7. **Finalize:** merge per-invocation results, write `run_results.json`, commit run state, flush and close sinks.
 
-**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `new model` (add a model file and, for Python, its stub; ADR-0041 amendment), `validate`, `compile`, `ls`, `graph`, `run`, `retry` (run again what a finished run did not finish, ADR-0013 amendment), `finalize`, `schema export`, `explain` (print a diagnostic code's catalog entry and docs link) and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
+**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `new model` (add a model file and, for Python, its stub; ADR-0041 amendment), `validate`, `compile`, `ls`, `graph`, `run`, `retry` (run again what a finished run did not finish, ADR-0013 amendment), `finalize`, `docs generate|serve` (a read-only one-file site, [ADR-0043](adr/0043-docs-site.md)), `schema export`, `explain` (print a diagnostic code's catalog entry and docs link) and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
 
 ![The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize.](diagrams/03-lifecycle.svg)
 
