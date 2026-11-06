@@ -138,6 +138,26 @@ def test_a_retried_finalize_of_a_failed_run_posts_exactly_once(hook: Hook, tmp_p
     assert body["event"]["data"]["status"] == "failed" and body["event"]["run_id"] == "o1"
 
 
+def test_a_repair_that_fails_again_posts_again(hook: Hook, tmp_path: Path) -> None:
+    """A repair runs the unit again under the same run id and finalizes again: a new attempt
+    started after the first finalize, so the second failure is no replay and posts."""
+    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": MODELS, "src/m.py": BODY})
+    env = {**ENV, "PL_HOOK": hook.url, "PIPELOOM_RUN_STARTED_AT": ""}
+    base = ["--project-dir", str(root), "--target", "dev", "--run-id", "o2", "--log-format", "json"]
+    replays = []
+    for step in ("unit", "finalize", "finalize", "unit", "finalize"):
+        argv = ["run", "--select", "unit:a", *base] if step == "unit" else ["finalize", *base]
+        done = CliRunner().invoke(main, argv, env=env)
+        assert done.exit_code == 1, done.stderr
+        replays += [
+            json.loads(line)["data"]["replay"]
+            for line in done.stderr.splitlines()
+            if '"type":"run.completed"' in line
+        ]
+    assert replays == [False, True, False]  # unit invocations emit no run.completed
+    assert len(hook.bodies) == 2
+
+
 def test_validate_builds_the_sink_without_the_secret_and_posts_nothing(
     hook: Hook, tmp_path: Path
 ) -> None:
