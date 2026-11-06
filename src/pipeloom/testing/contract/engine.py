@@ -41,7 +41,13 @@ from pipeloom.engine.types import (
 )
 from pipeloom.platform import Identity
 from pipeloom.runtime.context import RuntimeContext
-from pipeloom.runtime.schema_policy import SchemaRejected, resolve_columns
+from pipeloom.runtime.retry import PERMANENT_CODES
+from pipeloom.runtime.schema_policy import (
+    ContractViolation,
+    SchemaRejected,
+    check_contract,
+    resolve_columns,
+)
 from pipeloom.testing import reference
 from pipeloom.testing.clock import FakeClock
 
@@ -567,6 +573,38 @@ class EngineContract:
             want = reference.align_rows(rows, target)
             self.assert_schema(h, s.schema(out), target, want)
             assert _key(h.to_rows(out.native)) == _key(want)
+
+    # -- model contracts (ADR-0044) ---------------------------------------------------------
+
+    def test_contract_passes_a_matching_batch(self, h: EngineHarness, tmp_path: Path) -> None:
+        declared = (Column("label", "string"), Column("id", "int64", nullable=False))
+        with self.session(h, tmp_path) as s:
+            out = check_contract(s, s.relation(h.make_native(ROWS, SCHEMA)), declared)
+            assert _key(h.to_rows(out.native)) == _key([dict(r) for r in ROWS])
+
+    @pytest.mark.parametrize(
+        ("declared", "problem"),
+        [
+            ((Column("id", "int64"), Column("label", "int64")), "'label' is string, declared int64"),
+            ((Column("id", "string"), Column("label", "string")), "'id' is int64, declared string"),
+            ((Column("id", "int64"),), "extra column 'label'"),
+            ((*SCHEMA, Column("v", "int64")), "missing column 'v'"),
+            ((Column("id", "int64"), Column("label", "string", nullable=False)), "holds nulls"),
+        ],
+        ids=["type", "type_of_key", "extra", "missing", "null"],
+    )
+    def test_contract_mismatch_fails_before_the_write(
+        self, h: EngineHarness, tmp_path: Path, declared: Schema, problem: str
+    ) -> None:
+        """The runner checks the contract right before the write and reports PLM208."""
+        requires(h, "strategies", "overwrite")
+        with self.session(h, tmp_path) as s:
+            rel = s.relation(h.make_native(ROWS, SCHEMA))
+            with pytest.raises(ContractViolation, match=problem):
+                rel = check_contract(s, rel, declared)
+                self.write(s, h, "t_contract", ROWS, "overwrite", "r:1")
+            assert not h.catalog.exists(_target("t_contract"))
+        assert "PLM208" in PERMANENT_CODES
 
     # -- schema-change policy ---------------------------------------------------------------
 
