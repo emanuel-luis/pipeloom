@@ -255,6 +255,34 @@ class Project:
             if own:
                 events.close()
 
+    def build(
+        self,
+        opts: RunOptions | None = None,
+        bus: EventBus | None = None,
+        control: RunControl | None = None,
+    ) -> RunOutcome:
+        """Run the unit tests of the selected models, then, when every case passed, `run` them
+        with data tests on (ADR-0045). A failed case stops the build with exit 1 before a run id
+        exists and before any write."""
+        opts = opts or RunOptions()
+        tested = self.test(opts.selection)
+        own = bus is None
+        events = bus or EventBus(
+            [], clock=self.clock, invocation_id=self.invocation_id, redactor=self.redactor
+        )
+        try:
+            if tested.exit_code:
+                outcome = _early(events, tested.diagnostics)
+                for payload in tested.events:
+                    events.emit(payload)
+                return replace(outcome, exit_code=tested.exit_code)
+            for payload in tested.events:
+                events.emit(payload)
+            return self.run(replace(opts, data_tests=True), events, control)
+        finally:
+            if own:
+                events.close()
+
     def test(self, selection: Selection | None = None) -> TestRunOutcome:
         """Run the unit tests of the selected models (ADR-0045). It writes nothing: no run id, no
         lock, no artifacts. The outcome holds one event payload per case and a summary."""
