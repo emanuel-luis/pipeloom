@@ -162,3 +162,7 @@ exclusive open instead of a link, which is still exclusive but not atomic.
 
 The console prints one line per unit, a summary, the failure block for each failed unit and the
 paths of the files written. See [Run artifacts](../reference/artifacts.md) for the files.
+
+Each failure block has an `explain:` line after the hint. `pipeloom explain <CODE>` (for example
+`pipeloom explain PLX101`, any case) prints what the code means and links to its entry on the
+[error codes](../reference/errors.md) page.

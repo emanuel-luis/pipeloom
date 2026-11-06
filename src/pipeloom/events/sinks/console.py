@@ -191,6 +191,8 @@ class ConsoleSink:
             block = [f"{pad}{err['code']} {err['message']}"]
             if err.get("hint"):
                 block.append(f"{pad}hint: {err['hint']}")
+            if err.get("code"):
+                block.append(f"{pad}explain: pipeloom explain {err['code']}")
             frames = [t for t in err.get("trace_excerpt", [])[:-1] if _FRAME.match(t)]
             loc = err.get("location") or {}
             if frames:
@@ -254,6 +256,8 @@ class ConsoleSink:
             pad = " " * (len(_INDENT) + len(f["unit_id"]) + 2)
             if f.get("hint"):
                 lines.append(f"{pad}hint: {f['hint']}")
+            if f.get("code"):
+                lines.append(f"{pad}explain: pipeloom explain {f['code']}")
             frames = [t for t in f.get("trace_excerpt", [])[:-1] if _FRAME.match(t)]
             loc = f.get("location") or {}
             if frames:

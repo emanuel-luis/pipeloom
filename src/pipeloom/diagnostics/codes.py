@@ -730,6 +730,14 @@ def info(code: str) -> CodeInfo:
     return CATALOG[code]
 
 
+DOCS_BASE_URL: Final = "https://emanuel-luis.github.io/pipeloom/latest/"
+
+
+def docs_url(code: str) -> str:
+    """The error-code page entry of a code (the anchor is the `{#plx101}` id render_markdown sets)."""
+    return f"{DOCS_BASE_URL}reference/errors/#{code.lower()}"
+
+
 def render_markdown() -> str:
     """Render the catalog as a docs page: one section per code, grouped by layer."""
     lines = ["# Error codes", ""]
