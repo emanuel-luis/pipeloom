@@ -19,7 +19,8 @@ from pipeloom.platform import Clock, Identity, IdentityProvider, LocalIdentity, 
 from pipeloom.plugins import PluginRegistry
 from pipeloom.runtime.control import RunControl
 from pipeloom.runtime.finalize_run import FinalizeOptions, finalize_run
-from pipeloom.runtime.run import RunOptions, RunOutcome, execute_run
+from pipeloom.runtime.rerun import inherited_vars, retry_options
+from pipeloom.runtime.run import RunOptions, RunOutcome, _early, execute_run
 from pipeloom.secrets.redaction import Redactor
 from pipeloom.secrets.resolve import SecretResolver
 from pipeloom.validate import validate_project
@@ -172,6 +173,45 @@ class Project:
         )
         try:
             return execute_run(self, opts, events)
+        finally:
+            if own:
+                events.close()
+
+    def retry(
+        self,
+        parent_run_id: str,
+        opts: RunOptions | None = None,
+        bus: EventBus | None = None,
+        control: RunControl | None = None,
+        *,
+        full_refresh: bool | None = None,
+    ) -> RunOutcome:
+        """Run again what run `parent_run_id` did not finish: its failed, skipped and cancelled
+        units. The new run has its own id and records the parent as `parent_run_id`; it inherits
+        the parent's vars (under this project's own), full_refresh (`full_refresh` wins), state
+        and defer, and compiles the project fresh. A parent that cannot be retried is PLX113; one
+        with nothing to retry gives a succeeded outcome with no run results."""
+        resolved, found = retry_options(self, parent_run_id, opts or RunOptions(), full_refresh)
+        own = bus is None
+        events = bus or EventBus(
+            [], clock=self.clock, invocation_id=self.invocation_id, redactor=self.redactor
+        )
+        try:
+            if resolved is None:
+                return _early(events, found) if found else RunOutcome("succeeded", 0, None, ())
+            if control is not None:
+                resolved = replace(resolved, control=control)
+            vars_ = inherited_vars(self, parent_run_id)
+            project = self
+            if vars_ != dict(self.options.vars):  # vars are read at load: start over with them
+                project = Project(
+                    replace(self.options, vars=vars_),
+                    clock=self.clock,
+                    identity=self._identity,
+                    invocation_id=self.invocation_id,
+                    redactor=self.redactor,
+                )
+            return execute_run(project, resolved, events)
         finally:
             if own:
                 events.close()
