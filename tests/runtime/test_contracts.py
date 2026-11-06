@@ -123,6 +123,25 @@ def test_a_null_in_a_non_nullable_column_fails_without_writing(tmp_path: Path) -
     assert row["rows_written"] is None
 
 
+def test_an_engine_error_in_the_contract_check_keeps_its_transient_category(
+    tmp_path: Path,
+) -> None:
+    flaky = PROJECT.replace("kind: memory", "kind: flaky").replace("      root: store\n", "")
+    root = make_project(tmp_path, {"pipeloom.yml": flaky, "models/m.yml": MODEL + CONTRACT})
+    options = ProjectOptions(
+        project_dir=root,
+        env={"PIPELOOM_USER": "tester"},
+        plugins=("tests.runtime.fakes:FLAKY_ENGINE", "tests.runtime.fakes:FLAKY_CATALOG"),
+    )
+    clock = FakeClock(datetime(2026, 1, 1, tzinfo=UTC), step=timedelta(0))
+    with EventBus([], clock=clock, invocation_id="inv") as bus:
+        outcome = Project(options, clock=clock, invocation_id="inv").run(
+            RunOptions(run_id="r1", workers=1), bus
+        )
+    (diag,) = outcome.diagnostics
+    assert diag.code == "PLM201" and diag.context["category"] == "transient"
+
+
 def test_a_drop_expectation_runs_before_the_contract(tmp_path: Path) -> None:
     row = _run(_project(tmp_path, CONTRACT + DROP_NULL_IDS))
     assert row["status"] == "succeeded", row.get("error")

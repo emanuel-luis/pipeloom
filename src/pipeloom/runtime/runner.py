@@ -66,6 +66,7 @@ from pipeloom.runtime.schema_policy import (
     SchemaRejected,
     changes_json,
     check_contract,
+    contract_failure,
     resolve_columns,
 )
 from pipeloom.secrets.redaction import Redactor
@@ -1050,12 +1051,16 @@ class ModelRunner:
         try:
             return check_contract(self._session, rel, declared)
         except ContractViolation as exc:
+            self._fail(*contract_failure(node.name, exc))
+        except Exception as exc:  # noqa: BLE001 - engines raise their own errors
+            # Through _fail, so the engine's is_transient opinion classifies it (as PLM201 on the
+            # intermediate path, which wraps the check in its write).
             self._fail(
-                "PLM208",
+                "PLM201",
                 "write",
                 exc,
-                f"model '{node.name}' violates its contract",
-                "change the model body (cast or rename columns), or update its columns",
+                f"cannot check the contract of model '{node.name}'",
+                "check that the engine can read the model output, then run again",
             )
 
     def _write(
