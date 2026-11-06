@@ -137,6 +137,48 @@ A view or an ephemeral model cannot carry expectations (PLP411), and no other mo
 `<model>__quarantine` in the same catalog and schema (PLP412). An engine that does not declare the `quality`
 capability is rejected with PLC510.
 
+## Model contracts
+
+A model can declare its exact output columns with `columns`. Each entry has a `name`, a logical
+`dtype` (the type names engines report, such as `int64`, `string`, `decimal(18,2)` or
+`timestamp[us, UTC]`) and `nullable` (default true).
+
+```yaml
+models:
+  - name: fct_orders
+    sql: select order_id, amount from stg_orders
+    columns:
+      - name: order_id
+        dtype: int64
+        nullable: false
+      - name: amount
+        dtype: decimal(18,2)
+```
+
+Before every write, pipeloom compares the batch with the contract:
+
+- the column names must match exactly (case-sensitive, any order), with no column missing and none
+  extra;
+- each logical type must equal the declared `dtype`. Nothing is widened or cast, so cast in the
+  body. Engines report fixed forms: Spark timestamps are always `timestamp[us, UTC]`. On pandas, an
+  integer column with a null is `float64` unless it uses the nullable `Int64` dtype, and a column
+  of Python `Decimal` objects is `unknown`; use `pd.ArrowDtype(pa.decimal128(18, 2))` to get
+  `decimal(18,2)`. To see what an engine reports, run once: PLM208 names the reported type of
+  every column whose type differs;
+- a column with `nullable: false` must hold no null (NaN counts as null), counted with one pass
+  over the batch.
+
+The check runs after the expectations, on the rows they keep, and before the schema-change policy,
+the quarantine write and the table write. A `drop` expectation can therefore remove null rows
+before the contract sees them. A mismatch fails the unit with PLM208, writes nothing and is never
+retried under `retry_on: transient`. `on_schema_change` still compares the batch with the existing
+table as before.
+
+`columns` is a model key; defaults cannot set it. An unknown `dtype` or a repeated name is PLS102
+at validation, and a contract on a view or an ephemeral model is PLP414. Declared columns appear as
+`nodes[].columns` in `manifest.json` and on the docs site model page. See
+[ADR-0044](../adr/0044-model-contracts.md).
+
 ## What the run records
 
 - `model.quality_evaluated` event: total rows, one result per expectation, dropped and

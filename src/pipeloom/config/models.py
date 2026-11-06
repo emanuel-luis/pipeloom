@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from pydantic_core import PydanticCustomError
 
 from pipeloom.config.types import Duration, Identifier, RelativePosixPath
+from pipeloom.engine.types import LOGICAL_TYPE_PATTERN
 
 Materialized = Literal["table", "incremental", "view", "ephemeral", "intermediate"]
 Strategy = Literal["append", "overwrite", "replace_partitions", "merge", "scd2"]
@@ -270,6 +271,17 @@ class InputConfig(_Model):
         return self
 
 
+class ColumnConfig(_Model):
+    """One column of a model contract."""
+
+    name: str = Field(min_length=1)
+    """Column name, case-sensitive."""
+    dtype: str = Field(pattern=LOGICAL_TYPE_PATTERN)
+    """Logical type, for example int64, string, decimal(18,2) or timestamp[us, UTC]."""
+    nullable: bool = True
+    """False makes a null in the column a contract violation."""
+
+
 class ModelConfig(ModelSettings):
     """One model."""
 
@@ -283,11 +295,22 @@ class ModelConfig(ModelSettings):
     """Python body as `module:function`."""
     inputs: dict[Identifier, InputConfig] = Field(default_factory=dict)
     """Local aliases bound to refs or sources."""
+    columns: list[ColumnConfig] | None = None
+    """Model contract: the exact output columns, checked before every write (PLM208)."""
 
     @model_validator(mode="after")
     def _sql_or_python(self) -> ModelConfig:
         _exactly_one(self, ("sql", "python"))
         return self
+
+    @field_validator("columns")
+    @classmethod
+    def _unique_columns(cls, value: list[ColumnConfig] | None) -> list[ColumnConfig] | None:
+        names = [c.name for c in value or ()]
+        dupes = sorted({n for n in names if names.count(n) > 1})
+        if dupes:
+            raise ValueError(f"duplicate column name(s) {', '.join(dupes)}")
+        return value
 
     @field_validator("inputs")
     @classmethod

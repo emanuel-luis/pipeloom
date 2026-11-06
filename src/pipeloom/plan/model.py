@@ -6,7 +6,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from pipeloom.config.models import ResolvedModelConfig
+from pipeloom.config.models import ColumnConfig, ResolvedModelConfig
 from pipeloom.engine.types import TargetRef
 
 
@@ -52,6 +52,8 @@ class PlanNode(_Frozen):
     config: ResolvedModelConfig
     tags: tuple[str, ...]
     checksum: str
+    columns: tuple[ColumnConfig, ...] | None = None
+    """The model contract; the manifest leaves the key out when the model declares none."""
 
 
 class PlanSource(_Frozen):

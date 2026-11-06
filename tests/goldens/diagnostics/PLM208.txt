@@ -1,0 +1,2 @@
+error PLM208 models/m.yml:2 model 'a' violates its contract: pipeloom.runtime.schema_policy.ContractViolation: column 'label' is string, declared int64
+      hint: change the model body (cast or rename columns), or update its columns

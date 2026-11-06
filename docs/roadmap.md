@@ -122,7 +122,8 @@ paths, listens on localhost by default and ships as a separate distribution, so 
 
 - Model contracts (0.9). An optional `columns` list on a model, each entry with `name`, a logical `dtype` and
   `nullable`. At write time the core compares it with `EngineSession.schema` before `align`, and a mismatch is a new
-  permanent PLM code. Declared columns also feed lineage and the docs site.
+  permanent PLM code. Declared columns also feed lineage and the docs site. Decided in
+  [ADR-0044](adr/0044-model-contracts.md) (accepted).
 - Unit tests (0.9). A `tests` block per model, or files under `tests/`, with `given` (rows per input alias, inline
   or from a CSV) and `expect` (rows, compared without regard to order). `pipeloom test` runs the model body on the
   target's engine with no catalog writes and compares with the semantics in `pipeloom.testing.reference`, the same
@@ -236,7 +237,7 @@ Delivered in 0.8.0. The docs site lays its graph out in Python instead of a vend
 
 | Item | ADR | Acceptance |
 |---|---|---|
-| Model contracts (`columns`) | ADR-0044 (proposed) | a type mismatch fails before the write with a new PLM code on polars, pandas and Spark (the shared engine contract suite) |
+| Model contracts (`columns`) | [ADR-0044](adr/0044-model-contracts.md) | a type mismatch fails before the write with a new PLM code on polars, pandas and Spark (the shared engine contract suite) |
 | `pipeloom test` and `pipeloom build` | ADR-0045 (proposed) | a case whose expected rows match passes, and a case with one wrong row fails with a row diff, on polars, pandas and Spark |
 | Post-write data tests with `relationships` | ADR-0045 (proposed) | results appear in `run_results` with `scope: table` |
 | Sample data on Spark and Databricks | none | a CSV source in the TPC-H Spark example runs locally and on a Databricks volume |

@@ -210,6 +210,13 @@ class DropResult:
     """Rows dropped, plus `_pipeloom_run_id`, `_pipeloom_failed` and `_pipeloom_ts`."""
 
 
+LOGICAL_TYPE_PATTERN: Final = (
+    r"^(?:u?int(?:8|16|32|64|128)|float(?:32|64)|string|boolean|binary|date|time|null"
+    r"|decimal\(\d+,\d+\)|timestamp\[(?:ms|us|ns)(?:, [^\]]+)?\]|duration\[(?:ms|us|ns)\]"
+    r"|(?:list|struct)<.+>)$"
+)
+"""The logical type names engines report from `EngineSession.schema` (model contracts)."""
+
 _INT = re.compile(r"(u?)int(\d+)")
 _DECIMAL = re.compile(r"decimal\((\d+),(\d+)\)")
 _TIMESTAMP = re.compile(r"timestamp\[(ms|us|ns)(?:, ([^\]]+))?\]")

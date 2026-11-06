@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Final
 
 from pydantic import ValidationError
 
-from pipeloom.config.models import ResolvedModelConfig
+from pipeloom.config.models import ColumnConfig, ResolvedModelConfig
 from pipeloom.diagnostics import Location, Report
-from pipeloom.plan.model import Plan
+from pipeloom.plan.model import Plan, PlanNode
 
 MANIFEST_SCHEMA: Final = "pipeloom.manifest/1"
 _HASHED_METADATA = ("project", "target", "boundary", "config_version")
@@ -24,20 +25,31 @@ def canonical_json(value: Any) -> bytes:
     ).encode("utf-8")
 
 
-def node_checksum(config: ResolvedModelConfig, body: bytes) -> str:
-    """sha256 of the canonical config plus the body bytes, with CRLF read as LF."""
+def node_checksum(
+    config: ResolvedModelConfig, body: bytes, columns: Sequence[ColumnConfig] | None = None
+) -> str:
+    """sha256 of the canonical config plus the body bytes, with CRLF read as LF, plus the
+    contract columns when the model declares them (so a model without one keeps its checksum)."""
     digest = hashlib.sha256(canonical_json(config.model_dump(mode="json", by_alias=True)))
     digest.update(b"\0")
     digest.update(body.replace(b"\r\n", b"\n"))
+    if columns is not None:
+        digest.update(b"\0")
+        digest.update(canonical_json([c.model_dump(mode="json") for c in columns]))
     return digest.hexdigest()
+
+
+def _node(node: PlanNode) -> dict[str, Any]:
+    out = node.model_dump(mode="json", by_alias=True)
+    if out["columns"] is None:  # additive field: absent without a contract
+        del out["columns"]
+    return out
 
 
 def _sections(plan: Plan) -> dict[str, Any]:
     """The parts of the manifest that describe the pipeline, in manifest order."""
     return {
-        "nodes": {
-            uid: n.model_dump(mode="json", by_alias=True) for uid, n in sorted(plan.nodes.items())
-        },
+        "nodes": {uid: _node(n) for uid, n in sorted(plan.nodes.items())},
         "sources": {uid: s.model_dump(mode="json") for uid, s in sorted(plan.sources.items())},
         "units": {u: list(unit.nodes) for u, unit in sorted(plan.units.items())},
         "unit_parent_map": {u: list(unit.parents) for u, unit in sorted(plan.units.items())},

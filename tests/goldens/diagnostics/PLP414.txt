@@ -1,0 +1,2 @@
+error PLP414 models/m.yml:6:7 view model 'a' cannot have a contract (columns)
+      hint: move the columns to a table that reads it, or materialize the model as a table

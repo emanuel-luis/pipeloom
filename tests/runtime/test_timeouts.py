@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
+import os
+import signal
 import sys
 import threading
 import time
@@ -345,7 +348,8 @@ def stubborn(ctx):
         "import time, pathlib; p = pathlib.Path(" + repr(str(beat)) + "); "
         "exec('while True: p.write_text(str(time.time())); time.sleep(0.1)')"
     )
-    subprocess.Popen([sys.executable, "-c", code])  # a grandchild that ignores every stop
+    grandchild = subprocess.Popen([sys.executable, "-c", code])  # ignores every stop
+    (Path(__file__).parent / "grandchild.pid").write_text(str(grandchild.pid))
     threading.Thread(target=time.sleep, args=(120,)).start()  # keeps the child alive
     time.sleep(120)
 """
@@ -361,7 +365,13 @@ def test_a_grandchild_does_not_survive_or_hold_up_the_run(tmp_path: Path) -> Non
     assert outcome.run_results is not None, outcome.diagnostics
     assert {r["status"] for r in test_process.results(root, "r1")["results"]} == {"timed_out"}
     if sys.platform == "win32":
-        return  # no job objects yet: a grandchild of a child that exits on its own survives
+        # No job objects yet: a grandchild of a child that exits on its own survives, so end it
+        # here or every Windows run of the suite leaves it writing beat.txt forever.
+        pid_file = root / "src" / "grandchild.pid"
+        if pid_file.exists():
+            with contextlib.suppress(OSError):
+                os.kill(int(pid_file.read_text(encoding="utf-8")), signal.SIGTERM)
+        return
     beat = root / "src" / "beat.txt"
     time.sleep(0.5)  # a live grandchild would have written by now
     before = beat.read_text(encoding="utf-8") if beat.exists() else ""

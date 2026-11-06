@@ -488,7 +488,7 @@ _ACTIVE_03: Final = (
         "PLC510",
         E,
         "Expectations on an engine without quality",
-        "The selected engine does not declare the quality capability, so it cannot evaluate expectations.",
+        "The selected engine does not declare the quality capability, so it cannot evaluate expectations or count nulls in non-nullable contract columns.",
     ),
 )
 
@@ -695,6 +695,18 @@ _ACTIVE_08: Final = (
 
 # Active since 0.9.
 _ACTIVE_09: Final = (
+    (
+        "PLM208",
+        E,
+        "Model contract violated",
+        "The model output does not match its declared columns: a column is missing or extra, a logical type differs from the declared dtype, or a column with nullable: false holds a null (NaN counts as null). The check runs after the expectations and before the schema policy, the quarantine write and the table write, so nothing is written. Permanent.",
+    ),
+    (
+        "PLP414",
+        E,
+        "Contract on a view or ephemeral model",
+        "A view or an ephemeral model writes no batch of its own, so its columns cannot be checked. Put the contract on a table that reads it.",
+    ),
     (
         "PLX117",
         E,
