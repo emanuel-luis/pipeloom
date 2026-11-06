@@ -1412,9 +1412,17 @@ $ pip install pipeloom-spark         # Databricks, Databricks Connect, or any en
 </code></pre>
 <pre><code class="language-yaml">targets:
   dev:
-    engine: {kind: spark, mode: local, conf: {spark.sql.shuffle.partitions: &quot;4&quot;}}
-    catalog: {kind: delta_path, root: warehouse}
-    state: {kind: table, path: warehouse/_state}
+    engine:
+      kind: spark
+      mode: local
+      conf:
+        spark.sql.shuffle.partitions: &quot;4&quot;
+    catalog:
+      kind: delta_path
+      root: warehouse
+    state:
+      kind: table
+      path: warehouse/_state
 </code></pre>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
 <p>pyspark is not a hard dependency. Databricks runtimes and Databricks Connect ship their own
@@ -1643,8 +1651,10 @@ evaluated in one Spark job. Rows dropped by a check go to <code>&lt;model&gt;__q
 <code>_pipeloom_run_id</code>, <code>_pipeloom_failed</code> and <code>_pipeloom_ts</code> columns, under the <code>#quarantine</code> app id.
 <code>regex</code> is a Java regular expression applied unanchored.</p>
 <h2 id="the-table-state-store">The table state store<a class="headerlink" href="#the-table-state-store" title="Permanent link">&para;</a></h2>
-<pre><code class="language-yaml">state: {kind: table, table: ops._pipeloom_state}   # by catalog name
-# state: {kind: table, path: warehouse/_state}     # or by path; set exactly one of the two
+<pre><code class="language-yaml">state:
+  kind: table
+  table: ops._pipeloom_state   # by catalog name
+  # path: warehouse/_state     # or by path; set exactly one of the two
 </code></pre>
 <p><code>table</code> keeps watermarks, runs, units and the run lock in one Delta table, partitioned by <code>kind</code>.
 It is shared, so it works with <code>boundary: task</code> (PLC503 passes). Compare-and-set and the lock lease

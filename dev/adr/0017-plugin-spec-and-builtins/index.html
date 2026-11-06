@@ -1041,7 +1041,7 @@
 <li>While the plugin API major version is 0, a plugin's <code>api_version</code> must equal the core's exactly, otherwise PLU001. From 1.0 the ADR-0016 rule applies: same major, minor not above the core's.</li>
 <li>New code PLU003 covers every other load failure: the module cannot be imported, the entry point does not resolve to a <code>PluginSpec</code>, or the spec's group or kind differs from the entry point that registered it.</li>
 <li>A kind provided by two entries in one group, built-ins included, is PLU002 once a config names it. <code>pipeloom plugins list</code> flags it and exits 1.</li>
-<li>Naming blocks use <code>kind</code> like every other plugin block: <code>naming: {kind: per_user, schema: dev}</code>.</li>
+<li>Naming blocks use <code>kind</code> like every other plugin block: a <code>naming</code> block such as <code>kind: per_user</code> with <code>schema: dev</code>.</li>
 </ul>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>

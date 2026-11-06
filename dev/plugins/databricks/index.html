@@ -1324,21 +1324,40 @@ SDK is told that no config file exists. The group option comes before the comman
 <code>table</code>) and an absolute <code>artifacts.root</code> on a volume, because the tasks of one run share both.</p>
 <pre><code class="language-yaml">targets:
   prod:
-    engine: {kind: spark}
-    catalog: {kind: unity, catalog: main}
-    state: {kind: table, table: ops._pipeloom_state}
-    artifacts: {root: /Volumes/main/ops/pipeloom}
+    engine:
+      kind: spark
+    catalog:
+      kind: unity
+      catalog: main
+    state:
+      kind: table
+      table: ops._pipeloom_state
+    artifacts:
+      root: /Volumes/main/ops/pipeloom
     deploy:
       kind: databricks
-      pipelines: {main: {}, daily: {select: [&quot;tag:daily&quot;]}}
+      pipelines:
+        main: {}
+        daily:
+          select: [&quot;tag:daily&quot;]
       compute:
-        default: {kind: serverless, environment_version: &quot;5&quot;}
+        default:
+          kind: serverless
+          environment_version: &quot;5&quot;
         big:
           kind: job_cluster
-          new_cluster: {spark_version: &quot;16.4.x-scala2.12&quot;, node_type_id: &quot;Standard_D8ds_v5&quot;, num_workers: 4}
-      compute_rules: [{select: [&quot;tag:heavy&quot;], compute: big}]
+          new_cluster:
+            spark_version: &quot;16.4.x-scala2.12&quot;
+            node_type_id: &quot;Standard_D8ds_v5&quot;
+            num_workers: 4
+      compute_rules:
+        - select: [&quot;tag:heavy&quot;]
+          compute: big
       task_grouping: none
-      settings: {schedule: {quartz_cron_expression: &quot;0 0 6 * * ?&quot;, timezone_id: &quot;UTC&quot;}}
+      settings:
+        schedule:
+          quartz_cron_expression: &quot;0 0 6 * * ?&quot;
+          timezone_id: &quot;UTC&quot;
 </code></pre>
 <table>
 <thead>
@@ -1501,7 +1520,7 @@ time, with the connection rules above (no profile is chosen, so it works inside 
 is masked like any resolved secret. A bad path, a missing connection or an API error is PLX109,
 naming the path and never the value.</p>
 <h2 id="unity-catalog">Unity Catalog<a class="headerlink" href="#unity-catalog" title="Permanent link">&para;</a></h2>
-<p><code>catalog: {kind: unity, catalog: main}</code> works with the Spark engine only. Tables and views are
+<p>A <code>catalog</code> block with <code>kind: unity</code> and <code>catalog: main</code> works with the Spark engine only. Tables and views are
 addressed as <code>`catalog`.`schema`.`name`</code>; the option fills in the catalog when the target's
 naming leaves it empty. A model's <code>catalog</code> setting (or a folder <code>_defaults.yml</code>) wins over both,
 so each layer can write to its own catalog. pipeloom never creates a catalog: every catalog a

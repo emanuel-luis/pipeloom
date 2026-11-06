@@ -1143,18 +1143,43 @@ pandas engines support all of it.</p>
   - name: raw_orders
     format: csv
     location: raw/orders.csv
-    options: {try_parse_dates: true}
+    options:
+      try_parse_dates: true
 models:
   - name: orders
     sql: select id, amount, status, updated_at from raw_orders
-    inputs: {raw_orders: {source: raw_orders}}
+    inputs:
+      raw_orders:
+        source: raw_orders
     expectations:
-      - {name: id_present, check: {not_null: [id]}, on_violation: drop}
-      - {name: status_known, check: {accepted_values: {column: status, values: [new, paid, shipped]}}, on_violation: drop}
-      - {name: amount_non_negative, check: {range: {column: amount, min: 0}}, on_violation: warn}
-      - {name: unique_id, check: {unique: [id]}, on_violation: fail}
-      - {name: not_empty, check: {row_count: {min: 1}}, on_violation: fail}
-    quality: {quarantine: true, max_drop_ratio: 0.5}
+      - name: id_present
+        check:
+          not_null: [id]
+        on_violation: drop
+      - name: status_known
+        check:
+          accepted_values:
+            column: status
+            values: [new, paid, shipped]
+        on_violation: drop
+      - name: amount_non_negative
+        check:
+          range:
+            column: amount
+            min: 0
+        on_violation: warn
+      - name: unique_id
+        check:
+          unique: [id]
+        on_violation: fail
+      - name: not_empty
+        check:
+          row_count:
+            min: 1
+        on_violation: fail
+    quality:
+      quarantine: true
+      max_drop_ratio: 0.5
 </code></pre>
 <pre><code class="language-console">$ pipeloom run
 ... WARN   orders: id_present (not_null) dropped 1 of 4 rows
@@ -1179,15 +1204,15 @@ warning. The unit still succeeded. <code>on_violation</code> defaults to <code>f
 <td>the columns are not null</td>
 </tr>
 <tr>
-<td><code>accepted_values: {column, values}</code></td>
+<td><code>accepted_values</code> with <code>column</code> and <code>values</code></td>
 <td>the value is one of the list (exact comparison)</td>
 </tr>
 <tr>
-<td><code>range: {column, min, max}</code></td>
+<td><code>range</code> with <code>column</code>, <code>min</code> and <code>max</code></td>
 <td>the value is within the bounds, inclusive; either bound may be left out</td>
 </tr>
 <tr>
-<td><code>regex: {column, pattern}</code></td>
+<td><code>regex</code> with <code>column</code> and <code>pattern</code></td>
 <td>the pattern is found anywhere in the string (an unanchored search); the column must be a string</td>
 </tr>
 <tr>
@@ -1212,11 +1237,11 @@ or fail.</p>
 <td>a key appears more than once (rows with a null key part are not counted)</td>
 </tr>
 <tr>
-<td><code>row_count: {min, max}</code></td>
+<td><code>row_count</code> with <code>min</code> and <code>max</code></td>
 <td>the number of rows is outside the bounds</td>
 </tr>
 <tr>
-<td><code>freshness: {column, max_age}</code></td>
+<td><code>freshness</code> with <code>column</code> and <code>max_age</code></td>
 <td>the newest value is older than <code>max_age</code>; an all-null column fails</td>
 </tr>
 </tbody>

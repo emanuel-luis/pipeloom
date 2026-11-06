@@ -1233,7 +1233,7 @@ other processes (<code>boundary: task</code>) can read it. The result goes to
 <code>&lt;artifacts.root&gt;/runs/&lt;run_id&gt;/intermediate/&lt;model&gt;</code> and <code>relation_name</code> in <code>run_results.json</code> is
 that location. An intermediate takes no <code>incremental</code> block, no <code>partition_by</code> and no strategy
 other than overwrite (PLP413).</p>
-<p>The target setting <code>artifacts: {intermediate_ttl: 1d}</code> (default <code>1d</code>) says how long the data
+<p>The <code>intermediate_ttl</code> key of the target's <code>artifacts</code> block (default <code>1d</code>) says how long the data
 stays. With <code>0</code> the folder is deleted at the end of a run that succeeded; a failed run keeps it.
 At the end of every run, finalize also deletes the intermediates of other runs once
 they are older than the TTL those runs recorded. A run that left no results, or was resumed and

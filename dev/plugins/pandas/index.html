@@ -1076,9 +1076,14 @@
 </code></pre>
 <pre><code class="language-yaml">targets:
   dev:
-    engine: {kind: pandas}
-    catalog: {kind: filesystem, root: warehouse}
-    state: {kind: json, path: .pipeloom/state}
+    engine:
+      kind: pandas
+    catalog:
+      kind: filesystem
+      root: warehouse
+    state:
+      kind: json
+      path: .pipeloom/state
 </code></pre>
 <p>The engine needs the <code>filesystem</code> catalog: tables are directories of part files committed through
 <code>_pipeloom/commit.json</code> (<a href="../../adr/0022-filesystem-table-format/">ADR-0022</a>). Any other catalog is

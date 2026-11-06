@@ -1102,14 +1102,22 @@ tables.</p>
 <pre><code class="language-yaml">models:
   - name: orders
     python: shop.orders:build
-    inputs: {raw_orders: {source: raw_orders}}
+    inputs:
+      raw_orders:
+        source: raw_orders
     materialized: incremental
-    incremental: {input: raw_orders, column: updated_at, lookback: 2h}
+    incremental:
+      input: raw_orders
+      column: updated_at
+      lookback: 2h
     write:
       strategy: merge
       unique_key: [id]
       update_condition: &quot;source.updated_at &gt; target.updated_at&quot;
-      deletes: {column: status, value: cancelled, mode: hard}
+      deletes:
+        column: status
+        value: cancelled
+        mode: hard
 </code></pre>
 <ul>
 <li><code>update_condition</code> is optional and written in the engine's dialect (a SQL expression on
@@ -1133,7 +1141,9 @@ It needs <code>partition_by</code>; without it <code>pipeloom validate</code> re
 <pre><code class="language-yaml">models:
   - name: daily_clicks
     sql: select event_date, user_id, clicks from raw_events
-    inputs: {raw_events: {source: raw_events}}
+    inputs:
+      raw_events:
+        source: raw_events
     partition_by: [event_date]
     write:
       strategy: replace_partitions

@@ -1553,51 +1553,94 @@ config_version: 1
 name: shop
 model_paths: [models]
 python_paths: [src]            # added to sys.path at execution only
-vars: {country: BR}
+vars:
+  country: BR
 defaults:
-  models: {materialized: table, retries: 1, timeout: 30m}
+  models:
+    materialized: table
+    retries: 1
+    timeout: 30m
 targets:
   dev:
-    engine: {kind: polars}
-    catalog: {kind: filesystem, root: ./warehouse}
-    naming: {kind: per_user}
-    state: {kind: sqlite, path: .pipeloom/state.db}
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: ./warehouse
+    naming:
+      kind: per_user
+    state:
+      kind: sqlite
+      path: .pipeloom/state.db
     workers: 4
   prod:
-    engine: {kind: spark}
-    catalog: {kind: unity, catalog: main}
-    naming: {kind: prefix, schema_prefix: prod_}
-    state: {kind: table, table: ops._pipeloom_state}
-    artifacts: {root: /Volumes/main/ops/pipeloom}
+    engine:
+      kind: spark
+    catalog:
+      kind: unity
+      catalog: main
+    naming:
+      kind: prefix
+      schema_prefix: prod_
+    state:
+      kind: table
+      table: ops._pipeloom_state
+    artifacts:
+      root: /Volumes/main/ops/pipeloom
     deploy:                                  # 0.5: a plugin block, validated against `renderers`
       kind: databricks
-      pipelines: {main: {}, daily: {select: [&quot;tag:daily&quot;]}}
-      compute: {default: {kind: serverless, environment_version: &quot;5&quot;}}
+      pipelines:
+        main: {}
+        daily:
+          select: [&quot;tag:daily&quot;]
+      compute:
+        default:
+          kind: serverless
+          environment_version: &quot;5&quot;
       task_grouping: none
 events:
   sinks:
-    - {kind: console}
-    - {kind: jsonl, path: target/events.jsonl, failure_budget: 5}
+    - kind: console
+    - kind: jsonl
+      path: target/events.jsonl
+      failure_budget: 5
 </code></pre>
 <p><strong>Model files.</strong> Any <code>*.yml</code> under <code>model_paths</code>.</p>
 <pre><code class="language-yaml">sources:
-  - {name: raw_orders, format: parquet, location: data/raw/orders/}
+  - name: raw_orders
+    format: parquet
+    location: data/raw/orders/
 models:
   - name: stg_orders
     sql: |
       select order_id, customer_id, amount, updated_at from raw_orders
-    inputs: {raw_orders: {source: raw_orders}}
+    inputs:
+      raw_orders:
+        source: raw_orders
   - name: fct_orders
     python: shop.marts.orders:build          # module:function
     inputs:
-      orders: {ref: stg_orders}
-      customers: {ref: dim_customers}
+      orders:
+        ref: stg_orders
+      customers:
+        ref: dim_customers
     materialized: incremental
-    incremental: {input: orders, column: updated_at, lookback: 2d}
-    write: {strategy: merge, unique_key: [order_id], on_schema_change: append_new_columns}
+    incremental:
+      input: orders
+      column: updated_at
+      lookback: 2d
+    write:
+      strategy: merge
+      unique_key: [order_id]
+      on_schema_change: append_new_columns
     partition_by: [order_date]
     expectations:
-      - {name: amount_non_negative, check: {range: {column: amount, min: 0}}, on_violation: drop}
+      - name: amount_non_negative
+        check:
+          range:
+            column: amount
+            min: 0
+        on_violation: drop
     tags: [finance, daily]
 </code></pre>
 <p><code>_defaults.yml</code> files set folder-level defaults. They cascade from the model's own folder up to its <code>model_paths</code> root, nearest first; mappings merge deeply, lists replace and <code>tags</code> is an ordered union without duplicates.</p>
@@ -1893,7 +1936,11 @@ queued  → cancelled (run cancelled)
 <h2 id="9-incremental-processing-write-strategies-schema-change">9. Incremental processing, write strategies, schema change<a class="headerlink" href="#9-incremental-processing-write-strategies-schema-change" title="Permanent link">&para;</a></h2>
 <p><strong>ADR-0008: Incremental and state.</strong> A declared key plus a lookback (L12), with watermarks in a <code>StateStore</code>.</p>
 <p><strong>Incremental config:</strong></p>
-<pre><code class="language-yaml">incremental: {input: orders, column: updated_at, lookback: 2d, watermark_source: state}  # or: target
+<pre><code class="language-yaml">incremental:
+  input: orders
+  column: updated_at
+  lookback: 2d
+  watermark_source: state  # or: target
 </code></pre>
 <p><strong>Algorithm per unit:</strong>
 1. Look up the idempotency token with <code>EngineSession.applied_token</code>. A write that already used it is replayed: no read, no body, no write; the stored <code>commit_meta</code> gives the schema fields, the quality outcome and the watermark, and the unit goes straight to step 6 (ADR-0027).
@@ -1934,7 +1981,7 @@ queued  → cancelled (run cancelled)
 </tr>
 <tr>
 <td>merge</td>
-<td><code>unique_key</code> equality; optional <code>update_condition</code>; <code>deletes: {column, value, mode: hard|soft}</code>; a missing key column or a duplicate key in the batch is PLM206; rows with a null key never match</td>
+<td><code>unique_key</code> equality; optional <code>update_condition</code>; an optional <code>deletes</code> block with <code>column</code>, <code>value</code> and <code>mode</code> (<code>hard</code> or <code>soft</code>); a missing key column or a duplicate key in the batch is PLM206; rows with a null key never match</td>
 <td>overwrite</td>
 </tr>
 <tr>
@@ -1988,11 +2035,26 @@ queued  → cancelled (run cancelled)
 <h2 id="10-data-quality">10. Data quality<a class="headerlink" href="#10-data-quality" title="Permanent link">&para;</a></h2>
 <p><strong>ADR-0009: Expectations.</strong> DLT-style actions plus quarantine, evaluated after the transformation and before the write.</p>
 <pre><code class="language-yaml">expectations:
-  - {name: id_not_null, check: {not_null: [order_id]}, on_violation: fail}
-  - {name: status_known, check: {accepted_values: {column: status, values: [new, paid, shipped]}}, on_violation: drop}
-  - {name: amount_ok, expr: &quot;amount &gt;= 0 and amount &lt; 1e6&quot;, on_violation: warn}   # engine-dialect, non-portable
-  - {name: unique_id, check: {unique: [order_id]}, on_violation: fail}            # aggregate
-quality: {quarantine: true, max_drop_ratio: 0.05}
+  - name: id_not_null
+    check:
+      not_null: [order_id]
+    on_violation: fail
+  - name: status_known
+    check:
+      accepted_values:
+        column: status
+        values: [new, paid, shipped]
+    on_violation: drop
+  - name: amount_ok
+    expr: &quot;amount &gt;= 0 and amount &lt; 1e6&quot;   # engine-dialect, non-portable
+    on_violation: warn
+  - name: unique_id
+    check:
+      unique: [order_id]                   # aggregate
+    on_violation: fail
+quality:
+  quarantine: true
+  max_drop_ratio: 0.05
 </code></pre>
 <ul>
 <li><strong>Row-level checks:</strong> <code>not_null</code>, <code>accepted_values</code>, <code>range</code>, <code>regex</code>, <code>expr</code>. Allowed actions: warn, drop, fail.</li>

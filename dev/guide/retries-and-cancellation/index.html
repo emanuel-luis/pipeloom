@@ -1153,11 +1153,15 @@
 with the run. pipeloom has a setting for each case.</p>
 <h2 id="retries">Retries<a class="headerlink" href="#retries" title="Permanent link">&para;</a></h2>
 <pre><code class="language-yaml">sources:
-  - {name: raw_orders, format: csv, location: raw/orders.csv}
+  - name: raw_orders
+    format: csv
+    location: raw/orders.csv
 models:
   - name: orders
     python: shop.flaky:load
-    inputs: {raw_orders: {source: raw_orders}}
+    inputs:
+      raw_orders:
+        source: raw_orders
     retries: 2          # extra attempts after the first; the default is 0
     retry_delay: 1s     # base delay; the default is 1s
     retry_on: transient # or &quot;any&quot;
@@ -1228,9 +1232,14 @@ thread still commits its write, the attempt file says <code>timed_out</code> and
 <p><code>cancel_grace</code> is 30 seconds by default. Set it per target, or override it for one run:</p>
 <pre><code class="language-yaml">targets:
   dev:
-    engine: {kind: polars}
-    catalog: {kind: filesystem, root: target/warehouse}
-    state: {kind: json, path: .pipeloom/state}
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+    state:
+      kind: json
+      path: .pipeloom/state
     cancel_grace: 10s
 </code></pre>
 <pre><code class="language-console">$ pipeloom run --cancel-grace 5s
