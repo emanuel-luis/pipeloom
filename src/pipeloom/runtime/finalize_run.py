@@ -400,6 +400,7 @@ def finalize_run(project: Project, opts: FinalizeOptions, bus: EventBus) -> RunO
                     failures=failures,
                     artifacts=written,
                     abandoned_threads=0,
+                    replay=_is_replay(prior, status, have),
                 )
             )
             return RunOutcome(
@@ -407,6 +408,15 @@ def finalize_run(project: Project, opts: FinalizeOptions, bus: EventBus) -> RunO
             )
     finally:
         state.close()
+
+
+def _is_replay(prior: RunRecord | None, status: str, have: Mapping[str, Any]) -> bool:
+    """True when the run was already finished with this status and no unit attempt started
+    after that: a retried finalize. A repair that ran units again is not a replay."""
+    if prior is None or prior.status != status or prior.ended_at is None:
+        return False
+    starts = [datetime.fromisoformat(r["started_at"]) for r in have.values() if r.get("started_at")]
+    return all(s <= prior.ended_at for s in starts)
 
 
 __all__ = [

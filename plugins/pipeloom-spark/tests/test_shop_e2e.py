@@ -16,8 +16,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from click.testing import CliRunner
 
 from pipeloom.api import Project, ProjectOptions
+from pipeloom.cli import main
 from pipeloom.events.bus import EventBus
 from pipeloom.runtime.control import RunControl
 from pipeloom.runtime.run import RunOptions, RunOutcome
@@ -167,6 +169,11 @@ def test_shop_runs_and_a_rerun_with_the_same_run_id_writes_nothing(
         delta(classic_spark, root, "fct_orders__quarantine"),
     )
     assert (root / ".pipeloom" / "state" / "_delta_log").is_dir()
+    # `pipeloom runs ls` reads the table state store (ADR-0047)
+    args = ["runs", "ls", "--project-dir", str(root), "--target", "spark", "--output", "json"]
+    listed = CliRunner().invoke(main, args, env={"PIPELOOM_DISABLE_PLUGIN_AUTOLOAD": ""})
+    assert listed.exit_code == 0, listed.stderr
+    assert [(r["run_id"], r["status"]) for r in json.loads(listed.stdout)] == [("r1", "succeeded")]
     before = commits(root)
 
     again, sink = run(root, "r1")

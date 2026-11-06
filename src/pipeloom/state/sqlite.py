@@ -28,6 +28,7 @@ from pipeloom.state.types import (
     StateStore,
     UnitRecord,
     Watermark,
+    page_runs,
 )
 
 SCHEMA_VERSION = 1
@@ -164,20 +165,16 @@ class SqliteStore:
     def get_run(self, run_id: str) -> RunRecord | None:
         with self._read() as db:
             row = db.execute("SELECT * FROM runs WHERE run_id=?", (run_id,)).fetchone()
-        if row is None:
-            return None
-        return RunRecord(
-            run_id=row[0],
-            project=row[1],
-            target=row[2],
-            plan_hash=row[3],
-            status=row[4],
-            started_at=codec.dt_load(row[5]),  # type: ignore[arg-type]
-            ended_at=codec.dt_load(row[6]),
-            parent_run_id=row[7],
-            invocation_ids=tuple(_loads(row[8])),
-            counts=_loads(row[9]),
-        )
+        return None if row is None else _run(row)
+
+    def list_runs(
+        self, project: str, target: str, limit: int, before: str | None = None
+    ) -> tuple[RunRecord, ...]:
+        with self._read() as db:
+            rows = db.execute(
+                "SELECT * FROM runs WHERE project=? AND target=?", (project, target)
+            ).fetchall()
+        return page_runs(map(_run, rows), project, target, limit, before)
 
     def record_unit(self, record: UnitRecord) -> None:
         with self._write() as db:
@@ -261,6 +258,21 @@ def _dt(text: str) -> Any:
 
 def _loads(text: str) -> Any:
     return json.loads(text)
+
+
+def _run(row: Any) -> RunRecord:
+    return RunRecord(
+        run_id=row[0],
+        project=row[1],
+        target=row[2],
+        plan_hash=row[3],
+        status=row[4],
+        started_at=codec.dt_load(row[5]),  # type: ignore[arg-type]
+        ended_at=codec.dt_load(row[6]),
+        parent_run_id=row[7],
+        invocation_ids=tuple(_loads(row[8])),
+        counts=_loads(row[9]),
+    )
 
 
 def _watermark(row: tuple[str, str, str, str]) -> Watermark:

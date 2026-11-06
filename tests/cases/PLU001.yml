@@ -1,7 +1,7 @@
 entry_points:
   - group: engines
     name: future
-    value: "tests.plugins.fakes:API05"
+    value: "tests.plugins.fakes:API06"
     dist: pipeloom-future
     version: "2.0"
 files:

@@ -29,6 +29,8 @@ nav:
       - Data quality: guide/quality.md
       - Retries, timeouts and cancellation: guide/retries-and-cancellation.md
       - Docs site: guide/docs-site.md
+      - Run history: guide/run-history.md
+      - Alerts with the webhook sink: guide/alerts.md
   - Plugins:
       - Polars: plugins/polars.md
       - pandas: plugins/pandas.md

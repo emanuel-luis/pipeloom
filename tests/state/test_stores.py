@@ -13,7 +13,13 @@ from pipeloom.state import jsondir
 from pipeloom.state.jsondir import JsonDirStore, _seg
 from pipeloom.state.lease import Heartbeat, held, new_lock_info, new_owner
 from pipeloom.state.sqlite import SqliteStore
-from pipeloom.state.types import LockHeld, StateStore
+from pipeloom.state.types import (
+    ListRunsUnsupported,
+    LockHeld,
+    StateStore,
+    list_runs,
+    page_runs,
+)
 from pipeloom.testing.clock import FakeClock
 from pipeloom.testing.contract.state import KEY, T0, StateStoreContract, StoreFactory, wm
 
@@ -32,6 +38,14 @@ class TestJsonContract(StateStoreContract):
     @pytest.fixture
     def store_factory(self) -> StoreFactory:
         return lambda tmp, clock: JsonDirStore(tmp / "state", clock=clock)
+
+
+def test_list_runs_default_refuses_a_store_without_it(tmp_path: Path) -> None:
+    with pytest.raises(ListRunsUnsupported, match="object cannot list runs"):
+        list_runs(object(), "shop", "dev", 5)
+    assert list_runs(SqliteStore(tmp_path / "s.db"), "shop", "dev", 5) == ()
+    with pytest.raises(ValueError, match="at least 1"):
+        page_runs([], "shop", "dev", 0)
 
 
 def test_owner_format() -> None:

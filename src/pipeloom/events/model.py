@@ -252,6 +252,11 @@ class RunCompleted(EventPayload):
     """POSIX paths of the files the run wrote."""
     abandoned_threads: int = 0
     """Timed-out unit threads that were still running when the run ended."""
+    replay: bool = False
+    """`pipeloom finalize` found a finished record of this run with the same status in the
+    state store and no unit attempt started after it: the finalize was retried and reports
+    nothing new. `pipeloom run` always sets
+    false, since it runs units again."""
 
     def event_level(self) -> Level:
         return Level.INFO if self.status == "succeeded" else Level.ERROR
