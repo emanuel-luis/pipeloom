@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The format follows
 ### Added
 
 - `pipeloom init [DIRECTORY]` scaffolds a new project, like `dbt init`: a `dev` target for polars, pandas, spark or databricks, one example model per layer (bronze, silver, gold), a `.gitignore` and a README. polars and pandas projects run out of the box on a small CSV in `data/`. Flags `--name`, `--engine`, `--catalog` (databricks), `--no-input` and `--force`; it prompts for the rest only when stdin is a terminal. `--force` keeps existing files and lists them as skipped ([ADR-0041](docs/adr/0041-pipeloom-init.md)).
+- `pipeloom explain <CODE>` prints the catalog entry of a diagnostic code (title, layer, severity, status, the version it appeared in and the explanation) and the link to its entry on the error-code page. The code is case-insensitive; an unknown one is a usage error (exit 2) with a did-you-mean. The console failure block gains an `explain: pipeloom explain <CODE>` line. It reads no project.
 
 ## [0.7.0] - 2026-11-05
 
