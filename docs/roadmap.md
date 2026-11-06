@@ -38,7 +38,7 @@ changes: the UI.
 The architecture lists "a scheduler service or UI" as one non-goal, but the two carry different risks. A scheduler,
 or a UI that writes, needs authentication, a database and a daemon, which amounts to a second product. A read-only
 viewer over files pipeloom already writes needs none of that, and it makes the observability work visible.
-ADR-0043 (proposed) replaces the line with "a scheduler service, or any UI that starts, schedules or changes runs".
+[ADR-0043](adr/0043-docs-site.md) (accepted) replaces the line with "a scheduler service, or any UI that starts, schedules or changes runs".
 A read-only viewer over the artifacts root and the state store then becomes allowed. It reads local or mounted
 paths, listens on localhost by default and ships as a separate distribution, so the core stays small.
 
@@ -203,8 +203,9 @@ so the first step is to publish it as a contract.
 - Step 1: `pipeloom docs generate` and `pipeloom docs serve` (0.8). A static site in `target/docs/` built from the
   manifest and, when present, the latest `run_results.json`: a model list, model pages (config, SQL or Python body,
   inputs, relation, expectations, contract, last result) and a lineage graph, in one HTML file that works offline.
-  Python embeds the JSON, the graph uses one pinned and vendored JavaScript library with no npm build, and `serve`
-  is the stdlib `http.server`. Needs ADR-0043.
+  Python renders the HTML with the stdlib, the graph is an inline SVG laid out in Python (no JavaScript library, so
+  no license or update work and a golden-testable output), and `serve` is the stdlib `http.server`. The interactive
+  graph is left to `pipeloom ui`. Decided in [ADR-0043](adr/0043-docs-site.md) (accepted).
 - Step 2: `pipeloom ui` (1.1), in a `pipeloom-ui` distribution. A local read-only server (stdlib or one small ASGI
   dependency, chosen in its ADR) over an artifacts root and, optionally, a state store. Views: the DAG colored by the
   last run, the run list, a run timeline (a Gantt chart from `started_at`, `ended_at` and `queue_wait_ms`), unit logs
@@ -226,7 +227,7 @@ Each milestone has one headline and is sized for one maintainer. Items in the ta
 | `pipeloom explain` | none (the catalog exists) | every code in `codes.py` prints, tested by iterating the catalog |
 | `state:modified`, `state:new` and `result:` selectors, `--state`, `--defer` | ADR-0042 (proposed) | changing one SQL body selects exactly that node, and `--defer` reads an unselected parent from the reference relation (golden test) |
 | `pipeloom retry --from` | [ADR-0013](adr/0013-run-identity-and-reruns.md) | retrying a failed run runs only the failed units and their skipped descendants, with `parent_run_id` set |
-| `pipeloom docs generate` and `serve` | ADR-0043 (proposed) | the TPC-H examples produce one HTML file that opens offline and shows the graph and every model |
+| `pipeloom docs generate` and `serve` | [ADR-0043](adr/0043-docs-site.md) | the TPC-H examples produce one HTML file that opens offline and shows the graph and every model |
 
 ### 0.9: test it, see it, run it faster
 
@@ -274,6 +275,8 @@ Risks:
   else) needs a test.
 - WATCHER mode on shared storage. NFS attribute caching can hide fresh attempt files, so the sensor needs a bounded
   poll and the PLA004 sentinel.
-- UI dependency weight. A vendored JavaScript library brings license and update work; keep exactly one and pin it.
+- UI dependency weight. ADR-0043 (accepted) avoids it for the docs site: the graph is an inline SVG laid out in
+  Python, with no vendored JavaScript library. `pipeloom ui` (1.1) ships separately, so any library it needs stays
+  out of the core wheel; keep exactly one and pin it.
 - Defer correctness. Reading production relations from a dev run needs read grants and the same schema. A missing
   relation must fail with a clear PLM204 hint.

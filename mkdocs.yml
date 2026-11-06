@@ -28,6 +28,7 @@ nav:
       - Merge, replace_partitions and schema changes: guide/write-strategies.md
       - Data quality: guide/quality.md
       - Retries, timeouts and cancellation: guide/retries-and-cancellation.md
+      - Docs site: guide/docs-site.md
   - Plugins:
       - Polars: plugins/polars.md
       - pandas: plugins/pandas.md

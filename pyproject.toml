@@ -183,7 +183,7 @@ type = "layers"
 layers = [
     "pipeloom.cli",
     "pipeloom.api",
-    "pipeloom.runtime",
+    "pipeloom.runtime | pipeloom.docs",
     "pipeloom.artifacts | pipeloom.state | pipeloom.builtins",
     "pipeloom.plan",
     "pipeloom.validate",
@@ -207,6 +207,7 @@ source_modules = [
     "pipeloom.cli",
     "pipeloom.config",
     "pipeloom.diagnostics",
+    "pipeloom.docs",
     "pipeloom.engine",
     "pipeloom.events",
     "pipeloom.graph",

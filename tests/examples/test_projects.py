@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
+from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import polars as pl
 import pytest
@@ -49,6 +51,64 @@ def test_validate_and_compile(project: str, tmp_path: Path) -> None:
         "name": "top_customers",
     }
     assert len(nodes) == 9
+
+
+class _Tags(HTMLParser):
+    VOID: ClassVar[set[str]] = {"meta", "input", "br", "hr", "link", "img"}
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.stack: list[str] = []
+        self.bad: list[str] = []
+        self.ids: set[str] = set()
+        self.node_ids: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        a = dict(attrs)
+        if a.get("id"):
+            self.ids.add(a["id"] or "")
+        if a.get("data-id"):
+            self.node_ids.append(a["data-id"] or "")
+        if tag not in self.VOID:
+            self.stack.append(tag)
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        pass
+
+    def handle_endtag(self, tag: str) -> None:
+        if not self.stack or self.stack.pop() != tag:
+            self.bad.append(tag)
+
+
+@pytest.mark.parametrize("project", PROJECTS)
+def test_docs_generate_is_one_offline_file(project: str, tmp_path: Path) -> None:
+    base = ["--project-dir", str(EXAMPLES / project), "--target", "dev"]
+    out = tmp_path / "site"
+    result = cli("docs", "generate", *base, "--out", str(out))
+    assert result.exit_code == 0, result.stderr
+    assert [p.name for p in out.iterdir()] == ["index.html"]
+    page = (out / "index.html").read_text(encoding="utf-8")
+
+    assert 'http-equiv="Content-Security-Policy"' in page
+    assert "default-src 'none'" in page
+    pattern = r"""(?:src=|<link\b[^>]*|url\(|@import\s*)["']?\s*(?:https?:)?//"""
+    external = re.compile(pattern, re.IGNORECASE)
+    assert not external.search(page)
+
+    tags = _Tags()
+    tags.feed(page)
+    tags.close()
+    assert tags.bad == [] and tags.stack == []
+
+    manifest = tmp_path / "m.json"
+    assert cli("compile", *base, "--out", str(manifest)).exit_code == 0
+    doc = json.loads(manifest.read_text(encoding="utf-8"))
+    for node in doc["nodes"].values():
+        assert f"model-{node['name']}" in tags.ids
+    for source in doc["sources"].values():
+        assert f"source-{source['name']}" in tags.ids
+    assert len(tags.node_ids) == len(doc["nodes"]) + len(doc["sources"])
+    assert set(tags.node_ids) == set(doc["nodes"]) | set(doc["sources"])
 
 
 def gold(root: Path, name: str) -> pl.DataFrame:
