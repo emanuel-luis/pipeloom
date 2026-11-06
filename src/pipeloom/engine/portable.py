@@ -446,7 +446,8 @@ def scd2_time(cfg: WriteConfig) -> datetime:
 
 def _differs(column: str, dtype: Any) -> Any:
     """Expression: the batch value differs from the target's (null-safe, NaN is null)."""
-    a, b = nw.col(column), nw.col(f"{_T}{column}")
+    # pandas gives an all-null right column of a left join no type: cast it back.
+    a, b = nw.col(column), nw.col(f"{_T}{column}").cast(dtype)
     if _is_float(dtype):
         a, b = a.fill_nan(None), b.fill_nan(None)
     return (a.is_null() != b.is_null()) | (a != b).fill_null(False)
@@ -485,7 +486,8 @@ def scd2_frames(current: Any | None, batch: Any, cfg: WriteConfig, ts: datetime)
     ]
     if current is None:
         cols = [*bat.columns, *_SCD2_NAMES]
-        inserts = bat.filter(~is_del).with_columns(*opened).select(*cols)
+        flagged = bat.with_columns(is_del.alias(_DEL))
+        inserts = flagged.filter(~nw.col(_DEL)).with_columns(*opened).select(*cols)
         return MergeOutcome(nw.to_native(inserts), int(inserts.shape[0]), 0, 0)
     cur = _eager(current)
     cols = list(cur.columns)
@@ -500,13 +502,14 @@ def scd2_frames(current: Any | None, batch: Any, cfg: WriteConfig, ts: datetime)
         *(nw.col(c).alias(f"{_T}{c}") for c in tracked),
     ).with_columns(nw.lit(True).alias(_MATCH))
     joined = bat.join(right, left_on=key, right_on=[f"{_T}k_{k}" for k in key], how="left")
-    diff: Any = nw.lit(False)
-    for c in tracked:
-        diff = diff | _differs(c, bat.schema[c])
-    matched = nw.col(_MATCH).fill_null(False)
-    joined = joined.with_columns(
-        is_del.alias(_DEL), matched.alias(_MATCH), (matched & ~is_del & diff).alias(_NEW)
-    )
+    diffs = [_differs(c, bat.schema[c]) for c in tracked]
+    matched = nw.col(_MATCH).fill_null(False).cast(nw.Boolean)
+    joined = joined.with_columns(is_del.alias(_DEL), matched.alias(_MATCH))
+    if diffs:  # no tracked column (a table of keys only): nothing can change
+        changes = nw.any_horizontal(*diffs, ignore_nulls=True)
+        joined = joined.with_columns((nw.col(_MATCH) & ~nw.col(_DEL) & changes).alias(_NEW))
+    else:
+        joined = joined.with_columns(nw.lit(False).alias(_NEW))
     gone, changed = nw.col(_MATCH) & nw.col(_DEL), nw.col(_NEW)
     closing = joined.filter(gone | changed).select(*key)
     inserts = joined.filter(~nw.col(_DEL) & (~nw.col(_MATCH) | changed))
