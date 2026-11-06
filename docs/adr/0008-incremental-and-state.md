@@ -42,7 +42,7 @@ The scd2 strategy keeps a type 2 history of each `unique_key`.
 - Schema policy: scd2 keeps rows. The runner strips the system columns from the target schema before the policy, so the policy acts on business columns only.
 - A model contract (ADR-0044) describes the body output, so a system column there is PLP416. PLP416 also covers a `unique_key`, `partition_by`, `cluster_by`, `deletes.column` or tracked column that names a system column, and tracked columns that overlap the `unique_key`.
 - Counts reuse the `WriteResult` fields: `rows_inserted` is new current rows, `rows_updated` is rows closed by a change, `rows_deleted` is rows closed by a delete, `rows_written` is their sum.
-- `WriteConfig` gains `tracked_columns` (filled by the runner, never empty for scd2) and `full_refresh`, appended with defaults, and the engine types gain `SCD2_COLUMNS`. This is additive and stays within plugin API (0, 5).
+- `WriteConfig` gains `tracked_columns` (filled by the runner; empty only when the table has no business column besides the key and the delete column) and `full_refresh`, appended with defaults, and the engine types gain `SCD2_COLUMNS`. This is additive and stays within plugin API (0, 5).
 - Engines without scd2 get PLC501. The memory engine does not declare it; polars and pandas do (they share the filesystem write code, which rewrites the whole table on each scd2 write, like merge).
 
 ## Status

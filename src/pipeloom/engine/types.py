@@ -134,7 +134,8 @@ class WriteConfig:
     (a Delta `txnVersion`) reads it here, never from the session context: the session opens
     before the start time is resolved."""
     tracked_columns: tuple[str, ...] = ()
-    """scd2: the columns whose change opens a new version; the runner always fills them."""
+    """scd2: the columns whose change opens a new version, filled by the runner; empty only when
+    the table has no business column besides the key and the delete column."""
     full_refresh: bool = False
     """scd2: drop the history and reload the batch as a first load."""
 
