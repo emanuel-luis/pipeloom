@@ -25,7 +25,7 @@ nav:
   - Guide:
       - Running a pipeline: guide/running.md
       - Incremental models: guide/incremental.md
-      - Merge, replace_partitions and schema changes: guide/write-strategies.md
+      - Merge, replace_partitions, scd2 and schema changes: guide/write-strategies.md
       - Data quality: guide/quality.md
       - Retries, timeouts and cancellation: guide/retries-and-cancellation.md
       - Docs site: guide/docs-site.md

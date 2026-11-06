@@ -11,12 +11,14 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
 from pipeloom.engine.errors import WriteKeyError
 from pipeloom.engine.types import (
     ROW_CHECKS,
+    SCD2_COLUMNS,
     ExpectationSpec,
     QualityCounts,
     QuarantineMeta,
@@ -273,6 +275,67 @@ def _part(value: Any) -> Any:
     return None if is_null(value) else value
 
 
+@dataclass(frozen=True)
+class Scd2Result:
+    rows: list[Row]
+    inserted: int
+    """New current rows."""
+    closed: int
+    """Current rows closed by a change (`rows_updated`)."""
+    deleted: int
+    """Current rows closed by a delete."""
+
+
+def _same(a: Any, b: Any) -> bool:
+    return (is_null(a) and is_null(b)) or (not is_null(a) and not is_null(b) and a == b)
+
+
+def scd2_rows(
+    current: Sequence[Mapping[str, Any]],
+    batch: Sequence[Mapping[str, Any]],
+    cfg: WriteConfig,
+    ts: datetime,
+) -> Scd2Result:
+    """Apply `batch` to the scd2 table `current` (business plus system columns) at time `ts`.
+    `cfg.full_refresh` starts from an empty table. Row order is not preserved."""
+    key, tracked = cfg.unique_key, cfg.tracked_columns
+    system = [c.name for c in SCD2_COLUMNS]
+    if not key:
+        raise WriteKeyError("scd2 needs a unique_key")
+    _check_columns(batch, (*key, *tracked), "unique_key or tracked")
+    seen: set[tuple[Any, ...]] = set()
+    for row in batch:
+        if any(c in row for c in system):
+            raise WriteKeyError("the batch has a column named like an scd2 system column")
+        k = tuple(row[c] for c in key)
+        if any(is_null(v) for v in k):
+            raise WriteKeyError(f"the batch has a null unique_key {k!r}")
+        if k in seen:
+            raise WriteKeyError(f"the batch repeats the unique_key {k!r}")
+        seen.add(k)
+    old = [] if cfg.full_refresh else [dict(r) for r in current]
+    live = {tuple(r[c] for c in key): r for r in old if r["is_current"] is True}
+    out = [r for r in old if r["is_current"] is not True]
+    inserted = closed = deleted = 0
+    for row in batch:
+        k = tuple(row[c] for c in key)
+        d = cfg.deletes
+        is_delete = d is not None and not is_null(row.get(d.column)) and row[d.column] == d.value
+        target = live.get(k)
+        changed = target is not None and any(not _same(row[c], target[c]) for c in tracked)
+        if target is not None and (is_delete or changed):
+            out.append({**live.pop(k), "valid_to": ts, "is_current": False})
+            deleted += is_delete
+            closed += not is_delete
+        if not is_delete and (target is None or changed):
+            out.append({**row, "valid_from": ts, "valid_to": None, "is_current": True})
+            inserted += 1
+    out += live.values()
+    business = [c for c in _union(old, batch) if c not in system]
+    rows = [{c: r.get(c) for c in [*business, *system]} for r in out]
+    return Scd2Result(rows, inserted, closed, deleted)
+
+
 def sort_key(row: Mapping[str, Any]) -> str:
     """A total order for comparing row sets whose order is unspecified."""
     return repr(sorted(row.items(), key=lambda kv: kv[0]))
@@ -283,6 +346,7 @@ __all__ = [
     "RUN_ID_COLUMN",
     "TS_COLUMN",
     "MergeResult",
+    "Scd2Result",
     "align_rows",
     "apply_drops_rows",
     "cast_value",
@@ -291,5 +355,6 @@ __all__ = [
     "merge_rows",
     "merge_written",
     "replace_partitions_rows",
+    "scd2_rows",
     "sort_key",
 ]

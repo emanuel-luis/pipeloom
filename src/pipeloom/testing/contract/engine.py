@@ -12,6 +12,7 @@ A test whose capability the engine does not declare is skipped, never failed.
 
 from __future__ import annotations
 
+import math
 import threading
 import time
 from collections.abc import Callable, Iterator, Mapping, Sequence
@@ -64,7 +65,12 @@ from pipeloom.runtime.control import CancelToken
 from pipeloom.runtime.executors import UnitHandle
 from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.runner import ModelResult, ModelRunner
-from pipeloom.runtime.schema_policy import SchemaRejected, check_contract, resolve_columns
+from pipeloom.runtime.schema_policy import (
+    SchemaRejected,
+    check_contract,
+    resolve_columns,
+    strip_scd2,
+)
 from pipeloom.state.sqlite import SqliteStore
 from pipeloom.testing import reference
 from pipeloom.testing.clock import FakeClock
@@ -200,6 +206,36 @@ def _norm(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     """Rows with NaN replaced by a marker, so row sets compare equal."""
     return [
         {k: ("NaN" if isinstance(v, float) and v != v else v) for k, v in r.items()}  # noqa: PLR0124
+        for r in rows
+    ]
+
+
+_TS2 = tuple(datetime(2026, 2, d, 12, tzinfo=UTC) for d in (1, 2, 3))
+"""Run start times of successive scd2 writes."""
+
+
+def _scd2(
+    i: int,
+    *,
+    tracked: tuple[str, ...] = ("label", "v"),
+    deletes: DeleteSpec | None = None,
+    full_refresh: bool = False,
+) -> WriteConfig:
+    return WriteConfig(
+        "scd2",
+        unique_key=("id",),
+        deletes=deletes,
+        run_started_at=_TS2[i],
+        tracked_columns=tracked,
+        full_refresh=full_refresh,
+    )
+
+
+def _utc(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Rows with aware datetimes converted to UTC, so engines that return another zone compare
+    equal."""
+    return [
+        {k: v.astimezone(UTC) if isinstance(v, datetime) and v.tzinfo else v for k, v in r.items()}
         for r in rows
     ]
 
@@ -630,6 +666,168 @@ class EngineContract:
             assert s.applied_token(_target(f"t_idem_{strategy}"), "r:same") == second
             assert s.applied_token(_target(f"t_idem_{strategy}"), "r:other") is None
             assert self.table_rows(s, h, f"t_idem_{strategy}") == _key(_norm(KV_ROWS))
+
+    # -- scd2 -------------------------------------------------------------------------------
+
+    def scd2_steps(
+        self,
+        h: EngineHarness,
+        tmp_path: Path,
+        name: str,
+        steps: Sequence[tuple[Rows, WriteConfig]],
+        schema: Schema = KV_SCHEMA,
+    ) -> tuple[list[WriteResult], list[dict[str, Any]], list[dict[str, Any]]]:
+        """Write each (batch, cfg) with scd2 under its own token, and return the results, the rows
+        read back and the reference rows."""
+        requires(h, "strategies", "scd2")
+        want: list[dict[str, Any]] = []
+        results: list[WriteResult] = []
+        with self.session(h, tmp_path) as s:
+            for i, (rows, cfg) in enumerate(steps):
+                results.append(self.put(s, h, name, rows, schema, cfg, f"r{i}:scd2"))
+                assert cfg.run_started_at is not None
+                want = reference.scd2_rows(want, rows, cfg, cfg.run_started_at).rows
+            got = _key(_utc(_norm(self.read_table(s, h, name))))
+        return results, got, _key(_utc(_norm(want)))
+
+    def test_scd2_first_load(self, h: EngineHarness, tmp_path: Path) -> None:
+        batch = (*KV_ROWS, {"id": 3, "label": "gone", "v": 0})
+        cfg = _scd2(0, deletes=DeleteSpec("label", "gone", "hard"))
+        (result,), got, want = self.scd2_steps(h, tmp_path, "t_s2_first", [(batch, cfg)])
+        assert got == want and len(got) == 2
+        assert all(r["is_current"] and r["valid_to"] is None for r in got)
+        assert (result.rows_inserted, result.rows_updated, result.rows_deleted) == (2, 0, 0)
+        assert result.rows_written == 2
+
+    def test_scd2_unchanged_rerun(self, h: EngineHarness, tmp_path: Path) -> None:
+        """A null label stays unchanged, and so does a float that is NaN in one run and null in
+        the next (NaN counts as null)."""
+        schema = (*KV_SCHEMA, Column("f", "float64"))
+        tracked = ("label", "v", "f")
+        first = (
+            {"id": 1, "label": "a", "v": 10, "f": 1.5},
+            {"id": 2, "label": None, "v": 20, "f": math.nan},
+        )
+        second = (first[0], {**first[1], "f": None})
+        steps = [(first, _scd2(0, tracked=tracked)), (second, _scd2(1, tracked=tracked))]
+        (_, again), got, want = self.scd2_steps(h, tmp_path, "t_s2_same", steps, schema)
+        assert got == want and len(got) == 2
+        assert (again.rows_inserted, again.rows_updated, again.rows_deleted) == (0, 0, 0)
+        assert again.rows_written == 0
+
+    def test_scd2_changed_row(self, h: EngineHarness, tmp_path: Path) -> None:
+        steps = [(KV_ROWS, _scd2(0)), (({"id": 2, "label": "b2", "v": 20},), _scd2(1))]
+        (_, result), got, want = self.scd2_steps(h, tmp_path, "t_s2_change", steps)
+        assert got == want and len(got) == 3
+        closed = [r for r in got if not r["is_current"]]
+        assert [(r["id"], r["label"], r["valid_to"]) for r in closed] == [(2, "b", _TS2[1])]
+        assert (result.rows_inserted, result.rows_updated, result.rows_deleted) == (1, 1, 0)
+        assert result.rows_written == 2
+
+    def test_scd2_new_key(self, h: EngineHarness, tmp_path: Path) -> None:
+        steps = [(KV_ROWS, _scd2(0)), (({"id": 3, "label": "c", "v": 30},), _scd2(1))]
+        (_, result), got, want = self.scd2_steps(h, tmp_path, "t_s2_new", steps)
+        assert got == want and len(got) == 3 and all(r["is_current"] for r in got)
+        assert (result.rows_inserted, result.rows_updated, result.rows_deleted) == (1, 0, 0)
+
+    def test_scd2_tracked_columns_only(self, h: EngineHarness, tmp_path: Path) -> None:
+        batch = ({"id": 1, "label": "renamed", "v": 10}, {"id": 2, "label": "b", "v": 21})
+        steps = [(KV_ROWS, _scd2(0, tracked=("v",))), (batch, _scd2(1, tracked=("v",)))]
+        (_, result), got, want = self.scd2_steps(h, tmp_path, "t_s2_tracked", steps)
+        assert got == want and len(got) == 3
+        assert {r["label"] for r in got if r["id"] == 1} == {"a"}  # untracked change ignored
+        assert (result.rows_inserted, result.rows_updated) == (1, 1)
+
+    def test_scd2_hard_delete(self, h: EngineHarness, tmp_path: Path) -> None:
+        deletes = DeleteSpec("label", "gone", "hard")
+        gone = ({"id": 1, "label": "gone", "v": 0}, {"id": 9, "label": "gone", "v": 0})
+        back = ({"id": 1, "label": "back", "v": 11},)
+        steps = [
+            (KV_ROWS, _scd2(0, tracked=("v",), deletes=deletes)),
+            (gone, _scd2(1, tracked=("v",), deletes=deletes)),
+            (back, _scd2(2, tracked=("v",), deletes=deletes)),
+        ]
+        (_, deleted, returned), got, want = self.scd2_steps(h, tmp_path, "t_s2_del", steps)
+        assert got == want and len(got) == 3
+        assert (deleted.rows_inserted, deleted.rows_updated, deleted.rows_deleted) == (0, 0, 1)
+        assert deleted.rows_written == 1
+        assert (returned.rows_inserted, returned.rows_updated, returned.rows_deleted) == (1, 0, 0)
+        assert not any(r["id"] == 9 for r in got)  # an unmatched delete is ignored
+        assert [r["valid_from"] for r in got if r["id"] == 1 and r["is_current"]] == [_TS2[2]]
+
+    def test_scd2_rejects_null_and_duplicate_keys(self, h: EngineHarness, tmp_path: Path) -> None:
+        requires(h, "strategies", "scd2")
+        null: Rows = ({"id": None, "label": "n", "v": 1},)
+        dup: Rows = ({"id": 3, "label": "x", "v": 1}, {"id": 3, "label": "y", "v": 2})
+        with self.session(h, tmp_path) as s:
+            self.put(s, h, "t_s2_keys", KV_ROWS, KV_SCHEMA, _scd2(0), "seed")
+            for i, batch in enumerate((null, dup)):
+                with pytest.raises(WriteKeyError):
+                    self.put(s, h, "t_s2_keys", batch, KV_SCHEMA, _scd2(1), f"r{i}:bad")
+                with pytest.raises(WriteKeyError):
+                    self.put(s, h, f"t_s2_keys_new{i}", batch, KV_SCHEMA, _scd2(1), f"n{i}:bad")
+            got = _key(_utc(_norm(self.read_table(s, h, "t_s2_keys"))))
+        want = reference.scd2_rows([], KV_ROWS, _scd2(0), _TS2[0]).rows
+        assert got == _key(_utc(_norm(want)))
+
+    def test_scd2_replayed_token_writes_once(self, h: EngineHarness, tmp_path: Path) -> None:
+        requires(h, "strategies", "scd2")
+        requires(h, "idempotent_writes")
+        batch = ({"id": 2, "label": "b2", "v": 20},)
+        cfg = replace(_scd2(1), commit_meta={"watermark": "w1"})
+        with self.session(h, tmp_path) as s:
+            self.put(s, h, "t_s2_idem", KV_ROWS, KV_SCHEMA, _scd2(0), "seed")
+            first = self.put(s, h, "t_s2_idem", batch, KV_SCHEMA, cfg, "r:same")
+            second = self.put(s, h, "t_s2_idem", batch, KV_SCHEMA, cfg, "r:same")
+            got = _key(_utc(_norm(self.read_table(s, h, "t_s2_idem"))))
+        assert not first.skipped and second.skipped
+        assert replace(second, skipped=False) == first
+        seeded = reference.scd2_rows([], KV_ROWS, _scd2(0), _TS2[0]).rows
+        want = reference.scd2_rows(seeded, batch, cfg, _TS2[1]).rows
+        assert got == _key(_utc(_norm(want))) and len(got) == 3
+
+    def test_scd2_full_refresh_rebuilds(self, h: EngineHarness, tmp_path: Path) -> None:
+        changed = ({"id": 2, "label": "b2", "v": 20},)
+        rebuilt = ({"id": 5, "label": "e", "v": 50},)
+        steps = [
+            (KV_ROWS, _scd2(0)),
+            (changed, _scd2(1)),
+            (rebuilt, _scd2(2, full_refresh=True)),
+        ]
+        (*_, result), got, want = self.scd2_steps(h, tmp_path, "t_s2_full", steps)
+        assert got == want and len(got) == 1
+        assert got[0]["id"] == 5 and got[0]["valid_from"] == _TS2[2] and got[0]["is_current"]
+        assert (result.rows_inserted, result.rows_updated, result.rows_deleted) == (1, 0, 0)
+
+    def test_scd2_append_new_columns(self, h: EngineHarness, tmp_path: Path) -> None:
+        """The policy sees the business columns only; old versions read the new column as null."""
+        requires(h, "strategies", "scd2")
+        name = "t_s2_policy"
+        wide = (*KV_SCHEMA, Column("extra", "string"))
+        batch_rows = ({"id": 2, "label": "b", "v": 21, "extra": "x"},)
+        with self.session(h, tmp_path) as s:
+            self.put(s, h, name, KV_ROWS, KV_SCHEMA, _scd2(0), "seed")
+            existing = h.catalog.table_schema(_target(name))
+            assert existing is not None
+            batch = s.relation(h.make_native(batch_rows, wide))
+            columns, _, action = resolve_columns(
+                "append_new_columns",
+                strip_scd2(existing),
+                s.schema(batch),
+                strategy="scd2",
+                full_refresh=False,
+                keys=("id", "label", "v"),
+            )
+            assert [(c.name, c.dtype) for c in columns] == [(c.name, c.dtype) for c in wide]
+            assert action == "applied"
+            if not h.schema_on_read:
+                pytest.skip("engine does not read old files through the commit schema yet")
+            cfg = replace(_scd2(1), columns=columns)
+            s.materializer("scd2").materialize(s.align(batch, columns), _target(name), cfg, "r1")
+            got = _key(_utc(_norm(self.read_table(s, h, name))))
+        seeded = reference.scd2_rows([], KV_ROWS, _scd2(0), _TS2[0]).rows
+        want = reference.scd2_rows(seeded, batch_rows, cfg, _TS2[1]).rows
+        assert got == _key(_utc(_norm(want))) and len(got) == 3
 
     # -- schema alignment -------------------------------------------------------------------
 

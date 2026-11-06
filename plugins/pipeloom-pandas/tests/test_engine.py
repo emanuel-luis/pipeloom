@@ -70,8 +70,7 @@ def test_unsupported_format_strategy_sql_and_view(tmp_path: Path) -> None:
     with PandasEngine().session(ctx(tmp_path), catalog=catalog) as s:
         with pytest.raises(ValueError, match="format"):
             s.reader("orc")
-        with pytest.raises(ValueError, match="strategy"):
-            s.materializer("scd2")
+        assert s.materializer("scd2") is not None
         with pytest.raises(NotImplementedError):
             s.sql("select 1", {})
         with pytest.raises(NotImplementedError):

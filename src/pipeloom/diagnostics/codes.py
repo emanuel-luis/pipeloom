@@ -719,6 +719,12 @@ _ACTIVE_09: Final = (
         "Run not found",
         "pipeloom runs show, or runs ls --before, names a run id that the state store (or, with --artifacts, the artifacts root) does not hold for this project and target. Check the target, or list the runs with pipeloom runs ls.",
     ),
+    (
+        "PLP416",
+        E,
+        "scd2 options conflict",
+        "A model writing with scd2 sets an option the strategy cannot apply: an empty tracked_columns, a tracked column that is part of unique_key, deletes with mode: soft, or a unique_key, tracked_columns, partition_by, cluster_by, deletes.column or contract column named valid_from, valid_to or is_current (scd2 adds those columns itself).",
+    ),
 )
 
 

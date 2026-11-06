@@ -206,6 +206,50 @@ def test_a_crash_between_merge_and_token_commit_converges(
         assert s.applied_token(_target("m"), "r1:m") is not None
 
 
+def test_an_scd2_crash_between_merge_and_token_commit_converges(
+    classic_spark: Any, tmp_path: Path
+) -> None:
+    """Spark only: the crash seam is the writer's `_save`, which no other engine has."""
+    ddl = "id BIGINT, v BIGINT"
+    seed = WriteConfig("scd2", unique_key=("id",), tracked_columns=("v",), run_started_at=T0)
+    cfg = WriteConfig("scd2", unique_key=("id",), tracked_columns=("v",), run_started_at=T1)
+
+    def versions(s: EngineSession) -> list[tuple[Any, ...]]:
+        rows = _rows(s, "m", "id")
+        return sorted((r[0], r[1], r[3] is None, r[4]) for r in rows)
+
+    with _open(tmp_path) as (s, _):
+        _write(s, classic_spark, "m", [(1, 10), (2, 20)], ddl, seed, "seed")
+        writer = s._writer  # type: ignore[attr-defined]
+        real = writer._save
+        calls: list[int] = []
+
+        def crash_once(w: Any, target: TargetRef) -> None:
+            calls.append(1)
+            if len(calls) == 2:  # the claim commit, the MERGE (SQL), then this token commit
+                raise RuntimeError("killed before the token commit")
+            real(w, target)
+
+        writer._save = crash_once
+        batch = [(1, 11), (3, 30)]
+        with pytest.raises(RuntimeError):
+            _write(s, classic_spark, "m", batch, ddl, cfg, "r1:m")
+        assert s.applied_token(_target("m"), "r1:m") is None
+        crashed = versions(s)
+        assert crashed == [
+            (1, 10, False, False),
+            (1, 11, True, True),
+            (2, 20, True, True),
+            (3, 30, True, True),
+        ]
+        again = _write(s, classic_spark, "m", batch, ddl, cfg, "r1:m")
+        assert not again.skipped
+        assert (again.rows_inserted, again.rows_updated, again.rows_deleted) == (2, 1, 0)
+        assert again.rows_written == 3
+        assert versions(s) == crashed
+        assert s.applied_token(_target("m"), "r1:m") is not None
+
+
 def test_metrics_leave_out_a_foreign_commit_in_the_window(
     classic_spark: Any, tmp_path: Path
 ) -> None:
