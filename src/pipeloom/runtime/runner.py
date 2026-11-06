@@ -14,6 +14,7 @@ from typing import Any, Literal, NoReturn
 from pipeloom.artifacts.io import write_json_once
 from pipeloom.artifacts.layout import RunPaths
 from pipeloom.artifacts.results import result_row, schema_hash
+from pipeloom.config.resolve import model_id, source_id
 from pipeloom.diagnostics import JsonValue, Location
 from pipeloom.engine import portable
 from pipeloom.engine.errors import WriteKeyError, WriteRefusedError
@@ -24,6 +25,7 @@ from pipeloom.engine.types import (
     DeleteSpec,
     ExpectationSpec,
     IntermediateRef,
+    QualityCounts,
     QuarantineMeta,
     ReadSpec,
     Relation,
@@ -46,6 +48,7 @@ from pipeloom.events.model import (
 from pipeloom.plan.model import Plan, PlanNode, PlanSource, PythonBody, SqlBody, default_strategy
 from pipeloom.quality import (
     QualityReport,
+    build_data_specs,
     build_specs,
     check_columns,
     judge,
@@ -165,7 +168,9 @@ class ModelRunner:
         policies: Mapping[str, UnitPolicy] | None = None,
         redactor: Redactor | None = None,
         deferred: Mapping[str, TargetRef] | None = None,
+        data_tests: bool = False,
     ) -> None:
+        self._run_data_tests = data_tests
         self._deferred = deferred or {}
         self._redactor = redactor or Redactor()
         self._plan = plan
@@ -517,6 +522,7 @@ class ModelRunner:
                 self._written(node, target, strategy, replay, self._rt.clock.monotonic())
                 self._fill(row, replay)
                 self._finish_replay(node, replay, row)
+                self._data_tests(unit_id, node, attempt, row)  # a replay tests again
                 return
             rows_read: dict[str, int | None] = {}
             local: dict[str, Relation] = {}
@@ -548,10 +554,12 @@ class ModelRunner:
             self._fill(row, result)
             if inc is not None and inc.state is not None:
                 self._commit_watermark(node, inc.state, after, inc.column)
+            self._data_tests(unit_id, node, attempt, row)
             return
         else:  # L5 rejects the rest (PLC509) before a run starts
             raise ValueError(f"cannot run materialization '{node.materialized}'")
         self._fill(row, result)
+        self._data_tests(unit_id, node, attempt, row)
 
     @staticmethod
     def _fill(row: dict[str, Any], result: WriteResult) -> None:
@@ -576,7 +584,11 @@ class ModelRunner:
         meta = replay.commit_meta
         row["schema_hash"] = meta.get("schema_hash")
         row["schema_changes"] = meta.get("schema_changes") or []
-        row["expectations"] = meta.get("expectations") or []
+        stored_results = meta.get("expectations")
+        row["expectations"] = [  # written before 0.9: every entry was a batch entry
+            {"scope": "batch", **e} if isinstance(e, dict) else e
+            for e in (stored_results if isinstance(stored_results, list) else [])
+        ]
         row["rows_dropped"] = meta.get("rows_dropped")
         row["rows_quarantined"] = meta.get("rows_quarantined")
         warnings = meta.get("warnings")  # includes watermark_seeded
@@ -954,6 +966,89 @@ class ModelRunner:
             row["rows_quarantined"] = report.rows_dropped
 
         return kept, write_quarantine, finish
+
+    def _data_tests(self, unit_id: str, node: PlanNode, attempt: int, row: dict[str, Any]) -> None:
+        """After the write and the watermark commit: judge the data tests on the whole written
+        table (ADR-0045). A `fail` is PLQ303; the data stays written."""
+        if not self._run_data_tests or not node.data_tests:
+            return
+        session, project = self._session, self._plan.metadata.project
+        specs = build_data_specs(node.data_tests)
+        own = self._read_spec(node)
+        try:
+            rel = session.reader(own.format).read(own)
+            if rel.lazy:  # a lazy plan would run once per count
+                rel = session.persist(rel)
+        except Exception as exc:  # noqa: BLE001 - engines raise their own errors
+            self._fail(
+                "PLM204",
+                "read",
+                exc,
+                f"cannot read model '{node.name}' to run its data tests",
+                "check that the written relation exists and can be read",
+            )
+        problems = check_columns(specs, session.schema(rel))
+        if problems:
+            self._fail(
+                "PLQ302",
+                "write",
+                ValueError("; ".join(problems)),
+                f"model '{node.name}': {problems[0].replace('expectation', 'data test', 1)}",
+                "check the column names in data_tests against the model output",
+            )
+        orphans: dict[str, int] = {}
+        for test in node.data_tests:
+            check = test.check.relationships
+            if check is None:
+                continue
+            spec: ReadSpec
+            kind: Literal["source", "model"]
+            if check.to.ref is not None:
+                parent = self._plan.nodes[model_id(project, check.to.ref)]
+                spec, kind, name = self._read_spec(parent), "model", parent.name
+                deferred = parent.unique_id in self._deferred
+            else:
+                source = self._plan.sources[source_id(project, check.to.source or "")]
+                spec, kind, name, deferred = self._source_spec(source), "source", source.name, False
+            parent_rel = self._read(
+                spec, test.name, kind, name, node, unit_id, attempt, deferred=deferred
+            )
+            try:
+                orphans[test.name] = session.orphans(rel, check.column, parent_rel, check.field)
+            except Exception as exc:  # noqa: BLE001 - engines raise their own errors
+                self._quality_error(node, exc, rel, specs)
+        others = [s for s in specs if s.kind != "relationships"]
+        try:
+            counts = (
+                session.evaluate(rel, others)
+                if others
+                else QualityCounts(session.count(rel), {}, 0, {})
+            )
+        except Exception as exc:  # noqa: BLE001 - engines raise their own errors
+            self._quality_error(node, exc, rel, specs)
+        counts = replace(counts, aggregates={**counts.aggregates, **orphans})
+        report = judge(
+            specs,
+            counts,
+            counts,
+            now=self._rt.clock.now(),
+            max_drop_ratio=None,
+            cached=rel.lazy,
+            scope="table",
+        )
+        row["expectations"] = [*row["expectations"], *(r.to_json() for r in report.results)]
+        row["warnings"] = [
+            *row["warnings"],
+            *(f"data test '{r.name}' ({r.kind}) failed" for r in report.warnings),
+        ]
+        if report.failures:
+            self._fail(
+                "PLQ303",
+                "write",
+                ValueError(", ".join(report.failures)),
+                f"model '{node.name}' failed data test(s): {', '.join(report.failures)}",
+                "the data stays written; fix the data or its parent, or set on_violation: warn",
+            )
 
     def _quality_error(
         self, node: PlanNode, exc: Exception, rel: Relation, specs: tuple[ExpectationSpec, ...]
