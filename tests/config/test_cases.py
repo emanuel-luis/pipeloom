@@ -239,14 +239,20 @@ def run_task_case(code: str, args: list[str], golden: Callable[[str, str], None]
 def run_cli_case(
     code: str, spec: dict[str, Any], project_dir: Path, golden: Callable[[str, str], None]
 ) -> None:
-    """Run the CLI and keep the events and text lines that carry the code, without volatile fields."""
+    """Run the CLI and keep the events and text lines that carry the code, without volatile fields.
+
+    `setup` is a list of CLI argument lists run first (with --project-dir) that must exit 0, for
+    example compiling the reference a `--state` case reads."""
+    env = {"PIPELOOM_TARGET": "", "PIPELOOM_DISABLE_PLUGIN_AUTOLOAD": ""}
+    for step in spec.get("setup", ()):
+        done = CliRunner().invoke(main, [*step, "--project-dir", str(project_dir)], env=env)
+        assert done.exit_code == 0, done.stderr
     args = [
         *[a.replace("{project_dir}", project_dir.as_posix()) for a in spec["cli"]],
         "--project-dir",
         str(project_dir),
         *[a for p in spec.get("plugins", ()) for a in ("--plugin", p)],
     ]
-    env = {"PIPELOOM_TARGET": "", "PIPELOOM_DISABLE_PLUGIN_AUTOLOAD": ""}
     as_json = CliRunner().invoke(main, [*args, "--log-format", "json"], env=env)
     events = [json.loads(line) for line in as_json.stderr.splitlines()]
     kept = [

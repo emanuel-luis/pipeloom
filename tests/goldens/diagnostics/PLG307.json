@@ -1,0 +1,23 @@
+[
+  {
+    "schema": "pipeloom.event/1",
+    "run_id": null,
+    "seq": 2,
+    "type": "diagnostic",
+    "level": "error",
+    "unit_id": null,
+    "model": null,
+    "attempt": null,
+    "data": {
+      "code": "PLG307",
+      "severity": "error",
+      "message": "selector 'state:modified' needs a reference state",
+      "hint": "pass --state DIR, the folder of a reference manifest",
+      "location": null,
+      "context": {
+        "selector": "state:modified"
+      }
+    },
+    "context": {}
+  }
+]

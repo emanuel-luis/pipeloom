@@ -1,0 +1,1 @@
+error PLG308 selector 'result:fail' needs run results in the reference state

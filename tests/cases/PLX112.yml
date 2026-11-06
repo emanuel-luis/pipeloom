@@ -1,0 +1,23 @@
+cli: [run, --state, "{project_dir}/state", --defer, -s, b]
+setup:
+  - [compile, --stable, --out, state/manifest.json]
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
+  models/m.yml: |
+    models:
+      - name: a
+        materialized: intermediate
+        sql: select 1 as x
+      - name: b
+        sql: select * from a
+        inputs:
+          a:
+            ref: a
