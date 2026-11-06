@@ -460,6 +460,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/docs-site/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs site
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -830,6 +858,45 @@
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-docs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        docs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="docs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-docs-generate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-docs-serve" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        serve
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -1297,6 +1364,45 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pipeloom-docs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        docs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="docs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-docs-generate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-docs-serve" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        serve
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pipeloom-explain" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1564,6 +1670,51 @@ folder named after the project in the current directory.</p>
                              given.
   --warn-error               Exit 1 on warnings too.
   --help                     Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-docs">pipeloom docs<a class="headerlink" href="#pipeloom-docs" title="Permanent link">&para;</a></h4>
+<p>Build and serve the docs site (one HTML file, read only).</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom docs [OPTIONS] COMMAND [ARGS]...
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --help  Show this message and exit.
+</code></pre>
+<h5 id="pipeloom-docs-generate">pipeloom docs generate<a class="headerlink" href="#pipeloom-docs-generate" title="Permanent link">&para;</a></h5>
+<p>Write index.html: the graph, every model and source, and the last run's results.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom docs generate [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
+  --vars TEXT               Variables as a YAML or JSON mapping; they override
+                            the vars block.
+  --target TEXT             Target to bind; default_target or the only target
+                            when omitted.
+  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
+                            plugins. Repeatable.
+  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+                            one JSON object per line.  [default: text]
+  --out PATH                Output folder, relative to the project dir unless
+                            absolute. Default: target/docs.
+  --manifest FILE           Render this manifest instead of compiling the
+                            project.
+  --run-results FILE        A run_results.json to show. Default: the one at
+                            the root of the artifacts root, when it exists
+                            (never with --manifest).
+  --help                    Show this message and exit.
+</code></pre>
+<h5 id="pipeloom-docs-serve">pipeloom docs serve<a class="headerlink" href="#pipeloom-docs-serve" title="Permanent link">&para;</a></h5>
+<p>Serve the generated site until Ctrl+C. It never opens a browser.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom docs serve [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY  Directory that holds pipeloom.yml.  [default: .]
+  --dir PATH               Folder to serve, relative to the project dir unless
+                           absolute. Default: target/docs.
+  --host TEXT              Address to listen on.  [default: 127.0.0.1]
+  --port INTEGER RANGE     Port to use.  [default: 8000; 0&lt;=x&lt;=65535]
+  --help                   Show this message and exit.
 </code></pre>
 <h4 id="pipeloom-explain">pipeloom explain<a class="headerlink" href="#pipeloom-explain" title="Permanent link">&para;</a></h4>
 <p>Print what a diagnostic CODE means, for example PLX101 (case-insensitive).</p>

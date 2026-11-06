@@ -460,6 +460,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/docs-site/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs site
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1462,7 +1490,7 @@ changes: the UI.</p>
 <p>The architecture lists "a scheduler service or UI" as one non-goal, but the two carry different risks. A scheduler,
 or a UI that writes, needs authentication, a database and a daemon, which amounts to a second product. A read-only
 viewer over files pipeloom already writes needs none of that, and it makes the observability work visible.
-ADR-0043 (proposed) replaces the line with "a scheduler service, or any UI that starts, schedules or changes runs".
+<a href="../adr/0043-docs-site/">ADR-0043</a> (accepted) replaces the line with "a scheduler service, or any UI that starts, schedules or changes runs".
 A read-only viewer over the artifacts root and the state store then becomes allowed. It reads local or mounted
 paths, listens on localhost by default and ships as a separate distribution, so the core stays small.</p>
 <h2 id="2-where-pipeloom-stands-at-07">2. Where pipeloom stands at 0.7<a class="headerlink" href="#2-where-pipeloom-stands-at-07" title="Permanent link">&para;</a></h2>
@@ -1712,8 +1740,9 @@ so the first step is to publish it as a contract.</p>
 <li>Step 1: <code>pipeloom docs generate</code> and <code>pipeloom docs serve</code> (0.8). A static site in <code>target/docs/</code> built from the
   manifest and, when present, the latest <code>run_results.json</code>: a model list, model pages (config, SQL or Python body,
   inputs, relation, expectations, contract, last result) and a lineage graph, in one HTML file that works offline.
-  Python embeds the JSON, the graph uses one pinned and vendored JavaScript library with no npm build, and <code>serve</code>
-  is the stdlib <code>http.server</code>. Needs ADR-0043.</li>
+  Python renders the HTML with the stdlib, the graph is an inline SVG laid out in Python (no JavaScript library, so
+  no license or update work and a golden-testable output), and <code>serve</code> is the stdlib <code>http.server</code>. The interactive
+  graph is left to <code>pipeloom ui</code>. Decided in <a href="../adr/0043-docs-site/">ADR-0043</a> (accepted).</li>
 <li>Step 2: <code>pipeloom ui</code> (1.1), in a <code>pipeloom-ui</code> distribution. A local read-only server (stdlib or one small ASGI
   dependency, chosen in its ADR) over an artifacts root and, optionally, a state store. Views: the DAG colored by the
   last run, the run list, a run timeline (a Gantt chart from <code>started_at</code>, <code>ended_at</code> and <code>queue_wait_ms</code>), unit logs
@@ -1761,7 +1790,7 @@ so the first step is to publish it as a contract.</p>
 </tr>
 <tr>
 <td><code>pipeloom docs generate</code> and <code>serve</code></td>
-<td>ADR-0043 (proposed)</td>
+<td><a href="../adr/0043-docs-site/">ADR-0043</a></td>
 <td>the TPC-H examples produce one HTML file that opens offline and shows the graph and every model</td>
 </tr>
 </tbody>
@@ -1870,7 +1899,9 @@ Snowflake engine exists.</p>
   else) needs a test.</li>
 <li>WATCHER mode on shared storage. NFS attribute caching can hide fresh attempt files, so the sensor needs a bounded
   poll and the PLA004 sentinel.</li>
-<li>UI dependency weight. A vendored JavaScript library brings license and update work; keep exactly one and pin it.</li>
+<li>UI dependency weight. ADR-0043 (accepted) avoids it for the docs site: the graph is an inline SVG laid out in
+  Python, with no vendored JavaScript library. <code>pipeloom ui</code> (1.1) ships separately, so any library it needs stays
+  out of the core wheel; keep exactly one and pin it.</li>
 <li>Defer correctness. Reading production relations from a dev run needs read grants and the same schema. A missing
   relation must fail with a clear PLM204 hint.</li>
 </ul>

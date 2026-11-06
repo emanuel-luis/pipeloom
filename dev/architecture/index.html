@@ -460,6 +460,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/docs-site/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs site
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1499,7 +1527,7 @@ Decisions are recorded as ADRs in <a href="../adr/">adr/</a>. Diagrams are D2 so
 <h2 id="1-vision-goals-non-goals-principles">1. Vision, goals, non-goals, principles<a class="headerlink" href="#1-vision-goals-non-goals-principles" title="Permanent link">&para;</a></h2>
 <p><strong>Vision.</strong> A small, typed framework. Pipelines are declared in YAML and compiled into an immutable plan. That plan runs the same way on pandas, polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG. Every run produces a single event stream and artifacts you can query.</p>
 <p><strong>Goals:</strong> declarative YAML with layered validation and editor completion; an engine-agnostic core with one plugin per tool; end-to-end events and styled logs; persisted metadata for each run and each model; a Databricks one-job renderer; a cosmos-style Airflow integration; open-source hygiene.</p>
-<p><strong>Non-goals (through 1.0):</strong> streaming; a scheduler service or UI; a portable SQL dialect; Jinja templating; running user code at compile time; Airflow 2 support.</p>
+<p><strong>Non-goals (through 1.0):</strong> streaming; a scheduler service, or any UI that starts, schedules or changes runs (<a href="../adr/0043-docs-site/">ADR-0043</a>); a portable SQL dialect; Jinja templating; running user code at compile time; Airflow 2 support.</p>
 <p><strong>Principles. Each answers a lesson (L) from the concept spec.</strong>
 1. One event stream. Logs, metrics, artifacts and lineage subscribe to it (L1).
 2. Dependencies are declared, never traced. Tracing is an opt-in static check that warns (L2).
@@ -1571,7 +1599,7 @@ Plugins: pipeloom-pandas | -polars | -spark (0.4) | planned: -databricks | -airf
 <li><strong>Execute:</strong> the scheduler runs units through an executor. Orchestrated tasks run <code>pipeloom run --manifest ... --select unit:&lt;id&gt; --expect-plan-hash &lt;h&gt;</code>.</li>
 <li><strong>Finalize:</strong> merge per-invocation results, write <code>run_results.json</code>, commit run state, flush and close sinks.</li>
 </ol>
-<p><strong>Commands.</strong> <code>init</code> (scaffold a new project, <a href="../adr/0041-pipeloom-init/">ADR-0041</a>), <code>new model</code> (add a model file and, for Python, its stub; ADR-0041 amendment), <code>validate</code>, <code>compile</code>, <code>ls</code>, <code>graph</code>, <code>run</code>, <code>finalize</code>, <code>schema export</code>, <code>explain</code> (print a diagnostic code's catalog entry and docs link) and <code>plugins list</code>; plugins add their own through <code>pipeloom.commands</code> (for example <code>pipeloom databricks</code>).</p>
+<p><strong>Commands.</strong> <code>init</code> (scaffold a new project, <a href="../adr/0041-pipeloom-init/">ADR-0041</a>), <code>new model</code> (add a model file and, for Python, its stub; ADR-0041 amendment), <code>validate</code>, <code>compile</code>, <code>ls</code>, <code>graph</code>, <code>run</code>, <code>finalize</code>, <code>docs generate|serve</code> (a read-only one-file site, <a href="../adr/0043-docs-site/">ADR-0043</a>), <code>schema export</code>, <code>explain</code> (print a diagnostic code's catalog entry and docs link) and <code>plugins list</code>; plugins add their own through <code>pipeloom.commands</code> (for example <code>pipeloom databricks</code>).</p>
 <p><img alt="The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize." src="../diagrams/03-lifecycle.svg" /></p>
 <p>Source: <a href="../diagrams/03-lifecycle.d2">03-lifecycle.d2</a>.</p>
 <h2 id="4-configuration">4. Configuration<a class="headerlink" href="#4-configuration" title="Permanent link">&para;</a></h2>
