@@ -23,11 +23,13 @@ from pipeloom.engine.types import (
     Schema,
     WriteConfig,
 )
-from pipeloom.quality.rows import RowDiff as RowDiff
-from pipeloom.quality.rows import coerce as coerce
-from pipeloom.quality.rows import diff_rows as diff_rows
-from pipeloom.quality.rows import infer_dtype as infer_dtype
-from pipeloom.quality.rows import read_csv_rows as read_csv_rows
+from pipeloom.quality.rows import (  # noqa: F401 - re-exported for engine authors
+    RowDiff,
+    coerce,
+    diff_rows,
+    infer_dtype,
+    read_csv_rows,
+)
 
 Row = dict[str, Any]
 RowPredicate = Callable[[Mapping[str, Any]], bool | None]

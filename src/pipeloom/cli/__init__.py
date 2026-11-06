@@ -16,6 +16,7 @@ from pipeloom.cli.retry import retry
 from pipeloom.cli.run import run
 from pipeloom.cli.runs import runs
 from pipeloom.cli.schema import schema
+from pipeloom.cli.test import unit_tests
 from pipeloom.cli.validate import validate
 
 
@@ -32,6 +33,7 @@ main.add_command(compile_, name="compile")
 main.add_command(ls)
 main.add_command(run)
 main.add_command(retry)
+main.add_command(unit_tests, name="test")
 main.add_command(runs)
 main.add_command(finalize)
 main.add_command(graph)
