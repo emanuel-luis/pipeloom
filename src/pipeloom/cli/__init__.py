@@ -9,6 +9,7 @@ from pipeloom.cli.finalize import finalize
 from pipeloom.cli.graph import graph
 from pipeloom.cli.init import init
 from pipeloom.cli.ls import ls
+from pipeloom.cli.new import new
 from pipeloom.cli.plugins import plugins
 from pipeloom.cli.run import run
 from pipeloom.cli.schema import schema
@@ -22,6 +23,7 @@ def main() -> None:
 
 
 main.add_command(init)
+main.add_command(new)
 main.add_command(validate)
 main.add_command(compile_, name="compile")
 main.add_command(ls)

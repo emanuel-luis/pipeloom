@@ -29,8 +29,27 @@ Next steps:
 It writes `pipeloom.yml` with a `dev` target, one example model in each of `models/bronze`,
 `models/silver` and `models/gold`, a small CSV in `data/`, a `.gitignore` and a README. Pass
 `--no-input` (and `--name`, `--engine`, `--catalog`) to skip the questions; see
-[pipeloom init](reference/cli.md#pipeloom-init). The rest of this page writes a project by hand,
-to show each part.
+[pipeloom init](reference/cli.md#pipeloom-init).
+
+Every YAML file starts with a schema modeline, and `.vscode/settings.json` maps the published
+schemas to the project files. With only the YAML extension (`redhat.vscode-yaml`, recommended in
+`.vscode/extensions.json`), VS Code completes keys and flags mistakes as you type.
+
+### Add a model
+
+```console
+$ pipeloom new model customers_clean --folder silver
+models/silver/customers_clean.yml
+$ pipeloom validate
+```
+
+`pipeloom new model NAME` writes one model file under `models/`. It writes a SQL model by default
+and a Python model when the default target is pandas; pass `--sql` or `--python` to choose. A
+Python model also gets a `build(ctx, **inputs)` stub in the project's `<name>_models` package
+(this needs `python_paths: [src]` in `pipeloom.yml`). Declare its inputs in the commented
+`inputs:` block, then fill in the body. See [pipeloom new](reference/cli.md#pipeloom-new-model).
+
+The rest of this page writes a project by hand, to show each part.
 
 ## Write the project
 

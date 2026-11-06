@@ -44,5 +44,5 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0038 | [Airflow execution modes and artifact store](0038-airflow-execution-modes-and-artifact-store.md) | Accepted | 2026-11-05 |
 | 0039 | [Airflow DATABRICKS mode](0039-airflow-databricks-mode.md) | Accepted | 2026-11-05 |
 | 0040 | [Per-model catalog](0040-per-model-catalog.md) | Accepted | 2026-11-05 |
-| 0041 | [pipeloom init](0041-pipeloom-init.md) | Accepted | 2026-11-05 |
+| 0041 | [pipeloom init](0041-pipeloom-init.md) | Accepted, amended in 0.8 | 2026-11-05 |
 | 0042 | [Selection by state and --defer](0042-state-selection-and-defer.md) | Accepted | 2026-11-06 |

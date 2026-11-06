@@ -23,7 +23,7 @@ $ pipeloom validate
 $ pipeloom run
 ```
 
-The optional extra `sqlglot` adds warnings for SQL that reads undeclared tables. Commands: `init`, `validate`,
+The optional extra `sqlglot` adds warnings for SQL that reads undeclared tables. Commands: `init`, `new model`, `validate`,
 `compile`, `run`, `ls`, `graph`, `explain`, `schema export` and `plugins list`. See the
 [quickstart](https://emanuel-luis.github.io/pipeloom/latest/quickstart/).
 
