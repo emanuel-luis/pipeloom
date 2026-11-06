@@ -24,6 +24,15 @@ from typing import Any
 
 import pytest
 
+from pipeloom.artifacts.layout import RunPaths
+from pipeloom.config.models import (
+    CheckConfig,
+    ColumnConfig,
+    ExpectationConfig,
+    QualityConfig,
+    RangeCheck,
+    ResolvedModelConfig,
+)
 from pipeloom.engine.errors import WriteKeyError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
 from pipeloom.engine.types import (
@@ -39,15 +48,24 @@ from pipeloom.engine.types import (
     WriteConfig,
     WriteResult,
 )
-from pipeloom.platform import Identity
-from pipeloom.runtime.context import RuntimeContext
-from pipeloom.runtime.retry import PERMANENT_CODES
-from pipeloom.runtime.schema_policy import (
-    ContractViolation,
-    SchemaRejected,
-    check_contract,
-    resolve_columns,
+from pipeloom.events.bus import EventBus
+from pipeloom.plan.model import (
+    ExecutionUnit,
+    Plan,
+    PlanMetadata,
+    PlanNode,
+    PlanSelection,
+    PythonBody,
 )
+from pipeloom.platform import Identity
+from pipeloom.quality import quarantine_target
+from pipeloom.runtime.context import RuntimeContext
+from pipeloom.runtime.control import CancelToken
+from pipeloom.runtime.executors import UnitHandle
+from pipeloom.runtime.loader import CallableLoader
+from pipeloom.runtime.runner import ModelResult, ModelRunner
+from pipeloom.runtime.schema_policy import SchemaRejected, check_contract, resolve_columns
+from pipeloom.state.sqlite import SqliteStore
 from pipeloom.testing import reference
 from pipeloom.testing.clock import FakeClock
 
@@ -192,6 +210,79 @@ def _target(name: str) -> TargetRef:
 
 def _key(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(rows, key=lambda r: str(sorted(r.items(), key=str)))
+
+
+class _FnLoader(CallableLoader):
+    """Every `module:function` is the one function given."""
+
+    def __init__(self, fn: Callable[..., Any]) -> None:
+        super().__init__(Path(), ())
+        self._fn = fn
+
+    def load(self, ref: str) -> Callable[..., Any]:
+        return self._fn
+
+
+def _run_one(
+    h: EngineHarness, s: EngineSession, tmp_path: Path, node: PlanNode, fn: Callable[..., Any]
+) -> ModelResult | None:
+    """Run one unit made of `node` through the real `ModelRunner`, as `pipeloom run` would."""
+    clock = FakeClock()
+    unit = node.name
+    plan = Plan(
+        metadata=PlanMetadata(
+            pipeloom_version="0",
+            plugins={},
+            config_version=1,
+            plan_hash="",
+            project="contract",
+            target="test",
+            boundary="process",
+            python_paths=(),
+            vars={},
+            env_vars=(),
+            generated_at="",
+            invocation_id="contract",
+        ),
+        nodes={node.unique_id: node},
+        sources={},
+        units={unit: ExecutionUnit(unit_id=unit, nodes=(node.unique_id,), parents=())},
+        parent_map={node.unique_id: ()},
+        child_map={node.unique_id: ()},
+        selection=PlanSelection(select=(), exclude=(), selected=(node.unique_id,)),
+    )
+    rt = RuntimeContext(
+        run_id="contract",
+        invocation_id="contract",
+        project="contract",
+        target="test",
+        project_dir=tmp_path,
+        clock=clock,
+        identity=Identity("tester", "host"),
+        vars={},
+        run_started_at=clock.now(),
+    )
+    paths = RunPaths(tmp_path / "target", "contract")
+    state = SqliteStore(tmp_path / "state.db", clock=clock)
+    try:
+        with EventBus([], clock=clock, invocation_id="contract", run_id="contract") as bus:
+            runner = ModelRunner(
+                plan=plan,
+                engine=h.engine,
+                session=s,
+                catalog=h.catalog,
+                state=state,
+                bus=bus,
+                paths=paths,
+                rt=rt,
+                loader=_FnLoader(fn),
+                memo=None,
+                executor_name="thread",
+            )
+            done = runner.run_unit(UnitHandle(unit, 1, 1), 0.0, CancelToken())
+    finally:
+        state.close()
+    return done.result
 
 
 class EngineContract:
@@ -599,15 +690,49 @@ class EngineContract:
     def test_contract_mismatch_fails_before_the_write(
         self, h: EngineHarness, tmp_path: Path, declared: Schema, problem: str
     ) -> None:
-        """The runner checks the contract right before the write and reports PLM208."""
+        """One table unit through `ModelRunner`: a drop expectation sends id 1 to quarantine,
+        then the contract fails with PLM208, so neither the table nor the quarantine exists."""
         requires(h, "strategies", "overwrite")
+        requires(h, "quality")
+        target = _target("t_contract")
+        config = ResolvedModelConfig(
+            expectations=[
+                ExpectationConfig(
+                    name="id_from_2",
+                    check=CheckConfig(range=RangeCheck(column="id", min=2)),
+                    on_violation="drop",
+                )
+            ],
+            quality=QualityConfig(quarantine=True),
+        )
+        node = PlanNode(
+            unique_id="model.contract.t_contract",
+            name="t_contract",
+            file="models/m.yml",
+            line=1,
+            materialized="table",
+            body=PythonBody(callable="m:build", file="src/m.py"),
+            inputs={},
+            relation=target,
+            unit_ids=("t_contract",),
+            config=config.model_copy(
+                update={"write": config.write.model_copy(update={"strategy": "overwrite"})}
+            ),
+            tags=(),
+            checksum="",
+            columns=tuple(
+                ColumnConfig(name=c.name, dtype=c.dtype, nullable=c.nullable) for c in declared
+            ),
+        )
         with self.session(h, tmp_path) as s:
-            rel = s.relation(h.make_native(ROWS, SCHEMA))
-            with pytest.raises(ContractViolation, match=problem):
-                rel = check_contract(s, rel, declared)
-                self.write(s, h, "t_contract", ROWS, "overwrite", "r:1")
-            assert not h.catalog.exists(_target("t_contract"))
-        assert "PLM208" in PERMANENT_CODES
+            native = h.make_native(ROWS, SCHEMA)
+            result = _run_one(h, s, tmp_path, node, lambda ctx: native)
+        assert result is not None and result.error is not None
+        assert result.error.code == "PLM208", result.error.message
+        assert problem in result.error.message
+        assert result.error.category == "permanent"
+        assert not h.catalog.exists(target)
+        assert not h.catalog.exists(quarantine_target(target))
 
     # -- schema-change policy ---------------------------------------------------------------
 

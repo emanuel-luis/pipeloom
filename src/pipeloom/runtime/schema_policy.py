@@ -43,20 +43,6 @@ class ContractViolation(Exception):
     """The batch does not match the model contract. The runner reports it as PLM208."""
 
 
-def contract_failure(
-    model: str, exc: ContractViolation
-) -> tuple[str, Literal["write"], ContractViolation, str, str]:
-    """The unit failure a violation becomes: code, phase, cause, message and hint. The runner and
-    the engine contract suite both use it."""
-    return (
-        "PLM208",
-        "write",
-        exc,
-        f"model '{model}' violates its contract",
-        "change the model body (cast or rename columns), or update its columns",
-    )
-
-
 def contract_problems(declared: Schema, batch: Schema) -> list[str]:
     """What differs between a contract and a batch schema: exact names (order ignored) and
     exact logical types (ADR-0044)."""
