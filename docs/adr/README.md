@@ -16,7 +16,7 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0010 | [Events, sinks, artifacts; rich for the console](0010-events-sinks-artifacts.md) | Accepted | 2026-10-29 |
 | 0011 | [Databricks job rendering](0011-databricks-job-rendering.md) | Accepted | 2026-10-29 |
 | 0012 | [Airflow rendering and modes](0012-airflow-rendering-and-modes.md) | Accepted | 2026-10-29 |
-| 0013 | [Run identity, idempotency, reruns](0013-run-identity-and-reruns.md) | Accepted | 2026-10-29 |
+| 0013 | [Run identity, idempotency, reruns](0013-run-identity-and-reruns.md) | Accepted. Amended in 0.8 (`pipeloom retry`). | 2026-10-29 |
 | 0014 | [Secrets by reference](0014-secrets-by-reference.md) | Accepted | 2026-10-29 |
 | 0015 | [Python 3.11 or newer; click CLI; pydantic v2; hatchling; mypy strict](0015-python-version-and-toolchain.md) | Accepted | 2026-10-29 |
 | 0016 | [Versioning, release, plugin API version](0016-versioning-and-plugin-api.md) | Accepted | 2026-10-29 |
