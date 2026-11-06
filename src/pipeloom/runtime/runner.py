@@ -157,7 +157,9 @@ class ModelRunner:
         executor_name: str,
         policies: Mapping[str, UnitPolicy] | None = None,
         redactor: Redactor | None = None,
+        deferred: Mapping[str, TargetRef] | None = None,
     ) -> None:
+        self._deferred = deferred or {}
         self._redactor = redactor or Redactor()
         self._plan = plan
         self._engine = engine
@@ -415,6 +417,8 @@ class ModelRunner:
     def _read_spec(self, upstream: PlanNode) -> ReadSpec:
         if upstream.materialized == "intermediate":
             return ReadSpec("intermediate", location=self._location(upstream.name))
+        if upstream.unique_id in self._deferred:  # --defer: the reference's relation
+            return ReadSpec("table", table=self._deferred[upstream.unique_id])
         return ReadSpec("table", table=upstream.relation)
 
     def _execute_intermediate(
@@ -776,7 +780,16 @@ class ModelRunner:
         upstream = plan.nodes[uid]
         if upstream.materialized != "ephemeral":
             spec = self._read_spec(upstream)
-            return self._read(spec, alias, "model", upstream.name, node, unit_id, attempt)
+            return self._read(
+                spec,
+                alias,
+                "model",
+                upstream.name,
+                node,
+                unit_id,
+                attempt,
+                deferred=upstream.unique_id in self._deferred,
+            )
         if uid not in local:
 
             def compute() -> Relation:
@@ -796,19 +809,29 @@ class ModelRunner:
         node: PlanNode,
         unit_id: str,
         attempt: int,
+        *,
+        deferred: bool = False,
     ) -> Relation:
         self._check()
         t0 = self._rt.clock.monotonic()
+        relation = spec.table.relation_name if deferred and spec.table is not None else None
         try:
             rel = self._session.reader(spec.format).read(spec)
             rows = None if rel.lazy else self._session.count(rel)
         except Exception as exc:  # noqa: BLE001 - engines raise their own errors
+            hint = f"check that {kind} '{name}' exists and can be read"
+            if deferred:
+                hint = (
+                    f"--defer reads model '{name}' from the reference relation '{relation}'; "
+                    "check that it exists and that this target can read it, "
+                    "or select the model to build it here."
+                )
             self._fail(
                 "PLM204",
                 "read",
                 exc,
                 f"cannot read input '{alias}' of model '{node.name}'",
-                f"check that {kind} '{name}' exists and can be read",
+                hint,
             )
         self._bus.emit(
             ModelInputRead(
@@ -817,6 +840,8 @@ class ModelRunner:
                 name=name,
                 rows=rows,
                 duration_ms=max(0, int((self._rt.clock.monotonic() - t0) * 1000)),
+                relation=relation,
+                deferred=deferred,
             ),
             unit_id=unit_id,
             model=node.name,

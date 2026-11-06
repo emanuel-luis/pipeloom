@@ -1,0 +1,21 @@
+[
+  {
+    "schema": "pipeloom.event/1",
+    "run_id": null,
+    "seq": 2,
+    "type": "diagnostic",
+    "level": "error",
+    "unit_id": null,
+    "model": null,
+    "attempt": null,
+    "data": {
+      "code": "PLX111",
+      "severity": "error",
+      "message": "--defer refused: the boundary is task, so each unit would rerun without the reference",
+      "hint": "use --boundary process, run without -s unit:, and a reference of the same catalog kind",
+      "location": null,
+      "context": {}
+    },
+    "context": {}
+  }
+]

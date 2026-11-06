@@ -14,6 +14,7 @@ from pipeloom.cli._options import (
     plugin_option,
     project_options,
     select_options,
+    state_option,
     target_option,
 )
 from pipeloom.cli._select import Selected, resolve_selection
@@ -64,6 +65,7 @@ def _render(sel: Selected, output: str) -> str:
 @target_option
 @plugin_option
 @select_options
+@state_option
 @log_format_option
 @click.option(
     "--output",
@@ -79,12 +81,13 @@ def graph(
     plugins: tuple[str, ...],
     select: tuple[str, ...],
     exclude: tuple[str, ...],
+    state: Path | None,
     log_format: str,
     output: str,
 ) -> None:
     """Print the graph of the selected models, in dependency order."""
     inv = Invocation("graph", log_format)
-    sel = resolve_selection(inv, project_dir, vars_, target, plugins, select, exclude)
+    sel = resolve_selection(inv, project_dir, vars_, target, plugins, select, exclude, state)
     text = _render(sel, output)
     if text:
         click.echo(text)

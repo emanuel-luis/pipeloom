@@ -129,6 +129,20 @@ def select_options(func: F) -> F:
     return func
 
 
+def state_option(func: F) -> F:
+    """Add --state DIR: the reference state for state: and result: selectors and for --defer."""
+    return click.option(
+        "--state",
+        "state",
+        type=click.Path(file_okay=False, path_type=Path),
+        default=None,
+        metavar="DIR",
+        help="Folder of a reference manifest.json (and optionally run_results.json), for the "
+        "state: and result: selectors. Relative to the project dir unless absolute. "
+        "`compile --stable` or the artifacts root (target) both work.",
+    )(func)
+
+
 def log_format_option(func: F) -> F:
     """Add --log-format."""
     return click.option(

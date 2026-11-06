@@ -55,6 +55,46 @@ an orchestrator can pass a templated value.
 To run exactly the plan you compiled earlier, pass `--manifest target/runs/<id>/manifest.json`.
 Add `--expect-plan-hash <sha256>` to stop with PLX103 when the plan changed.
 
+## Selection by state and defer
+
+Compile production once with a stable manifest and keep it as the reference:
+
+```bash
+pipeloom compile --target prod --stable --out state/manifest.json
+```
+
+`--state DIR` on `run`, `compile`, `ls` and `graph` reads `DIR/manifest.json` (and
+`DIR/run_results.json` when it is there). `target` works too, because every run copies both files to
+the artifacts root. A relative `DIR` is relative to the project dir. A missing folder, or a manifest
+or run results of another project, is PLX110.
+
+- `state:modified` selects the models that are new or whose body, config or inputs differ from the
+  reference, and the persisted models that inline a modified ephemeral model. The comparison ignores
+  the target, so a `dev` project and a `prod` reference match when nothing changed.
+- `state:new` selects the models the reference does not have.
+- `result:fail`, `result:skip`, `result:cancelled` and `result:succeeded` select by the status of
+  the model in the reference run results (`fail` includes timeouts). They need the run results
+  (PLG308).
+
+The graph operators work as usual, so `state:modified+` is the models that changed and everything
+downstream. A state or result atom without `--state` is PLG307. A change to a variable or an
+environment value interpolated into a model's config counts as a change; a change to a source does
+not.
+
+`pipeloom run --state state --defer` reads every parent the run does not build from the relation
+the reference manifest records for it, so a dev run of one model reads the production upstreams. The
+plan and its hash stay the same. The relation is not checked first: a table that is missing, or that
+your target cannot read, fails the child with PLM204 and a hint that names the relation. An
+intermediate parent, or one the reference lacks, is read from this target and PLX112 warns. `--defer`
+is refused (PLX111) for `-s unit:` runs, for `boundary: task` and when the reference was compiled for
+another catalog kind. With a filesystem catalog the reference's `root` must be the same as yours.
+
+The dev loop:
+
+```bash
+pipeloom run --target dev --state state -s "state:modified+" --defer
+```
+
 ## Intermediates
 
 A model with `materialized: intermediate` is persisted for the length of the run, so units in

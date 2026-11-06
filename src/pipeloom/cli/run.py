@@ -21,6 +21,7 @@ from pipeloom.cli._options import (
     plugin_option,
     project_options,
     select_options,
+    state_option,
     target_option,
 )
 from pipeloom.cli._signals import install_stop_handlers
@@ -88,6 +89,14 @@ def _started_at(ctx: click.Context, param: click.Parameter, value: str | None) -
 @target_option
 @plugin_option
 @select_options
+@state_option
+@click.option(
+    "--defer",
+    is_flag=True,
+    help="Read the parents this run does not select from the relations of the --state "
+    "manifest instead of this target's, so a dev run of one model reads the production tables. "
+    "Needs --state. Refused for unit invocations and the task boundary (PLX111).",
+)
 @log_format_option
 @click.option(
     "--manifest",
@@ -160,6 +169,8 @@ def run(
     plugins: tuple[str, ...],
     select: tuple[str, ...],
     exclude: tuple[str, ...],
+    state: Path | None,
+    defer: bool,
     log_format: str,
     manifest: Path | None,
     expect_plan_hash: str | None,
@@ -184,6 +195,8 @@ def run(
     """
     if run_started_at is not None and run_id is None:
         raise click.UsageError("--run-started-at needs --run-id")
+    if defer and state is None:
+        raise click.UsageError("--defer needs --state")
     chosen = cast("Literal['process', 'task'] | None", boundary)
     plan = read_manifest(manifest, Report()) if manifest is not None else None
     if plan is not None and chosen is not None and plan.metadata.boundary != chosen:
@@ -244,6 +257,8 @@ def run(
                     boundary=chosen,
                     warn_error=warn_error,
                     cancel_grace=cancel_grace,
+                    state=state,
+                    defer=defer,
                 ),
                 bus,
                 control,

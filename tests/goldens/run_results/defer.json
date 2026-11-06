@@ -1,0 +1,156 @@
+{
+  "schema": "pipeloom.run_results/1",
+  "metadata": {
+    "pipeloom_version": "<pipeloom_version>",
+    "generated_at": "<timestamp>",
+    "invocation_id": "inv",
+    "plugins": {
+      "catalogs": {
+        "kind": "memory",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      },
+      "engines": {
+        "kind": "memory",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      },
+      "naming": {
+        "kind": "prefix",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      },
+      "state_stores": {
+        "kind": "sqlite",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      }
+    }
+  },
+  "args": {
+    "select": [
+      "child"
+    ],
+    "exclude": [],
+    "manifest": null,
+    "run_id": "r1",
+    "full_refresh": false,
+    "fail_fast": false,
+    "workers": 1,
+    "boundary": "process",
+    "lock": true,
+    "state": "state",
+    "defer": true
+  },
+  "run": {
+    "run_id": "r1",
+    "parent_run_id": null,
+    "invocation_ids": [
+      "inv"
+    ],
+    "project": "dfr",
+    "target": "dev",
+    "plan_hash": "cea3c2d059e9c58d5b2672aedcc47441aaea26f68370b722d3157636b170b1c4",
+    "selector": {
+      "select": [
+        "child"
+      ],
+      "exclude": []
+    },
+    "full_refresh": false,
+    "status": "succeeded",
+    "started_at": "<timestamp>",
+    "ended_at": "<timestamp>",
+    "duration_ms": 11000,
+    "counts": {
+      "total": 1,
+      "succeeded": 1,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "timed_out": 0
+    },
+    "totals": {
+      "rows_written": 1,
+      "bytes_written": 0
+    },
+    "identity": {
+      "user": "<user>",
+      "host": "<host>",
+      "orchestrator": null,
+      "orchestrator_ids": {}
+    },
+    "pipeloom_version": "<pipeloom_version>",
+    "plugins": {
+      "catalogs": {
+        "kind": "memory",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      },
+      "engines": {
+        "kind": "memory",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      },
+      "naming": {
+        "kind": "prefix",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      },
+      "state_stores": {
+        "kind": "sqlite",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      }
+    },
+    "python_version": "<python_version>",
+    "git_sha": "<git_sha>",
+    "exit_code": 0,
+    "intermediate_ttl": 86400,
+    "warnings": []
+  },
+  "results": [
+    {
+      "unique_id": "model.dfr.child",
+      "unit_id": "child",
+      "ephemeral_inlined": [],
+      "materialization": "table",
+      "strategy": "overwrite",
+      "relation_name": "dev_main.child",
+      "status": "succeeded",
+      "attempt": 1,
+      "retries_used": 0,
+      "started_at": "<timestamp>",
+      "ended_at": "<timestamp>",
+      "duration_ms": 4000,
+      "queue_wait_ms": 2000,
+      "rows_read": {
+        "parent": 1
+      },
+      "rows_written": 1,
+      "rows_inserted": 1,
+      "rows_updated": null,
+      "rows_deleted": null,
+      "rows_dropped": null,
+      "rows_quarantined": null,
+      "bytes_read": null,
+      "bytes_written": null,
+      "target_version": null,
+      "full_refresh": false,
+      "is_incremental": false,
+      "watermark_before": null,
+      "watermark_after": null,
+      "schema_hash": "3fbd56d20ebe33468953e74f12a0faac79bcf2c21a42653f9ecb0ff56c1f7f06",
+      "schema_changes": [],
+      "expectations": [],
+      "warnings": [],
+      "error": null,
+      "engine": "memory",
+      "engine_version": "1",
+      "executor": "thread",
+      "idempotency_token": "r1:child",
+      "skip_reason": null,
+      "orchestrator_ids": {}
+    }
+  ]
+}

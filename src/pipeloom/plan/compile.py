@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 from pipeloom import __version__
 from pipeloom.config.models import ResolvedModelConfig
+from pipeloom.config.resolve import ResolvedModel
 from pipeloom.diagnostics import Report
 from pipeloom.engine.protocols import NamingStrategy
 from pipeloom.engine.types import TargetRef
@@ -39,6 +40,40 @@ def _relation(
     return ref if config.catalog is None else replace(ref, catalog=config.catalog)
 
 
+def _body(pg: ProjectGraph, m: ResolvedModel) -> tuple[SqlBody | PythonBody, bytes]:
+    """The model's body and the bytes its checksum covers."""
+    if m.entry.sql is not None:
+        return SqlBody(sql=m.entry.sql), m.entry.sql.encode("utf-8")
+    loaded = pg.project.bound.loaded
+    ref = m.entry.python or ""
+    file = find_module(loaded.project_dir, loaded.config.python_paths, ref.split(":")[0])
+    if file is None:
+        raise LookupError(f"module of '{ref}' not found; validate before compiling")
+    raw = ref.encode("utf-8") + b"\0" + (loaded.project_dir / file).read_bytes()
+    return PythonBody(callable=ref, file=file), raw
+
+
+def _config(m: ResolvedModel) -> ResolvedModelConfig:
+    """The model config with the strategy a run applies, decided here so later versions only read it."""
+    return m.config.model_copy(
+        update={
+            "write": m.config.write.model_copy(update={"strategy": effective_strategy(m.config)})
+        }
+    )
+
+
+def model_checksums(pg: ProjectGraph) -> dict[str, str]:
+    """The node checksum of every model, as `compile_plan` records it. A Python model whose module
+    is missing (a project that is not validated yet) has none."""
+    out: dict[str, str] = {}
+    for uid, m in pg.project.models.items():
+        try:
+            out[uid] = node_checksum(_config(m), _body(pg, m)[1])
+        except LookupError:
+            continue
+    return out
+
+
 def compile_plan(
     pg: ProjectGraph,
     *,
@@ -59,7 +94,8 @@ def compile_plan(
     bound = project.bound
     loaded = bound.loaded
     try:
-        selected = apply(selection, graph, project, report)
+        checksums = model_checksums(pg) if selection.state is not None else None
+        selected = apply(selection, graph, project, report, checksums)
     except SelectorError as err:
         report.extend([err.diagnostic])
         return None
@@ -73,26 +109,9 @@ def compile_plan(
     naming: NamingStrategy = bound.plugins["naming"].create()
     nodes: dict[str, PlanNode] = {}
     for uid, m in project.models.items():
-        body: SqlBody | PythonBody
-        if m.entry.sql is not None:
-            body = SqlBody(sql=m.entry.sql)
-            raw = m.entry.sql.encode("utf-8")
-        else:
-            ref = m.entry.python or ""
-            file = find_module(loaded.project_dir, loaded.config.python_paths, ref.split(":")[0])
-            if file is None:
-                raise LookupError(f"module of '{ref}' not found; validate before compiling")
-            body = PythonBody(callable=ref, file=file)
-            raw = ref.encode("utf-8") + b"\0" + (loaded.project_dir / file).read_bytes()
+        body, raw = _body(pg, m)
         persisted = m.config.materialized != "ephemeral"
-        # The strategy a run applies is decided here, so later versions only read it.
-        config = m.config.model_copy(
-            update={
-                "write": m.config.write.model_copy(
-                    update={"strategy": effective_strategy(m.config)}
-                )
-            }
-        )
+        config = _config(m)
         nodes[uid] = PlanNode(
             unique_id=uid,
             name=m.name,

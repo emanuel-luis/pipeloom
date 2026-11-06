@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -9,7 +10,7 @@ import pytest
 from click.testing import CliRunner
 
 from pipeloom.cli import main
-from tests.conftest import make_project
+from tests.conftest import FIXTURES, make_project
 
 FILES = {
     "pipeloom.yml": (
@@ -198,3 +199,201 @@ def test_ls_output_text_explicit(project: list[str]) -> None:
 def test_graph_output_text_explicit(project: list[str]) -> None:
     explicit = run(["graph", *project, "--output", "text", "--select", "stg_a mart"])
     assert explicit.exit_code == 0 and lines(explicit) == ["stg_a", "mart <- stg_a"]
+
+
+# -- selection by state -----------------------------------------------------------------------
+
+
+@pytest.fixture
+def shop(tmp_path: Path) -> Path:
+    """The shop fixture with its `ci` manifest compiled as the stable reference in state/."""
+    root = tmp_path / "shop"
+    shutil.copytree(FIXTURES / "shop", root, ignore=shutil.ignore_patterns("__pycache__"))
+    done = run(
+        ["compile", "--project-dir", str(root), "--target", "ci", "--stable"]
+        + ["--out", "state/manifest.json"]
+    )
+    assert done.exit_code == 0, done.stderr
+    return root
+
+
+def edit(root: Path, file: str, old: str, new: str) -> None:
+    path = root / file
+    text = path.read_bytes().decode("utf-8")
+    assert old in text
+    path.write_bytes(text.replace(old, new).encode("utf-8"))
+
+
+def modified(root: Path, expr: str = "state:modified", *extra: str) -> list[str]:
+    # dev uses per_user naming: the comparison must not see the target's relations
+    r = run(["ls", "--project-dir", str(root), "--target", "dev", "--state", "state", "-s", expr])
+    assert r.exit_code == 0, r.stderr
+    return lines(r)
+
+
+def test_nothing_changed_selects_nothing(shop: Path) -> None:
+    assert modified(shop) == []
+    assert modified(shop, "state:new") == []
+
+
+def test_changing_one_sql_body_selects_exactly_that_node(shop: Path) -> None:
+    edit(shop, "models/staging/stg.yml", "select id, customer_id, amount", "select id, amount")
+    assert modified(shop) == ["stg_orders"]
+    assert modified(shop, "state:modified+") == [
+        "dim_customers",
+        "fct_orders",
+        "orders_enriched",
+        "rpt_revenue",
+        "stg_orders",
+    ]
+
+
+def test_rewired_inputs_count_as_a_change(shop: Path) -> None:
+    edit(shop, "models/marts/marts.yml", "ref: stg_payments", "ref: stg_customers")
+    assert modified(shop) == ["fct_orders"]
+
+
+def test_a_modified_ephemeral_model_marks_the_models_that_inline_it(shop: Path) -> None:
+    edit(shop, "src/shop/enrich.py", "return orders", "return customers")
+    assert modified(shop) == ["dim_customers", "fct_orders", "orders_enriched"]
+
+
+def test_a_new_model_is_new_and_modified(shop: Path) -> None:
+    edit(
+        shop,
+        "models/marts/marts.yml",
+        "  - name: rpt_revenue",
+        "  - name: rpt_extra\n    sql: select 1\n  - name: rpt_revenue",
+    )
+    assert modified(shop, "state:new") == ["rpt_extra"]
+    assert modified(shop) == ["rpt_extra"]
+
+
+def test_state_is_relative_to_the_project_dir_or_absolute(shop: Path) -> None:
+    edit(shop, "models/staging/stg.yml", "select id, customer_id, amount", "select id, amount")
+    for state in ("state", str(shop / "state")):
+        r = run(
+            [
+                "ls",
+                "--project-dir",
+                str(shop),
+                "--target",
+                "dev",
+                "--state",
+                state,
+                "-s",
+                "state:modified",
+            ]
+        )
+        assert lines(r) == ["stg_orders"], r.stderr
+
+
+def test_graph_takes_state(shop: Path) -> None:
+    edit(shop, "models/staging/stg.yml", "select id, customer_id, amount", "select id, amount")
+    r = run(
+        [
+            "graph",
+            "--project-dir",
+            str(shop),
+            "--target",
+            "dev",
+            "--state",
+            "state",
+            "-s",
+            "state:modified+",
+        ]
+    )
+    assert r.exit_code == 0, r.stderr
+    assert lines(r)[0] == "stg_orders"
+
+
+def test_compile_takes_state(shop: Path) -> None:
+    edit(shop, "models/staging/stg.yml", "select id, customer_id, amount", "select id, amount")
+    r = run(
+        ["compile", "--project-dir", str(shop), "--target", "ci", "--state", "state"]
+        + ["-s", "state:modified", "--out", "out/manifest.json"]
+    )
+    assert r.exit_code == 0, r.stderr
+    doc = json.loads((shop / "out" / "manifest.json").read_bytes().decode("utf-8"))
+    assert doc["selectors"]["selected"] == ["model.shop.stg_orders"]
+
+
+def test_state_atoms_without_state_exit_2(shop: Path) -> None:
+    for command in ("ls", "graph", "compile"):
+        r = run([command, "--project-dir", str(shop), "--target", "dev", "-s", "state:modified"])
+        assert r.exit_code == 2 and "PLG307" in r.stderr, command
+        assert r.stdout == ""
+
+
+def test_result_atoms_need_run_results(shop: Path) -> None:
+    for command in ("ls", "graph", "compile"):
+        r = run(
+            [
+                command,
+                "--project-dir",
+                str(shop),
+                "--target",
+                "dev",
+                "--state",
+                "state",
+                "-s",
+                "result:fail",
+            ]
+        )
+        assert r.exit_code == 2 and "PLG308" in r.stderr, command
+
+
+def test_a_bad_state_value_is_plg305(shop: Path) -> None:
+    r = run(
+        [
+            "ls",
+            "--project-dir",
+            str(shop),
+            "--target",
+            "dev",
+            "--state",
+            "state",
+            "-s",
+            "state:changed",
+        ]
+    )
+    assert r.exit_code == 2 and "PLG305" in r.stderr
+
+
+def test_an_unusable_state_folder_exits_1(shop: Path) -> None:
+    for command in ("ls", "graph", "compile"):
+        r = run([command, "--project-dir", str(shop), "--target", "dev", "--state", "nope"])
+        assert r.exit_code == 1 and "PLX110" in r.stderr, command
+    (shop / "state" / "manifest.json").write_text("{}", encoding="utf-8")
+    r = run(["ls", "--project-dir", str(shop), "--target", "dev", "--state", "state"])
+    assert r.exit_code == 1 and "PLX110" in r.stderr
+
+
+def test_a_manifest_of_another_project_is_plx110(shop: Path) -> None:
+    edit(shop, "pipeloom.yml", "name: shop", "name: other")
+    r = run(["ls", "--project-dir", str(shop), "--target", "dev", "--state", "state"])
+    assert r.exit_code == 1 and "PLX110" in r.stderr and "project 'shop'" in r.stderr
+
+
+def test_result_atoms_read_the_reference_run_results(shop: Path) -> None:
+    rows = [
+        {"unique_id": "model.shop.stg_orders", "status": "failed"},
+        {"unique_id": "model.shop.stg_payments", "status": "skipped"},
+        {"unique_id": "model.shop.stg_customers", "status": "succeeded"},
+    ]
+    doc = {"schema": "pipeloom.run_results/1", "run": {"project": "shop"}, "results": rows}
+    (shop / "state" / "run_results.json").write_text(json.dumps(doc), encoding="utf-8")
+    assert modified(shop, "result:fail") == ["stg_orders"]
+    assert modified(shop, "result:skip") == ["stg_payments"]
+    assert modified(shop, "result:succeeded") == ["stg_customers"]
+    assert modified(shop, "result:cancelled") == []
+
+
+def test_unusable_run_results_are_plx110(shop: Path) -> None:
+    (shop / "state" / "run_results.json").write_text("not json", encoding="utf-8")
+    r = run(["ls", "--project-dir", str(shop), "--target", "dev", "--state", "state"])
+    assert r.exit_code == 1 and "PLX110" in r.stderr
+    doc = {"schema": "pipeloom.run_results/1", "run": {"project": "other"}, "results": []}
+    (shop / "state" / "run_results.json").write_text(json.dumps(doc), encoding="utf-8")
+    r = run(["ls", "--project-dir", str(shop), "--target", "dev", "--state", "state"])
+    assert r.exit_code == 1 and "PLX110" in r.stderr
