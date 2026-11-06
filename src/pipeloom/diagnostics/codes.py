@@ -177,7 +177,7 @@ _ACTIVE: Final = (
         "PLG304",
         E,
         "Unknown selector method",
-        "A selector uses a method other than name, tag, path or materialized. Exit code 2.",
+        "A selector uses a method other than name, tag, path, materialized, unit, state or result. Exit code 2.",
     ),
     (
         "PLG305",
@@ -652,6 +652,41 @@ _ACTIVE_06: Final = (
 )
 
 
+# Active since 0.8.
+_ACTIVE_08: Final = (
+    (
+        "PLG307",
+        E,
+        "State selector without reference",
+        "A state: or result: selector atom was used without --state. Point --state at a folder that holds the reference manifest.json. Exit code 2.",
+    ),
+    (
+        "PLG308",
+        E,
+        "No run results in the reference",
+        "A result: selector atom needs the reference's run_results.json, and the --state folder has none. Exit code 2.",
+    ),
+    (
+        "PLX110",
+        E,
+        "Reference state unusable",
+        "The --state folder cannot serve as a reference: it is missing, its manifest.json is unreadable or belongs to another project, or its run_results.json is unreadable, has another schema or belongs to another project. Compile again with --stable to write a fresh reference.",
+    ),
+    (
+        "PLX111",
+        E,
+        "Defer refused",
+        "--defer cannot be used here: the invocation is a unit invocation, the boundary is task (children rerun units without the reference), or the reference was compiled for another catalog kind. Use --boundary process, or build the parents here. Exit code 2.",
+    ),
+    (
+        "PLX112",
+        W,
+        "Parent not deferred",
+        "With --defer, an unselected parent is read from this target instead of the reference: it is an intermediate model, it is missing from the reference, or the reference has no relation for it.",
+    ),
+)
+
+
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
@@ -670,6 +705,7 @@ def _build() -> Mapping[str, CodeInfo]:
         ("0.4", _ACTIVE_04),
         ("0.5", _ACTIVE_05),
         ("0.6", _ACTIVE_06),
+        ("0.8", _ACTIVE_08),
     ):
         for code, sev, title, expl in table:
             out[code] = CodeInfo(code, _PREFIX_LAYER[code[:3]], sev, title, expl, "active", since)
