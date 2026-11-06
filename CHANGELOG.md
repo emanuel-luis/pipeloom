@@ -9,6 +9,8 @@ All notable changes to this project are documented here. The format follows
 ### Added
 
 - `pipeloom init [DIRECTORY]` scaffolds a new project, like `dbt init`: a `dev` target for polars, pandas, spark or databricks, one example model per layer (bronze, silver, gold), a `.gitignore` and a README. polars and pandas projects run out of the box on a small CSV in `data/`. Flags `--name`, `--engine`, `--catalog` (databricks), `--no-input` and `--force`; it prompts for the rest only when stdin is a terminal. `--force` keeps existing files and lists them as skipped ([ADR-0041](docs/adr/0041-pipeloom-init.md)).
+- Selection by state. `--state DIR` on `run`, `compile`, `ls` and `graph` points at a reference `manifest.json` (and optionally `run_results.json`), for example one from `compile --stable`. New selector methods: `state:modified` (new, or the checksum or the inputs differ; a modified ephemeral model also marks the models that inline it), `state:new`, and `result:fail|skip|cancelled|succeeded` against the reference run results. New codes: PLG307 (state selector without `--state`), PLG308 (no run results in the reference) and PLX110 (reference unusable) ([ADR-0042](docs/adr/0042-state-selection-and-defer.md)).
+- `pipeloom run --defer` (with `--state`) reads the parents the run does not build from the relations of the reference manifest, so a dev run of one model reads the production upstreams. The plan hash does not change. PLX111 refuses it for unit invocations, `boundary: task` and another catalog kind; PLX112 warns when a parent cannot be deferred. `run_results.json` `args` gains `state` and `defer`, and `model.input_read` gains `relation` and `deferred` ([ADR-0042](docs/adr/0042-state-selection-and-defer.md)).
 
 ## [0.7.0] - 2026-11-05
 
