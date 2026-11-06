@@ -8,8 +8,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from click.testing import CliRunner
 
 from pipeloom.api import Project, ProjectOptions
+from pipeloom.cli import main
 from pipeloom.events.bus import EventBus
 from pipeloom.graph.selectors import Selection
 from pipeloom.plan.defer import deferred_relations
@@ -200,6 +202,25 @@ def test_defer_is_refused_for_another_catalog_kind(tmp_path: Path) -> None:
 def test_defer_needs_state() -> None:
     with pytest.raises(ValueError, match="defer needs state"):
         RunOptions(defer=True)
+
+
+def cli_run(root: Path, *args: str) -> Any:
+    base = ["run", "--project-dir", str(root), "--target", "dev"]
+    return CliRunner().invoke(main, [*base, *args], env=ENV)
+
+
+def test_cli_defer_without_state_is_a_usage_error(tmp_path: Path) -> None:
+    result = cli_run(build(tmp_path), "--defer", "-s", "child")
+    assert result.exit_code == 2
+    assert "--defer needs --state" in result.stderr
+
+
+def test_cli_defer_refused_exits_2(tmp_path: Path) -> None:
+    root = build(tmp_path)
+    reference(root)
+    result = cli_run(root, "--state", "state", "--defer", "-s", "unit:child")
+    assert result.exit_code == 2
+    assert "PLX111" in result.stderr
 
 
 def test_manifest_runs_may_defer(tmp_path: Path) -> None:

@@ -648,7 +648,7 @@ Long engine (JVM) traces are trimmed to the first user frame and the root cause.
 - Runtime: `engine`, `engine_version`, `executor`, `orchestrator_ids` (Databricks job, run and task run ids; Airflow dag, run, task and try as `airflow_dag_id`, `airflow_run_id`, `airflow_task_id` and `airflow_try_number`; filled from `--orchestrator-id`, ADR-0034), `idempotency_token`.
 
 **Per-run metadata (`run_results.run`):**
-- `run_id`, `parent_run_id`, `invocation_ids[]`, `project`, `target`, `plan_hash`, `selector`, `args`, `full_refresh`. `args` records the command line values that shaped the run, among them `state` (the `--state` folder, POSIX, relative to the project dir when possible, else null) and `defer` (0.8).
+- `run_id`, `parent_run_id`, `invocation_ids[]`, `project`, `target`, `plan_hash`, `selector`, `args`, `full_refresh`. `args` records the command line values that shaped the run, among them `state` (the `--state` folder, POSIX, relative to the project dir when possible, else absolute; null without the flag) and `defer` (0.8).
 - `status`, `started_at`, `ended_at`, `duration_ms`, `counts{status: n}`, `totals{rows_written, bytes_written}`.
 - `identity{user, host, orchestrator}`, `pipeloom_version`, `plugins{name: version}`, `python_version`, `git_sha` (if available), `exit_code`, `intermediate_ttl` (seconds; the TTL this run was finalized with, which other runs use to judge its intermediates) and `warnings[]` (run-level messages, such as `intermediate_cleanup_failed: <run_id>: <error>`).
 
