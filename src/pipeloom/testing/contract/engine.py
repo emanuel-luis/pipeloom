@@ -747,8 +747,8 @@ class EngineContract:
 
     def test_scd2_rejects_null_and_duplicate_keys(self, h: EngineHarness, tmp_path: Path) -> None:
         requires(h, "strategies", "scd2")
-        null = ({"id": None, "label": "n", "v": 1},)
-        dup = ({"id": 3, "label": "x", "v": 1}, {"id": 3, "label": "y", "v": 2})
+        null: Rows = ({"id": None, "label": "n", "v": 1},)
+        dup: Rows = ({"id": 3, "label": "x", "v": 1}, {"id": 3, "label": "y", "v": 2})
         with self.session(h, tmp_path) as s:
             self.put(s, h, "t_s2_keys", KV_ROWS, KV_SCHEMA, _scd2(0), "seed")
             for i, batch in enumerate((null, dup)):
