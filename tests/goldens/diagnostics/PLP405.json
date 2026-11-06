@@ -6,8 +6,8 @@
     "hint": "remove 'unique_key' or change the strategy or materialization",
     "location": {
       "file": "models/m.yml",
-      "line": 4,
-      "col": 43,
+      "line": 6,
+      "col": 19,
       "json_pointer": "/models/0/write/unique_key"
     },
     "context": {

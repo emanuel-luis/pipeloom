@@ -5,15 +5,23 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
-        catalog: {kind: memory}
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
   models/m.yml: |
     models:
       - name: a
         sql: select 1 as id, 1 as ts
         materialized: incremental
-        inputs: {raw: {source: raw}}
-        incremental: {input: raw, column: ts, lookback: 1d}
+        inputs:
+          raw:
+            source: raw
+        incremental:
+          input: raw
+          column: ts
+          lookback: 1d
   models/sources.yml: |
     sources:
-      - {name: raw, table: main.raw}
+      - name: raw
+        table: main.raw

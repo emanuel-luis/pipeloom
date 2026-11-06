@@ -5,10 +5,13 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     models:
-      - {name: a, python: "m:a", frame_api: narwhals}
+      - name: a
+        python: "m:a"
+        frame_api: narwhals
   src/m.py: |
     def a(ctx):
         return None

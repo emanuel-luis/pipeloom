@@ -19,8 +19,8 @@
     "hint": "use ${env:NAME}, ${env:NAME:-default} or ${var:name}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 6,
-      "col": 39,
+      "line": 9,
+      "col": 13,
       "json_pointer": "/targets/dev/catalog/root"
     },
     "context": {}
@@ -32,8 +32,8 @@
     "hint": "use ${env:NAME}, ${env:NAME:-default} or ${var:name}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 6,
-      "col": 61,
+      "line": 10,
+      "col": 14,
       "json_pointer": "/targets/dev/catalog/other"
     },
     "context": {}

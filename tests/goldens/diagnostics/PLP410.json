@@ -6,8 +6,8 @@
     "hint": "use write.strategy: merge with a unique_key, or set lookback to 0",
     "location": {
       "file": "models/m.yml",
-      "line": 6,
-      "col": 53,
+      "line": 11,
+      "col": 17,
       "json_pointer": "/models/0/incremental/lookback"
     },
     "context": {

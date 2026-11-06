@@ -5,13 +5,19 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
-        catalog: {kind: memory}
-        naming: {kind: none}
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
+        naming:
+          kind: none
   models/m.yml: |
     models:
       - name: a
         sql: select 1 as id
         expectations:
-          - {name: nope_set, check: {not_null: [nope]}, on_violation: warn}
+          - name: nope_set
+            check:
+              not_null: [nope]
+            on_violation: warn
 run: true

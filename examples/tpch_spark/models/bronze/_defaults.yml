@@ -1,1 +1,2 @@
-models: {catalog: pipeloom_bronze}
+models:
+  catalog: pipeloom_bronze

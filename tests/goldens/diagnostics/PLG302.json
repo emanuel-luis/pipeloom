@@ -6,8 +6,8 @@
     "hint": "a model cannot read its own output",
     "location": {
       "file": "models/m.yml",
-      "line": 4,
-      "col": 24,
+      "line": 6,
+      "col": 14,
       "json_pointer": "/models/0/inputs/me/ref"
     },
     "context": {

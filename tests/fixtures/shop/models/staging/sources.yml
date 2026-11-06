@@ -1,4 +1,10 @@
 sources:
-  - {name: raw_customers, format: memory, location: raw/customers}
-  - {name: raw_orders, format: memory, location: raw/orders}
-  - {name: raw_payments, format: memory, location: raw/payments}
+  - name: raw_customers
+    format: memory
+    location: raw/customers
+  - name: raw_orders
+    format: memory
+    location: raw/orders
+  - name: raw_payments
+    format: memory
+    location: raw/payments

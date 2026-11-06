@@ -6,8 +6,8 @@
     "hint": "expected (ctx, x)",
     "location": {
       "file": "models/m.yml",
-      "line": 2,
-      "col": 23,
+      "line": 3,
+      "col": 13,
       "json_pointer": "/models/0/python"
     },
     "context": {

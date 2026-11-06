@@ -4,9 +4,13 @@ files:
     name: shop
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     models:
-      - {name: stg_orders, sql: select 1, tags: [staging]}
-      - {name: report, sql: select 1}
+      - name: stg_orders
+        sql: select 1
+        tags: [staging]
+      - name: report
+        sql: select 1
 select: ["tag:nope"]

@@ -1,2 +1,2 @@
-warning PLP410 models/m.yml:6:53 incremental model 'a' appends with a lookback, so it reloads rows it wrote
+warning PLP410 models/m.yml:11:17 incremental model 'a' appends with a lookback, so it reloads rows it wrote
       hint: use write.strategy: merge with a unique_key, or set lookback to 0

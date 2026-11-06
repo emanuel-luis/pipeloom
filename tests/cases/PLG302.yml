@@ -4,9 +4,12 @@ files:
     name: shop
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     models:
       - name: loop
         sql: select * from me
-        inputs: {me: {ref: loop}}
+        inputs:
+          me:
+            ref: loop

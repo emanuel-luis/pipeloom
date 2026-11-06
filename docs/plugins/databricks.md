@@ -47,21 +47,40 @@ A target gets a `deploy` block of kind `databricks`. It needs a shared state sto
 ```yaml
 targets:
   prod:
-    engine: {kind: spark}
-    catalog: {kind: unity, catalog: main}
-    state: {kind: table, table: ops._pipeloom_state}
-    artifacts: {root: /Volumes/main/ops/pipeloom}
+    engine:
+      kind: spark
+    catalog:
+      kind: unity
+      catalog: main
+    state:
+      kind: table
+      table: ops._pipeloom_state
+    artifacts:
+      root: /Volumes/main/ops/pipeloom
     deploy:
       kind: databricks
-      pipelines: {main: {}, daily: {select: ["tag:daily"]}}
+      pipelines:
+        main: {}
+        daily:
+          select: ["tag:daily"]
       compute:
-        default: {kind: serverless, environment_version: "5"}
+        default:
+          kind: serverless
+          environment_version: "5"
         big:
           kind: job_cluster
-          new_cluster: {spark_version: "16.4.x-scala2.12", node_type_id: "Standard_D8ds_v5", num_workers: 4}
-      compute_rules: [{select: ["tag:heavy"], compute: big}]
+          new_cluster:
+            spark_version: "16.4.x-scala2.12"
+            node_type_id: "Standard_D8ds_v5"
+            num_workers: 4
+      compute_rules:
+        - select: ["tag:heavy"]
+          compute: big
       task_grouping: none
-      settings: {schedule: {quartz_cron_expression: "0 0 6 * * ?", timezone_id: "UTC"}}
+      settings:
+        schedule:
+          quartz_cron_expression: "0 0 6 * * ?"
+          timezone_id: "UTC"
 ```
 
 | Key | Meaning |
@@ -207,7 +226,7 @@ naming the path and never the value.
 
 ## Unity Catalog
 
-`catalog: {kind: unity, catalog: main}` works with the Spark engine only. Tables and views are
+A `catalog` block with `kind: unity` and `catalog: main` works with the Spark engine only. Tables and views are
 addressed as `` `catalog`.`schema`.`name` ``; the option fills in the catalog when the target's
 naming leaves it empty. A model's `catalog` setting (or a folder `_defaults.yml`) wins over both,
 so each layer can write to its own catalog. pipeloom never creates a catalog: every catalog a

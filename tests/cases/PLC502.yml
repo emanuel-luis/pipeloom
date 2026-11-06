@@ -5,8 +5,10 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: nosql}
+        engine:
+          kind: nosql
   models/m.yml: |
     models:
-      - {name: a, sql: select 1}
+      - name: a
+        sql: select 1
 plugins: ["tests.plugins.fakes:NOSQL"]

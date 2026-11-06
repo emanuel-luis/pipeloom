@@ -7,7 +7,7 @@
     "location": {
       "file": "models/b.yml",
       "line": 2,
-      "col": 12,
+      "col": 11,
       "json_pointer": "/sources/0/name"
     },
     "context": {

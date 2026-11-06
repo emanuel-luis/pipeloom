@@ -1,2 +1,2 @@
-error PLC509 models/m.yml:2:44 engine 'nosql' cannot materialize 'intermediate' (model 'a')
+error PLC509 models/m.yml:4:19 engine 'nosql' cannot materialize 'intermediate' (model 'a')
       hint: supported: ephemeral, table

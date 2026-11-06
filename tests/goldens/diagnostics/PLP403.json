@@ -6,8 +6,8 @@
     "hint": "use on_violation: warn or fail",
     "location": {
       "file": "models/m.yml",
-      "line": 5,
-      "col": 69,
+      "line": 9,
+      "col": 23,
       "json_pointer": "/models/0/expectations/0/on_violation"
     },
     "context": {

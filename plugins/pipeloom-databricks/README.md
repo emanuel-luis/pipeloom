@@ -12,15 +12,25 @@ Describe the deployment in a target:
 ```yaml
 targets:
   prod:
-    engine: {kind: spark}
-    catalog: {kind: spark_catalog}
-    state: {kind: table, table: ops._pipeloom_state}   # shared by every task
-    artifacts: {root: /Volumes/main/ops/pipeloom}
+    engine:
+      kind: spark
+    catalog:
+      kind: spark_catalog
+    state:                           # shared by every task
+      kind: table
+      table: ops._pipeloom_state
+    artifacts:
+      root: /Volumes/main/ops/pipeloom
     deploy:
       kind: databricks
-      pipelines: {main: {}, daily: {select: ["tag:daily"]}}
+      pipelines:
+        main: {}
+        daily:
+          select: ["tag:daily"]
       compute:
-        default: {kind: serverless, environment_version: "5"}
+        default:
+          kind: serverless
+          environment_version: "5"
       task_grouping: none        # none, by_tag or by_folder
 ```
 
@@ -75,7 +85,7 @@ targets:
   run (a failed one is PLD011). If the API cannot be read, finalize prints one warning and judges
   by the attempt files alone. A one-time run has no job run id, so it gets no task states.
 
-- Unity Catalog: `catalog: {kind: unity, catalog: main}` (Spark engine only) addresses tables and
+- Unity Catalog: a `catalog` block with `kind: unity` and `catalog: main` (Spark engine only) addresses tables and
   views as `` `catalog`.`schema`.`name` ``. The option catalog fills in when the target's naming
   leaves it empty. A schema is created only when it does not exist yet, so a principal without
   CREATE SCHEMA can write to an existing one.

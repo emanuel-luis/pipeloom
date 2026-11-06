@@ -19,8 +19,8 @@
     "hint": "uninstall one distribution or set PIPELOOM_DISABLE_PLUGIN_AUTOLOAD=1",
     "location": {
       "file": "pipeloom.yml",
-      "line": 5,
-      "col": 20,
+      "line": 6,
+      "col": 13,
       "json_pointer": "/targets/dev/engine/kind"
     },
     "context": {

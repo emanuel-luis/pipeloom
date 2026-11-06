@@ -5,10 +5,13 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: nosql}
+        engine:
+          kind: nosql
   models/m.yml: |
     models:
-      - {name: a, python: "m:a", materialized: intermediate}
+      - name: a
+        python: "m:a"
+        materialized: intermediate
   src/m.py: |
     def a(ctx):
         return None

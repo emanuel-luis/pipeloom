@@ -5,10 +5,13 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     models:
       - name: a
         sql: select 1
         materialized: incremental
-        incremental: {input: orders, column: updated_at}
+        incremental:
+          input: orders
+          column: updated_at

@@ -7,7 +7,7 @@
     "location": {
       "file": "models/m.yml",
       "line": 2,
-      "col": 12,
+      "col": 11,
       "json_pointer": "/models/0/name"
     },
     "context": {

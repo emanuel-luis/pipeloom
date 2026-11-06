@@ -1,10 +1,16 @@
 models:
   - name: stg_customers
     sql: select id, lower(email) as email from raw_customers
-    inputs: {raw_customers: {source: raw_customers}}
+    inputs:
+      raw_customers:
+        source: raw_customers
   - name: stg_orders
     sql: select id, customer_id, amount from raw_orders
-    inputs: {raw_orders: {source: raw_orders}}
+    inputs:
+      raw_orders:
+        source: raw_orders
   - name: stg_payments
     sql: select order_id, amount from raw_payments
-    inputs: {raw_payments: {source: raw_payments}}
+    inputs:
+      raw_payments:
+        source: raw_payments

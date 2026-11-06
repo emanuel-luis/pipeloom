@@ -11,19 +11,30 @@ vars:
   wheel_spark: /Volumes/main/ops/pipeloom_live/wheels/pipeloom_spark.whl
   wheel_databricks: /Volumes/main/ops/pipeloom_live/wheels/pipeloom_databricks.whl
 defaults:
-  models: {materialized: table}
+  models:
+    materialized: table
 targets:
   live:
-    engine: {kind: spark}
-    catalog: {kind: unity, catalog: "${var:catalog}"}
-    naming: {kind: none, schema: "${var:schema}"}
-    state: {kind: table, table: "${var:catalog}.${var:schema}._pipeloom_state"}
-    artifacts: {root: "${var:volume}/artifacts"}
+    engine:
+      kind: spark
+    catalog:
+      kind: unity
+      catalog: "${var:catalog}"
+    naming:
+      kind: none
+      schema: "${var:schema}"
+    state:
+      kind: table
+      table: "${var:catalog}.${var:schema}._pipeloom_state"
+    artifacts:
+      root: "${var:volume}/artifacts"
     deploy:
       kind: databricks
       pipelines:
-        stable: {select: ["tag:stable"]}
-        flaky: {select: ["tag:flaky"]}
+        stable:
+          select: ["tag:stable"]
+        flaky:
+          select: ["tag:flaky"]
       compute:
         default:
           kind: serverless

@@ -6,8 +6,11 @@ files:
     boundary: task
     targets:
       dev:
-        engine: {kind: memory}
-        state: {kind: sqlite}
+        engine:
+          kind: memory
+        state:
+          kind: sqlite
   models/m.yml: |
     models:
-      - {name: a, sql: select 1}
+      - name: a
+        sql: select 1

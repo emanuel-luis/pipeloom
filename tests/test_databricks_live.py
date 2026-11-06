@@ -342,7 +342,11 @@ def test_the_fixture_renders_both_pipelines(tmp_path: Path) -> None:
     yml = project / "pipeloom.yml"
     text = yml.read_text(encoding="utf-8")
     yml.write_text(
-        re.sub(r"state: \{kind: table.*\}", "state: {kind: json, path: .state}", text),
+        re.sub(
+            r"state:\n      kind: table\n      table: .*\n",
+            "state:\n      kind: json\n      path: .state\n",
+            text,
+        ),
         encoding="utf-8",
     )
     wheels = [f"/Volumes/c/s/v/wheels/x/{w}.whl" for w in live.WHEELS]

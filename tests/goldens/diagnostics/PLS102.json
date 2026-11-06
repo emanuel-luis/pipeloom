@@ -6,7 +6,7 @@
     "hint": null,
     "location": {
       "file": "pipeloom.yml",
-      "line": 6,
+      "line": 7,
       "col": 14,
       "json_pointer": "/targets/dev/workers"
     },

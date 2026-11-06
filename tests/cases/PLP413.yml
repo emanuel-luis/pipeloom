@@ -5,8 +5,10 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
-        catalog: {kind: memory}
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
   models/m.yml: |
     models:
       - name: a

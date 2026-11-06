@@ -1,2 +1,2 @@
-error PLG302 models/m.yml:4:24 model 'loop' references itself through input 'me'
+error PLG302 models/m.yml:6:14 model 'loop' references itself through input 'me'
       hint: a model cannot read its own output

@@ -4,13 +4,18 @@ files:
     name: shop
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     sources:
-      - {name: raw, format: memory, location: raw/orders}
+      - name: raw
+        format: memory
+        location: raw/orders
     models:
       - name: a
         sql: |
           with recent as (select * from orders)
           select r.id from recent r join customers c on c.id = r.customer_id
-        inputs: {orders: {source: raw}}
+        inputs:
+          orders:
+            source: raw

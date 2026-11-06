@@ -4,6 +4,8 @@ files:
     name: shop
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
       prod:
-        engine: {kind: memory}
+        engine:
+          kind: memory

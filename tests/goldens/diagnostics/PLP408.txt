@@ -1,2 +1,2 @@
-warning PLP408 models/m.yml:2:12 ephemeral model 'e' has no consumer
+warning PLP408 models/m.yml:2:11 ephemeral model 'e' has no consumer
       hint: no persisted model reads it, so it never runs

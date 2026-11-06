@@ -5,17 +5,30 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory, root: store, tables: {main.raw: [{id: 1}]}}
-        catalog: {kind: memory, root: store}
-        naming: {kind: none}
+        engine:
+          kind: memory
+          root: store
+          tables:
+            main.raw:
+              - id: 1
+        catalog:
+          kind: memory
+          root: store
+        naming:
+          kind: none
   models/m.yml: |
     models:
       - name: a
         sql: select id from raw
         materialized: incremental
-        inputs: {raw: {source: raw}}
-        incremental: {input: raw, column: updated_at}
+        inputs:
+          raw:
+            source: raw
+        incremental:
+          input: raw
+          column: updated_at
   models/sources.yml: |
     sources:
-      - {name: raw, table: main.raw}
+      - name: raw
+        table: main.raw
 run: true

@@ -21,9 +21,14 @@ config_version: 1
 name: shop
 targets:
   dev:
-    engine: {kind: polars}
-    catalog: {kind: filesystem, root: target/warehouse}
-    state: {kind: json, path: .pipeloom/state}
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+    state:
+      kind: json
+      path: .pipeloom/state
 ```
 
 `raw/orders.csv`:
@@ -40,15 +45,21 @@ id,customer_id,amount
 ```yaml
 # yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json
 sources:
-  - {name: raw_orders, format: csv, location: raw/orders.csv}
+  - name: raw_orders
+    format: csv
+    location: raw/orders.csv
 models:
   - name: stg_orders
     sql: select id, customer_id, amount from raw_orders
-    inputs: {raw_orders: {source: raw_orders}}
+    inputs:
+      raw_orders:
+        source: raw_orders
     tags: [staging]
   - name: orders_by_customer
     sql: select customer_id, sum(amount) as total from stg_orders group by customer_id
-    inputs: {stg_orders: {ref: stg_orders}}
+    inputs:
+      stg_orders:
+        ref: stg_orders
 ```
 
 ## Check it

@@ -65,10 +65,10 @@ def memory_project(tmp_path: Path) -> Path:
         "tables": {f"{tmp_path.as_posix()}/raw/orders": ORDERS},
     }
     text = yml.read_text(encoding="utf-8")
-    text = text.replace("engine: {kind: memory}", f"engine: {json.dumps(cfg)}")
+    text = text.replace("engine:\n      kind: memory", f"engine: {json.dumps(cfg)}")
     yml.write_text(text, encoding="utf-8", newline="\n")
     src = tmp_path / "models" / "sources.yml"
-    swapped = src.read_text(encoding="utf-8").replace("format: csv,", "format: memory,")
+    swapped = src.read_text(encoding="utf-8").replace("format: csv\n", "format: memory\n")
     src.write_text(swapped.replace("orders.csv", "orders"), encoding="utf-8", newline="\n")
     return tmp_path
 

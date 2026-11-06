@@ -5,9 +5,11 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     models:
-      - {name: a, python: "m:a"}
+      - name: a
+        python: "m:a"
   src/m.py: |
     from other import a
