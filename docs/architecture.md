@@ -92,7 +92,7 @@ Source: [02-packages.d2](diagrams/02-packages.d2).
 6. **Execute:** the scheduler runs units through an executor. Orchestrated tasks run `pipeloom run --manifest ... --select unit:<id> --expect-plan-hash <h>`.
 7. **Finalize:** merge per-invocation results, write `run_results.json`, commit run state, flush and close sinks.
 
-**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `validate`, `compile`, `ls`, `graph`, `run`, `finalize`, `schema export`, `explain` (print a diagnostic code's catalog entry and docs link) and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
+**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `new model` (add a model file and, for Python, its stub; ADR-0041 amendment), `validate`, `compile`, `ls`, `graph`, `run`, `finalize`, `schema export`, `explain` (print a diagnostic code's catalog entry and docs link) and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
 
 ![The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize.](diagrams/03-lifecycle.svg)
 
