@@ -523,6 +523,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#model-contracts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model contracts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-the-run-records" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1151,6 +1162,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#model-contracts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model contracts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-the-run-records" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1348,6 +1370,42 @@ table.</p>
 <p>A view or an ephemeral model cannot carry expectations (PLP411), and no other model may be called
 <code>&lt;model&gt;__quarantine</code> in the same catalog and schema (PLP412). An engine that does not declare the <code>quality</code>
 capability is rejected with PLC510.</p>
+<h2 id="model-contracts">Model contracts<a class="headerlink" href="#model-contracts" title="Permanent link">&para;</a></h2>
+<p>A model can declare its exact output columns with <code>columns</code>. Each entry has a <code>name</code>, a logical
+<code>dtype</code> (the type names engines report, such as <code>int64</code>, <code>string</code>, <code>decimal(18,2)</code> or
+<code>timestamp[us, UTC]</code>) and <code>nullable</code> (default true).</p>
+<pre><code class="language-yaml">models:
+  - name: fct_orders
+    sql: select order_id, amount from stg_orders
+    columns:
+      - name: order_id
+        dtype: int64
+        nullable: false
+      - name: amount
+        dtype: decimal(18,2)
+</code></pre>
+<p>Before every write, pipeloom compares the batch with the contract:</p>
+<ul>
+<li>the column names must match exactly (case-sensitive, any order), with no column missing and none
+  extra;</li>
+<li>each logical type must equal the declared <code>dtype</code>. Nothing is widened or cast, so cast in the
+  body. Engines report fixed forms: Spark timestamps are always <code>timestamp[us, UTC]</code>. On pandas, an
+  integer column with a null is <code>float64</code> unless it uses the nullable <code>Int64</code> dtype, and a column
+  of Python <code>Decimal</code> objects is <code>unknown</code>; use <code>pd.ArrowDtype(pa.decimal128(18, 2))</code> to get
+  <code>decimal(18,2)</code>. To see what an engine reports, run once: PLM208 names the reported type of
+  every column whose type differs;</li>
+<li>a column with <code>nullable: false</code> must hold no null (NaN counts as null), counted with one pass
+  over the batch.</li>
+</ul>
+<p>The check runs after the expectations, on the rows they keep, and before the schema-change policy,
+the quarantine write and the table write. A <code>drop</code> expectation can therefore remove null rows
+before the contract sees them. A mismatch fails the unit with PLM208, writes nothing and is never
+retried under <code>retry_on: transient</code>. <code>on_schema_change</code> still compares the batch with the existing
+table as before.</p>
+<p><code>columns</code> is a model key; defaults cannot set it. An unknown <code>dtype</code> or a repeated name is PLS102
+at validation, and a contract on a view or an ephemeral model is PLP414. Declared columns appear as
+<code>nodes[].columns</code> in <code>manifest.json</code> and on the docs site model page. See
+<a href="../../adr/0044-model-contracts/">ADR-0044</a>.</p>
 <h2 id="what-the-run-records">What the run records<a class="headerlink" href="#what-the-run-records" title="Permanent link">&para;</a></h2>
 <ul>
 <li><code>model.quality_evaluated</code> event: total rows, one result per expectation, dropped and

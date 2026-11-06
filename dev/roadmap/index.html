@@ -1660,7 +1660,8 @@ paths, listens on localhost by default and ships as a separate distribution, so 
 <ul>
 <li>Model contracts (0.9). An optional <code>columns</code> list on a model, each entry with <code>name</code>, a logical <code>dtype</code> and
   <code>nullable</code>. At write time the core compares it with <code>EngineSession.schema</code> before <code>align</code>, and a mismatch is a new
-  permanent PLM code. Declared columns also feed lineage and the docs site.</li>
+  permanent PLM code. Declared columns also feed lineage and the docs site. Decided in
+  <a href="../adr/0044-model-contracts/">ADR-0044</a> (accepted).</li>
 <li>Unit tests (0.9). A <code>tests</code> block per model, or files under <code>tests/</code>, with <code>given</code> (rows per input alias, inline
   or from a CSV) and <code>expect</code> (rows, compared without regard to order). <code>pipeloom test</code> runs the model body on the
   target's engine with no catalog writes and compares with the semantics in <code>pipeloom.testing.reference</code>, the same
@@ -1809,7 +1810,7 @@ so the first step is to publish it as a contract.</p>
 <tbody>
 <tr>
 <td>Model contracts (<code>columns</code>)</td>
-<td>ADR-0044 (proposed)</td>
+<td><a href="../adr/0044-model-contracts/">ADR-0044</a></td>
 <td>a type mismatch fails before the write with a new PLM code on polars, pandas and Spark (the shared engine contract suite)</td>
 </tr>
 <tr>

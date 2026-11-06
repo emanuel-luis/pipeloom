@@ -112,6 +112,44 @@
       "title": "CheckConfig",
       "type": "object"
     },
+    "ColumnConfig": {
+      "additionalProperties": false,
+      "description": "One column of a model contract.",
+      "properties": {
+        "dtype": {
+          "description": "Logical type, for example int64, string, decimal(18,2) or timestamp[us, UTC].",
+          "pattern": "^(?:u?int(?:8|16|32|64|128)|float(?:32|64)|string|boolean|binary|date|time|null|decimal\\(\\d+,\\d+\\)|timestamp\\[(?:ms|us|ns)(?:, [^\\]]+)?\\]|duration\\[(?:ms|us|ns)\\]|(?:list|struct)<.+>)$",
+          "title": "Dtype",
+          "type": "string"
+        },
+        "name": {
+          "description": "Column name, case-sensitive.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "nullable": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            }
+          ],
+          "default": true,
+          "description": "False makes a null in the column a contract violation.",
+          "title": "Nullable"
+        }
+      },
+      "required": [
+        "name",
+        "dtype"
+      ],
+      "title": "ColumnConfig",
+      "type": "object"
+    },
     "DeletesConfig": {
       "additionalProperties": false,
       "properties": {
@@ -344,6 +382,22 @@
           "default": null,
           "description": "Clustering columns.",
           "title": "Cluster By"
+        },
+        "columns": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ColumnConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model contract: the exact output columns, checked before every write (PLM208).",
+          "title": "Columns"
         },
         "description": {
           "anyOf": [
