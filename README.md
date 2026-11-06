@@ -24,7 +24,7 @@ $ pipeloom run
 ```
 
 The optional extra `sqlglot` adds warnings for SQL that reads undeclared tables. Commands: `init`, `validate`,
-`compile`, `run`, `ls`, `graph`, `schema export` and `plugins list`. See the
+`compile`, `run`, `ls`, `graph`, `explain`, `schema export` and `plugins list`. See the
 [quickstart](https://emanuel-luis.github.io/pipeloom/latest/quickstart/).
 
 ![Context diagram: users, the YAML project, the CLI and API, engines, catalogs, orchestrators and event consumers.](docs/diagrams/01-context.svg)
