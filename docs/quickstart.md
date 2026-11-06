@@ -47,7 +47,7 @@ $ pipeloom validate
 and a Python model when the default target is pandas; pass `--sql` or `--python` to choose. A
 Python model also gets a `build(ctx, **inputs)` stub in the project's `<name>_models` package
 (this needs `python_paths: [src]` in `pipeloom.yml`). Declare its inputs in the commented
-`inputs:` block, then fill in the body. See [pipeloom new](reference/cli.md#pipeloom-new).
+`inputs:` block, then fill in the body. See [pipeloom new](reference/cli.md#pipeloom-new-model).
 
 The rest of this page writes a project by hand, to show each part.
 
