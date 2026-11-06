@@ -2,7 +2,7 @@
 
 Status: plan as of 2026-11-06, written against 0.7.0. This page replaces the planned versions that section 16 of
 [architecture.md](architecture.md#16-roadmap) used to list; section 16 keeps the record of what each delivered
-version contains. Items that change a decision name the ADR they need: ADRs up to 0041 exist, and 0042 to 0049
+version contains. Items that change a decision name the ADR they need: ADRs up to 0043 exist, and 0044 to 0049
 are proposed.
 
 Terms such as unit, run, boundary and artifacts root are defined in the
@@ -228,7 +228,7 @@ Delivered in 0.8.0. The docs site lays its graph out in Python instead of a vend
 | `init` and block-style YAML | ADR-0041 | `pipeloom init demo --engine polars`, then `pipeloom run` in `demo`, exits 0 in a clean virtualenv in CI on three operating systems |
 | Editor setup in templates, `pipeloom new model` | ADR-0041 amendment | a new model validates with no PLK602 and has completion in VS Code with only the YAML extension |
 | `pipeloom explain` | none (the catalog exists) | every code in `codes.py` prints, tested by iterating the catalog |
-| `state:modified`, `state:new` and `result:` selectors, `--state`, `--defer` | ADR-0042 (proposed) | changing one SQL body selects exactly that node, and `--defer` reads an unselected parent from the reference relation (golden test) |
+| `state:modified`, `state:new` and `result:` selectors, `--state`, `--defer` | [ADR-0042](adr/0042-state-selection-and-defer.md) | changing one SQL body selects exactly that node, and `--defer` reads an unselected parent from the reference relation (golden test) |
 | `pipeloom retry --from` | [ADR-0013](adr/0013-run-identity-and-reruns.md) | retrying a failed run runs only the failed units and their skipped descendants, with `parent_run_id` set |
 | `pipeloom docs generate` and `serve` | [ADR-0043](adr/0043-docs-site.md) | the TPC-H examples produce one HTML file that opens offline and shows the graph and every model |
 

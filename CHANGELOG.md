@@ -8,7 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.8.0] - 2026-11-06
 
-pipeloom 0.8 is about the first hour and fast loops. `pipeloom init` scaffolds a project that runs out of the box, with editor completion set up, and `pipeloom new model` adds models to it. `pipeloom explain` prints what a diagnostic code means. `--state` with the `state:modified`, `state:new` and `result:` selectors picks what changed or what failed, and `--defer` reads the parents a run does not build from a reference such as production. `pipeloom retry --from` reruns what a run did not finish. `pipeloom docs generate` and `docs serve` write a one-file docs and lineage site. Plugin API stays (0, 4). Artifacts only gain fields: `run_results` `args` (`state`, `defer`), `run.parent_run_id`, `model.input_read` (`relation`, `deferred`) and `run.started` (`parent_run_id`).
+pipeloom 0.8 is about the first hour and fast loops. `pipeloom init` scaffolds a project with editor completion set up (polars and pandas projects run out of the box), and `pipeloom new model` adds models to it. `pipeloom explain` prints what a diagnostic code means. `--state` with the `state:modified`, `state:new` and `result:` selectors picks what changed or what failed, and `--defer` reads the parents a run does not build from a reference such as production. `pipeloom retry --from` reruns what a run did not finish. `pipeloom docs generate` and `docs serve` write a one-file docs and lineage site. Plugin API stays (0, 4). Artifacts only gain fields: `run_results` `args` (`state`, `defer`), `run.parent_run_id`, `model.input_read` (`relation`, `deferred`) and `run.started` (`parent_run_id`).
 
 ### Added
 
