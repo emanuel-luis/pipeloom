@@ -39,4 +39,26 @@ A new user starts from an empty folder and has to write `pipeloom.yml`, a target
 
 ## Status
 
-Accepted.
+Accepted. Amended in 0.8 (editor setup, `pipeloom new model`).
+
+## Amendment (0.8): editor setup and pipeloom new model
+
+### What changed
+
+- Every YAML file `init` writes starts with a `# yaml-language-server: $schema=<url>` modeline: `project.json` for `pipeloom.yml`, `defaults.json` for `_defaults.yml` and `models.json` for model files. The `_defaults.yml` templates lacked it. The URLs are the published schemas under `SCHEMA_BASE_URL` (`pipeloom.config.schema`); a test checks the templates against that constant.
+- `init` writes `.vscode/settings.json`, which maps `yaml.schemas` to the three schemas by glob (`pipeloom.yml`, `models/**/_defaults.yml`, and `models/**/*.yml` minus `_defaults`, with `.yaml` variants), and `.vscode/extensions.json`, which recommends `redhat.vscode-yaml`. Completion then works with only the YAML extension. `--force` keeps existing files as before.
+- `pipeloom new model NAME [--sql|--python] [--folder PATH]` adds one model file to a project. It loads the project (load stage only), so it knows the project name, `python_paths`, the existing model names and the engine kind of the default target. The default kind is Python when that engine is pandas (no SQL, PLC502), SQL otherwise; a flag wins.
+- It writes `<first model path>/<folder>/<name>.yml` with the `models.json` modeline and one block-style entry. SQL gets a `select 1 as id` body; Python gets `python: <project>_models.<name>:build` and a stub `<python_paths[0]>/<project>_models/<name>.py` with `def build(ctx: Any, **inputs: Any) -> Any`, which satisfies PLK602 for any alias. Both carry a commented `inputs:` example. The package `__init__.py` is created when missing.
+- It prints the written paths on stdout and writes no events. A project that does not load exits 1 with its diagnostics. A bad name, a name or file that already exists, `--sql` with `--python`, a `--folder` outside the model path and a Python model without `python_paths` in `pipeloom.yml` are usage errors (exit 2). No diagnostic code is added.
+
+### Options considered
+
+- Append the model to an existing file: rejected. Rewriting YAML drops comments, and keeping them needs a round-trip YAML dependency. One file per model was chosen.
+- A `--ref` or `--input` flag to declare inputs: left out to keep the roadmap's interface. A commented `inputs:` example shows the shape.
+- A template engine or generator framework: a few inline scaffold strings are enough.
+
+### Consequences
+
+- Authors get completion and validation squiggles in VS Code without installing a pipeloom extension. The schemas come from the published docs site, so completion needs network access the first time.
+- The `.vscode` templates ship in the wheel with the other templates.
+- New files stay valid by construction: tests run `validate` on generated models for polars and pandas and check every generated YAML against the exported JSON Schemas.

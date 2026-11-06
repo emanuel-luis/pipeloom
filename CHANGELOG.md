@@ -10,6 +10,9 @@ All notable changes to this project are documented here. The format follows
 
 - `pipeloom init [DIRECTORY]` scaffolds a new project, like `dbt init`: a `dev` target for polars, pandas, spark or databricks, one example model per layer (bronze, silver, gold), a `.gitignore` and a README. polars and pandas projects run out of the box on a small CSV in `data/`. Flags `--name`, `--engine`, `--catalog` (databricks), `--no-input` and `--force`; it prompts for the rest only when stdin is a terminal. `--force` keeps existing files and lists them as skipped ([ADR-0041](docs/adr/0041-pipeloom-init.md)).
 
+- `pipeloom init` writes the schema modeline in every YAML file, including `_defaults.yml`, plus `.vscode/settings.json` (maps `yaml.schemas` to the published schemas) and `.vscode/extensions.json` (recommends `redhat.vscode-yaml`), so completion works with only the YAML extension ([ADR-0041](docs/adr/0041-pipeloom-init.md)).
+- `pipeloom new model NAME [--sql|--python] [--folder PATH]` adds a model file under `models/`: one block-style entry with the schema modeline and, for Python, a `build(ctx, **inputs)` stub that passes PLK602. The default kind is Python on a pandas default target, SQL otherwise ([ADR-0041](docs/adr/0041-pipeloom-init.md)).
+
 ## [0.7.0] - 2026-11-05
 
 pipeloom 0.7 adds a `catalog` setting per model and per folder, so a project can keep each layer in its own catalog, and `pipeloom compile --stable`. Plugin API stays (0, 4). Plan hashes change once, so Databricks jobs deployed with an earlier version show as stale (PLD008) until they are deployed again.
