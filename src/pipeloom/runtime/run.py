@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import pipeloom
 from pipeloom.artifacts.finalize import finalize
 from pipeloom.artifacts.layout import RunPaths
+from pipeloom.artifacts.reference import Reference, load_reference
 from pipeloom.artifacts.results import RunHeader, RunStatusName, exit_code_of, git_sha, result_row
 from pipeloom.config.bind import BoundProject
 from pipeloom.diagnostics import Diagnostic, JsonValue, Location, Report, Severity
@@ -55,7 +56,7 @@ if TYPE_CHECKING:
 DEFAULT_ARTIFACTS_ROOT = "target"
 DEFAULT_CANCEL_GRACE = 30.0
 MAX_DEFAULT_WORKERS = 4
-USAGE_CODES = frozenset({"PLG304", "PLG305", "PLX108"})
+USAGE_CODES = frozenset({"PLG304", "PLG305", "PLG307", "PLG308", "PLX108", "PLX111"})
 
 
 @dataclass(frozen=True)
@@ -80,8 +81,15 @@ class RunOptions:
     orchestrator_ids: Mapping[str, str] = field(default_factory=dict)
     """Ids the orchestrator gave the run (job, run and task ids): they go into every attempt file,
     the run results and the `context` of every event. They win over the identity provider's."""
+    state: Path | None = None
+    """Folder of the reference manifest.json (and run_results.json), relative to the project dir
+    unless absolute. It fills `selection.state` when that is unset, and feeds `defer`."""
+    defer: bool = False
+    """Read the parents this run does not select from the reference's relations. Needs `state`."""
 
     def __post_init__(self) -> None:
+        if self.defer and self.state is None:
+            raise ValueError("defer needs state")
         for key, value in self.orchestrator_ids.items():
             check_orchestrator_id(key, value)
         if self.run_started_at is not None:
@@ -280,6 +288,23 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     """
     unit_mode = is_unit_selection(opts.selection)
     report = Report()
+    reference: Reference | None = None
+    if opts.state is not None:
+        seed = project.bind().value  # a project that does not bind reports its errors below
+        if seed is not None:
+            ref_report = Report()
+            reference = load_reference(
+                seed.loaded.project_dir / opts.state,
+                seed.loaded.config.name,
+                ref_report,
+                seed.loaded.project_dir,
+            )
+            if reference is None:
+                return _early(bus, ref_report.sorted())
+            if opts.selection.state is None:
+                opts = replace(
+                    opts, selection=replace(opts.selection, state=reference.selector_state())
+                )
     if opts.manifest is not None:
         plan, bound = _plan_from_manifest(project, opts, report)
         diags = list(report.sorted())

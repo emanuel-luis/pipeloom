@@ -63,8 +63,15 @@ def _config(m: ResolvedModel) -> ResolvedModelConfig:
 
 
 def model_checksums(pg: ProjectGraph) -> dict[str, str]:
-    """The node checksum of every model, as `compile_plan` records it."""
-    return {uid: node_checksum(_config(m), _body(pg, m)[1]) for uid, m in pg.project.models.items()}
+    """The node checksum of every model, as `compile_plan` records it. A Python model whose module
+    is missing (a project that is not validated yet) has none."""
+    out: dict[str, str] = {}
+    for uid, m in pg.project.models.items():
+        try:
+            out[uid] = node_checksum(_config(m), _body(pg, m)[1])
+        except LookupError:
+            continue
+    return out
 
 
 def compile_plan(

@@ -16,8 +16,10 @@ from pipeloom.cli._options import (
     plugin_option,
     project_options,
     select_options,
+    state_option,
     target_option,
 )
+from pipeloom.cli._select import reference_state
 from pipeloom.diagnostics import Severity
 from pipeloom.events.model import PlanCompiled
 from pipeloom.graph.selectors import Selection
@@ -25,6 +27,7 @@ from pipeloom.plan.manifest import write_manifest
 from pipeloom.plan.model import Plan
 
 DEFAULT_OUT = "target/manifest.json"
+USAGE = ("PLG304", "PLG305", "PLG307", "PLG308", "PLX111")
 
 
 def _summary(plan: Plan) -> PlanCompiled:
@@ -45,6 +48,7 @@ def _summary(plan: Plan) -> PlanCompiled:
 @target_option
 @plugin_option
 @select_options
+@state_option
 @log_format_option
 @click.option(
     "--boundary",
@@ -74,6 +78,7 @@ def compile_(
     plugins: tuple[str, ...],
     select: tuple[str, ...],
     exclude: tuple[str, ...],
+    state: Path | None,
     log_format: str,
     boundary: str | None,
     out: Path,
@@ -92,10 +97,15 @@ def compile_(
     )
     inv = Invocation("compile", log_format)
     project = Project(opts, invocation_id=inv.invocation_id)
-    outcome = project.compile(Selection(select, exclude))
     bound = project.bind().value
+    ref = (
+        None
+        if bound is None
+        else reference_state(inv, project_dir, state, bound.loaded.config.name, bound)
+    )
+    outcome = project.compile(Selection(select, exclude, ref))
     diags = outcome.diagnostics
-    if outcome.value is None and any(d.code in ("PLG304", "PLG305") for d in diags):
+    if outcome.value is None and any(d.code in USAGE for d in diags):
         inv.finish(diags, 2, bound=bound)
     warnings = sum(1 for d in diags if d.severity is Severity.WARNING)
     if outcome.value is None or (warn_error and warnings > 0):

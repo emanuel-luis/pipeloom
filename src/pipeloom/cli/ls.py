@@ -14,6 +14,7 @@ from pipeloom.cli._options import (
     plugin_option,
     project_options,
     select_options,
+    state_option,
     target_option,
 )
 from pipeloom.cli._select import resolve_selection
@@ -24,6 +25,7 @@ from pipeloom.cli._select import resolve_selection
 @target_option
 @plugin_option
 @select_options
+@state_option
 @log_format_option
 @click.option(
     "--output",
@@ -39,12 +41,13 @@ def ls(
     plugins: tuple[str, ...],
     select: tuple[str, ...],
     exclude: tuple[str, ...],
+    state: Path | None,
     log_format: str,
     output: str,
 ) -> None:
     """List the models that --select and --exclude choose (all by default)."""
     inv = Invocation("ls", log_format)
-    sel = resolve_selection(inv, project_dir, vars_, target, plugins, select, exclude)
+    sel = resolve_selection(inv, project_dir, vars_, target, plugins, select, exclude, state)
     models = sorted(
         (sel.resolved.project.models[uid] for uid in sel.ids), key=lambda m: m.unique_id
     )
