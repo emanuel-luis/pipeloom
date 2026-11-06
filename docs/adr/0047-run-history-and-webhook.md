@@ -26,7 +26,7 @@ Plugins implement `StateStore` structurally: they do not subclass the protocol, 
 
 **Implementations.** A shared helper, `page_runs`, orders and pages a sequence of records, so the stores agree on ties. The sqlite store selects the project's and target's rows, the json store reads `runs/*/run.json`, and the Spark plugin's `table` store selects the `run` rows of that project and target. Each call reads the whole history of one project and target; that is fine for thousands of runs, and a store can push the order and the limit down later without changing the contract. The state store contract suite gains the ordering, paging and unknown-cursor tests, so the Spark table store is checked by the same tests in CI.
 
-**`pipeloom runs`.** A command group with `ls` and `show RUN_ID`, read only (it takes no lock):
+**`pipeloom runs`.** A command group with `ls` and `show RUN_ID`. It takes no lock and changes no run. Building the store may still create it (the sqlite file, the json store's folder and marker, the Delta table), as every other command does; opening stores read only is left for later. The commands:
 
 - `runs ls` prints the last runs of the bound target, `--limit N` (default 20), `--before RUN_ID` for the next page, `--target`, and `--output text|json` like `ls`. Text is one tab-separated line per run: run id, status, started at, duration and unit counts. JSON is a list of the state records as the json store writes them.
 - `runs show RUN_ID` prints one run and its unit attempts; `--output json` prints `{"run": ..., "units": [...]}`.

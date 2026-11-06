@@ -1,6 +1,6 @@
 # Run history
 
-`pipeloom runs` lists past runs and shows one run with its units. It reads the state store of the target by default, or the `run_results.json` files under the artifacts root with `--artifacts`. It never starts, changes or locks anything. Decided in [ADR-0047](../adr/0047-run-history-and-webhook.md).
+`pipeloom runs` lists past runs and shows one run with its units. It reads the state store of the target by default, or the `run_results.json` files under the artifacts root with `--artifacts`. It takes no lock and changes no run; building the store may create an empty one, as every command does. Decided in [ADR-0047](../adr/0047-run-history-and-webhook.md).
 
 ## List runs
 
