@@ -68,7 +68,7 @@ def model_checksums(pg: ProjectGraph) -> dict[str, str]:
     out: dict[str, str] = {}
     for uid, m in pg.project.models.items():
         try:
-            out[uid] = node_checksum(_config(m), _body(pg, m)[1])
+            out[uid] = node_checksum(_config(m), _body(pg, m)[1], m.entry.columns)
         except LookupError:
             continue
     return out
@@ -124,7 +124,8 @@ def compile_plan(
             unit_ids=tuple(sorted(unit_ids[uid])),
             config=config,
             tags=tuple(m.config.tags),
-            checksum=node_checksum(config, raw),
+            checksum=node_checksum(config, raw, m.entry.columns),
+            columns=None if m.entry.columns is None else tuple(m.entry.columns),
         )
     sources = {
         uid: PlanSource(

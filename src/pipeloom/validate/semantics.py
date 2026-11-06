@@ -111,6 +111,13 @@ def _check_model(project: ResolvedProject, m: ResolvedModel, report: Report) -> 
             "expectations",
             "move the expectations to a table that reads it",
         )
+    if m.entry.columns is not None and c.materialized in _NO_ROWS:
+        err(
+            "PLP414",
+            f"{c.materialized} model '{m.name}' cannot have a contract (columns)",
+            "columns",
+            "move the columns to a table that reads it, or materialize the model as a table",
+        )
     if strategy == "replace_partitions" and not c.partition_by:
         err(
             "PLP407",

@@ -68,12 +68,17 @@ def _check_model(
             "materialized",
             f"supported: {', '.join(sorted(caps.materializations)) or 'none'}",
         )
-    if c.expectations and c.materialized not in ("view", "ephemeral") and not caps.quality:
+    # A non-nullable contract column is counted with `evaluate` too (ADR-0044).
+    checked = "expectations" if c.expectations else ""
+    if not checked and any(not col.nullable for col in m.entry.columns or ()):
+        checked = "columns"
+    if checked and c.materialized not in ("view", "ephemeral") and not caps.quality:
+        what = "expectations" if checked == "expectations" else "non-nullable contract columns"
         err(
             "PLC510",
-            f"engine '{engine.kind}' cannot evaluate expectations (model '{m.name}')",
-            "expectations",
-            "remove the expectations or use an engine with the quality capability",
+            f"engine '{engine.kind}' cannot evaluate {what} (model '{m.name}')",
+            checked,
+            f"remove the {what} or use an engine with the quality capability",
         )
     if m.entry.python is not None and c.frame_api == "narwhals" and not caps.portable:
         err(

@@ -488,7 +488,7 @@ _ACTIVE_03: Final = (
         "PLC510",
         E,
         "Expectations on an engine without quality",
-        "The selected engine does not declare the quality capability, so it cannot evaluate expectations.",
+        "The selected engine does not declare the quality capability, so it cannot evaluate expectations or count nulls in non-nullable contract columns.",
     ),
 )
 
@@ -693,6 +693,23 @@ _ACTIVE_08: Final = (
 )
 
 
+# Active since 0.9.
+_ACTIVE_09: Final = (
+    (
+        "PLM208",
+        E,
+        "Model contract violated",
+        "The model output does not match its declared columns: a column is missing or extra, a logical type differs from the declared dtype, or a column with nullable: false holds a null (NaN counts as null). The check runs after the expectations and before the schema policy, the quarantine write and the table write, so nothing is written. Permanent.",
+    ),
+    (
+        "PLP414",
+        E,
+        "Contract on a view or ephemeral model",
+        "A view or an ephemeral model writes no batch of its own, so its columns cannot be checked. Put the contract on a table that reads it.",
+    ),
+)
+
+
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
@@ -712,6 +729,7 @@ def _build() -> Mapping[str, CodeInfo]:
         ("0.5", _ACTIVE_05),
         ("0.6", _ACTIVE_06),
         ("0.8", _ACTIVE_08),
+        ("0.9", _ACTIVE_09),
     ):
         for code, sev, title, expl in table:
             out[code] = CodeInfo(code, _PREFIX_LAYER[code[:3]], sev, title, expl, "active", since)

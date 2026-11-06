@@ -2,15 +2,21 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 
 from pydantic import Field
 
 from pipeloom.config.types import ProjectPath
-from pipeloom.engine.errors import WriteRefusedError
+from pipeloom.engine.errors import TransientError, WriteRefusedError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession, Materializer
-from pipeloom.engine.types import Namespace, StateStoreCapabilities
+from pipeloom.engine.types import (
+    ExpectationSpec,
+    Namespace,
+    QualityCounts,
+    Relation,
+    StateStoreCapabilities,
+)
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
 from pipeloom.runtime.context import RuntimeContext
 from pipeloom.state.sqlite import SqliteStore
@@ -39,8 +45,43 @@ class RefusingEngine(MemoryEngine):
         yield RefusingSession(self.store, self._tokens)
 
 
+class FlakySession(MemorySession):
+    """A session whose counting fails with a transient error, for the contract's null check."""
+
+    def evaluate(self, rel: Relation, checks: Sequence[ExpectationSpec]) -> QualityCounts:
+        raise TransientError("cluster lost")
+
+
+class FlakyEngine(MemoryEngine):
+    name = "flaky"
+
+    @contextmanager
+    def session(self, ctx: RuntimeContext, *, catalog: Catalog) -> Iterator[EngineSession]:
+        yield FlakySession(self.store, self._tokens)
+
+
 class _Options(OptionsModel):
     pass
+
+
+FLAKY_ENGINE: PluginSpec[Engine] = PluginSpec(
+    "flaky",
+    "flaky",
+    "engines",
+    API_VERSION,
+    lambda _opts: FlakyEngine(),
+    _Options,
+    capabilities=MEMORY_CAPABILITIES,
+)
+FLAKY_CATALOG: PluginSpec[Catalog] = PluginSpec(
+    "flaky",
+    "flaky",
+    "catalogs",
+    API_VERSION,
+    lambda _opts: MemoryCatalog(),
+    _Options,
+    compatible_engines=frozenset({"flaky"}),
+)
 
 
 FAILING: PluginSpec[Catalog] = PluginSpec(

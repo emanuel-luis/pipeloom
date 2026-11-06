@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Model contracts: an optional `columns` list on a model, each entry with `name`, a logical `dtype` and `nullable`. Before every write the batch must have exactly those columns and types, and no null in a non-nullable column; otherwise the unit fails with PLM208 and nothing is written. A contract on a view or an ephemeral model is PLP414. Declared columns appear as `nodes[].columns` in the manifest (only when declared, so other manifests, checksums and plan hashes are unchanged) and on the docs site model page. The engine contract suite gains contract cells ([ADR-0044](docs/adr/0044-model-contracts.md)).
+
 ## [0.8.0] - 2026-11-06
 
 pipeloom 0.8 is about the first hour and fast loops. `pipeloom init` scaffolds a project with editor completion set up (polars and pandas projects run out of the box), and `pipeloom new model` adds models to it. `pipeloom explain` prints what a diagnostic code means. `--state` with the `state:modified`, `state:new` and `result:` selectors picks what changed or what failed, and `--defer` reads the parents a run does not build from a reference such as production. `pipeloom retry --from` reruns what a run did not finish. `pipeloom docs generate` and `docs serve` write a one-file docs and lineage site. Plugin API stays (0, 4). Artifacts only gain fields: `run_results` `args` (`state`, `defer`), `run.parent_run_id`, `model.input_read` (`relation`, `deferred`) and `run.started` (`parent_run_id`).

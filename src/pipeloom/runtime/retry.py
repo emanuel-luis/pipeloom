@@ -25,7 +25,7 @@ _NOT_TRANSIENT_OS: Final = (
     FileExistsError,
 )
 PERMANENT_CODES: Final = frozenset(
-    {"PLQ301", "PLQ302", "PLM202", "PLM203", "PLM205", "PLM206", "PLM207"}
+    {"PLQ301", "PLQ302", "PLM202", "PLM203", "PLM205", "PLM206", "PLM207", "PLM208"}
 )
 """Failures that repeat on the same data; only `retry_on: any` retries them."""
 

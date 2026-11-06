@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PLP414",
+    "severity": "error",
+    "message": "view model 'a' cannot have a contract (columns)",
+    "hint": "move the columns to a table that reads it, or materialize the model as a table",
+    "location": {
+      "file": "models/m.yml",
+      "line": 6,
+      "col": 7,
+      "json_pointer": "/models/0/columns"
+    },
+    "context": {
+      "model": "a"
+    }
+  }
+]
