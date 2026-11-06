@@ -263,6 +263,16 @@ def _model_section(node: PlanNode, plan: Plan, rows: Mapping[str, Mapping[str, A
         ("children", _links(plan.child_map.get(uid, ()), plan)),
     ]
     parts = [f'<section id="model-{_e(node.name)}"><h2>{_e(node.name)}</h2>', _dl(pairs)]
+    if node.columns is not None:
+        cells = "".join(
+            f"<tr><td>{_e(c.name)}</td><td><code>{_e(c.dtype)}</code></td>"
+            f"<td>{'yes' if c.nullable else 'no'}</td></tr>"
+            for c in node.columns
+        )
+        parts.append(
+            "<h3>Columns (contract)</h3><table><thead><tr><th>name</th><th>dtype</th>"
+            f"<th>nullable</th></tr></thead><tbody>{cells}</tbody></table>"
+        )
     if node.config.expectations:
         items = []
         for exp in node.config.expectations:
