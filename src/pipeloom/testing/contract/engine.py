@@ -585,7 +585,10 @@ class EngineContract:
     @pytest.mark.parametrize(
         ("declared", "problem"),
         [
-            ((Column("id", "int64"), Column("label", "int64")), "'label' is string, declared int64"),
+            (
+                (Column("id", "int64"), Column("label", "int64")),
+                "'label' is string, declared int64",
+            ),
             ((Column("id", "string"), Column("label", "string")), "'id' is int64, declared string"),
             ((Column("id", "int64"),), "extra column 'label'"),
             ((*SCHEMA, Column("v", "int64")), "missing column 'v'"),
