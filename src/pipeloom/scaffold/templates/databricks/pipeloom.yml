@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
+# Runs as a Databricks job on serverless compute. Before the first deploy:
+#   - the catalog {{catalog}} must exist, and you need USE CATALOG and CREATE SCHEMA on it
+#     (pipeloom creates the bronze, silver and gold schemas, never the catalog);
+#   - create the schema {{catalog}}.pipeloom_ops and the volume {{catalog}}.pipeloom_ops.artifacts,
+#     or point state and artifacts below at ones you already have;
+#   - set up a Databricks CLI profile (databricks auth login) and deploy with
+#     pipeloom databricks --profile <name> deploy, or set DATABRICKS_CONFIG_PROFILE.
+config_version: 1
+name: {{name}}
+defaults:
+  models:
+    materialized: table
+targets:
+  dev:
+    engine:
+      kind: spark
+    # Every model writes to {{catalog}}.<layer schema>.<model>; models/<layer>/_defaults.yml sets
+    # the schema.
+    catalog:
+      kind: unity
+      catalog: {{catalog}}
+    naming:
+      kind: none
+    # Run state lives in a Delta table.
+    state:
+      kind: table
+      table: {{catalog}}.pipeloom_ops.pipeloom_state_{{name}}
+    # Run artifacts (manifest, run results) go to a Unity Catalog volume.
+    artifacts:
+      root: /Volumes/{{catalog}}/pipeloom_ops/artifacts/{{name}}
+    deploy:
+      kind: databricks
+      compute:
+        default:
+          kind: serverless
+          environment_version: "5"
+          dependencies:
+            - "pipeloom=={{version}}"
+            - "pipeloom-spark=={{version}}"
+            - "pipeloom-databricks=={{version}}"

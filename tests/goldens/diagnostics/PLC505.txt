@@ -1,2 +1,2 @@
-error PLC505 models/m.yml:2:39 model 'a' appends with retries on an engine without idempotent writes
+error PLC505 models/m.yml:4:14 model 'a' appends with retries on an engine without idempotent writes
       hint: set retries to 0 or use another strategy

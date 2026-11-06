@@ -1,4 +1,5 @@
-run: {boundary: task}
+run:
+  boundary: task
 files:
   pipeloom.yml: |
     config_version: 1
@@ -6,12 +7,19 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory, root: store}
-        catalog: {kind: memory, root: store}
-        state: {kind: json, path: state}
+        engine:
+          kind: memory
+          root: store
+        catalog:
+          kind: memory
+          root: store
+        state:
+          kind: json
+          path: state
   models/m.yml: |
     models:
-      - {name: a, python: "m:die"}
+      - name: a
+        python: "m:die"
   src/m.py: |
     def die(ctx):
         import os

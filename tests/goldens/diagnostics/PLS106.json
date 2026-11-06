@@ -19,8 +19,8 @@
     "hint": "set it, or write ${env:PIPELOOM_UNSET_X:-default} to give a default",
     "location": {
       "file": "pipeloom.yml",
-      "line": 6,
-      "col": 39,
+      "line": 9,
+      "col": 13,
       "json_pointer": "/targets/dev/catalog/root"
     },
     "context": {

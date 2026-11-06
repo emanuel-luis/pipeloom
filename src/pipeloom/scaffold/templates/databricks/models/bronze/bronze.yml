@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json
+# Bronze: orders from the TPC-H sample that every workspace has, renamed to the project's columns.
+# Replace the source with your own table.
+sources:
+  - name: raw_orders
+    table: samples.tpch.orders
+models:
+  - name: orders
+    sql: |
+      select
+        o_orderkey as order_id,
+        o_custkey as customer_id,
+        o_orderdate as order_date,
+        o_totalprice as amount
+      from raw_orders
+    inputs:
+      raw_orders:
+        source: raw_orders
+    tags: [bronze]

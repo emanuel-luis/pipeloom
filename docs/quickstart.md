@@ -11,6 +11,27 @@ $ pip install "pipeloom[polars]"
 Use `pipeloom[pandas]` for the pandas engine. Add the `sqlglot` extra to get warnings about SQL
 that reads tables you did not declare (`pipeloom[polars,sqlglot]`).
 
+## Start from `pipeloom init`
+
+The fastest start is to let pipeloom write the project:
+
+```console
+$ pipeloom init shop
+Project name [shop]:
+Engine (polars, pandas, spark, databricks) [polars]:
+Created project 'shop' (polars) in shop
+Next steps:
+  cd shop
+  pipeloom validate
+  pipeloom run
+```
+
+It writes `pipeloom.yml` with a `dev` target, one example model in each of `models/bronze`,
+`models/silver` and `models/gold`, a small CSV in `data/`, a `.gitignore` and a README. Pass
+`--no-input` (and `--name`, `--engine`, `--catalog`) to skip the questions; see
+[pipeloom init](reference/cli.md#pipeloom-init). The rest of this page writes a project by hand,
+to show each part.
+
 ## Write the project
 
 `pipeloom.yml`:
@@ -21,9 +42,14 @@ config_version: 1
 name: shop
 targets:
   dev:
-    engine: {kind: polars}
-    catalog: {kind: filesystem, root: target/warehouse}
-    state: {kind: json, path: .pipeloom/state}
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+    state:
+      kind: json
+      path: .pipeloom/state
 ```
 
 `raw/orders.csv`:
@@ -40,15 +66,21 @@ id,customer_id,amount
 ```yaml
 # yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json
 sources:
-  - {name: raw_orders, format: csv, location: raw/orders.csv}
+  - name: raw_orders
+    format: csv
+    location: raw/orders.csv
 models:
   - name: stg_orders
     sql: select id, customer_id, amount from raw_orders
-    inputs: {raw_orders: {source: raw_orders}}
+    inputs:
+      raw_orders:
+        source: raw_orders
     tags: [staging]
   - name: orders_by_customer
     sql: select customer_id, sum(amount) as total from stg_orders group by customer_id
-    inputs: {stg_orders: {ref: stg_orders}}
+    inputs:
+      stg_orders:
+        ref: stg_orders
 ```
 
 ## Check it

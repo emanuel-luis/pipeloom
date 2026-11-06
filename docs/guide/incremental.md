@@ -13,9 +13,14 @@ config_version: 1
 name: shop
 targets:
   dev:
-    engine: {kind: polars}
-    catalog: {kind: filesystem, root: target/warehouse}
-    state: {kind: json, path: .pipeloom/state}
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+    state:
+      kind: json
+      path: .pipeloom/state
 ```
 
 `raw/orders.csv`:
@@ -34,13 +39,19 @@ sources:
   - name: raw_orders
     format: csv
     location: raw/orders.csv
-    options: {try_parse_dates: true}   # read updated_at as a timestamp, not text
+    options:
+      try_parse_dates: true   # read updated_at as a timestamp, not text
 models:
   - name: orders
     sql: select id, customer_id, amount, status, updated_at from raw_orders
-    inputs: {raw_orders: {source: raw_orders}}
+    inputs:
+      raw_orders:
+        source: raw_orders
     materialized: incremental
-    incremental: {input: raw_orders, column: updated_at, lookback: 2h}
+    incremental:
+      input: raw_orders
+      column: updated_at
+      lookback: 2h
     write:
       strategy: merge
       unique_key: [id]

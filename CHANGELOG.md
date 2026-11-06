@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `pipeloom init [DIRECTORY]` scaffolds a new project, like `dbt init`: a `dev` target for polars, pandas, spark or databricks, one example model per layer (bronze, silver, gold), a `.gitignore` and a README. polars and pandas projects run out of the box on a small CSV in `data/`. Flags `--name`, `--engine`, `--catalog` (databricks), `--no-input` and `--force`; it prompts for the rest only when stdin is a terminal. `--force` keeps existing files and lists them as skipped ([ADR-0041](docs/adr/0041-pipeloom-init.md)).
+
 ## [0.7.0] - 2026-11-05
 
 pipeloom 0.7 adds a `catalog` setting per model and per folder, so a project can keep each layer in its own catalog, and `pipeloom compile --stable`. Plugin API stays (0, 4). Plan hashes change once, so Databricks jobs deployed with an earlier version show as stale (PLD008) until they are deployed again.

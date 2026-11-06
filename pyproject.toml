@@ -214,6 +214,7 @@ source_modules = [
     "pipeloom.platform",
     "pipeloom.plugins",
     "pipeloom.runtime",
+    "pipeloom.scaffold",
     "pipeloom.secrets",
     "pipeloom.state",
     "pipeloom.validate",

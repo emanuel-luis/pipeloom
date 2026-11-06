@@ -1,2 +1,2 @@
-warning PLP406 models/m.yml:2:44 ephemeral model 'e' is inlined in 4 units (limit 3)
+warning PLP406 models/m.yml:4:19 ephemeral model 'e' is inlined in 4 units (limit 3)
       hint: make it 'intermediate' to compute it once

@@ -6,8 +6,8 @@
     "hint": "did you mean 'stg_orders'?",
     "location": {
       "file": "models/m.yml",
-      "line": 6,
-      "col": 28,
+      "line": 8,
+      "col": 14,
       "json_pointer": "/models/1/inputs/orders/ref"
     },
     "context": {

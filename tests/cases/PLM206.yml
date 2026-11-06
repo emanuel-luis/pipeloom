@@ -5,11 +5,15 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
-        catalog: {kind: memory}
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
   models/m.yml: |
     models:
       - name: a
         sql: select 1 as id union all select 1 as id
-        write: {strategy: merge, unique_key: [id]}
+        write:
+          strategy: merge
+          unique_key: [id]
 run: true

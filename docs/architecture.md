@@ -92,6 +92,8 @@ Source: [02-packages.d2](diagrams/02-packages.d2).
 6. **Execute:** the scheduler runs units through an executor. Orchestrated tasks run `pipeloom run --manifest ... --select unit:<id> --expect-plan-hash <h>`.
 7. **Finalize:** merge per-invocation results, write `run_results.json`, commit run state, flush and close sinks.
 
+**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `validate`, `compile`, `ls`, `graph`, `run`, `finalize`, `schema export` and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
+
 ![The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize.](diagrams/03-lifecycle.svg)
 
 Source: [03-lifecycle.d2](diagrams/03-lifecycle.d2).
@@ -106,54 +108,97 @@ config_version: 1
 name: shop
 model_paths: [models]
 python_paths: [src]            # added to sys.path at execution only
-vars: {country: BR}
+vars:
+  country: BR
 defaults:
-  models: {materialized: table, retries: 1, timeout: 30m}
+  models:
+    materialized: table
+    retries: 1
+    timeout: 30m
 targets:
   dev:
-    engine: {kind: polars}
-    catalog: {kind: filesystem, root: ./warehouse}
-    naming: {kind: per_user}
-    state: {kind: sqlite, path: .pipeloom/state.db}
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: ./warehouse
+    naming:
+      kind: per_user
+    state:
+      kind: sqlite
+      path: .pipeloom/state.db
     workers: 4
   prod:
-    engine: {kind: spark}
-    catalog: {kind: unity, catalog: main}
-    naming: {kind: prefix, schema_prefix: prod_}
-    state: {kind: table, table: ops._pipeloom_state}
-    artifacts: {root: /Volumes/main/ops/pipeloom}
+    engine:
+      kind: spark
+    catalog:
+      kind: unity
+      catalog: main
+    naming:
+      kind: prefix
+      schema_prefix: prod_
+    state:
+      kind: table
+      table: ops._pipeloom_state
+    artifacts:
+      root: /Volumes/main/ops/pipeloom
     deploy:                                  # 0.5: a plugin block, validated against `renderers`
       kind: databricks
-      pipelines: {main: {}, daily: {select: ["tag:daily"]}}
-      compute: {default: {kind: serverless, environment_version: "5"}}
+      pipelines:
+        main: {}
+        daily:
+          select: ["tag:daily"]
+      compute:
+        default:
+          kind: serverless
+          environment_version: "5"
       task_grouping: none
 events:
   sinks:
-    - {kind: console}
-    - {kind: jsonl, path: target/events.jsonl, failure_budget: 5}
+    - kind: console
+    - kind: jsonl
+      path: target/events.jsonl
+      failure_budget: 5
 ```
 
 **Model files.** Any `*.yml` under `model_paths`.
 
 ```yaml
 sources:
-  - {name: raw_orders, format: parquet, location: data/raw/orders/}
+  - name: raw_orders
+    format: parquet
+    location: data/raw/orders/
 models:
   - name: stg_orders
     sql: |
       select order_id, customer_id, amount, updated_at from raw_orders
-    inputs: {raw_orders: {source: raw_orders}}
+    inputs:
+      raw_orders:
+        source: raw_orders
   - name: fct_orders
     python: shop.marts.orders:build          # module:function
     inputs:
-      orders: {ref: stg_orders}
-      customers: {ref: dim_customers}
+      orders:
+        ref: stg_orders
+      customers:
+        ref: dim_customers
     materialized: incremental
-    incremental: {input: orders, column: updated_at, lookback: 2d}
-    write: {strategy: merge, unique_key: [order_id], on_schema_change: append_new_columns}
+    incremental:
+      input: orders
+      column: updated_at
+      lookback: 2d
+    write:
+      strategy: merge
+      unique_key: [order_id]
+      on_schema_change: append_new_columns
     partition_by: [order_date]
     expectations:
-      - {name: amount_non_negative, check: {range: {column: amount, min: 0}}, on_violation: drop}
+      - name: amount_non_negative
+        check:
+          range:
+            column: amount
+            min: 0
+        on_violation: drop
     tags: [finance, daily]
 ```
 
@@ -437,7 +482,11 @@ Source: [04-state-machines.d2](diagrams/04-state-machines.d2).
 **Incremental config:**
 
 ```yaml
-incremental: {input: orders, column: updated_at, lookback: 2d, watermark_source: state}  # or: target
+incremental:
+  input: orders
+  column: updated_at
+  lookback: 2d
+  watermark_source: state  # or: target
 ```
 
 **Algorithm per unit:**
@@ -462,7 +511,7 @@ The watermark is committed after the write, and a retry with the same token repl
 | append | insert all rows | overwrite |
 | overwrite | replace data and schema | same |
 | replace_partitions | replace partitions present in the batch (`partition_by` required) | overwrite |
-| merge | `unique_key` equality; optional `update_condition`; `deletes: {column, value, mode: hard|soft}`; a missing key column or a duplicate key in the batch is PLM206; rows with a null key never match | overwrite |
+| merge | `unique_key` equality; optional `update_condition`; an optional `deletes` block with `column`, `value` and `mode` (`hard` or `soft`); a missing key column or a duplicate key in the batch is PLM206; rows with a null key never match | overwrite |
 | scd2 | `unique_key`, `tracked_columns` (default all), columns `valid_from`, `valid_to`, `is_current`, row hash; deletes close the current row | rebuild |
 
 A full refresh writes append, merge and replace_partitions as overwrite. A first build (the target does not exist) keeps its strategy, because into an absent table every strategy writes the same rows and merge still checks its key. On filesystem tables (ADR-0025) every strategy writes one part file per partition when `partition_by` is set; replace_partitions swaps whole files without reading the others, and a merge rewrites the whole table in 0.3 as read-modify-write under a commit lock and an expected version. SCD2 is planned (section 16).
@@ -501,11 +550,26 @@ Table properties, `partition_by`, clustering and grants are applied by every str
 
 ```yaml
 expectations:
-  - {name: id_not_null, check: {not_null: [order_id]}, on_violation: fail}
-  - {name: status_known, check: {accepted_values: {column: status, values: [new, paid, shipped]}}, on_violation: drop}
-  - {name: amount_ok, expr: "amount >= 0 and amount < 1e6", on_violation: warn}   # engine-dialect, non-portable
-  - {name: unique_id, check: {unique: [order_id]}, on_violation: fail}            # aggregate
-quality: {quarantine: true, max_drop_ratio: 0.05}
+  - name: id_not_null
+    check:
+      not_null: [order_id]
+    on_violation: fail
+  - name: status_known
+    check:
+      accepted_values:
+        column: status
+        values: [new, paid, shipped]
+    on_violation: drop
+  - name: amount_ok
+    expr: "amount >= 0 and amount < 1e6"   # engine-dialect, non-portable
+    on_violation: warn
+  - name: unique_id
+    check:
+      unique: [order_id]                   # aggregate
+    on_violation: fail
+quality:
+  quarantine: true
+  max_drop_ratio: 0.05
 ```
 
 - **Row-level checks:** `not_null`, `accepted_values`, `range`, `regex`, `expr`. Allowed actions: warn, drop, fail.
@@ -803,7 +867,7 @@ Catalog, state-store and sink contract suites follow the same pattern.
 - **0.5 (delivered):** `pipeloom-databricks`: renderer, bundle YAML, direct deploy, run, repair, finalize with task states, task values, task grouping, compute rules, the `unity` catalog, the `databricks` secret provider and the manual live workflow. The core gained the `deploy` block, `pipeloom.commands`, `--orchestrator-id`, `pipeloom finalize` and runtime secret resolution (ADR-0034 to ADR-0036). Plugin API stays (0, 4).
 - **0.6 (delivered):** `pipeloom-airflow`: LOCAL, VIRTUALENV, KUBERNETES and DATABRICKS modes (live `per_task` and `shared` polling), `PipeloomDag` and `PipeloomTaskGroup`, the PROJECT compile cache, `pipeloom finalize --unit-states-json`, `pipeloom_databricks.api.connect_explicit`, PLA001 to PLA007, the `airflow` CI job. Later: the DOCKER mode and an `airflow` secret provider (connections and variables); a `dag.test()` end-to-end test of DATABRICKS mode needs a file-backed Databricks fake or the live workflow.
 - **0.7 (delivered):** a `catalog` setting per model and per folder that wins over the naming strategy's catalog, path catalogs that map a catalog to a leading directory (ADR-0040), and `pipeloom compile --stable` for reproducible manifests. Plugin API stays (0, 4).
-- **0.8:** `pipeloom-openlineage`, SCD2, deletes, `pipeloom retry` (`result:fail+`), `state:modified`.
+- **0.8:** `pipeloom init` (ADR-0041), `pipeloom-openlineage`, SCD2, deletes, `pipeloom retry` (`result:fail+`), `state:modified`.
 - **0.9:** hardening, performance, docs completeness, API freeze candidates, the deprecation policy.
 - **1.0:** `config_version: 1`, plugin API 1.0, manifest, event and run_results schemas v1 all declared stable.
 

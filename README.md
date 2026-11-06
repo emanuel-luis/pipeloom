@@ -17,11 +17,13 @@ Spark and the orchestrator integrations.
 
 ```console
 $ pip install "pipeloom[polars]"   # or pipeloom[pandas]
+$ pipeloom init shop               # asks for the name and the engine
+$ cd shop
 $ pipeloom validate
 $ pipeloom run
 ```
 
-The optional extra `sqlglot` adds warnings for SQL that reads undeclared tables. Commands: `validate`,
+The optional extra `sqlglot` adds warnings for SQL that reads undeclared tables. Commands: `init`, `validate`,
 `compile`, `run`, `ls`, `graph`, `schema export` and `plugins list`. See the
 [quickstart](https://emanuel-luis.github.io/pipeloom/latest/quickstart/).
 

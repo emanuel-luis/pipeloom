@@ -7,11 +7,15 @@ with the run. pipeloom has a setting for each case.
 
 ```yaml
 sources:
-  - {name: raw_orders, format: csv, location: raw/orders.csv}
+  - name: raw_orders
+    format: csv
+    location: raw/orders.csv
 models:
   - name: orders
     python: shop.flaky:load
-    inputs: {raw_orders: {source: raw_orders}}
+    inputs:
+      raw_orders:
+        source: raw_orders
     retries: 2          # extra attempts after the first; the default is 0
     retry_delay: 1s     # base delay; the default is 1s
     retry_on: transient # or "any"
@@ -103,9 +107,14 @@ Press Ctrl+C (or send SIGTERM; on Windows, Ctrl+C or Ctrl+Break) to stop a run:
 ```yaml
 targets:
   dev:
-    engine: {kind: polars}
-    catalog: {kind: filesystem, root: target/warehouse}
-    state: {kind: json, path: .pipeloom/state}
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+    state:
+      kind: json
+      path: .pipeloom/state
     cancel_grace: 10s
 ```
 

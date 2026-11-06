@@ -3,20 +3,28 @@ models:
     materialized: ephemeral
     python: shop.enrich:orders_enriched
     inputs:
-      orders: {ref: stg_orders}
-      customers: {ref: stg_customers}
+      orders:
+        ref: stg_orders
+      customers:
+        ref: stg_customers
   - name: fct_orders
     python: shop.marts:fct_orders
     tags: [mart]
-    write: {strategy: append}
+    write:
+      strategy: append
     inputs:
-      enriched: {ref: orders_enriched}
-      payments: {ref: stg_payments}
+      enriched:
+        ref: orders_enriched
+      payments:
+        ref: stg_payments
   - name: dim_customers
     python: shop.marts:dim_customers
     tags: [mart]
     inputs:
-      enriched: {ref: orders_enriched}
+      enriched:
+        ref: orders_enriched
   - name: rpt_revenue
     sql: select customer_id, sum(amount) as revenue from fct_orders group by customer_id
-    inputs: {fct_orders: {ref: fct_orders}}
+    inputs:
+      fct_orders:
+        ref: fct_orders

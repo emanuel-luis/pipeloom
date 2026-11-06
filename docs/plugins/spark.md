@@ -13,9 +13,17 @@ $ pip install pipeloom-spark         # Databricks, Databricks Connect, or any en
 ```yaml
 targets:
   dev:
-    engine: {kind: spark, mode: local, conf: {spark.sql.shuffle.partitions: "4"}}
-    catalog: {kind: delta_path, root: warehouse}
-    state: {kind: table, path: warehouse/_state}
+    engine:
+      kind: spark
+      mode: local
+      conf:
+        spark.sql.shuffle.partitions: "4"
+    catalog:
+      kind: delta_path
+      root: warehouse
+    state:
+      kind: table
+      path: warehouse/_state
 ```
 
 ## Installation
@@ -182,8 +190,10 @@ evaluated in one Spark job. Rows dropped by a check go to `<model>__quarantine` 
 ## The table state store
 
 ```yaml
-state: {kind: table, table: ops._pipeloom_state}   # by catalog name
-# state: {kind: table, path: warehouse/_state}     # or by path; set exactly one of the two
+state:
+  kind: table
+  table: ops._pipeloom_state   # by catalog name
+  # path: warehouse/_state     # or by path; set exactly one of the two
 ```
 
 `table` keeps watermarks, runs, units and the run lock in one Delta table, partitioned by `kind`.

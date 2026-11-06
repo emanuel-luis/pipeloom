@@ -1,3 +1,7 @@
 sources:
-  - {name: raw_customers, format: csv, location: raw/customers.csv}
-  - {name: raw_orders, format: csv, location: raw/orders.csv}
+  - name: raw_customers
+    format: csv
+    location: raw/customers.csv
+  - name: raw_orders
+    format: csv
+    location: raw/orders.csv

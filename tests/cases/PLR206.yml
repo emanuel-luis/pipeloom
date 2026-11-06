@@ -4,7 +4,8 @@ files:
     name: shop
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
     model_paths: [models, missing_dir]
   models/m.yml: |
     models:

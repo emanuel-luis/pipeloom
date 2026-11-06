@@ -4,11 +4,16 @@ files:
     name: shop
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     sources:
-      - {name: raw_orders, format: memory, location: raw/orders}
+      - name: raw_orders
+        format: memory
+        location: raw/orders
     models:
       - name: stg_orders
         sql: select * from o
-        inputs: {o: {source: raw_ordrs}}
+        inputs:
+          o:
+            source: raw_ordrs

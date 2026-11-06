@@ -6,8 +6,8 @@
     "hint": "rename model 'a__quarantine' or turn quality.quarantine off",
     "location": {
       "file": "models/m.yml",
-      "line": 4,
-      "col": 14,
+      "line": 5,
+      "col": 7,
       "json_pointer": "/models/0/quality"
     },
     "context": {

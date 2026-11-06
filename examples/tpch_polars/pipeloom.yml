@@ -4,10 +4,18 @@ name: tpch_polars
 vars:
   tpch_dir: ../data/tpch
 defaults:
-  models: {materialized: table}
+  models:
+    materialized: table
 targets:
   dev:
-    engine: {kind: polars}
-    catalog: {kind: filesystem, root: target/warehouse}
-    naming: {kind: none, schema: tpch}
-    state: {kind: json, path: .pipeloom/state}
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+    naming:
+      kind: none
+      schema: tpch
+    state:
+      kind: json
+      path: .pipeloom/state

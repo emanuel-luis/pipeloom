@@ -6,7 +6,7 @@
     "hint": "first defined at line 2",
     "location": {
       "file": "pipeloom.yml",
-      "line": 6,
+      "line": 7,
       "col": 1,
       "json_pointer": null
     },

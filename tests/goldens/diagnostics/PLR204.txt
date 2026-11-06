@@ -1,4 +1,4 @@
 warning PLR206 pipeloom.yml:1:1 model_paths entry 'models' does not exist
       hint: create the directory or remove the entry
-error PLR204 pipeloom.yml:5:20 unknown engine kind 'memry'
+error PLR204 pipeloom.yml:6:13 unknown engine kind 'memry'
       hint: did you mean 'memory'?

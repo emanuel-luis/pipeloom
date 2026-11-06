@@ -6,8 +6,8 @@
     "hint": "did you mean 'raw_orders'?",
     "location": {
       "file": "models/m.yml",
-      "line": 6,
-      "col": 26,
+      "line": 10,
+      "col": 17,
       "json_pointer": "/models/0/inputs/o/source"
     },
     "context": {

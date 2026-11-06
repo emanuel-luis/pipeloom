@@ -4,5 +4,8 @@ files:
     name: shop
     targets:
       dev:
-        engine: {kind: memory}
-        catalog: {kind: filesystem, root: '${env:PIPELOOM_UNSET_X}'}
+        engine:
+          kind: memory
+        catalog:
+          kind: filesystem
+          root: '${env:PIPELOOM_UNSET_X}'

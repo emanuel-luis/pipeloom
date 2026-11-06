@@ -6,8 +6,8 @@
     "hint": "set write.unique_key to the columns that identify a row",
     "location": {
       "file": "models/m.yml",
-      "line": 4,
-      "col": 12,
+      "line": 5,
+      "col": 7,
       "json_pointer": "/models/0/write/unique_key"
     },
     "context": {

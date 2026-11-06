@@ -1,9 +1,14 @@
 entry_points:
-  - {group: engines, name: future, value: "tests.plugins.fakes:API05", dist: pipeloom-future, version: "2.0"}
+  - group: engines
+    name: future
+    value: "tests.plugins.fakes:API05"
+    dist: pipeloom-future
+    version: "2.0"
 files:
   pipeloom.yml: |
     config_version: 1
     name: shop
     targets:
       dev:
-        engine: {kind: future}
+        engine:
+          kind: future

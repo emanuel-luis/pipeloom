@@ -5,10 +5,15 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     models:
       - name: a
         sql: select 1
         expectations:
-          - {name: one_row, check: {row_count: {min: 1}}, on_violation: drop}
+          - name: one_row
+            check:
+              row_count:
+                min: 1
+            on_violation: drop

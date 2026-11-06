@@ -6,7 +6,7 @@
     "hint": "check that source 'raw' exists and can be read",
     "location": {
       "file": "models/m.yml",
-      "line": 4,
+      "line": 6,
       "col": null,
       "json_pointer": null
     },

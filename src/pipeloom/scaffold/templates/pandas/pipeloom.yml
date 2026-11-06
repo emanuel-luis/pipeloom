@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
+# pandas has no SQL models: each model is a Python function under src/.
+config_version: 1
+name: {{name}}
+python_paths: [src]
+defaults:
+  models:
+    materialized: table
+targets:
+  dev:
+    engine:
+      kind: pandas
+    # Tables are parquet directories under target/warehouse/<schema>/<table>/.
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+    naming:
+      kind: none
+    state:
+      kind: json
+      path: .pipeloom/state

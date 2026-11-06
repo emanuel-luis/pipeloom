@@ -5,10 +5,13 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
-        catalog: {kind: failing}
+        engine:
+          kind: memory
+        catalog:
+          kind: failing
   models/m.yml: |
     models:
-      - {name: a, sql: select 1 as x}
+      - name: a
+        sql: select 1 as x
 run: true
 plugins: ["tests.runtime.fakes:FAILING"]

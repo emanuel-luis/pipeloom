@@ -5,11 +5,17 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     models:
-      - {name: a, python: "m:a", inputs: {x: {ref: b}}}
-      - {name: b, sql: select 1}
+      - name: a
+        python: "m:a"
+        inputs:
+          x:
+            ref: b
+      - name: b
+        sql: select 1
   src/m.py: |
     def a(ctx, y):
         return None
