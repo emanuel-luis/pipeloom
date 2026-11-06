@@ -41,4 +41,5 @@ nav:
       - Run artifacts: reference/artifacts.md
       - Error codes: reference/errors.md
   - Architecture: architecture.md
+  - Roadmap: roadmap.md
   - Decisions: adr/README.md
