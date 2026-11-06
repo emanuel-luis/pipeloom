@@ -1013,6 +1013,56 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-08-editor-setup-and-pipeloom-new-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (0.8): editor setup and pipeloom new model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Amendment (0.8): editor setup and pipeloom new model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options-considered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Options considered
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequences_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1069,7 +1119,28 @@
 <li>A plugin cannot add its own template yet. When one needs to, an entry-point group can be added then.</li>
 </ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted.</p>
+<p>Accepted. Amended in 0.8 (editor setup, <code>pipeloom new model</code>).</p>
+<h2 id="amendment-08-editor-setup-and-pipeloom-new-model">Amendment (0.8): editor setup and pipeloom new model<a class="headerlink" href="#amendment-08-editor-setup-and-pipeloom-new-model" title="Permanent link">&para;</a></h2>
+<h3 id="what-changed">What changed<a class="headerlink" href="#what-changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Every YAML file <code>init</code> writes starts with a <code># yaml-language-server: $schema=&lt;url&gt;</code> modeline: <code>project.json</code> for <code>pipeloom.yml</code>, <code>defaults.json</code> for <code>_defaults.yml</code> and <code>models.json</code> for model files. The <code>_defaults.yml</code> templates lacked it. The URLs are the published schemas under <code>SCHEMA_BASE_URL</code> (<code>pipeloom.config.schema</code>); a test checks the templates against that constant.</li>
+<li><code>init</code> writes <code>.vscode/settings.json</code>, which maps <code>yaml.schemas</code> to the three schemas by glob (<code>pipeloom.yml</code>, <code>models/**/_defaults.yml</code>, and <code>models/**/*.yml</code> minus <code>_defaults</code>, with <code>.yaml</code> variants), and <code>.vscode/extensions.json</code>, which recommends <code>redhat.vscode-yaml</code>. Completion then works with only the YAML extension. <code>--force</code> keeps existing files as before.</li>
+<li><code>pipeloom new model NAME [--sql|--python] [--folder PATH]</code> adds one model file to a project. It loads the project (load stage only), so it knows the project name, <code>python_paths</code>, the existing model names and the engine kind of the default target. The default kind is Python when that engine is pandas (no SQL, PLC502), SQL otherwise; a flag wins.</li>
+<li>It writes <code>&lt;first model path&gt;/&lt;folder&gt;/&lt;name&gt;.yml</code> with the <code>models.json</code> modeline and one block-style entry. SQL gets a <code>select 1 as id</code> body; Python gets <code>python: &lt;project&gt;_models.&lt;name&gt;:build</code> and a stub <code>&lt;python_paths[0]&gt;/&lt;project&gt;_models/&lt;name&gt;.py</code> with <code>def build(ctx: Any, **inputs: Any) -&gt; Any</code>, which satisfies PLK602 for any alias. Both carry a commented <code>inputs:</code> example. The package <code>__init__.py</code> is created when missing.</li>
+<li>It prints the written paths on stdout and writes no events. A project that does not load exits 1 with its diagnostics. A bad name, a name or file that already exists, <code>--sql</code> with <code>--python</code>, a <code>--folder</code> outside the model path and a Python model without <code>python_paths</code> in <code>pipeloom.yml</code> are usage errors (exit 2). No diagnostic code is added.</li>
+</ul>
+<h3 id="options-considered">Options considered<a class="headerlink" href="#options-considered" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Append the model to an existing file: rejected. Rewriting YAML drops comments, and keeping them needs a round-trip YAML dependency. One file per model was chosen.</li>
+<li>A <code>--ref</code> or <code>--input</code> flag to declare inputs: left out to keep the roadmap's interface. A commented <code>inputs:</code> example shows the shape.</li>
+<li>A template engine or generator framework: a few inline scaffold strings are enough.</li>
+</ul>
+<h3 id="consequences_1">Consequences<a class="headerlink" href="#consequences_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Authors get completion and validation squiggles in VS Code without installing a pipeloom extension. The schemas come from the published docs site, so completion needs network access the first time.</li>
+<li>The <code>.vscode</code> templates ship in the wheel with the other templates.</li>
+<li>New files stay valid by construction: tests run <code>validate</code> on generated models for polars and pandas and check every generated YAML against the exported JSON Schemas.</li>
+</ul>
 
 
 

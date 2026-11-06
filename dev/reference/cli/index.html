@@ -788,6 +788,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#pipeloom-new-model_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pipeloom new model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#reference" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -874,6 +885,34 @@
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        new
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="new">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-new-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -1212,6 +1251,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#pipeloom-new-model_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pipeloom new model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#reference" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1298,6 +1348,34 @@
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        new
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="new">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-new-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -1427,6 +1505,17 @@ folder named after the project in the current directory.</p>
   kept and listed as skipped. A directory that already holds <code>pipeloom.yml</code> is refused.</li>
 <li>Exit codes: 0 on success, 2 on a usage error (bad name or engine, <code>--catalog</code> without
   databricks, an existing project, a non-empty directory without <code>--force</code>).</li>
+</ul>
+<h2 id="pipeloom-new-model_1">pipeloom new model<a class="headerlink" href="#pipeloom-new-model_1" title="Permanent link">&para;</a></h2>
+<p><code>pipeloom new model NAME</code> adds one model file to a project and prints the paths it wrote.</p>
+<ul>
+<li>The file is <code>models/&lt;folder&gt;/&lt;NAME&gt;.yml</code>: the schema modeline and one block-style entry. <code>--folder</code>
+  is relative to the first model path and cannot leave it.</li>
+<li><code>--sql</code> writes a <code>select 1 as id</code> body. <code>--python</code> writes <code>python: &lt;project&gt;_models.&lt;NAME&gt;:build</code>
+  and a stub <code>build(ctx, **inputs)</code> under the first <code>python_paths</code> entry, which must be set
+  explicitly in <code>pipeloom.yml</code>. Without a flag, pandas default targets get Python and the rest SQL.</li>
+<li>Exit codes: 0 on success, 1 when the project does not load, 2 on a usage error (bad name, a name
+  or file that exists, <code>--sql</code> with <code>--python</code>, a folder outside the model path, no <code>python_paths</code>).</li>
 </ul>
 <h2 id="reference">Reference<a class="headerlink" href="#reference" title="Permanent link">&para;</a></h2>
 <h3 id="pipeloom">pipeloom<a class="headerlink" href="#pipeloom" title="Permanent link">&para;</a></h3>
@@ -1603,6 +1692,33 @@ out: the project name, the engine and, on databricks, the catalog.</p>
                             one JSON object per line.  [default: text]
   --output [text|json]      One model name per line, or a JSON list.
                             [default: text]
+  --help                    Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-new">pipeloom new<a class="headerlink" href="#pipeloom-new" title="Permanent link">&para;</a></h4>
+<p>Add files to an existing project.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom new [OPTIONS] COMMAND [ARGS]...
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --help  Show this message and exit.
+</code></pre>
+<h5 id="pipeloom-new-model">pipeloom new model<a class="headerlink" href="#pipeloom-new-model" title="Permanent link">&para;</a></h5>
+<p>Create a model named NAME: its YAML entry and, for Python, a build() stub.</p>
+<p>The paths written are printed, one per line.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom new model [OPTIONS] NAME
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
+  --vars TEXT               Variables as a YAML or JSON mapping; they override
+                            the vars block.
+  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+                            one JSON object per line.  [default: text]
+  --sql                     Write a SQL model (default unless pandas).
+  --python                  Write a Python model and its build() stub (default
+                            on a pandas default target).
+  --folder TEXT             Folder under the first model path to put the file
+                            in. Default: the model path itself.
   --help                    Show this message and exit.
 </code></pre>
 <h4 id="pipeloom-plugins">pipeloom plugins<a class="headerlink" href="#pipeloom-plugins" title="Permanent link">&para;</a></h4>
