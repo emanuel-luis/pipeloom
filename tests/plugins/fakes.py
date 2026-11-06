@@ -23,7 +23,7 @@ def _build(_opts: Any) -> object:
     return object()
 
 
-API05: PluginSpec[object] = PluginSpec("future", "future", "engines", (0, 5), _build, FakeOptions)
+API06: PluginSpec[object] = PluginSpec("future", "future", "engines", (0, 6), _build, FakeOptions)
 API02: PluginSpec[object] = PluginSpec("old", "old", "engines", (0, 2), _build, FakeOptions)
 MEMORY_CLONE: PluginSpec[object] = PluginSpec(
     "memory", "memory", "engines", API_VERSION, _build, FakeOptions
@@ -147,3 +147,15 @@ LEAKY: PluginSpec[object] = PluginSpec(
     "leaky", "leaky", "state_stores", API_VERSION, _leaky, FakeOptions
 )
 """A state store whose factory fails with the option it was given in the message."""
+
+
+class NoListStore:
+    """A state store written before plugin API (0, 5): it has no `list_runs`."""
+
+    def close(self) -> None:
+        pass
+
+
+NOLIST: PluginSpec[object] = PluginSpec(
+    "nolist", "nolist", "state_stores", API_VERSION, lambda _o: NoListStore(), FakeOptions
+)

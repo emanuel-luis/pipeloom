@@ -36,6 +36,7 @@ from pipeloom.state.types import (
     StateKey,
     StateStore,
     UnitRecord,
+    UnknownRun,
     Watermark,
 )
 from pipeloom.testing.clock import FakeClock
@@ -168,6 +169,26 @@ class StateStoreContract:
         )
         store.record_run(done)
         assert store.get_run("r1") == done
+
+    def test_list_runs_newest_first_with_paging(self, store: StateStore) -> None:
+        assert store.list_runs("shop", "dev", 5) == ()
+
+        def run(run_id: str, minutes: int, target: str = "dev") -> RunRecord:
+            started = T0 + timedelta(minutes=minutes)
+            return RunRecord(run_id, "shop", target, "hash", "succeeded", started)
+
+        # r2 and r3 start together: the run id breaks the tie, descending
+        for rec in (run("r1", 0), run("r3", 5), run("r2", 5), run("r4", 9), run("p1", 99, "prod")):
+            store.record_run(rec)
+        store.record_run(RunRecord("x1", "other", "dev", "hash", "failed", T0))
+        assert [r.run_id for r in store.list_runs("shop", "dev", 10)] == ["r4", "r3", "r2", "r1"]
+        assert [r.run_id for r in store.list_runs("shop", "dev", 2)] == ["r4", "r3"]
+        assert [r.run_id for r in store.list_runs("shop", "dev", 2, "r3")] == ["r2", "r1"]
+        assert store.list_runs("shop", "dev", 2, "r1") == ()
+        assert store.list_runs("shop", "dev", 1)[0] == run("r4", 9)
+        assert [r.run_id for r in store.list_runs("shop", "prod", 10)] == ["p1"]
+        with pytest.raises(UnknownRun):
+            store.list_runs("shop", "dev", 2, "p1")  # a run of another target is no cursor
 
     def test_units_upsert_and_ordering(self, store: StateStore) -> None:
         def unit(uid: str, attempt: int, status: str = "running") -> UnitRecord:

@@ -708,6 +708,18 @@ _ACTIVE_09: Final = (
         "A view or an ephemeral model writes no batch of its own, so its columns cannot be checked. Put the contract on a table that reads it.",
     ),
     (
+        "PLX117",
+        E,
+        "State store cannot list runs",
+        "pipeloom runs needs StateStore.list_runs (plugin API 0.5), and the configured state store does not provide it. Use --artifacts to read the run results under the artifacts root instead, or upgrade the store plugin.",
+    ),
+    (
+        "PLX118",
+        E,
+        "Run not found",
+        "pipeloom runs show, or runs ls --before, names a run id that the state store (or, with --artifacts, the artifacts root) does not hold for this project and target. Check the target, or list the runs with pipeloom runs ls.",
+    ),
+    (
         "PLP416",
         E,
         "scd2 options conflict",

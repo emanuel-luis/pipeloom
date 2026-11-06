@@ -186,7 +186,7 @@ so the first step is to publish it as a contract.
 - Run history (0.9). `StateStore.list_runs(project, target, limit, before)` enters the plugin API (the versioned
   protocol plugins implement) at version (0, 5), with a default that raises a clear error on stores that lack it.
   `pipeloom runs ls` and `pipeloom runs show <run_id>` print from the store or, with `--artifacts`, from
-  `runs/*/run_results.json`.
+  `runs/*/run_results.json`. Decided in [ADR-0047](adr/0047-run-history-and-webhook.md) (accepted).
 - Alerting (0.9). A `webhook` sink posts selected event types (by default `run.completed` with a failed status, and
   warnings above a level) to a URL given as `${secret:...}`. It uses stdlib HTTP, runs with `buffered: true` and has a
   failure budget, which is enough for Slack, Teams or a pager.
@@ -243,7 +243,7 @@ Delivered in 0.8.0. The docs site lays its graph out in Python instead of a vend
 | Sample data on Spark and Databricks | none | a CSV source in the TPC-H Spark example runs locally and on a Databricks volume |
 | SCD2 write strategy | [ADR-0008](adr/0008-incremental-and-state.md) amendment | the SCD2 cells of the engine contract suite pass on polars and Spark |
 | `pipeloom-openlineage` sink and Airflow facets | ADR-0046 (proposed) | a TPC-H run in Marquez shows the full graph, the schemas and the quality assertions |
-| Run history (`list_runs`, `pipeloom runs`) and the `webhook` sink | ADR-0047 (proposed), plugin API (0, 5) | `pipeloom runs ls` lists the last N runs on the sqlite, json and table stores, and a failed run posts once |
+| Run history (`list_runs`, `pipeloom runs`) and the `webhook` sink | [ADR-0047](adr/0047-run-history-and-webhook.md), plugin API (0, 5) | `pipeloom runs ls` lists the last N runs on the sqlite, json and table stores, and a failed run posts once |
 | Airflow WATCHER mode | ADR-0048 (proposed) | the examples' Astro project runs in WATCHER mode with one producer, a sensor and an asset per model, and clearing a failed sensor reruns one unit |
 
 ### 1.0: stable contracts

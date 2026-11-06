@@ -26,5 +26,6 @@ BUILTINS: Final[Mapping[Group, Mapping[str, str]]] = {
     "sinks": {
         "console": "pipeloom.events.sinks.console:SPEC",
         "jsonl": "pipeloom.events.sinks.jsonl:SPEC",
+        "webhook": "pipeloom.events.sinks.webhook:SPEC",
     },
 }
