@@ -73,7 +73,7 @@ or 21 and `pipeloom[spark]`:
 $ pipeloom run --project-dir examples/tpch_spark --target dev
 ```
 
-An Astro project that runs it inside a container will be added in a later PR.
+To run all four projects from Airflow, see [airflow/README.md](airflow/README.md).
 
 ## Run on Databricks
 

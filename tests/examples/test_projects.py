@@ -19,6 +19,8 @@ from click.testing import CliRunner
 from pipeloom.cli import main
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
+if not EXAMPLES.is_dir():  # the sdist ships tests/ without examples/
+    pytest.skip("examples/ is not in this source tree", allow_module_level=True)
 DATA = EXAMPLES / "data" / "tpch"
 PROJECTS = ["tpch_polars", "tpch_pandas", "tpch_spark", "tpch_databricks"]
 GOLD = ["revenue_by_region_month", "top_customers"]
