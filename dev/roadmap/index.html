@@ -488,6 +488,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/run-history/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/alerts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1723,7 +1779,7 @@ so the first step is to publish it as a contract.</p>
 <li>Run history (0.9). <code>StateStore.list_runs(project, target, limit, before)</code> enters the plugin API (the versioned
   protocol plugins implement) at version (0, 5), with a default that raises a clear error on stores that lack it.
   <code>pipeloom runs ls</code> and <code>pipeloom runs show &lt;run_id&gt;</code> print from the store or, with <code>--artifacts</code>, from
-  <code>runs/*/run_results.json</code>.</li>
+  <code>runs/*/run_results.json</code>. Decided in <a href="../adr/0047-run-history-and-webhook/">ADR-0047</a> (accepted).</li>
 <li>Alerting (0.9). A <code>webhook</code> sink posts selected event types (by default <code>run.completed</code> with a failed status, and
   warnings above a level) to a URL given as <code>${secret:...}</code>. It uses stdlib HTTP, runs with <code>buffered: true</code> and has a
   failure budget, which is enough for Slack, Teams or a pager.</li>
@@ -1840,7 +1896,7 @@ so the first step is to publish it as a contract.</p>
 </tr>
 <tr>
 <td>Run history (<code>list_runs</code>, <code>pipeloom runs</code>) and the <code>webhook</code> sink</td>
-<td>ADR-0047 (proposed), plugin API (0, 5)</td>
+<td><a href="../adr/0047-run-history-and-webhook/">ADR-0047</a>, plugin API (0, 5)</td>
 <td><code>pipeloom runs ls</code> lists the last N runs on the sqlite, json and table stores, and a failed run posts once</td>
 </tr>
 <tr>

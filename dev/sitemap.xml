@@ -201,6 +201,14 @@
          <lastmod>2026-11-06</lastmod>
     </url>
     <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0047-run-history-and-webhook/</loc>
+         <lastmod>2026-11-06</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/alerts/</loc>
+         <lastmod>2026-11-06</lastmod>
+    </url>
+    <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/docs-site/</loc>
          <lastmod>2026-11-06</lastmod>
     </url>
@@ -214,6 +222,10 @@
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/retries-and-cancellation/</loc>
+         <lastmod>2026-11-06</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/run-history/</loc>
          <lastmod>2026-11-06</lastmod>
     </url>
     <url>

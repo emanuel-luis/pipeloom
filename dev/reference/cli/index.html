@@ -488,6 +488,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/run-history/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/alerts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1034,6 +1090,45 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pipeloom-runs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        runs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="runs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-runs-ls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-runs-show" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        show
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pipeloom-schema" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1547,6 +1642,45 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pipeloom-runs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        runs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="runs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-runs-ls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-runs-show" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        show
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pipeloom-schema" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2055,6 +2189,57 @@ process executor uses it.</p>
                                before they are killed, as 30s, 2m or 30.
                                Default: the setting, else 30s.
   --help                       Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-runs">pipeloom runs<a class="headerlink" href="#pipeloom-runs" title="Permanent link">&para;</a></h4>
+<p>List past runs and show one run (read only).</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom runs [OPTIONS] COMMAND [ARGS]...
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --help  Show this message and exit.
+</code></pre>
+<h5 id="pipeloom-runs-ls">pipeloom runs ls<a class="headerlink" href="#pipeloom-runs-ls" title="Permanent link">&para;</a></h5>
+<p>List the last runs of the target, newest first. Exit 1 for PLX117 and PLX118.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom runs ls [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
+  --vars TEXT               Variables as a YAML or JSON mapping; they override
+                            the vars block.
+  --target TEXT             Target to bind; default_target or the only target
+                            when omitted.
+  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
+                            plugins. Repeatable.
+  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+                            one JSON object per line.  [default: text]
+  --artifacts               Read runs/*/run_results.json under the artifacts
+                            root instead of the state store.
+  --output [text|json]      Tab-separated lines, or JSON.  [default: text]
+  --limit INTEGER RANGE     Runs to list, newest first.  [default: 20; x&gt;=1]
+  --before RUN_ID           List the runs older than this one: the next page
+                            after the last run shown.
+  --help                    Show this message and exit.
+</code></pre>
+<h5 id="pipeloom-runs-show">pipeloom runs show<a class="headerlink" href="#pipeloom-runs-show" title="Permanent link">&para;</a></h5>
+<p>Show one run and its unit attempts. Exit 1 for PLX118.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom runs show [OPTIONS] RUN_ID
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
+  --vars TEXT               Variables as a YAML or JSON mapping; they override
+                            the vars block.
+  --target TEXT             Target to bind; default_target or the only target
+                            when omitted.
+  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
+                            plugins. Repeatable.
+  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+                            one JSON object per line.  [default: text]
+  --artifacts               Read runs/*/run_results.json under the artifacts
+                            root instead of the state store.
+  --output [text|json]      Tab-separated lines, or JSON.  [default: text]
+  --help                    Show this message and exit.
 </code></pre>
 <h4 id="pipeloom-schema">pipeloom schema<a class="headerlink" href="#pipeloom-schema" title="Permanent link">&para;</a></h4>
 <p>JSON Schemas for the YAML files.</p>

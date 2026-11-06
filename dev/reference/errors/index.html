@@ -488,6 +488,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/run-history/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/alerts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2044,6 +2100,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plx117" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX117
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx118" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX118
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3559,6 +3637,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plx117" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX117
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx118" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX118
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4110,6 +4210,12 @@
 <h3 id="plx113">PLX113<a class="headerlink" href="#plx113" title="Permanent link">&para;</a></h3>
 <p>Run cannot be retried. Severity: error. Status: active. Since: 0.8.</p>
 <p>pipeloom retry --from names a run that cannot be retried: its folder or run_results.json is missing (it never existed, never finished or is still running), it belongs to another project, or it ran another target. Retry with the target of that run.</p>
+<h3 id="plx117">PLX117<a class="headerlink" href="#plx117" title="Permanent link">&para;</a></h3>
+<p>State store cannot list runs. Severity: error. Status: active. Since: 0.9.</p>
+<p>pipeloom runs needs StateStore.list_runs (plugin API 0.5), and the configured state store does not provide it. Use --artifacts to read the run results under the artifacts root instead, or upgrade the store plugin.</p>
+<h3 id="plx118">PLX118<a class="headerlink" href="#plx118" title="Permanent link">&para;</a></h3>
+<p>Run not found. Severity: error. Status: active. Since: 0.9.</p>
+<p>pipeloom runs show, or runs ls --before, names a run id that the state store (or, with --artifacts, the artifacts root) does not hold for this project and target. Check the target, or list the runs with pipeloom runs ls.</p>
 <h2 id="renderers">Renderers<a class="headerlink" href="#renderers" title="Permanent link">&para;</a></h2>
 <h3 id="pla001">PLA001<a class="headerlink" href="#pla001" title="Permanent link">&para;</a></h3>
 <p>Unsupported execution mode. Severity: error. Status: active. Since: 0.6.</p>

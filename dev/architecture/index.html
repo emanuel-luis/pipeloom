@@ -488,6 +488,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/run-history/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/alerts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1799,6 +1855,7 @@ class StateStore(Protocol):
     def get_run(self, run_id: str) -&gt; &quot;RunRecord | None&quot;: ...
     def record_unit(self, record: &quot;UnitRecord&quot;) -&gt; None: ...         # keyed by (run_id, unit_id, attempt)
     def list_units(self, run_id: str) -&gt; tuple[&quot;UnitRecord&quot;, ...]: ...  # sorted by (unit_id, attempt)
+    def list_runs(self, project: str, target: str, limit: int, before: str | None = None) -&gt; tuple[&quot;RunRecord&quot;, ...]: ...  # 0.9: newest first; before is a run id
     def lock(self, scope: str, run_id: str) -&gt; ContextManager[&quot;LockInfo&quot;]: ...  # non-blocking; raises LockHeld; 60 s lease renewed every 20 s
     def close(self) -&gt; None: ...
 
@@ -1835,7 +1892,7 @@ class IdentityProvider(Protocol):
 class SecretProvider(Protocol):
     def resolve(self, path: str) -&gt; str: ...
 </code></pre>
-<p>The engine protocols above omit <code>Writer</code>, <code>Catalog.apply_grants</code> and <code>Catalog.maintain</code>; they arrive with the versions that need them (section 16). <code>MetricsProvider</code> is shown for the shape of the <code>before_write</code> and <code>after_write</code> pair; with one implementation, the Spark engine's <code>DeltaMetrics</code>, it stays plugin-internal in 0.4 and the core has no such protocol. <code>ReadSpec.format</code> accepts <code>"table"</code> to read a catalog table through <code>ReadSpec.table</code>. The plugin API is (0, 2) in 0.2 (<a href="../adr/0021-plugin-api-0-2/">ADR-0021</a>) and (0, 3) in 0.3 (<a href="../adr/0024-plugin-api-0-3/">ADR-0024</a>) and (0, 4) in 0.4 (<a href="../adr/0030-plugin-api-0-4-and-intermediates/">ADR-0030</a>); while the major version is 0 a plugin must match exactly.</p>
+<p>The engine protocols above omit <code>Writer</code>, <code>Catalog.apply_grants</code> and <code>Catalog.maintain</code>; they arrive with the versions that need them (section 16). <code>MetricsProvider</code> is shown for the shape of the <code>before_write</code> and <code>after_write</code> pair; with one implementation, the Spark engine's <code>DeltaMetrics</code>, it stays plugin-internal in 0.4 and the core has no such protocol. <code>ReadSpec.format</code> accepts <code>"table"</code> to read a catalog table through <code>ReadSpec.table</code>. The plugin API is (0, 2) in 0.2 (<a href="../adr/0021-plugin-api-0-2/">ADR-0021</a>) and (0, 3) in 0.3 (<a href="../adr/0024-plugin-api-0-3/">ADR-0024</a>) and (0, 4) in 0.4 (<a href="../adr/0030-plugin-api-0-4-and-intermediates/">ADR-0030</a>) and (0, 5) in 0.9 (<a href="../adr/0047-run-history-and-webhook/">ADR-0047</a>); while the major version is 0 a plugin must match exactly.</p>
 <p><strong>0.3 contract additions.</strong>
 - <code>WriteConfig</code> carries <code>strategy</code>, <code>unique_key</code>, <code>partition_by</code>, <code>update_condition</code> (engine dialect; <code>source.</code> and <code>target.</code> qualifiers, a bare name means source), <code>deletes</code> (<code>DeleteSpec</code>), <code>columns</code> (the final schema, chosen by the core) and <code>commit_meta</code>.
 - <code>WriteResult(rows_inserted, rows_updated, rows_deleted, rows_written, bytes_written, target_version, skipped, commit_meta)</code>. <code>commit_meta</code> is stored with the idempotency token and returned on a replay, so a replayed write hands back the watermark and the quality summary of the original attempt.
@@ -1848,6 +1905,8 @@ class SecretProvider(Protocol):
 - <code>CatalogCapabilities(views=)</code> is static data on a catalog spec, so L5 can report PLC507 without importing the catalog.
 - <code>unit_scope</code> spans a unit's reads, body, checks and write, because a lazy engine does its work at the write.
 - <code>WriteRefusedError</code> is what an engine raises when its idempotency guard refuses a write; the core reports PLM207 (section 7).</p>
+<p><strong>0.9 contract additions (plugin API (0, 5), <a href="../adr/0047-run-history-and-webhook/">ADR-0047</a>).</strong>
+- <code>StateStore.list_runs(project, target, limit, before=None)</code> returns the runs of one project and target, newest first by <code>(started_at, run_id)</code>, at most <code>limit</code>; <code>before</code> is a run id to page from, and an unknown one raises <code>UnknownRun</code>. <code>pipeloom.state.types.page_runs</code> does the ordering and paging for any store. The core calls it through <code>pipeloom.state.types.list_runs</code>, which raises <code>ListRunsUnsupported</code> (PLX117) for a store that lacks the method.</p>
 <p><strong>ADR-0002: Engine abstraction.</strong>
 - Context: the spec (section 4) lists coupling in the return type, reads, schema, temporary views, writes, merge, metrics and catalog SQL.
 - Options:
@@ -2136,6 +2195,7 @@ quality:
 - Payloads added in 0.3: <code>model.written</code> gains <code>skipped</code> (a replayed token); <code>model.quality_evaluated</code> carries <code>total_rows</code>, <code>results[]</code>, <code>rows_dropped</code>, <code>rows_quarantined</code>, <code>drop_ratio</code>, <code>cached</code> and <code>failures[]</code> (it is a warning when anything warned, dropped or failed); <code>model.schema_changed</code> carries <code>relation</code>, <code>policy</code>, <code>action</code> and <code>changes[]</code> (a warning when rejected); <code>state.watermark_committed</code> carries <code>column</code>, <code>dtype</code>, <code>before</code>, <code>after</code>, <code>source</code> and <code>seeded</code>.
 - Other: <code>sink.disabled</code>, <code>artifact.written</code>, <code>diagnostic</code> (validation warnings).
 - <code>run.completed</code> also carries <code>abandoned_threads</code>, the number of timed-out or cancelled unit threads that were still alive when the run ended (a thread cannot be killed; it ends with the process).
+- <code>run.completed</code> also carries <code>replay</code> (0.9, <a href="../adr/0047-run-history-and-webhook/">ADR-0047</a>): true when <code>pipeloom finalize</code> finds a finished record of this run id with the same status in the state store and no unit attempt started after it, as when an orchestrator retries the finalize task (a repair that ran units again is no replay). <code>pipeloom run</code> always sets false. The <code>webhook</code> sink skips replays.
 - <code>run.completed</code> carries the status, exit code, counts, totals, <code>failures[]</code> (one entry per failed unit with its diagnostic) and <code>artifacts[]</code> (POSIX paths of the files the run wrote), so the console prints the failure block and the artifacts line from it.</p>
 <p><strong>Bus and sinks:</strong>
 - The bus fans out to sinks in the order they are configured.
