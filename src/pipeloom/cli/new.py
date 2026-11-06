@@ -46,8 +46,9 @@ def _default_kind(loaded: LoadedProject) -> str:
     target = config.default_target or (
         next(iter(config.targets)) if len(config.targets) == 1 else None
     )
-    block = config.targets[target].engine if target else None
-    block = block or config.engine
+    # default_target is checked only when the target is bound, so it may name no target here.
+    found = config.targets.get(target) if target else None
+    block = (found.engine if found else None) or config.engine
     return "python" if block is not None and block.kind == "pandas" else "sql"
 
 
@@ -117,9 +118,16 @@ def model(
         raise click.UsageError(f"a model named '{name}' already exists")
     root = project_dir / config.model_paths[0]
     sub = PurePosixPath(folder or ".")
-    if sub.is_absolute() or ".." in sub.parts:
-        raise click.UsageError(f"--folder '{folder}' must stay inside {config.model_paths[0]}")
     yml = root.joinpath(*sub.parts) / f"{name}.yml"
+    # Backslashes and drive letters would let Windows climb out of the folder; the resolved
+    # check also catches symlinks.
+    if (
+        any(c in str(sub) for c in "\\:")
+        or sub.is_absolute()
+        or ".." in sub.parts
+        or not yml.resolve().is_relative_to(root.resolve())
+    ):
+        raise click.UsageError(f"--folder '{folder}' must stay inside {config.model_paths[0]}")
     if yml.exists():
         raise click.UsageError(f"{yml.relative_to(project_dir).as_posix()} already exists")
     kind = "python" if python_ else "sql" if sql_ else _default_kind(loaded)

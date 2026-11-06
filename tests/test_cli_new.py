@@ -119,7 +119,18 @@ def test_folder(polars: Path) -> None:
     assert cli("validate", "--project-dir", str(polars)).exit_code == 0
 
 
-@pytest.mark.parametrize("folder", ["..", "../x", "a/../../x", "/abs"])
+def test_unknown_default_target_falls_back_to_sql(polars: Path) -> None:
+    # default_target is checked when a target is bound, not at load: no traceback here.
+    project = polars / "pipeloom.yml"
+    project.write_text(
+        project.read_text(encoding="utf-8") + "default_target: nope\n", encoding="utf-8"
+    )
+    result = cli("new", "model", "a", "--project-dir", str(polars))
+    assert result.exit_code == 0, result.output
+    assert "sql:" in (polars / "models" / "a.yml").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("folder", ["..", "../x", "a/../../x", "/abs", "a\\..\\..\\x", "C:/x"])
 def test_folder_must_stay_inside_models(polars: Path, folder: str) -> None:
     usage_error(
         cli("new", "model", "a", "--folder", folder, "--project-dir", str(polars)),
