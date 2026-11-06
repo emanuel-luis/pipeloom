@@ -12,6 +12,7 @@ A test whose capability the engine does not declare is skipped, never failed.
 
 from __future__ import annotations
 
+import math
 import threading
 import time
 from collections.abc import Callable, Iterator, Mapping, Sequence
@@ -674,6 +675,7 @@ class EngineContract:
         tmp_path: Path,
         name: str,
         steps: Sequence[tuple[Rows, WriteConfig]],
+        schema: Schema = KV_SCHEMA,
     ) -> tuple[list[WriteResult], list[dict[str, Any]], list[dict[str, Any]]]:
         """Write each (batch, cfg) with scd2 under its own token, and return the results, the rows
         read back and the reference rows."""
@@ -682,7 +684,7 @@ class EngineContract:
         results: list[WriteResult] = []
         with self.session(h, tmp_path) as s:
             for i, (rows, cfg) in enumerate(steps):
-                results.append(self.put(s, h, name, rows, KV_SCHEMA, cfg, f"r{i}:scd2"))
+                results.append(self.put(s, h, name, rows, schema, cfg, f"r{i}:scd2"))
                 assert cfg.run_started_at is not None
                 want = reference.scd2_rows(want, rows, cfg, cfg.run_started_at).rows
             got = _key(_utc(_norm(self.read_table(s, h, name))))
@@ -698,9 +700,17 @@ class EngineContract:
         assert result.rows_written == 2
 
     def test_scd2_unchanged_rerun(self, h: EngineHarness, tmp_path: Path) -> None:
-        batch = ({"id": 1, "label": "a", "v": 10}, {"id": 2, "label": None, "v": 20})
-        steps = [(batch, _scd2(0)), (batch, _scd2(1))]
-        (_, again), got, want = self.scd2_steps(h, tmp_path, "t_s2_same", steps)
+        """A null label stays unchanged, and so does a float that is NaN in one run and null in
+        the next (NaN counts as null)."""
+        schema = (*KV_SCHEMA, Column("f", "float64"))
+        tracked = ("label", "v", "f")
+        first = (
+            {"id": 1, "label": "a", "v": 10, "f": 1.5},
+            {"id": 2, "label": None, "v": 20, "f": math.nan},
+        )
+        second = (first[0], {**first[1], "f": None})
+        steps = [(first, _scd2(0, tracked=tracked)), (second, _scd2(1, tracked=tracked))]
+        (_, again), got, want = self.scd2_steps(h, tmp_path, "t_s2_same", steps, schema)
         assert got == want and len(got) == 2
         assert (again.rows_inserted, again.rows_updated, again.rows_deleted) == (0, 0, 0)
         assert again.rows_written == 0
