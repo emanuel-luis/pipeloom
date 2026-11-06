@@ -19,6 +19,18 @@ folder named after the project in the current directory.
 - Exit codes: 0 on success, 2 on a usage error (bad name or engine, `--catalog` without
   databricks, an existing project, a non-empty directory without `--force`).
 
+## pipeloom new model
+
+`pipeloom new model NAME` adds one model file to a project and prints the paths it wrote.
+
+- The file is `models/<folder>/<NAME>.yml`: the schema modeline and one block-style entry. `--folder`
+  is relative to the first model path and cannot leave it.
+- `--sql` writes a `select 1 as id` body. `--python` writes `python: <project>_models.<NAME>:build`
+  and a stub `build(ctx, **inputs)` under the first `python_paths` entry, which must be set
+  explicitly in `pipeloom.yml`. Without a flag, pandas default targets get Python and the rest SQL.
+- Exit codes: 0 on success, 1 when the project does not load, 2 on a usage error (bad name, a name
+  or file that exists, `--sql` with `--python`, a folder outside the model path, no `python_paths`).
+
 ## Reference
 
 ::: mkdocs-click
