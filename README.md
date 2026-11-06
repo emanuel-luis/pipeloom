@@ -78,10 +78,12 @@ plan; a plugin name is published with its first functional release.
 | 0.4 | Spark engine, run metrics, idempotent writes |
 | 0.5 | Databricks renderer, deploy, run, repair |
 | 0.6 | Airflow integration |
-| 0.7 (current) | Per-model catalogs, reproducible manifests (`compile --stable`) |
-| 0.8 | OpenLineage, SCD2, deletes, `pipeloom retry` |
-| 0.9 | Hardening, docs, API freeze candidates |
+| 0.7 | Per-model catalogs, reproducible manifests (`compile --stable`) |
+| 0.8 (current) | `init`, `new model` and editor setup, `explain`, `state:modified` and `--defer`, `retry --from`, `docs generate` and `serve` |
+| 0.9 | Contracts, unit and data tests, `build`, SCD2, OpenLineage, run history and alerts, Airflow WATCHER mode |
 | 1.0 | Stable config, plugin API and artifact schemas |
+
+Details per milestone are in the [roadmap](docs/roadmap.md).
 
 ## Contributing
 
