@@ -4,6 +4,7 @@ import click
 
 from pipeloom.cli._ext import PipeloomGroup
 from pipeloom.cli.compile import compile_
+from pipeloom.cli.docs import docs
 from pipeloom.cli.finalize import finalize
 from pipeloom.cli.graph import graph
 from pipeloom.cli.init import init
@@ -27,6 +28,7 @@ main.add_command(ls)
 main.add_command(run)
 main.add_command(finalize)
 main.add_command(graph)
+main.add_command(docs)
 main.add_command(schema)
 main.add_command(plugins)
 
