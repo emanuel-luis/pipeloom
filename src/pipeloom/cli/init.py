@@ -36,8 +36,9 @@ def _check_identifier(ctx: click.Context, param: click.Parameter, value: str | N
 def _default_name(directory: Path | None) -> str:
     if directory is None:
         return "my_project"
-    name = re.sub(r"\W", "_", directory.resolve().name) or "my_project"
-    return f"p_{name}" if name[0].isdigit() else name
+    # ASCII only: names must match the config identifier pattern, and `\W` keeps letters like "ç".
+    name = re.sub(r"[^A-Za-z0-9_]", "_", directory.resolve().name) or "my_project"
+    return f"p_{name}" if name[0] in "0123456789" else name
 
 
 @click.command()

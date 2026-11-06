@@ -55,6 +55,14 @@ def test_no_input_defaults(tmp_path: Path) -> None:
     assert doc["targets"]["dev"]["engine"]["kind"] == "polars"
 
 
+def test_non_ascii_directory_gives_a_valid_default_name(tmp_path: Path) -> None:
+    out = tmp_path / "projeto-ação"
+    assert cli("init", str(out), "--no-input").exit_code == 0
+    assert project_yml(out)["name"] == "projeto_a__o"
+    result = cli("validate", "--project-dir", str(out))
+    assert result.exit_code == 0, result.stderr
+
+
 def test_default_directory_is_the_name(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     result = cli("init", "--name", "shop", "--no-input")
