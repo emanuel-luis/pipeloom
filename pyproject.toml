@@ -149,6 +149,7 @@ pythonpath = ["."]
 markers = [
     "spark: needs local Spark (PIPELOOM_TEST_SPARK=classic, Linux or macOS, Java)",
     "spark_connect: needs a local Spark Connect server (PIPELOOM_TEST_SPARK=connect)",
+    "examples: runs the polars and pandas example projects on generated TPC-H data (PIPELOOM_TEST_EXAMPLES=1)",
     "airflow_e2e: migrates a throwaway sqlite Airflow database and runs dag.test() (PIPELOOM_TEST_AIRFLOW=1)",
 ]
 

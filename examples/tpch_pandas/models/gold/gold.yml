@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json
+# Gold: two reports built from the silver tables.
+models:
+  - name: revenue_by_region_month
+    python: tpch_pandas.gold:revenue_by_region_month
+    inputs:
+      orders_enriched: {ref: orders_enriched}
+      lineitem_revenue: {ref: lineitem_revenue}
+    tags: [gold]
+    expectations:
+      - {name: not_empty, check: {row_count: {min: 1}}, on_violation: fail}
+  - name: top_customers
+    python: tpch_pandas.gold:top_customers
+    inputs:
+      orders_enriched: {ref: orders_enriched}
+      lineitem_revenue: {ref: lineitem_revenue}
+    tags: [gold]
+    expectations:
+      - {name: not_empty, check: {row_count: {min: 1}}, on_violation: fail}
