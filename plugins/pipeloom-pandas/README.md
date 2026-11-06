@@ -11,8 +11,11 @@ Select it in a target:
 ```yaml
 targets:
   dev:
-    engine: {kind: pandas}
-    catalog: {kind: filesystem, root: warehouse}
+    engine:
+      kind: pandas
+    catalog:
+      kind: filesystem
+      root: warehouse
 ```
 
 - Relations are eager `DataFrame`s. Python models receive `DataFrame` inputs, or Narwhals frames

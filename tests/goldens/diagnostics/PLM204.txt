@@ -1,2 +1,2 @@
-error PLM204 models/m.yml:4 cannot read input 'raw' of model 'a': KeyError: "no in-memory table 'raw/missing'"
+error PLM204 models/m.yml:6 cannot read input 'raw' of model 'a': KeyError: "no in-memory table 'raw/missing'"
       hint: check that source 'raw' exists and can be read

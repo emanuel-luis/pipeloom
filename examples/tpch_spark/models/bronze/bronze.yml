@@ -1,29 +1,49 @@
 # yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json
 # Bronze: untouched copies of the TPC-H tables, with the original column names.
 sources:
-  - {name: tpch_orders, format: parquet, location: "${var:tpch_dir}/orders.parquet"}
-  - {name: tpch_lineitem, format: parquet, location: "${var:tpch_dir}/lineitem.parquet"}
-  - {name: tpch_customer, format: parquet, location: "${var:tpch_dir}/customer.parquet"}
-  - {name: tpch_nation, format: parquet, location: "${var:tpch_dir}/nation.parquet"}
-  - {name: tpch_region, format: parquet, location: "${var:tpch_dir}/region.parquet"}
+  - name: tpch_orders
+    format: parquet
+    location: "${var:tpch_dir}/orders.parquet"
+  - name: tpch_lineitem
+    format: parquet
+    location: "${var:tpch_dir}/lineitem.parquet"
+  - name: tpch_customer
+    format: parquet
+    location: "${var:tpch_dir}/customer.parquet"
+  - name: tpch_nation
+    format: parquet
+    location: "${var:tpch_dir}/nation.parquet"
+  - name: tpch_region
+    format: parquet
+    location: "${var:tpch_dir}/region.parquet"
 models:
   - name: orders
     sql: select * from tpch_orders
-    inputs: {tpch_orders: {source: tpch_orders}}
+    inputs:
+      tpch_orders:
+        source: tpch_orders
     tags: [bronze]
   - name: lineitem
     sql: select * from tpch_lineitem
-    inputs: {tpch_lineitem: {source: tpch_lineitem}}
+    inputs:
+      tpch_lineitem:
+        source: tpch_lineitem
     tags: [bronze]
   - name: customer
     sql: select * from tpch_customer
-    inputs: {tpch_customer: {source: tpch_customer}}
+    inputs:
+      tpch_customer:
+        source: tpch_customer
     tags: [bronze]
   - name: nation
     sql: select * from tpch_nation
-    inputs: {tpch_nation: {source: tpch_nation}}
+    inputs:
+      tpch_nation:
+        source: tpch_nation
     tags: [bronze]
   - name: region
     sql: select * from tpch_region
-    inputs: {tpch_region: {source: tpch_region}}
+    inputs:
+      tpch_region:
+        source: tpch_region
     tags: [bronze]

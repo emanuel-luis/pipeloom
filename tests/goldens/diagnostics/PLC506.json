@@ -6,8 +6,8 @@
     "hint": "supported formats: memory",
     "location": {
       "file": "models/m.yml",
-      "line": 2,
-      "col": 25,
+      "line": 3,
+      "col": 13,
       "json_pointer": "/sources/0/format"
     },
     "context": {

@@ -5,11 +5,15 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
-        catalog: {kind: memory}
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
   models/m.yml: |
     models:
-      - {name: a, python: "m:a", materialized: view}
+      - name: a
+        python: "m:a"
+        materialized: view
   src/m.py: |
     def a(ctx):
         return []

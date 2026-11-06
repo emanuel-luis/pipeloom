@@ -4,7 +4,9 @@ files:
     name: shop
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     models:
-      - {name: a, sql: "select * from ("}
+      - name: a
+        sql: "select * from ("

@@ -6,7 +6,7 @@
     "hint": "create the directory or remove the entry",
     "location": {
       "file": "pipeloom.yml",
-      "line": 6,
+      "line": 7,
       "col": 23,
       "json_pointer": "/model_paths/1"
     },

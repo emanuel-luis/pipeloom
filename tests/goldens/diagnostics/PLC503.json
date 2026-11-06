@@ -6,8 +6,8 @@
     "hint": "use a shared state store such as json, or boundary: process",
     "location": {
       "file": "pipeloom.yml",
-      "line": 8,
-      "col": 19,
+      "line": 10,
+      "col": 13,
       "json_pointer": "/targets/dev/state/kind"
     },
     "context": {

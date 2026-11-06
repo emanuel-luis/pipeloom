@@ -5,9 +5,13 @@ models:
   - name: b
     tags: [stable]
     sql: select id, label, id + 1 as next_id from a
-    inputs: {a: {ref: a}}
+    inputs:
+      a:
+        ref: a
   # Fails on attempt 1 only: the live workflow repairs it and expects attempt 2 to succeed.
   - name: c
     tags: [flaky]
     python: live.models:flaky
-    inputs: {a: {ref: a}}
+    inputs:
+      a:
+        ref: a

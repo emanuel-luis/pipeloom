@@ -5,19 +5,32 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory, root: store, tables: {main.raw: [{id: 1}]}}
-        catalog: {kind: memory, root: store}
-        naming: {kind: none}
+        engine:
+          kind: memory
+          root: store
+          tables:
+            main.raw:
+              - id: 1
+        catalog:
+          kind: memory
+          root: store
+        naming:
+          kind: none
   models/m.yml: |
     models:
       - name: a
         python: shop.hook:a
         materialized: incremental
-        inputs: {raw: {source: raw}}
-        incremental: {input: raw, column: id}
+        inputs:
+          raw:
+            source: raw
+        incremental:
+          input: raw
+          column: id
   models/sources.yml: |
     sources:
-      - {name: raw, table: main.raw}
+      - name: raw
+        table: main.raw
   src/shop/__init__.py: ""
   src/shop/hook.py: |
     """The model moves its own watermark while it runs, like a concurrent run would."""

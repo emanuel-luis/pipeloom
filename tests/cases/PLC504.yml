@@ -5,11 +5,14 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: nosql}
-        catalog: {kind: memory}
+        engine:
+          kind: nosql
+        catalog:
+          kind: memory
   models/m.yml: |
     models:
-      - {name: a, python: "m:a"}
+      - name: a
+        python: "m:a"
   src/m.py: |
     def a(ctx):
         return None

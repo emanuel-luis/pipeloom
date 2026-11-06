@@ -1,4 +1,4 @@
 warning PLR206 pipeloom.yml:1:1 model_paths entry 'models' does not exist
       hint: create the directory or remove the entry
-error PLS106 pipeloom.yml:6:39 environment variable 'PIPELOOM_UNSET_X' is not set
+error PLS106 pipeloom.yml:9:13 environment variable 'PIPELOOM_UNSET_X' is not set
       hint: set it, or write ${env:PIPELOOM_UNSET_X:-default} to give a default

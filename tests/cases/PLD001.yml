@@ -1,16 +1,24 @@
 plugins: ["pipeloom_databricks.spec:RENDERER_SPEC"]
-render: {pipeline: main, max_tasks: 3}
+render:
+  pipeline: main
+  max_tasks: 3
 files:
   pipeloom.yml: |
     config_version: 1
     name: shop
-    engine: {kind: memory}
-    catalog: {kind: memory}
-    deploy: {kind: databricks}
+    engine:
+      kind: memory
+    catalog:
+      kind: memory
+    deploy:
+      kind: databricks
     targets:
       dev: {}
   models/m.yml: |
     models:
-      - {name: a, sql: select 1 as x}
-      - {name: b, sql: select 1 as x}
-      - {name: c, sql: select 1 as x}
+      - name: a
+        sql: select 1 as x
+      - name: b
+        sql: select 1 as x
+      - name: c
+        sql: select 1 as x

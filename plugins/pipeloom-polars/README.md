@@ -11,8 +11,11 @@ Select it in a target:
 ```yaml
 targets:
   dev:
-    engine: {kind: polars}
-    catalog: {kind: filesystem, root: warehouse}
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: warehouse
 ```
 
 - Relations are `LazyFrame`s. Python models receive `LazyFrame` inputs, or Narwhals frames with

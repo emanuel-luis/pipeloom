@@ -2,20 +2,41 @@ config_version: 1
 name: quality
 python_paths: [src]
 defaults:
-  models: {materialized: table}
+  models:
+    materialized: table
 targets:
   polars:
-    engine: {kind: polars}
-    catalog: {kind: filesystem, root: target/warehouse, format: parquet}
-    state: {kind: json, path: .pipeloom/state}
-    naming: {kind: none}
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+      format: parquet
+    state:
+      kind: json
+      path: .pipeloom/state
+    naming:
+      kind: none
   pandas:
-    engine: {kind: pandas}
-    catalog: {kind: filesystem, root: target/warehouse, format: parquet}
-    state: {kind: json, path: .pipeloom/state}
-    naming: {kind: none}
+    engine:
+      kind: pandas
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+      format: parquet
+    state:
+      kind: json
+      path: .pipeloom/state
+    naming:
+      kind: none
   memory:
-    engine: {kind: memory}
-    catalog: {kind: memory, root: store}
-    state: {kind: json, path: .pipeloom/state}
-    naming: {kind: none}
+    engine:
+      kind: memory
+    catalog:
+      kind: memory
+      root: store
+    state:
+      kind: json
+      path: .pipeloom/state
+    naming:
+      kind: none

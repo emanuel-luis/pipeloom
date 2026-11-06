@@ -6,8 +6,10 @@ files:
     name: shop
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
     events:
       sinks:
-        - {kind: boom, failure_budget: 1}
+        - kind: boom
+          failure_budget: 1
   models/.keep: ""

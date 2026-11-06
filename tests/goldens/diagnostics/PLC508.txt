@@ -1,2 +1,2 @@
-error PLC508 models/m.yml:2:41 frame_api narwhals needs a portable engine, not 'memory' (model 'a')
+error PLC508 models/m.yml:4:16 frame_api narwhals needs a portable engine, not 'memory' (model 'a')
       hint: use frame_api: native

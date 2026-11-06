@@ -13,14 +13,22 @@ Rows are matched on `unique_key`. Matched rows are updated, unmatched rows are i
 models:
   - name: orders
     python: shop.orders:build
-    inputs: {raw_orders: {source: raw_orders}}
+    inputs:
+      raw_orders:
+        source: raw_orders
     materialized: incremental
-    incremental: {input: raw_orders, column: updated_at, lookback: 2h}
+    incremental:
+      input: raw_orders
+      column: updated_at
+      lookback: 2h
     write:
       strategy: merge
       unique_key: [id]
       update_condition: "source.updated_at > target.updated_at"
-      deletes: {column: status, value: cancelled, mode: hard}
+      deletes:
+        column: status
+        value: cancelled
+        mode: hard
 ```
 
 - `update_condition` is optional and written in the engine's dialect (a SQL expression on
@@ -48,7 +56,9 @@ It needs `partition_by`; without it `pipeloom validate` reports PLP407.
 models:
   - name: daily_clicks
     sql: select event_date, user_id, clicks from raw_events
-    inputs: {raw_events: {source: raw_events}}
+    inputs:
+      raw_events:
+        source: raw_events
     partition_by: [event_date]
     write:
       strategy: replace_partitions

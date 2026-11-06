@@ -5,13 +5,17 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: nosql}
+        engine:
+          kind: nosql
   models/m.yml: |
     models:
       - name: a
         python: "m:a"
         expectations:
-          - {name: x_set, check: {not_null: [x]}, on_violation: warn}
+          - name: x_set
+            check:
+              not_null: [x]
+            on_violation: warn
   src/m.py: |
     def a(ctx):
         return None

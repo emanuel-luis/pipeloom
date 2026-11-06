@@ -1,2 +1,2 @@
-warning PLK605 models/m.yml:2:20 SQL of model 'a' cannot be parsed, so its tables were not checked
+warning PLK605 models/m.yml:3:10 SQL of model 'a' cannot be parsed, so its tables were not checked
       hint: sqlglot parses it with its default dialect

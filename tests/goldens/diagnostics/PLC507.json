@@ -6,8 +6,8 @@
     "hint": "write the model in Python or choose an engine with SQL",
     "location": {
       "file": "models/m.yml",
-      "line": 2,
-      "col": 20,
+      "line": 3,
+      "col": 10,
       "json_pointer": "/models/0/sql"
     },
     "context": {
@@ -22,8 +22,8 @@
     "hint": "use table, or an engine with views",
     "location": {
       "file": "models/m.yml",
-      "line": 2,
-      "col": 44,
+      "line": 4,
+      "col": 19,
       "json_pointer": "/models/0/materialized"
     },
     "context": {

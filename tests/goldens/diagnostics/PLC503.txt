@@ -1,2 +1,2 @@
-error PLC503 pipeloom.yml:8:19 boundary 'task' needs a shared state store, but 'sqlite' is not shared
+error PLC503 pipeloom.yml:10:13 boundary 'task' needs a shared state store, but 'sqlite' is not shared
       hint: use a shared state store such as json, or boundary: process

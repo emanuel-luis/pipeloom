@@ -1,2 +1,2 @@
-error PLS101 pipeloom.yml:6:1 unknown field 'model_pths'
+error PLS101 pipeloom.yml:7:1 unknown field 'model_pths'
       hint: did you mean 'model_paths'?

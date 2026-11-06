@@ -1,1 +1,2 @@
-models: {catalog: pipeloom_gold}
+models:
+  catalog: pipeloom_gold

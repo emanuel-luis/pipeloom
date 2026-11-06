@@ -5,12 +5,21 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory, root: store, tables: {main.a: [{id: 1}]}}
-        catalog: {kind: memory, root: store}
-        naming: {kind: none}
+        engine:
+          kind: memory
+          root: store
+          tables:
+            main.a:
+              - id: 1
+        catalog:
+          kind: memory
+          root: store
+        naming:
+          kind: none
   models/m.yml: |
     models:
       - name: a
         sql: select 1 as id, 'x' as extra
-        write: {strategy: append}
+        write:
+          strategy: append
 run: true

@@ -5,9 +5,11 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     models:
       - name: a
         sql: select 1
-        write: {strategy: merge}
+        write:
+          strategy: merge

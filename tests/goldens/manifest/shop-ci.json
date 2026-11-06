@@ -25,7 +25,7 @@
       }
     },
     "config_version": 1,
-    "plan_hash": "7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6",
+    "plan_hash": "e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0",
     "project": "shop",
     "target": "ci",
     "boundary": "process",
@@ -42,7 +42,7 @@
       "unique_id": "model.shop.dim_customers",
       "name": "dim_customers",
       "file": "models/marts/marts.yml",
-      "line": 15,
+      "line": 20,
       "materialized": "table",
       "body": {
         "kind": "python",
@@ -101,7 +101,7 @@
       "unique_id": "model.shop.fct_orders",
       "name": "fct_orders",
       "file": "models/marts/marts.yml",
-      "line": 8,
+      "line": 10,
       "materialized": "table",
       "body": {
         "kind": "python",
@@ -214,7 +214,7 @@
       "unique_id": "model.shop.rpt_revenue",
       "name": "rpt_revenue",
       "file": "models/marts/marts.yml",
-      "line": 20,
+      "line": 26,
       "materialized": "table",
       "body": {
         "kind": "sql",
@@ -326,7 +326,7 @@
       "unique_id": "model.shop.stg_orders",
       "name": "stg_orders",
       "file": "models/staging/stg.yml",
-      "line": 5,
+      "line": 7,
       "materialized": "table",
       "body": {
         "kind": "sql",
@@ -384,7 +384,7 @@
       "unique_id": "model.shop.stg_payments",
       "name": "stg_payments",
       "file": "models/staging/stg.yml",
-      "line": 8,
+      "line": 12,
       "materialized": "table",
       "body": {
         "kind": "sql",

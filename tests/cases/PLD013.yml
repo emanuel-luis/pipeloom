@@ -17,7 +17,9 @@ files:
   pipeloom.yml: |
     config_version: 1
     name: shop
-    engine: {kind: memory}
-    catalog: {kind: memory}
+    engine:
+      kind: memory
+    catalog:
+      kind: memory
     targets:
       prod: {}

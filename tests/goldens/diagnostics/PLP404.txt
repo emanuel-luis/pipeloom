@@ -1,2 +1,2 @@
-error PLP404 models/m.yml:5:26 incremental.input 'orders' is not an input of 'a'
+error PLP404 models/m.yml:6:14 incremental.input 'orders' is not an input of 'a'
       hint: inputs: none

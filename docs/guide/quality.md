@@ -23,18 +23,43 @@ sources:
   - name: raw_orders
     format: csv
     location: raw/orders.csv
-    options: {try_parse_dates: true}
+    options:
+      try_parse_dates: true
 models:
   - name: orders
     sql: select id, amount, status, updated_at from raw_orders
-    inputs: {raw_orders: {source: raw_orders}}
+    inputs:
+      raw_orders:
+        source: raw_orders
     expectations:
-      - {name: id_present, check: {not_null: [id]}, on_violation: drop}
-      - {name: status_known, check: {accepted_values: {column: status, values: [new, paid, shipped]}}, on_violation: drop}
-      - {name: amount_non_negative, check: {range: {column: amount, min: 0}}, on_violation: warn}
-      - {name: unique_id, check: {unique: [id]}, on_violation: fail}
-      - {name: not_empty, check: {row_count: {min: 1}}, on_violation: fail}
-    quality: {quarantine: true, max_drop_ratio: 0.5}
+      - name: id_present
+        check:
+          not_null: [id]
+        on_violation: drop
+      - name: status_known
+        check:
+          accepted_values:
+            column: status
+            values: [new, paid, shipped]
+        on_violation: drop
+      - name: amount_non_negative
+        check:
+          range:
+            column: amount
+            min: 0
+        on_violation: warn
+      - name: unique_id
+        check:
+          unique: [id]
+        on_violation: fail
+      - name: not_empty
+        check:
+          row_count:
+            min: 1
+        on_violation: fail
+    quality:
+      quarantine: true
+      max_drop_ratio: 0.5
 ```
 
 ```console
@@ -55,9 +80,9 @@ Row checks look at each row. `check` takes one of these (or use `expr` instead o
 | Check | Passes when |
 |---|---|
 | `not_null: [a, b]` | the columns are not null |
-| `accepted_values: {column, values}` | the value is one of the list (exact comparison) |
-| `range: {column, min, max}` | the value is within the bounds, inclusive; either bound may be left out |
-| `regex: {column, pattern}` | the pattern is found anywhere in the string (an unanchored search); the column must be a string |
+| `accepted_values` with `column` and `values` | the value is one of the list (exact comparison) |
+| `range` with `column`, `min` and `max` | the value is within the bounds, inclusive; either bound may be left out |
+| `regex` with `column` and `pattern` | the pattern is found anywhere in the string (an unanchored search); the column must be a string |
 | `expr: "amount >= 0"` | the expression is true |
 
 A null passes every check except `not_null`, and NaN counts as null. A row check can warn, drop
@@ -68,8 +93,8 @@ Aggregate checks look at the whole batch and can only warn or fail (a `drop` is 
 | Check | Fails when |
 |---|---|
 | `unique: [a, b]` | a key appears more than once (rows with a null key part are not counted) |
-| `row_count: {min, max}` | the number of rows is outside the bounds |
-| `freshness: {column, max_age}` | the newest value is older than `max_age`; an all-null column fails |
+| `row_count` with `min` and `max` | the number of rows is outside the bounds |
+| `freshness` with `column` and `max_age` | the newest value is older than `max_age`; an all-null column fails |
 
 Aggregates see the rows that are left after drops. For an incremental model that means the new
 rows of this run, not the whole table.

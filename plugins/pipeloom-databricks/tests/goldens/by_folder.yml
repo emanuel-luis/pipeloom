@@ -5,8 +5,8 @@ resources:
       name: pipeloom_shop_main_ci
       tags:
         pipeloom_job: shop.main.ci
-        pipeloom_plan_hash: 7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
-        pipeloom_settings_hash: 034545979226d2fbe052e6ebcc88b29b35a46a8544664e4b54e677f6b904d886
+        pipeloom_plan_hash: e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
+        pipeloom_settings_hash: 348c45f656e1dec54897f25c2bda637e696f725a6cf7ef9859654dc63e1d47cf
         pipeloom_version: 1.2.3
       parameters:
       - name: pipeloom_run_id
@@ -38,7 +38,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --group=dir_models_marts
-          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
+          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -60,7 +60,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --group=dir_models_staging
-          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
+          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -84,7 +84,7 @@ resources:
           - --manifest=/Workspace/pipeloom/shop/manifest.json
           - --target=ci
           - --pipeline=main
-          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
+          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}

@@ -6,8 +6,8 @@
     "hint": "make it 'intermediate' to compute it once",
     "location": {
       "file": "models/m.yml",
-      "line": 2,
-      "col": 44,
+      "line": 4,
+      "col": 19,
       "json_pointer": "/models/0/materialized"
     },
     "context": {

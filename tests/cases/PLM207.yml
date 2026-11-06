@@ -5,10 +5,13 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: refusing}
-        catalog: {kind: refusing}
+        engine:
+          kind: refusing
+        catalog:
+          kind: refusing
   models/m.yml: |
     models:
-      - {name: a, sql: select 1 as x}
+      - name: a
+        sql: select 1 as x
 run: true
 plugins: ["tests.runtime.fakes:REFUSING_ENGINE", "tests.runtime.fakes:REFUSING_CATALOG"]

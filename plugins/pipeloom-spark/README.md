@@ -13,8 +13,12 @@ Select it in a target:
 ```yaml
 targets:
   dev:
-    engine: {kind: spark, mode: local}
-    catalog: {kind: delta_path, root: warehouse}
+    engine:
+      kind: spark
+      mode: local
+    catalog:
+      kind: delta_path
+      root: warehouse
 ```
 
 - Relations are DataFrames. SQL models run with `spark.sql`, and inputs are bound by alias

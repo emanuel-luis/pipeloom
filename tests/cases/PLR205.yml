@@ -4,10 +4,15 @@ files:
     name: shop
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/a.yml: |
     sources:
-      - {name: raw, format: memory, location: raw/a}
+      - name: raw
+        format: memory
+        location: raw/a
   models/b.yml: |
     sources:
-      - {name: raw, format: memory, location: raw/b}
+      - name: raw
+        format: memory
+        location: raw/b

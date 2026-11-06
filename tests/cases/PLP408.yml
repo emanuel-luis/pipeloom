@@ -5,8 +5,12 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     models:
-      - {name: e, sql: select 1, materialized: ephemeral}
-      - {name: a, sql: select 1}
+      - name: e
+        sql: select 1
+        materialized: ephemeral
+      - name: a
+        sql: select 1

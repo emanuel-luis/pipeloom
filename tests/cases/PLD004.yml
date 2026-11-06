@@ -1,17 +1,23 @@
 plugins: ["pipeloom_databricks.spec:RENDERER_SPEC"]
-render: {pipeline: main}
+render:
+  pipeline: main
 files:
   pipeloom.yml: |
     config_version: 1
     name: shop
-    engine: {kind: memory}
-    catalog: {kind: memory}
+    engine:
+      kind: memory
+    catalog:
+      kind: memory
     deploy:
       kind: databricks
       compute:
-        default: {kind: serverless, environment_version: "1"}
+        default:
+          kind: serverless
+          environment_version: "1"
     targets:
       dev: {}
   models/m.yml: |
     models:
-      - {name: a, sql: select 1 as x}
+      - name: a
+        sql: select 1 as x
