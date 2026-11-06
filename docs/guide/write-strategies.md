@@ -86,8 +86,11 @@ models:
         source: raw_customers
     write:
       strategy: scd2
-      unique_key: [id]
-      tracked_columns: [name, tier]
+      unique_key:
+        - id
+      tracked_columns:
+        - name
+        - tier
       deletes:
         column: status
         value: closed
