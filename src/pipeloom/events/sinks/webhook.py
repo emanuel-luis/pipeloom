@@ -90,6 +90,8 @@ class WebhookSink:
         return "WebhookSink()"
 
     def wanted(self, event: Event) -> bool:
+        if event.type == "run.completed" and event.data.get("replay") is True:
+            return False  # a retried finalize: the first one already posted
         if event.type in self._events and (
             event.type != "run.completed" or event.data.get("status") in self._statuses
         ):

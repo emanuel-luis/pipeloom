@@ -400,6 +400,7 @@ def finalize_run(project: Project, opts: FinalizeOptions, bus: EventBus) -> RunO
                     failures=failures,
                     artifacts=written,
                     abandoned_threads=0,
+                    replay=prior is not None and prior.status == status,
                 )
             )
             return RunOutcome(

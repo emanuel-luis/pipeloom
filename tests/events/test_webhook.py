@@ -111,6 +111,33 @@ def test_a_failed_run_posts_exactly_once(hook: Hook, tmp_path: Path) -> None:
     assert not [p for p in root.rglob("*") if p.is_file() and b"s3cr3t-path" in p.read_bytes()]
 
 
+def test_a_retried_finalize_of_a_failed_run_posts_exactly_once(hook: Hook, tmp_path: Path) -> None:
+    """An orchestrator retries the finalize task of a failed run (it exits 1): the second
+    run.completed is a replay, and the webhook skips it."""
+    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": MODELS, "src/m.py": BODY})
+    states = root / "states.json"
+    states.write_text(
+        json.dumps({"schema": "pipeloom.unit_states/1", "units": {"a": {"status": "failed"}}}),
+        encoding="utf-8",
+    )
+    args = ["finalize", "--project-dir", str(root), "--target", "dev", "--run-id", "o1"]
+    args += ["--unit-states", str(states), "--log-format", "json"]
+    env = {**ENV, "PL_HOOK": hook.url, "PIPELOOM_RUN_STARTED_AT": ""}
+    replays = []
+    for _ in range(2):
+        done = CliRunner().invoke(main, args, env=env)
+        assert done.exit_code == 1, done.stderr
+        (completed,) = [
+            json.loads(line)
+            for line in done.stderr.splitlines()
+            if '"type":"run.completed"' in line
+        ]
+        replays.append(completed["data"]["replay"])
+    assert replays == [False, True]
+    (body,) = hook.bodies
+    assert body["event"]["data"]["status"] == "failed" and body["event"]["run_id"] == "o1"
+
+
 def test_validate_builds_the_sink_without_the_secret_and_posts_nothing(
     hook: Hook, tmp_path: Path
 ) -> None:

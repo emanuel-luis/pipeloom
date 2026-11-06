@@ -44,4 +44,6 @@ One POST per selected event, with `Content-Type: application/json`:
 
 A failed post is a sink failure. After `max_failures` failed posts in a row, the sink stops posting for the rest of the invocation, and the bus disables it and reports one `sink.disabled` warning ([PLE401](../reference/errors.md#ple401)). The run itself is never affected.
 
+An orchestrator that retries `pipeloom finalize` for a failed run does not cause a second post: the retry's `run.completed` carries `replay: true`, and the sink skips it.
+
 Commands that do not run anything (`validate`, `compile`) build the sink without resolving secrets, and then it posts nothing.

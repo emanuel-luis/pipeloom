@@ -44,6 +44,8 @@ The body is one JSON object, `{"text": ..., "event": ...}`: `text` is a one-line
 
 The failure budget lives in the sink: a failed post raises an error that names only the HTTP status or the exception type. After `max_failures` failed posts in a row the sink stops posting and fails every later delivery with one fixed message, so the bus disables it and emits one `sink.disabled` warning (PLE401), at the latest when the bus closes. The sink is meant to run with `buffered: true`, so a slow endpoint never holds up the run. A sink built without secret resolution (commands that never run, such as `validate`) still holds the reference and posts nothing.
 
+**Retried finalize.** `pipeloom finalize` exits 1 for a failed run, and orchestrators retry it (the Databricks finalize task has `max_retries=1`), so one run can be finalized twice by two processes, and a sink cannot remember the first post. `run.completed` therefore gains an additive field, `replay` (default false). Finalize sets it when the state store already held a finished record of the run id with the same status; finalize never records `running`, so that record comes from an earlier finalize or a finished `pipeloom run`. The event is still emitted, so the console, jsonl and run files report the retry as before, and the webhook skips `run.completed` events with `replay: true`. `pipeloom run` always sets false, because it runs units again. A first finalize whose post failed is not posted again by its retry; the `sink.disabled` warning of the first one is the signal.
+
 **Codes.** PLX117 (state store cannot list runs) and PLX118 (run not found) join a new `_ACTIVE_09` table. PLX119 stays free.
 
 ## Consequences
