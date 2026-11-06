@@ -29,9 +29,11 @@ from pipeloom.config.models import (
     CheckConfig,
     ColumnConfig,
     ExpectationConfig,
+    GivenConfig,
     QualityConfig,
     RangeCheck,
     ResolvedModelConfig,
+    UnitTestConfig,
 )
 from pipeloom.engine.errors import WriteKeyError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
@@ -56,6 +58,7 @@ from pipeloom.plan.model import (
     PlanNode,
     PlanSelection,
     PythonBody,
+    SqlBody,
 )
 from pipeloom.platform import Identity
 from pipeloom.quality import quarantine_target
@@ -65,6 +68,7 @@ from pipeloom.runtime.executors import UnitHandle
 from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.runner import ModelResult, ModelRunner
 from pipeloom.runtime.schema_policy import SchemaRejected, check_contract, resolve_columns
+from pipeloom.runtime.unit_tests import TestOutcome, run_unit_test
 from pipeloom.state.sqlite import SqliteStore
 from pipeloom.testing import reference
 from pipeloom.testing.clock import FakeClock
@@ -734,6 +738,77 @@ class EngineContract:
         assert result.error.code == "PLM208", result.error.message
         assert problem in result.error.message
         assert result.error.category == "permanent"
+
+    # -- unit tests (ADR-0045) --------------------------------------------------------------
+
+    def test_rows_round_trip_typed(self, h: EngineHarness, tmp_path: Path) -> None:
+        with self.session(h, tmp_path) as s:
+            rel = s.from_rows(TYPED_ROWS, TYPED_SCHEMA)
+            assert [(c.name, c.dtype) for c in s.schema(rel)] == [
+                (c.name, c.dtype) for c in TYPED_SCHEMA
+            ]
+            assert s.to_rows(rel) == [dict(r) for r in TYPED_ROWS]
+
+    def unit_case(
+        self, h: EngineHarness, tmp_path: Path, kind: str, expect: list[dict[str, Any]]
+    ) -> TestOutcome:
+        """`v2 = v * 2` over KV_ROWS, as a SQL or a Python body, through `run_unit_test`."""
+        if kind == "sql":
+            requires(h, "sql_models")
+        out_schema = (Column("id", "int64"), Column("v2", "int64"))
+
+        def build(ctx: Any, src: Any) -> Any:
+            rows = [{"id": r["id"], "v2": r["v"] * 2} for r in h.to_rows(src)]
+            return h.make_native(rows, out_schema)
+
+        node = PlanNode(
+            unique_id="model.contract.u",
+            name="u",
+            file="models/m.yml",
+            line=1,
+            materialized="table",
+            body=SqlBody(sql="select id, v * 2 as v2 from src")
+            if kind == "sql"
+            else PythonBody(callable="m:build", file="src/m.py"),
+            inputs={"src": "source.contract.raw"},
+            relation=_target("u"),
+            unit_ids=("u",),
+            config=ResolvedModelConfig(),
+            tags=(),
+            checksum="",
+        )
+        case = UnitTestConfig(
+            name="doubles",
+            given={"src": GivenConfig(rows=[dict(r) for r in KV_ROWS])},
+            expect=GivenConfig(rows=expect),
+        )
+        rt = RuntimeContext(
+            run_id="contract",
+            invocation_id="contract",
+            project="contract",
+            target="test",
+            project_dir=tmp_path,
+            clock=FakeClock(),
+            identity=Identity("tester", "host"),
+            vars={},
+        )
+        with self.session(h, tmp_path) as s:
+            return run_unit_test(s, node, case, load=lambda ref: build, rt=rt)
+
+    @pytest.mark.parametrize("kind", ["python", "sql"])
+    def test_unit_case_passes(self, h: EngineHarness, tmp_path: Path, kind: str) -> None:
+        out = self.unit_case(h, tmp_path, kind, [{"v2": 40, "id": 2}, {"id": 1, "v2": 20}])
+        assert out.passed, out.message
+
+    @pytest.mark.parametrize("kind", ["python", "sql"])
+    def test_unit_case_one_wrong_row_fails_with_diff(
+        self, h: EngineHarness, tmp_path: Path, kind: str
+    ) -> None:
+        out = self.unit_case(h, tmp_path, kind, [{"id": 1, "v2": 20}, {"id": 2, "v2": 41}])
+        assert out.code == "PLX114", out.message
+        assert out.missing == [{"id": 2, "v2": 41}]
+        assert out.unexpected == [{"id": 2, "v2": 40}]
+        assert "1 expected row(s) missing" in out.message
 
     # -- schema-change policy ---------------------------------------------------------------
 
