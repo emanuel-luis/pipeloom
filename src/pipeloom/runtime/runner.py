@@ -20,6 +20,7 @@ from pipeloom.engine.errors import WriteKeyError, WriteRefusedError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
 from pipeloom.engine.types import (
     ROW_CHECKS,
+    Column,
     DeleteSpec,
     ExpectationSpec,
     IntermediateRef,
@@ -60,7 +61,13 @@ from pipeloom.runtime.incremental import IncrementalError, IncrementalState, Wat
 from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.retry import NO_POLICY, UnitPolicy
-from pipeloom.runtime.schema_policy import SchemaRejected, changes_json, resolve_columns
+from pipeloom.runtime.schema_policy import (
+    ContractViolation,
+    SchemaRejected,
+    changes_json,
+    check_contract,
+    resolve_columns,
+)
 from pipeloom.secrets.redaction import Redactor
 from pipeloom.state.types import StateKey, StateStore, UnitRecord
 
@@ -440,6 +447,7 @@ class ModelRunner:
         t0 = self._rt.clock.monotonic()
         try:
             self._check()
+            rel = self._contract(node, rel)
             if before_write is not None:
                 before_write()
                 self._check()
@@ -532,6 +540,7 @@ class ModelRunner:
                 meta["watermark"] = incremental.to_meta(inc.state, after, inc.column)
                 self._note_incremental(inc.state, after, row)
             try:
+                rel = self._contract(node, rel)
                 result = self._write(node, target, strategy, rel, row, meta, before_write)
             finally:
                 if finish is not None:
@@ -1032,6 +1041,22 @@ class ModelRunner:
             )
 
     # -- writing ------------------------------------------------------------------------------
+
+    def _contract(self, node: PlanNode, rel: Relation) -> Relation:
+        """ADR-0044: the batch must match the declared columns before anything is written."""
+        if node.columns is None:
+            return rel
+        declared = tuple(Column(c.name, c.dtype, c.nullable) for c in node.columns)
+        try:
+            return check_contract(self._session, rel, declared)
+        except ContractViolation as exc:
+            self._fail(
+                "PLM208",
+                "write",
+                exc,
+                f"model '{node.name}' violates its contract",
+                "change the model body (cast or rename columns), or update its columns",
+            )
 
     def _write(
         self,

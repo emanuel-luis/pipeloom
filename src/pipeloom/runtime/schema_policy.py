@@ -12,7 +12,17 @@ from typing import Final, Literal
 
 from pipeloom.diagnostics import JsonValue
 from pipeloom.engine.errors import WriteKeyError
-from pipeloom.engine.types import Column, ColumnChange, Schema, SchemaDiff, can_widen, diff_schemas
+from pipeloom.engine.protocols import EngineSession
+from pipeloom.engine.types import (
+    Column,
+    ColumnChange,
+    ExpectationSpec,
+    Relation,
+    Schema,
+    SchemaDiff,
+    can_widen,
+    diff_schemas,
+)
 
 SchemaAction = Literal["applied", "ignored", "rejected", "replaced", "none"]
 
@@ -27,6 +37,50 @@ class SchemaRejected(Exception):
         super().__init__(f"{reason}: {describe(diff)}")
         self.policy = policy
         self.diff = diff
+
+
+class ContractViolation(Exception):
+    """The batch does not match the model contract. The runner reports it as PLM208."""
+
+
+def contract_problems(declared: Schema, batch: Schema) -> list[str]:
+    """What differs between a contract and a batch schema: exact names (order ignored) and
+    exact logical types (ADR-0044)."""
+    have = {c.name: c.dtype for c in batch}
+    want = {c.name: c.dtype for c in declared}
+    out = [f"missing column '{n}'" for n in want if n not in have]
+    out += [f"extra column '{n}'" for n in have if n not in want]
+    out += [
+        f"column '{n}' is {have[n]}, declared {t}"
+        for n, t in want.items()
+        if n in have and have[n] != t
+    ]
+    return out
+
+
+def check_contract(session: EngineSession, rel: Relation, declared: Schema) -> Relation:
+    """Raise `ContractViolation` unless `rel` matches `declared`; a null in a non-nullable column
+    is counted with one `evaluate` call. Returns the relation to write (persisted when lazy and
+    counted, so the write does not recompute it)."""
+    problems = contract_problems(declared, session.schema(rel))
+    if problems:
+        raise ContractViolation("; ".join(problems))
+    strict = [c.name for c in declared if not c.nullable]
+    if not strict:
+        return rel
+    if rel.lazy:
+        rel = session.persist(rel)
+    specs = [
+        ExpectationSpec(f"contract_not_null_{i}", "not_null", "fail", (name,), {})
+        for i, name in enumerate(strict)
+    ]
+    failed = session.evaluate(rel, specs).failed
+    nulls = [n for s, n in zip(specs, strict, strict=True) if failed.get(s.name, 0)]
+    if nulls:
+        raise ContractViolation(
+            "; ".join(f"column '{n}' is declared nullable: false and holds nulls" for n in nulls)
+        )
+    return rel
 
 
 def describe(diff: SchemaDiff) -> str:

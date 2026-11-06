@@ -1,0 +1,22 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    targets:
+      dev:
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
+  models/m.yml: |
+    models:
+      - name: a
+        sql: select 1 as id, 'x' as label
+        columns:
+          - name: id
+            dtype: int64
+            nullable: false
+          - name: label
+            dtype: int64
+run: true

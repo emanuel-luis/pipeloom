@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLM208",
+    "severity": "error",
+    "message": "model 'a' violates its contract: pipeloom.runtime.schema_policy.ContractViolation: column 'label' is string, declared int64",
+    "hint": "change the model body (cast or rename columns), or update its columns",
+    "location": {
+      "file": "models/m.yml",
+      "line": 2,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {
+      "unit": "a",
+      "category": "permanent"
+    }
+  }
+]
