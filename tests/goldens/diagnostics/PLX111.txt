@@ -1,0 +1,1 @@
+error PLX111 --defer refused: the boundary is task, so each unit would rerun without the reference

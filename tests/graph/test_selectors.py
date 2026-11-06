@@ -6,7 +6,14 @@ from hypothesis import strategies as st
 
 from pipeloom.diagnostics import Report
 from pipeloom.graph.dag import Graph
-from pipeloom.graph.selectors import NodeInfo, Selection, SelectorError, parse, select_nodes
+from pipeloom.graph.selectors import (
+    NodeInfo,
+    Selection,
+    SelectorError,
+    StateRef,
+    parse,
+    select_nodes,
+)
 from tests.graph.test_dag import Dag, dags, make_graph
 
 MATS = ("table", "view", "ephemeral")
@@ -103,6 +110,106 @@ def test_unknown_method() -> None:
         parse("tagg:x")
     assert err.value.diagnostic.code == "PLG304"
     assert err.value.diagnostic.hint == "did you mean 'tag'?"
+
+
+def stated(
+    g: Graph,
+    nodes: dict[str, NodeInfo],
+    select: str,
+    ref: StateRef | None,
+    report: Report | None = None,
+) -> frozenset[str]:
+    return select_nodes(Selection((select,), state=ref), g, nodes, report or Report())
+
+
+def chain() -> tuple[Graph, dict[str, NodeInfo]]:
+    """n00 table, n01 ephemeral, n02 table; n03 table reads n02."""
+    g = make_graph(4, {(0, 1), (1, 2), (2, 3)})
+    mats = ("table", "ephemeral", "table", "table")
+    nodes = {
+        f"n0{k}": NodeInfo(f"n0{k}", f"n0{k}", f"m/{k}.yml", mats[k], (), f"sum{k}", ())
+        for k in range(4)
+    }
+    return g, nodes
+
+
+def same_state(nodes: dict[str, NodeInfo]) -> dict[str, tuple[str, tuple[tuple[str, str], ...]]]:
+    return {uid: (n.checksum or "", n.inputs) for uid, n in nodes.items()}
+
+
+def test_state_modified_and_new() -> None:
+    g, nodes = chain()
+    ref = same_state(nodes)
+    assert stated(g, nodes, "state:modified", StateRef(ref)) == set()
+    ref["n00"] = ("other", ())
+    del ref["n03"]
+    assert stated(g, nodes, "state:modified", StateRef(ref)) == {"n00", "n03"}
+    assert stated(g, nodes, "state:new", StateRef(ref)) == {"n03"}
+    assert stated(g, nodes, "state:modified+", StateRef(ref)) == {"n00", "n01", "n02", "n03"}
+    assert stated(g, nodes, "n02,state:new", StateRef(ref)) == set()
+
+
+def test_state_modified_sees_rewired_inputs() -> None:
+    g, nodes = chain()
+    ref = same_state(nodes)
+    ref["n02"] = ("sum2", (("x", "n00"),))
+    assert stated(g, nodes, "state:modified", StateRef(ref)) == {"n02"}
+
+
+def test_state_modified_ephemeral_marks_the_models_that_inline_it() -> None:
+    g, nodes = chain()
+    ref = same_state(nodes)
+    ref["n01"] = ("other", ())
+    assert stated(g, nodes, "state:modified", StateRef(ref)) == {"n01", "n02"}  # not n03
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("fail", {"n00", "n02"}),
+        ("skip", {"n03"}),
+        ("cancelled", {"n04"}),
+        ("succeeded", {"n05"}),
+    ],
+)
+def test_result_values(value: str, expected: set[str]) -> None:
+    g = make_graph(7, set())
+    nodes = {
+        uid: NodeInfo(uid, uid, f"m/{uid}.yml", "ephemeral" if uid == "n06" else "table", ())
+        for uid in sorted(g.kinds)
+    }
+    results = {
+        "n00": "failed",
+        "n02": "timed_out",
+        "n03": "skipped",
+        "n04": "cancelled",
+        "n05": "succeeded",
+        "n06": "failed",  # ephemeral models never match
+    }
+    got = stated(g, nodes, f"result:{value}", StateRef({}, results))
+    assert got == expected
+
+
+def test_state_atoms_need_a_reference() -> None:
+    g, nodes = chain()
+    with pytest.raises(SelectorError) as err:
+        stated(g, nodes, "state:modified", None)
+    assert err.value.diagnostic.code == "PLG307"
+    with pytest.raises(SelectorError) as err:
+        stated(g, nodes, "result:fail", StateRef(same_state(nodes)))
+    assert err.value.diagnostic.code == "PLG308"
+
+
+@pytest.mark.parametrize("expr", ["state:changed", "state:*", "result:failed", "result:"])
+def test_state_values_are_checked(expr: str) -> None:
+    with pytest.raises(SelectorError) as err:
+        parse(expr)
+    assert err.value.diagnostic.code == "PLG305"
+
+
+def test_state_ref_keeps_a_selection_hashable() -> None:
+    ref = StateRef({})
+    assert hash(Selection(("a",), state=ref)) == hash(Selection(("a",), state=ref))
 
 
 def test_parse_shape() -> None:

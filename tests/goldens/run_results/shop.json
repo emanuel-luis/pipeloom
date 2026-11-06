@@ -36,7 +36,9 @@
     "fail_fast": false,
     "workers": 1,
     "boundary": "process",
-    "lock": true
+    "lock": true,
+    "state": null,
+    "defer": false
   },
   "run": {
     "run_id": "run1",

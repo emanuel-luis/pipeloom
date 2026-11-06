@@ -8,11 +8,13 @@ from pathlib import Path
 from typing import Any, NoReturn
 
 from pipeloom.api import Project, ProjectOptions
+from pipeloom.artifacts.reference import load_reference
 from pipeloom.cli._events import Invocation
 from pipeloom.config.bind import BoundProject
 from pipeloom.diagnostics import Diagnostic, Report
 from pipeloom.graph.dag import ProjectGraph
-from pipeloom.graph.selectors import Selection, SelectorError, apply
+from pipeloom.graph.selectors import Selection, SelectorError, StateRef, apply
+from pipeloom.plan.compile import model_checksums
 
 
 @dataclass(frozen=True)
@@ -32,6 +34,23 @@ def _fail(
     raise SystemExit(code)  # finish exits already; this keeps the type checker honest
 
 
+def reference_state(
+    inv: Invocation,
+    project_dir: Path,
+    state: Path | None,
+    project_name: str,
+    bound: BoundProject | None,
+) -> StateRef | None:
+    """The selector input of `--state`; None without the flag. Exits 1 on PLX110."""
+    if state is None:
+        return None
+    report = Report()
+    ref = load_reference(project_dir / state, project_name, report, project_dir)
+    if ref is None:
+        _fail(inv, report.sorted(), 1, bound)
+    return ref.selector_state()
+
+
 def resolve_selection(
     inv: Invocation,
     project_dir: Path,
@@ -40,8 +59,9 @@ def resolve_selection(
     plugins: tuple[str, ...],
     select: tuple[str, ...],
     exclude: tuple[str, ...],
+    state: Path | None = None,
 ) -> Selected:
-    """Resolve the project and select models. Exits 1 on errors and 2 on a bad selector."""
+    """Resolve the project and select models. Exits 1 on errors and PLX110, 2 on a bad selector."""
     opts = ProjectOptions(
         project_dir=project_dir, target=target, vars=vars_, plugins=plugins, env=os.environ
     )
@@ -52,8 +72,16 @@ def resolve_selection(
         _fail(inv, outcome.diagnostics, 1, bound)
     report = Report()
     report.extend(outcome.diagnostics)
+    ref = reference_state(inv, project_dir, state, outcome.value.project.name, bound)
+    sums = None if ref is None else model_checksums(outcome.value)
     try:
-        ids = apply(Selection(select, exclude), outcome.value.graph, outcome.value.project, report)
+        ids = apply(
+            Selection(select, exclude, ref),
+            outcome.value.graph,
+            outcome.value.project,
+            report,
+            sums,
+        )
     except SelectorError as err:
         report.extend([err.diagnostic])
         _fail(inv, report.sorted(), 2, bound)
