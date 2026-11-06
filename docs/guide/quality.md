@@ -160,7 +160,11 @@ Before every write, pipeloom compares the batch with the contract:
 - the column names must match exactly (case-sensitive, any order), with no column missing and none
   extra;
 - each logical type must equal the declared `dtype`. Nothing is widened or cast, so cast in the
-  body. Engines report fixed forms: Spark timestamps are always `timestamp[us, UTC]`;
+  body. Engines report fixed forms: Spark timestamps are always `timestamp[us, UTC]`. On pandas, an
+  integer column with a null is `float64` unless it uses the nullable `Int64` dtype, and a column
+  of Python `Decimal` objects is `unknown`; use `pd.ArrowDtype(pa.decimal128(18, 2))` to get
+  `decimal(18,2)`. To see what an engine reports, run once: PLM208 names the reported type of
+  every column whose type differs;
 - a column with `nullable: false` must hold no null (NaN counts as null), counted with one pass
   over the batch.
 
