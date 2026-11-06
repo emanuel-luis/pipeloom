@@ -727,12 +727,13 @@ class EngineContract:
         with self.session(h, tmp_path) as s:
             native = h.make_native(ROWS, SCHEMA)
             result = _run_one(h, s, tmp_path, node, lambda ctx: native)
+            # Spark catalogs only answer inside an engine session
+            assert not h.catalog.exists(target)
+            assert not h.catalog.exists(quarantine_target(target))
         assert result is not None and result.error is not None
         assert result.error.code == "PLM208", result.error.message
         assert problem in result.error.message
         assert result.error.category == "permanent"
-        assert not h.catalog.exists(target)
-        assert not h.catalog.exists(quarantine_target(target))
 
     # -- schema-change policy ---------------------------------------------------------------
 
