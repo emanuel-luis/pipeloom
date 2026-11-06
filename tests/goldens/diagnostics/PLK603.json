@@ -6,7 +6,7 @@
     "hint": "declare it under inputs, or ignore this warning for an external table",
     "location": {
       "file": "models/m.yml",
-      "line": 5,
+      "line": 7,
       "col": 10,
       "json_pointer": "/models/0/sql"
     },

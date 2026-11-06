@@ -6,7 +6,7 @@
     "hint": "did you mean 'model_paths'?",
     "location": {
       "file": "pipeloom.yml",
-      "line": 6,
+      "line": 7,
       "col": 1,
       "json_pointer": "/model_pths"
     },

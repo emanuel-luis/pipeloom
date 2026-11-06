@@ -9,9 +9,14 @@ $ pip install "pipeloom[polars]"
 ```yaml
 targets:
   dev:
-    engine: {kind: polars}
-    catalog: {kind: filesystem, root: warehouse}
-    state: {kind: json, path: .pipeloom/state}
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: warehouse
+    state:
+      kind: json
+      path: .pipeloom/state
 ```
 
 The engine needs the `filesystem` catalog: tables are directories of part files committed through

@@ -1,17 +1,50 @@
 models:
   - name: orders
     python: quality.models:passthrough
-    inputs: {raw: {source: raw_orders}}
-    quality: {quarantine: true, max_drop_ratio: 0.5}
+    inputs:
+      raw:
+        source: raw_orders
+    quality:
+      quarantine: true
+      max_drop_ratio: 0.5
     expectations:
-      - {name: amount_not_negative, check: {range: {column: amount, min: 0}}, on_violation: drop}
-      - {name: customer_set, check: {not_null: [customer]}, on_violation: warn}
-      - {name: status_paid, check: {accepted_values: {column: status, values: [paid]}}, on_violation: warn}
-      - {name: amount_small, expr: "amount < 100", on_violation: warn}
-      - {name: has_rows, check: {row_count: {min: 1}}, on_violation: fail}
-      - {name: id_unique, check: {unique: [id]}, on_violation: fail}
+      - name: amount_not_negative
+        check:
+          range:
+            column: amount
+            min: 0
+        on_violation: drop
+      - name: customer_set
+        check:
+          not_null: [customer]
+        on_violation: warn
+      - name: status_paid
+        check:
+          accepted_values:
+            column: status
+            values: [paid]
+        on_violation: warn
+      - name: amount_small
+        expr: "amount < 100"
+        on_violation: warn
+      - name: has_rows
+        check:
+          row_count:
+            min: 1
+        on_violation: fail
+      - name: id_unique
+        check:
+          unique: [id]
+        on_violation: fail
   - name: orders_strict
     python: quality.models:passthrough
-    inputs: {raw: {source: raw_orders}}
+    inputs:
+      raw:
+        source: raw_orders
     expectations:
-      - {name: status_paid, check: {accepted_values: {column: status, values: [paid]}}, on_violation: fail}
+      - name: status_paid
+        check:
+          accepted_values:
+            column: status
+            values: [paid]
+        on_violation: fail

@@ -5,11 +5,19 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
-        catalog: {kind: memory}
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
   models/m.yml: |
     sources:
-      - {name: raw, format: memory, location: raw/missing}
+      - name: raw
+        format: memory
+        location: raw/missing
     models:
-      - {name: a, sql: select * from raw, inputs: {raw: {source: raw}}}
+      - name: a
+        sql: select * from raw
+        inputs:
+          raw:
+            source: raw
 run: true

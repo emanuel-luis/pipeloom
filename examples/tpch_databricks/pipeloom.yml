@@ -4,14 +4,23 @@
 config_version: 1
 name: tpch_databricks
 defaults:
-  models: {materialized: table}
+  models:
+    materialized: table
 targets:
   dev:
-    engine: {kind: spark}
-    catalog: {kind: unity, catalog: pipeloom_bronze}
-    naming: {kind: none, schema: tpch}
-    state: {kind: table, table: pipeloom_bronze.ops._pipeloom_state_tpch}
-    artifacts: {root: /Volumes/pipeloom_bronze/ops/artifacts/tpch}
+    engine:
+      kind: spark
+    catalog:
+      kind: unity
+      catalog: pipeloom_bronze
+    naming:
+      kind: none
+      schema: tpch
+    state:
+      kind: table
+      table: pipeloom_bronze.ops._pipeloom_state_tpch
+    artifacts:
+      root: /Volumes/pipeloom_bronze/ops/artifacts/tpch
     deploy:
       kind: databricks
       compute:

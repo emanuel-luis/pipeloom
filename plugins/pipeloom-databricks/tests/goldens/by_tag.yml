@@ -5,8 +5,8 @@ resources:
       name: pipeloom_shop_main_ci
       tags:
         pipeloom_job: shop.main.ci
-        pipeloom_plan_hash: 7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
-        pipeloom_settings_hash: 053a5541698f44fcf8cc84c9779beb450cc97bb325b8e217071acb27779ed4c1
+        pipeloom_plan_hash: e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
+        pipeloom_settings_hash: 3b7e78a0ca57e699cc9719244d45756d6e73661705dfa8a0f7f12c0c91c4ba73
         pipeloom_version: 1.2.3
       parameters:
       - name: pipeloom_run_id
@@ -38,7 +38,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --group=tag_mart
-          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
+          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -60,7 +60,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --group=tag_staging
-          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
+          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -84,7 +84,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --group=tag_untagged
-          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
+          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -108,7 +108,7 @@ resources:
           - --manifest=/Workspace/pipeloom/shop/manifest.json
           - --target=ci
           - --pipeline=main
-          - --plan-hash=7258536b510075fdb1649be695bf3e6ba2b43226a1e3cbf08dff4e034820e1e6
+          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}

@@ -18,11 +18,17 @@ models:
         extract(year from o.order_date),
         extract(month from o.order_date)
     inputs:
-      orders_enriched: {ref: orders_enriched}
-      lineitem_revenue: {ref: lineitem_revenue}
+      orders_enriched:
+        ref: orders_enriched
+      lineitem_revenue:
+        ref: lineitem_revenue
     tags: [gold]
     expectations:
-      - {name: not_empty, check: {row_count: {min: 1}}, on_violation: fail}
+      - name: not_empty
+        check:
+          row_count:
+            min: 1
+        on_violation: fail
   - name: top_customers
     sql: |
       select
@@ -38,8 +44,14 @@ models:
       order by net_revenue desc, customer_key
       limit 10
     inputs:
-      orders_enriched: {ref: orders_enriched}
-      lineitem_revenue: {ref: lineitem_revenue}
+      orders_enriched:
+        ref: orders_enriched
+      lineitem_revenue:
+        ref: lineitem_revenue
     tags: [gold]
     expectations:
-      - {name: not_empty, check: {row_count: {min: 1}}, on_violation: fail}
+      - name: not_empty
+        check:
+          row_count:
+            min: 1
+        on_violation: fail

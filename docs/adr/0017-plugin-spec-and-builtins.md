@@ -26,7 +26,7 @@ Building the first plugins showed gaps in the contracts those ADRs describe:
 - While the plugin API major version is 0, a plugin's `api_version` must equal the core's exactly, otherwise PLU001. From 1.0 the ADR-0016 rule applies: same major, minor not above the core's.
 - New code PLU003 covers every other load failure: the module cannot be imported, the entry point does not resolve to a `PluginSpec`, or the spec's group or kind differs from the entry point that registered it.
 - A kind provided by two entries in one group, built-ins included, is PLU002 once a config names it. `pipeloom plugins list` flags it and exits 1.
-- Naming blocks use `kind` like every other plugin block: `naming: {kind: per_user, schema: dev}`.
+- Naming blocks use `kind` like every other plugin block: a `naming` block such as `kind: per_user` with `schema: dev`.
 
 ## Consequences
 

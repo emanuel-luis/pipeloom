@@ -5,10 +5,15 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: nosql}
+        engine:
+          kind: nosql
   models/m.yml: |
     models:
-      - {name: a, python: "m:a", retries: 2, write: {strategy: append}}
+      - name: a
+        python: "m:a"
+        retries: 2
+        write:
+          strategy: append
   src/m.py: |
     def a(ctx):
         return None

@@ -63,7 +63,7 @@ other processes (`boundary: task`) can read it. The result goes to
 that location. An intermediate takes no `incremental` block, no `partition_by` and no strategy
 other than overwrite (PLP413).
 
-The target setting `artifacts: {intermediate_ttl: 1d}` (default `1d`) says how long the data
+The `intermediate_ttl` key of the target's `artifacts` block (default `1d`) says how long the data
 stays. With `0` the folder is deleted at the end of a run that succeeded; a failed run keeps it.
 At the end of every run, finalize also deletes the intermediates of other runs once
 they are older than the TTL those runs recorded. A run that left no results, or was resumed and

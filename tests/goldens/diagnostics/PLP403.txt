@@ -1,2 +1,2 @@
-error PLP403 models/m.yml:5:69 expectation 'one_row' of 'a' is an aggregate check and cannot drop
+error PLP403 models/m.yml:9:23 expectation 'one_row' of 'a' is an aggregate check and cannot drop
       hint: use on_violation: warn or fail

@@ -5,11 +5,14 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
-        catalog: {kind: memory}
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
   models/m.yml: |
     models:
-      - {name: a, python: "m:boom"}
+      - name: a
+        python: "m:boom"
   src/m.py: |
     def boom(ctx):
         raise ValueError("boom")

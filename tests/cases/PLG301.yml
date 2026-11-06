@@ -4,17 +4,24 @@ files:
     name: shop
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     models:
       - name: a
         sql: select * from b
-        inputs: {b: {ref: b}}
+        inputs:
+          b:
+            ref: b
       - name: b
         sql: select * from c
-        inputs: {c: {ref: c}}
+        inputs:
+          c:
+            ref: c
       - name: c
         sql: select * from a
-        inputs: {a: {ref: a}}
+        inputs:
+          a:
+            ref: a
       - name: d
         sql: select 1

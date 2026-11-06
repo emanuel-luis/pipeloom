@@ -1,30 +1,43 @@
 models:
   - name: stg_customers
     sql: select id, lower(email) as email from raw_customers
-    inputs: {raw_customers: {source: raw_customers}}
+    inputs:
+      raw_customers:
+        source: raw_customers
   - name: stg_orders
     sql: select id, customer_id, amount from raw_orders
-    inputs: {raw_orders: {source: raw_orders}}
+    inputs:
+      raw_orders:
+        source: raw_orders
   - name: orders_enriched
     materialized: ephemeral
     python: smoke.models:orders_enriched
     inputs:
-      orders: {ref: stg_orders}
-      customers: {ref: stg_customers}
+      orders:
+        ref: stg_orders
+      customers:
+        ref: stg_customers
   - name: fct_orders
     python: smoke.models:fct_orders
     frame_api: narwhals
-    write: {strategy: append}
+    write:
+      strategy: append
     inputs:
-      enriched: {ref: orders_enriched}
+      enriched:
+        ref: orders_enriched
   - name: dim_customers
     python: smoke.models:dim_customers
     inputs:
-      enriched: {ref: orders_enriched}
+      enriched:
+        ref: orders_enriched
   - name: rpt_revenue
     sql: select customer_id, sum(amount) as revenue from fct_orders group by customer_id
-    inputs: {fct_orders: {ref: fct_orders}}
+    inputs:
+      fct_orders:
+        ref: fct_orders
   - name: v_big_customers
     materialized: view
     sql: select customer_id, revenue from rpt_revenue where revenue >= 7.5
-    inputs: {rpt_revenue: {ref: rpt_revenue}}
+    inputs:
+      rpt_revenue:
+        ref: rpt_revenue

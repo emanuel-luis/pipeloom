@@ -48,7 +48,7 @@ def shop(tmp_path: Path) -> Path:
     )
     yml = tmp_path / "pipeloom.yml"
     text = yml.read_text(encoding="utf-8").replace(
-        "engine: {kind: memory}", engine_block(tmp_path, tables_for(tmp_path))
+        "engine:\n  kind: memory", engine_block(tmp_path, tables_for(tmp_path))
     )
     yml.write_text(text, encoding="utf-8", newline="\n")
     return tmp_path

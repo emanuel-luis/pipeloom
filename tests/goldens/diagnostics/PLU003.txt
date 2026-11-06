@@ -1,3 +1,3 @@
 warning PLR206 pipeloom.yml:1:1 model_paths entry 'models' does not exist
       hint: create the directory or remove the entry
-error PLU003 pipeloom.yml:5:20 cannot load engines plugin 'ghost' from no_such_module_xyz:SPEC: ModuleNotFoundError: No module named 'no_such_module_xyz'
+error PLU003 pipeloom.yml:6:13 cannot load engines plugin 'ghost' from no_such_module_xyz:SPEC: ModuleNotFoundError: No module named 'no_such_module_xyz'

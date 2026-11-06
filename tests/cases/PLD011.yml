@@ -5,10 +5,13 @@ files:
     name: shop
     targets:
       ci:
-        engine: {kind: memory}
-        catalog: {kind: memory}
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
   models/m.yml: |
     models:
-      - {name: a, sql: select 1 as x}
+      - name: a
+        sql: select 1 as x
   states.json: |
     {"schema": "pipeloom.unit_states/1", "units": {"a": {"status": "failed", "code": "PLD011", "message": "task a ended without a unit result: the cluster was lost"}}}

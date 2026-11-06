@@ -1,2 +1,2 @@
-error PLR203 models/m.yml:6:26 unknown source 'raw_ordrs' in input 'o' of model 'stg_orders'
+error PLR203 models/m.yml:10:17 unknown source 'raw_ordrs' in input 'o' of model 'stg_orders'
       hint: did you mean 'raw_orders'?

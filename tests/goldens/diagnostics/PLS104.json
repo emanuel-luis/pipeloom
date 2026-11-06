@@ -19,8 +19,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 6,
-      "col": 35,
+      "line": 9,
+      "col": 14,
       "json_pointer": "/targets/dev/catalog/token"
     },
     "context": {}
@@ -32,8 +32,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 6,
-      "col": 53,
+      "line": 10,
+      "col": 17,
       "json_pointer": "/targets/dev/catalog/password"
     },
     "context": {}
@@ -45,8 +45,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 6,
-      "col": 70,
+      "line": 11,
+      "col": 16,
       "json_pointer": "/targets/dev/catalog/api_key"
     },
     "context": {}
@@ -58,8 +58,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 7,
-      "col": 15,
+      "line": 12,
+      "col": 19,
       "json_pointer": "/targets/dev/catalog/access_key"
     },
     "context": {}
@@ -71,8 +71,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 8,
-      "col": 11,
+      "line": 15,
+      "col": 15,
       "json_pointer": "/targets/dev/catalog/apiKey"
     },
     "context": {}
@@ -84,8 +84,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 8,
-      "col": 31,
+      "line": 16,
+      "col": 22,
       "json_pointer": "/targets/dev/catalog/client_secret"
     },
     "context": {}
@@ -97,8 +97,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 8,
-      "col": 47,
+      "line": 17,
+      "col": 18,
       "json_pointer": "/targets/dev/catalog/password2"
     },
     "context": {}
@@ -110,8 +110,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 8,
-      "col": 62,
+      "line": 18,
+      "col": 19,
       "json_pointer": "/targets/dev/catalog/dbpassword"
     },
     "context": {}
@@ -123,8 +123,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 9,
-      "col": 17,
+      "line": 19,
+      "col": 21,
       "json_pointer": "/targets/dev/catalog/clientsecret"
     },
     "context": {}
@@ -136,8 +136,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 9,
-      "col": 31,
+      "line": 20,
+      "col": 18,
       "json_pointer": "/targets/dev/catalog/authtoken"
     },
     "context": {}
@@ -149,8 +149,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 9,
-      "col": 48,
+      "line": 21,
+      "col": 21,
       "json_pointer": "/targets/dev/catalog/refreshtoken"
     },
     "context": {}
@@ -162,8 +162,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 9,
-      "col": 60,
+      "line": 22,
+      "col": 16,
       "json_pointer": "/targets/dev/catalog/apikey1"
     },
     "context": {}
@@ -175,8 +175,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 9,
-      "col": 74,
+      "line": 23,
+      "col": 18,
       "json_pointer": "/targets/dev/catalog/passwords"
     },
     "context": {}
@@ -188,8 +188,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 9,
-      "col": 86,
+      "line": 24,
+      "col": 16,
       "json_pointer": "/targets/dev/catalog/secrets"
     },
     "context": {}
@@ -201,8 +201,8 @@
     "hint": "use ${secret:provider/path} or ${env:NAME}",
     "location": {
       "file": "pipeloom.yml",
-      "line": 10,
-      "col": 16,
+      "line": 25,
+      "col": 20,
       "json_pointer": "/targets/dev/catalog/credentials"
     },
     "context": {}

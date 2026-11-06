@@ -5,11 +5,15 @@ files:
     python_paths: [src]
     targets:
       dev:
-        engine: {kind: memory}
+        engine:
+          kind: memory
   models/m.yml: |
     models:
       - name: a
         sql: select 1 as x
         materialized: view
         expectations:
-          - {name: x_set, check: {not_null: [x]}, on_violation: warn}
+          - name: x_set
+            check:
+              not_null: [x]
+            on_violation: warn

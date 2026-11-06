@@ -1,2 +1,2 @@
-error PLR201 models/m.yml:6:28 unknown ref 'stg_ordrs' in input 'orders' of model 'report'
+error PLR201 models/m.yml:8:14 unknown ref 'stg_ordrs' in input 'orders' of model 'report'
       hint: did you mean 'stg_orders'?
