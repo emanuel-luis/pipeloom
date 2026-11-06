@@ -324,6 +324,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#start-from-pipeloom-init" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start from pipeloom init
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#write-the-project" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1060,6 +1071,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#start-from-pipeloom-init" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start from pipeloom init
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#write-the-project" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1141,6 +1163,22 @@
 </code></pre>
 <p>Use <code>pipeloom[pandas]</code> for the pandas engine. Add the <code>sqlglot</code> extra to get warnings about SQL
 that reads tables you did not declare (<code>pipeloom[polars,sqlglot]</code>).</p>
+<h2 id="start-from-pipeloom-init">Start from <code>pipeloom init</code><a class="headerlink" href="#start-from-pipeloom-init" title="Permanent link">&para;</a></h2>
+<p>The fastest start is to let pipeloom write the project:</p>
+<pre><code class="language-console">$ pipeloom init shop
+Project name [shop]:
+Engine (polars, pandas, spark, databricks) [polars]:
+Created project 'shop' (polars) in shop
+Next steps:
+  cd shop
+  pipeloom validate
+  pipeloom run
+</code></pre>
+<p>It writes <code>pipeloom.yml</code> with a <code>dev</code> target, one example model in each of <code>models/bronze</code>,
+<code>models/silver</code> and <code>models/gold</code>, a small CSV in <code>data/</code>, a <code>.gitignore</code> and a README. Pass
+<code>--no-input</code> (and <code>--name</code>, <code>--engine</code>, <code>--catalog</code>) to skip the questions; see
+<a href="../reference/cli/#pipeloom-init">pipeloom init</a>. The rest of this page writes a project by hand,
+to show each part.</p>
 <h2 id="write-the-project">Write the project<a class="headerlink" href="#write-the-project" title="Permanent link">&para;</a></h2>
 <p><code>pipeloom.yml</code>:</p>
 <pre><code class="language-yaml"># yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json

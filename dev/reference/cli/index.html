@@ -777,6 +777,29 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#pipeloom-init_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pipeloom init
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#pipeloom" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -815,6 +838,17 @@
     <span class="md-ellipsis">
       
         graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-init" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        init
       
     </span>
   </a>
@@ -907,6 +941,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -1124,6 +1163,29 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#pipeloom-init_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pipeloom init
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#pipeloom" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1162,6 +1224,17 @@
     <span class="md-ellipsis">
       
         graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-init" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        init
       
     </span>
   </a>
@@ -1261,6 +1334,11 @@
     </nav>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
     </ul>
   
@@ -1283,6 +1361,25 @@
 
 
 <h1 id="command-line">Command line<a class="headerlink" href="#command-line" title="Permanent link">&para;</a></h1>
+<h2 id="pipeloom-init_1">pipeloom init<a class="headerlink" href="#pipeloom-init_1" title="Permanent link">&para;</a></h2>
+<p><code>pipeloom init [DIRECTORY]</code> creates a project, like <code>dbt init</code>. DIRECTORY defaults to a new
+folder named after the project in the current directory.</p>
+<ul>
+<li>When stdin is a terminal it asks for what the flags leave out: the project name (default: the
+  directory name), the engine (<code>polars</code>, <code>pandas</code>, <code>spark</code> or <code>databricks</code>, default <code>polars</code>)
+  and, on databricks, the Unity Catalog catalog (default <code>main</code>). Otherwise, or with
+  <code>--no-input</code>, it uses the flags and those defaults.</li>
+<li>polars, spark and databricks get SQL models; pandas gets Python models under <code>src/</code>. polars,
+  pandas and spark read a small CSV in <code>data/</code>, so <code>pipeloom run</code> works right away on polars and
+  pandas. databricks reads <code>samples.tpch.orders</code> and comes with a state table, an artifacts
+  volume and a serverless <code>deploy</code> block; the comments in <code>pipeloom.yml</code> say what to create
+  before <code>pipeloom databricks deploy</code>.</li>
+<li>A directory that is not empty needs <code>--force</code>. Existing files are never overwritten: they are
+  kept and listed as skipped. A directory that already holds <code>pipeloom.yml</code> is refused.</li>
+<li>Exit codes: 0 on success, 2 on a usage error (bad name or engine, <code>--catalog</code> without
+  databricks, an existing project, a non-empty directory without <code>--force</code>).</li>
+</ul>
+<h2 id="reference">Reference<a class="headerlink" href="#reference" title="Permanent link">&para;</a></h2>
 <h3 id="pipeloom">pipeloom<a class="headerlink" href="#pipeloom" title="Permanent link">&para;</a></h3>
 <p>pipeloom: declarative, engine-agnostic data pipelines in YAML.</p>
 <p><strong>Usage:</strong></p>
@@ -1402,6 +1499,26 @@ the run. A unit marked excluded gets no row. Exit codes: 0 ok, 1 a unit failed, 
                                   Format of the graph: text (name &lt;- parents),
                                   Graphviz dot, Mermaid or JSON.  [default:
                                   text]
+  --help                          Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-init">pipeloom init<a class="headerlink" href="#pipeloom-init" title="Permanent link">&para;</a></h4>
+<p>Create a project in DIRECTORY (default: a new folder named after the project).</p>
+<p>When stdin is a terminal and --no-input is not given, asks for the values the flags leave
+out: the project name, the engine and, on databricks, the catalog.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom init [OPTIONS] [DIRECTORY]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --name TEXT                     Project name. Default: the directory name.
+  --engine [polars|pandas|spark|databricks]
+                                  Engine of the dev target. Default: polars.
+  --catalog TEXT                  Unity Catalog catalog of the dev target
+                                  (databricks only). Default: main.
+  --no-input                      Never prompt: use the flags and the
+                                  defaults.
+  --force                         Allow a directory that is not empty.
+                                  Existing files are kept, never overwritten,
+                                  and listed as skipped.
   --help                          Show this message and exit.
 </code></pre>
 <h4 id="pipeloom-ls">pipeloom ls<a class="headerlink" href="#pipeloom-ls" title="Permanent link">&para;</a></h4>
