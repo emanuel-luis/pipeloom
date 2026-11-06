@@ -758,8 +758,15 @@ class EngineContract:
     def test_orphans_matches_the_reference(self, h: EngineHarness, tmp_path: Path) -> None:
         """Null and NaN keys never count, parent nulls never match, duplicates count each."""
         schema = (Column("k", "float64"),)
-        child = [{"k": 1.0}, {"k": 2.0}, {"k": 2.0}, {"k": None}, {"k": float("nan")}, {"k": 5.0}]
-        parent = [{"k": 1.0}, {"k": 1.0}, {"k": None}, {"k": 9.0}]
+        child: list[dict[str, Any]] = [
+            {"k": 1.0},
+            {"k": 2.0},
+            {"k": 2.0},
+            {"k": None},
+            {"k": float("nan")},
+            {"k": 5.0},
+        ]
+        parent: list[dict[str, Any]] = [{"k": 1.0}, {"k": 1.0}, {"k": None}, {"k": 9.0}]
         want = reference.orphans_rows(child, "k", parent, "k")
         assert want == 3
         with self.session(h, tmp_path) as s:
