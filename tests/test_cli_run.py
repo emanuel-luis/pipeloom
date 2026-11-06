@@ -405,6 +405,7 @@ def test_unit_mode_text_shows_the_failure_block(
     assert r.exit_code == 1
     lines = [ln for ln in r.stderr.splitlines() if "FAIL" in ln or ln.startswith("         ")]
     text = "".join(re.sub(r"^\d\d:\d\d:\d\d ", "", ln) + "\n" for ln in lines)
+    assert "         explain: pipeloom explain PLM204\n" in text
     golden("events/console_unit.txt", re.sub(r"\d+\.\d\ds", "0.00s", text))
 
 
