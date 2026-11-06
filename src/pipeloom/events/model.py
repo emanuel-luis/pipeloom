@@ -294,6 +294,10 @@ class ModelInputRead(EventPayload):
     rows: int | None
     """None for a lazy relation, which is not counted."""
     duration_ms: int
+    relation: str | None = None
+    """The relation the read used, set when the read was deferred."""
+    deferred: bool = False
+    """True when `--defer` read a parent from the reference's relation."""
 
 
 class ModelWritten(EventPayload):

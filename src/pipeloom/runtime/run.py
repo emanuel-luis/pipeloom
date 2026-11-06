@@ -23,6 +23,7 @@ from pipeloom.artifacts.results import RunHeader, RunStatusName, exit_code_of, g
 from pipeloom.config.bind import BoundProject
 from pipeloom.diagnostics import Diagnostic, JsonValue, Location, Report, Severity
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
+from pipeloom.engine.types import TargetRef
 from pipeloom.events.bus import EventBus
 from pipeloom.events.model import (
     ArtifactWritten,
@@ -32,6 +33,7 @@ from pipeloom.events.model import (
     RunStarted,
 )
 from pipeloom.graph.selectors import Selection, SelectorError, apply_to_plan, is_unit_selection
+from pipeloom.plan.defer import defer_refusal, deferred_relations
 from pipeloom.plan.manifest import read_manifest, write_manifest
 from pipeloom.plan.model import Plan, PlanSelection
 from pipeloom.platform import check_orchestrator_id
@@ -311,6 +313,16 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
     else:
         compiled = project.compile(opts.selection, opts.boundary)
         plan, bound, diags = compiled.value, project.bind().value, list(compiled.diagnostics)
+    deferred: dict[str, TargetRef] = {}
+    if opts.defer and plan is not None and bound is not None and reference is not None:
+        refusal = defer_refusal(plan, reference.plan, unit_mode=unit_mode)
+        if refusal is not None:
+            return _early(bus, [*diags, refusal])
+        picked = set(plan.selection.selected)
+        run_units = [u for u in plan.units if plan.units[u].nodes[-1] in picked]
+        if run_units:
+            deferred, warnings = deferred_relations(plan, run_units, reference.plan)
+            diags.extend(warnings)
     warned = any(d.severity is Severity.WARNING for d in diags)
     if plan is None or bound is None or (opts.warn_error and warned):
         return _early(bus, diags)
@@ -495,6 +507,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                         executor_name=executor_name,
                         policies=policies,
                         redactor=project.redactor,
+                        deferred=deferred,
                     )
                     executor = ThreadExecutor(
                         runner.run_unit,
@@ -610,6 +623,10 @@ def _finish(
         "workers": workers,
         "boundary": plan.metadata.boundary,
         "lock": opts.lock,
+        "state": None
+        if opts.state is None
+        else _rel((rt.project_dir / opts.state).resolve(), rt.project_dir),
+        "defer": opts.defer,
     }
     header = RunHeader(
         run_id=rt.run_id,
