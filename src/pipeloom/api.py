@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from dataclasses import replace
-from typing import Literal
+from typing import Any, Literal
 
 from pipeloom.config.bind import BoundProject, bind_project
 from pipeloom.config.load import LoadedProject, ProjectOptions, load_project
@@ -79,6 +80,22 @@ class Project:
         if self._secrets is None:
             self._secrets = SecretResolver(self.registry, self.redactor)
         return self._secrets
+
+    def with_vars(self, vars_: Mapping[str, Any]) -> Project:
+        """This project with other vars, which are read at load; self when they are the same.
+        It keeps the registry, clock, identity, invocation id and redactor."""
+        if dict(vars_) == dict(self.options.vars):
+            return self
+        other = Project(
+            replace(self.options, vars=vars_),
+            registry=self.registry,
+            clock=self.clock,
+            identity=self._identity,
+            invocation_id=self.invocation_id,
+            redactor=self.redactor,
+        )
+        other._registry_problems = self._registry_problems
+        return other
 
     def load(self) -> Outcome[LoadedProject]:
         """Read and check pipeloom.yml, model files and defaults (layers L0 and L1)."""
@@ -191,7 +208,8 @@ class Project:
         the parent's vars (under this project's own), full_refresh (`full_refresh` wins), state
         and defer, and compiles the project fresh. A parent that cannot be retried is PLX113; one
         with nothing to retry gives a succeeded outcome with no run results."""
-        resolved, found = retry_options(self, parent_run_id, opts or RunOptions(), full_refresh)
+        project = self.with_vars(inherited_vars(self, parent_run_id))
+        resolved, found = retry_options(project, parent_run_id, opts or RunOptions(), full_refresh)
         own = bus is None
         events = bus or EventBus(
             [], clock=self.clock, invocation_id=self.invocation_id, redactor=self.redactor
@@ -201,16 +219,6 @@ class Project:
                 return _early(events, found) if found else RunOutcome("succeeded", 0, None, ())
             if control is not None:
                 resolved = replace(resolved, control=control)
-            vars_ = inherited_vars(self, parent_run_id)
-            project = self
-            if vars_ != dict(self.options.vars):  # vars are read at load: start over with them
-                project = Project(
-                    replace(self.options, vars=vars_),
-                    clock=self.clock,
-                    identity=self._identity,
-                    invocation_id=self.invocation_id,
-                    redactor=self.redactor,
-                )
             return execute_run(project, resolved, events)
         finally:
             if own:

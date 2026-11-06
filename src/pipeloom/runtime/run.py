@@ -88,6 +88,9 @@ class RunOptions:
     unless absolute. It fills `selection.state` when that is unset, and feeds `defer`."""
     defer: bool = False
     """Read the parents this run does not select from the reference's relations. Needs `state`."""
+    not_deferred: frozenset[str] = frozenset()
+    """Unique ids of models `defer` never reads from the reference: a retry sets the models its
+    parent run built, so the retry reads what that run wrote here."""
     parent_run_id: str | None = None
     """The run this one retries (`Project.retry`). A reused run id keeps the parent it recorded."""
 
@@ -323,7 +326,9 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
         picked = set(plan.selection.selected)
         run_units = [u for u in plan.units if plan.units[u].nodes[-1] in picked]
         if run_units:
-            deferred, warnings = deferred_relations(plan, run_units, reference.plan)
+            deferred, warnings = deferred_relations(
+                plan, run_units, reference.plan, opts.not_deferred
+            )
             diags.extend(warnings)
     warned = any(d.severity is Severity.WARNING for d in diags)
     if plan is None or bound is None or (opts.warn_error and warned):

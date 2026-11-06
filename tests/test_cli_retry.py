@@ -11,6 +11,7 @@ from click.testing import CliRunner, Result
 
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.cli import main
+from pipeloom.runtime import run as run_module
 from tests.conftest import make_project
 from tests.test_cli_run import ENV, MODELS, YML, codes, results, statuses
 
@@ -44,7 +45,8 @@ def run_dirs(root: Path) -> set[str]:
 
 
 def failed_parent(root: Path, *args: str) -> None:
-    assert run(root, "--run-id", "r1", *args).exit_code == 1
+    r = run(root, "--run-id", "r1", *args)
+    assert r.exit_code == 1 and "run.completed" in r.stderr, r.stderr
 
 
 def mark(root: Path, unit: str, status: str) -> None:
@@ -183,8 +185,6 @@ def test_state_and_defer_are_inherited(root: Path) -> None:
         (["--no-lock"], lambda d: d["args"]["lock"] is False),
         (["--workers", "1"], lambda d: d["args"]["workers"] == 1),
         (["--boundary", "process"], lambda d: d["args"]["boundary"] == "process"),
-        (["--warn-error"], lambda d: True),
-        (["--cancel-grace", "5s"], lambda d: True),
         (
             ["--orchestrator-id", "job_run_id=42"],
             lambda d: d["run"]["identity"]["orchestrator_ids"] == {"job_run_id": "42"},
@@ -235,8 +235,117 @@ def test_workers_env_and_project_dir_env(root: Path) -> None:
 
 def test_a_retry_of_a_retry_keeps_the_chain(root: Path) -> None:
     failed_parent(root)
-    assert retry(root, "--from", "r1", "--run-id", "r2").exit_code == 1  # still broken
+    r = retry(root, "--from", "r1", "--run-id", "r2")
+    assert r.exit_code == 1  # still broken
     fix(root)
-    assert retry(root, "--from", "r2", "--run-id", "r3").exit_code == 0
+    r = retry(root, "--from", "r2", "--run-id", "r3")
+    assert r.exit_code == 0, r.stderr
     assert results(root, "r3")["run"]["parent_run_id"] == "r2"
     assert statuses(root, "r3") == {"bad": "succeeded", "after_bad": "succeeded"}
+
+
+def test_warn_error_turns_a_warning_into_exit_one(root: Path) -> None:
+    failed_parent(root)
+    fix(root)
+    (root / "pipeloom.yml").write_text(
+        YML + "model_paths: [models, missing_dir]\n", encoding="utf-8", newline="\n"
+    )
+    assert retry(root, "--from", "r1", "--run-id", "r2").exit_code == 0
+    r = retry(root, "--from", "r1", "--run-id", "r3", "--warn-error")
+    assert r.exit_code == 1 and "PLR206" in codes(r)
+    assert "r3" not in run_dirs(root)
+
+
+@pytest.mark.parametrize(("value", "seconds"), [("45", 45), ("30s", 30), ("2m", 120)])
+def test_cancel_grace_reaches_the_run_options(
+    root: Path, monkeypatch: pytest.MonkeyPatch, value: str, seconds: int
+) -> None:
+    failed_parent(root)
+    fix(root)
+    seen: list[Any] = []
+    original = Project.retry
+
+    def spy(self: Project, parent: str, opts: Any = None, *rest: Any, **kw: Any) -> Any:
+        seen.append(opts.cancel_grace)
+        return original(self, parent, opts, *rest, **kw)
+
+    monkeypatch.setattr(Project, "retry", spy)
+    assert retry(root, "--from", "r1", "--cancel-grace", value).exit_code == 0
+    assert seen == [seconds]
+    assert retry(root, "--from", "r1", "--cancel-grace", "soon").exit_code == 2
+
+
+RAW = "sources:\n  - {name: raw, format: memory, location: raw/missing}\nmodels:\n"
+INTERMEDIATE = (
+    RAW
+    + "  - {name: a, materialized: intermediate, sql: select 1 as x}\n"
+    + "  - {name: c, materialized: intermediate, sql: select * from a, inputs: {a: {ref: a}}}\n"
+    + "  - {name: b, sql: 'select * from c, raw', inputs: {c: {ref: c}, raw: {source: raw}}}\n"
+)
+
+
+def test_intermediate_parents_of_a_retried_unit_run_again(tmp_path: Path) -> None:
+    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": INTERMEDIATE})
+    failed_parent(root)
+    assert statuses(root, "r1") == {"a": "succeeded", "b": "failed", "c": "succeeded"}
+    fixed = INTERMEDIATE.replace("'select * from c, raw'", "select * from c").replace(
+        ", raw: {source: raw}", ""
+    )
+    (root / "models" / "m.yml").write_text(fixed, encoding="utf-8", newline="\n")
+    r = retry(root, "--from", "r1", "--run-id", "r2")
+    assert r.exit_code == 0, r.stderr
+    assert statuses(root, "r2") == {"a": "succeeded", "b": "succeeded", "c": "succeeded"}
+
+
+VAR_MODELS = MODELS + "  - {name: v, sql: 'select ${var:x} as x'}\n"
+
+
+def test_vars_of_the_parent_apply_before_the_project_loads(tmp_path: Path) -> None:
+    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": VAR_MODELS})
+    failed_parent(root, "--vars", '{"x": 7}')
+    (root / "models" / "m.yml").write_text(
+        FIXED + "  - {name: v, sql: 'select ${var:x} as x'}\n", encoding="utf-8", newline="\n"
+    )
+    r = retry(root, "--from", "r1", "--run-id", "r2")
+    assert r.exit_code == 0, r.stderr
+    assert statuses(root, "r2") == {"bad": "succeeded", "after_bad": "succeeded"}
+    manifest = root / "target" / "runs" / "r2" / "manifest.json"
+    assert json.loads(manifest.read_bytes())["metadata"]["vars"] == {"x": 7}
+
+
+def test_unknown_parent_keeps_the_load_errors_and_hints_at_vars(tmp_path: Path) -> None:
+    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": VAR_MODELS})
+    r = retry(root, "--from", "nope")
+    assert r.exit_code == 1 and "PLS106" in codes(r) and "--vars" in r.stderr
+
+
+DEFER_MODELS = (
+    RAW
+    + "  - {name: a, sql: select 1 as x}\n"
+    + "  - {name: b, sql: 'select * from a, raw', inputs: {a: {ref: a}, raw: {source: raw}}}\n"
+)
+
+
+def test_a_retry_never_defers_what_its_parent_built(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": DEFER_MODELS})
+    out = ["--out", "ref/manifest.json"]
+    argv = ["compile", "--project-dir", str(root), "--target", "ci", "--stable", *out]
+    assert CliRunner().invoke(main, argv, env=ENV).exit_code == 0
+    failed_parent(root, "--state", "ref", "--defer")
+    assert statuses(root, "r1") == {"a": "succeeded", "b": "failed"}
+    built = {r["unique_id"] for r in results(root, "r1")["results"] if r["unit_id"] == "a"}
+    seen: list[Any] = []
+    original = run_module.deferred_relations
+
+    def spy(*args: Any) -> Any:
+        found = original(*args)
+        seen.append((set(args[3]), set(found[0])))
+        return found
+
+    monkeypatch.setattr(run_module, "deferred_relations", spy)
+    r = retry(root, "--from", "r1", "--run-id", "r2")
+    assert statuses(root, "r2") == {"b": "failed"}, r.stderr
+    assert seen == [(built, set())]  # without the rule, a would be read from the reference
+    assert results(root, "r2")["args"]["defer"] is True

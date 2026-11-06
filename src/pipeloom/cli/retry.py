@@ -19,6 +19,7 @@ from pipeloom.cli._options import (
     target_option,
 )
 from pipeloom.cli.run import _grace, _run_id
+from pipeloom.runtime.rerun import inherited_vars
 from pipeloom.runtime.run import RunOptions
 
 
@@ -109,6 +110,7 @@ def retry(
     )
     inv = Invocation("retry", log_format)
     project = Project(opts, invocation_id=inv.invocation_id)
+    project = project.with_vars(inherited_vars(project, from_run))  # before the project loads
     bound = project.bind().value
     run_opts = RunOptions(
         run_id=run_id,
