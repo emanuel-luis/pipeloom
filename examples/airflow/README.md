@@ -57,4 +57,6 @@ has no Java 17 package, and Spark 4 supports both.
 | `tpch_databricks` | Databricks job `main`, target `dev`, connection `databricks_default` | Unity Catalog tables `pipeloom_<layer>.tpch.<table>` |
 
 `<layer>` is `bronze`, `silver` or `gold`. Local outputs are written by the containers into the
-project folders on your host.
+project folders on your host. Docker Desktop (Windows, macOS) maps file ownership for you; on a
+native Linux Docker host the containers run as uid 50000, so make `examples/` writable for that
+user first.

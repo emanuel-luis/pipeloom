@@ -10,6 +10,8 @@ from pathlib import Path
 import pytest
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
+if not EXAMPLES.is_dir():  # the sdist ships tests/ without examples/
+    pytest.skip("examples/ is not in this source tree", allow_module_level=True)
 DAGS = sorted((EXAMPLES / "airflow" / "dags").glob("*.py"))
 ROOT = "/usr/local/airflow/examples/"
 
