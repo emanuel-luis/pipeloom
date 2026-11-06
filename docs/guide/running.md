@@ -55,6 +55,30 @@ an orchestrator can pass a templated value.
 To run exactly the plan you compiled earlier, pass `--manifest target/runs/<id>/manifest.json`.
 Add `--expect-plan-hash <sha256>` to stop with PLX103 when the plan changed.
 
+## Retrying a run
+
+`pipeloom retry --from RUN_ID` runs again what that run did not finish: the units that failed,
+timed out, were skipped or were cancelled. Fix the model, then retry.
+
+```console
+$ pipeloom run --run-id nightly-1        # bad fails, its child is skipped
+$ pipeloom retry --from nightly-1        # runs bad and its child, nothing else
+```
+
+The retry is a new run with its own id (`--run-id` sets it and must differ from `--from`). Its
+`run_results.json` and its state record name the original in `parent_run_id`. The project is
+compiled again, so the fix is picked up. The retry inherits the vars (`--vars` wins),
+`--full-refresh` (`--full-refresh` or `--no-full-refresh` wins), `--state` and `--defer` of the
+run it retries. It takes no `--select` or `--exclude`: the parent's rows already say what to run.
+When nothing failed, it prints `run nightly-1 has nothing to retry` and exits 0 without a run
+folder.
+
+The parent must be a finished run of the same project and target in the artifacts root;
+anything else is PLX113 (for another target, the hint says which `--target` to use). A unit that
+failed after its write committed is written again if it appends, because the new run id gives
+it a new idempotency token. To continue the same run instead, run it again with its own
+`--run-id`.
+
 ## Selection by state and defer
 
 Compile production once with a stable manifest and keep it as the reference:

@@ -6,6 +6,8 @@ same with and without the flag.
 
 from __future__ import annotations
 
+from collections.abc import Collection
+
 from pipeloom.diagnostics import Diagnostic, Report
 from pipeloom.engine.types import TargetRef
 from pipeloom.plan.model import Plan
@@ -41,11 +43,12 @@ def defer_refusal(plan: Plan, reference: Plan, *, unit_mode: bool) -> Diagnostic
 
 
 def deferred_relations(
-    plan: Plan, units: list[str], reference: Plan
+    plan: Plan, units: list[str], reference: Plan, keep: Collection[str] = ()
 ) -> tuple[dict[str, TargetRef], list[Diagnostic]]:
     """The reference relation of every persisted model that is not built by this run.
 
-    `units` are the run's units. A model with no usable relation in the reference (an intermediate
+    `units` are the run's units. `keep` are models never deferred: they are read from this target.
+    A model with no usable relation in the reference (an intermediate
     model, a model missing from the reference, or one that is ephemeral there) is left out, and
     PLX112 warns when a unit of the run reads it. No existence check: the relation is trusted, as
     dbt does with --favor-state. Ephemeral parents are inlined, never deferred.
@@ -61,7 +64,7 @@ def deferred_relations(
     }
     deferred: dict[str, TargetRef] = {}
     found = Report()
-    for uid in sorted(persisted - running):
+    for uid in sorted(persisted - running - set(keep)):
         theirs = reference.nodes.get(uid)
         name = plan.nodes[uid].name
         why: str | None = None

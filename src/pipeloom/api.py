@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from dataclasses import replace
-from typing import Literal
+from typing import Any, Literal
 
 from pipeloom.config.bind import BoundProject, bind_project
 from pipeloom.config.load import LoadedProject, ProjectOptions, load_project
@@ -19,7 +20,8 @@ from pipeloom.platform import Clock, Identity, IdentityProvider, LocalIdentity, 
 from pipeloom.plugins import PluginRegistry
 from pipeloom.runtime.control import RunControl
 from pipeloom.runtime.finalize_run import FinalizeOptions, finalize_run
-from pipeloom.runtime.run import RunOptions, RunOutcome, execute_run
+from pipeloom.runtime.rerun import inherited_vars, retry_options
+from pipeloom.runtime.run import RunOptions, RunOutcome, _early, execute_run
 from pipeloom.secrets.redaction import Redactor
 from pipeloom.secrets.resolve import SecretResolver
 from pipeloom.validate import validate_project
@@ -78,6 +80,22 @@ class Project:
         if self._secrets is None:
             self._secrets = SecretResolver(self.registry, self.redactor)
         return self._secrets
+
+    def with_vars(self, vars_: Mapping[str, Any]) -> Project:
+        """This project with other vars, which are read at load; self when they are the same.
+        It keeps the registry, clock, identity, invocation id and redactor."""
+        if dict(vars_) == dict(self.options.vars):
+            return self
+        other = Project(
+            replace(self.options, vars=vars_),
+            registry=self.registry,
+            clock=self.clock,
+            identity=self._identity,
+            invocation_id=self.invocation_id,
+            redactor=self.redactor,
+        )
+        other._registry_problems = self._registry_problems
+        return other
 
     def load(self) -> Outcome[LoadedProject]:
         """Read and check pipeloom.yml, model files and defaults (layers L0 and L1)."""
@@ -172,6 +190,36 @@ class Project:
         )
         try:
             return execute_run(self, opts, events)
+        finally:
+            if own:
+                events.close()
+
+    def retry(
+        self,
+        parent_run_id: str,
+        opts: RunOptions | None = None,
+        bus: EventBus | None = None,
+        control: RunControl | None = None,
+        *,
+        full_refresh: bool | None = None,
+    ) -> RunOutcome:
+        """Run again what run `parent_run_id` did not finish: its failed, skipped and cancelled
+        units. The new run has its own id and records the parent as `parent_run_id`; it inherits
+        the parent's vars (under this project's own), full_refresh (`full_refresh` wins), state
+        and defer, and compiles the project fresh. A parent that cannot be retried is PLX113; one
+        with nothing to retry gives a succeeded outcome with no run results."""
+        project = self.with_vars(inherited_vars(self, parent_run_id))
+        resolved, found = retry_options(project, parent_run_id, opts or RunOptions(), full_refresh)
+        own = bus is None
+        events = bus or EventBus(
+            [], clock=self.clock, invocation_id=self.invocation_id, redactor=self.redactor
+        )
+        try:
+            if resolved is None:
+                return _early(events, found) if found else RunOutcome("succeeded", 0, None, ())
+            if control is not None:
+                resolved = replace(resolved, control=control)
+            return execute_run(project, resolved, events)
         finally:
             if own:
                 events.close()

@@ -47,7 +47,7 @@ left no attempt file is reported as failed with PLX106, with the end of its log 
 | `run` | One object for the whole run, below. |
 | `results` | One row per persisted model, sorted by `unit_id`. |
 
-`run` holds `run_id`, `parent_run_id` (null in 0.2), `invocation_ids` (every invocation that
+`run` holds `run_id`, `parent_run_id` (null, or the run `pipeloom retry --from` retried), `invocation_ids` (every invocation that
 worked on the run), `project`, `target`, `plan_hash`, `selector`, `full_refresh`, `status`
 (`succeeded`, `failed` or `cancelled`), `started_at`, `ended_at`, `duration_ms`, `counts`
 (`total` and one number per unit status), `totals` (`rows_written` and `bytes_written` of

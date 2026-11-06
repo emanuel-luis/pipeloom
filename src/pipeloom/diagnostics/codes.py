@@ -684,6 +684,12 @@ _ACTIVE_08: Final = (
         "Parent not deferred",
         "With --defer, an unselected parent is read from this target instead of the reference: it is an intermediate model, it is missing from the reference, or the reference has no relation for it.",
     ),
+    (
+        "PLX113",
+        E,
+        "Run cannot be retried",
+        "pipeloom retry --from names a run that cannot be retried: its folder or run_results.json is missing (it never existed, never finished or is still running), it belongs to another project, or it ran another target. Retry with the target of that run.",
+    ),
 )
 
 

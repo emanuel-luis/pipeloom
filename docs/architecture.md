@@ -92,7 +92,7 @@ Source: [02-packages.d2](diagrams/02-packages.d2).
 6. **Execute:** the scheduler runs units through an executor. Orchestrated tasks run `pipeloom run --manifest ... --select unit:<id> --expect-plan-hash <h>`.
 7. **Finalize:** merge per-invocation results, write `run_results.json`, commit run state, flush and close sinks.
 
-**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `new model` (add a model file and, for Python, its stub; ADR-0041 amendment), `validate`, `compile`, `ls`, `graph`, `run`, `finalize`, `docs generate|serve` (a read-only one-file site, [ADR-0043](adr/0043-docs-site.md)), `schema export`, `explain` (print a diagnostic code's catalog entry and docs link) and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
+**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `new model` (add a model file and, for Python, its stub; ADR-0041 amendment), `validate`, `compile`, `ls`, `graph`, `run`, `retry` (run again what a finished run did not finish, ADR-0013 amendment), `finalize`, `docs generate|serve` (a read-only one-file site, [ADR-0043](adr/0043-docs-site.md)), `schema export`, `explain` (print a diagnostic code's catalog entry and docs link) and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
 
 ![The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize.](diagrams/03-lifecycle.svg)
 
@@ -648,7 +648,7 @@ Long engine (JVM) traces are trimmed to the first user frame and the root cause.
 - Runtime: `engine`, `engine_version`, `executor`, `orchestrator_ids` (Databricks job, run and task run ids; Airflow dag, run, task and try as `airflow_dag_id`, `airflow_run_id`, `airflow_task_id` and `airflow_try_number`; filled from `--orchestrator-id`, ADR-0034), `idempotency_token`.
 
 **Per-run metadata (`run_results.run`):**
-- `run_id`, `parent_run_id`, `invocation_ids[]`, `project`, `target`, `plan_hash`, `selector`, `args`, `full_refresh`. `args` records the command line values that shaped the run, among them `state` (the `--state` folder, POSIX, relative to the project dir when possible, else absolute; null without the flag) and `defer` (0.8).
+- `run_id`, `parent_run_id` (null, or the run that `pipeloom retry --from` retried; 0.8), `invocation_ids[]`, `project`, `target`, `plan_hash`, `selector`, `args`, `full_refresh`. `args` records the command line values that shaped the run, among them `state` (the `--state` folder, POSIX, relative to the project dir when possible, else absolute; null without the flag) and `defer` (0.8).
 - `status`, `started_at`, `ended_at`, `duration_ms`, `counts{status: n}`, `totals{rows_written, bytes_written}`.
 - `identity{user, host, orchestrator}`, `pipeloom_version`, `plugins{name: version}`, `python_version`, `git_sha` (if available), `exit_code`, `intermediate_ttl` (seconds; the TTL this run was finalized with, which other runs use to judge its intermediates) and `warnings[]` (run-level messages, such as `intermediate_cleanup_failed: <run_id>: <error>`).
 
@@ -910,7 +910,7 @@ Each ADR is Context, Options, Choice, Consequences, as written in the sections a
 - `run_id` is either caller-supplied or generated as `YYYYMMDDTHHMMSSZ-<6 hex>`, matching `[A-Za-z0-9._-]{1,64}`.
 - Orchestrators derive it deterministically: `dbx-<job_run_id>` or `af-<hash>`.
 - Orchestrator retries and repairs keep the `run_id` and increment the `attempt`.
-- Local `pipeloom retry --from <run_id>` creates a new run with `parent_run_id`, selecting `result:fail+` (failed units plus their skipped descendants).
+- Local `pipeloom retry --from <run_id>` creates a new run with `parent_run_id`, that runs the failed, skipped and cancelled units of the parent (0.8 amendment: it selects those `result:` values from the parent folder, not `result:fail+`, so it never runs a unit the parent did not select).
 - Writes are idempotent through the token `<run_id>:<model>`.
 
 **ADR-0015: Python version.** Python 3.10 reaches end of life in October 2026, so the floor is 3.11.
