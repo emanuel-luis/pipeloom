@@ -1,0 +1,21 @@
+[
+  {
+    "schema": "pipeloom.event/1",
+    "run_id": null,
+    "seq": 2,
+    "type": "diagnostic",
+    "level": "error",
+    "unit_id": null,
+    "model": null,
+    "attempt": null,
+    "data": {
+      "code": "PLX117",
+      "severity": "error",
+      "message": "state store NoListStore cannot list runs",
+      "hint": "use --artifacts, or upgrade the plugin",
+      "location": null,
+      "context": {}
+    },
+    "context": {}
+  }
+]

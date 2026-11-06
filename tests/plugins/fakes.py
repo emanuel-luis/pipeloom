@@ -147,3 +147,15 @@ LEAKY: PluginSpec[object] = PluginSpec(
     "leaky", "leaky", "state_stores", API_VERSION, _leaky, FakeOptions
 )
 """A state store whose factory fails with the option it was given in the message."""
+
+
+class NoListStore:
+    """A state store written before plugin API (0, 5): it has no `list_runs`."""
+
+    def close(self) -> None:
+        pass
+
+
+NOLIST: PluginSpec[object] = PluginSpec(
+    "nolist", "nolist", "state_stores", API_VERSION, lambda _o: NoListStore(), FakeOptions
+)

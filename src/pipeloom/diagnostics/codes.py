@@ -693,6 +693,23 @@ _ACTIVE_08: Final = (
 )
 
 
+# Active since 0.9.
+_ACTIVE_09: Final = (
+    (
+        "PLX117",
+        E,
+        "State store cannot list runs",
+        "pipeloom runs needs StateStore.list_runs (plugin API 0.5), and the configured state store does not provide it. Use --artifacts to read the run results under the artifacts root instead, or upgrade the store plugin.",
+    ),
+    (
+        "PLX118",
+        E,
+        "Run not found",
+        "pipeloom runs show, or runs ls --before, names a run id that the state store (or, with --artifacts, the artifacts root) does not hold for this project and target. Check the target, or list the runs with pipeloom runs ls.",
+    ),
+)
+
+
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
@@ -712,6 +729,7 @@ def _build() -> Mapping[str, CodeInfo]:
         ("0.5", _ACTIVE_05),
         ("0.6", _ACTIVE_06),
         ("0.8", _ACTIVE_08),
+        ("0.9", _ACTIVE_09),
     ):
         for code, sev, title, expl in table:
             out[code] = CodeInfo(code, _PREFIX_LAYER[code[:3]], sev, title, expl, "active", since)

@@ -1,0 +1,21 @@
+cli:
+  - runs
+  - ls
+plugins:
+  - tests.plugins.fakes:NOLIST
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
+        state:
+          kind: nolist
+  models/m.yml: |
+    models:
+      - name: a
+        sql: select 1 as x
