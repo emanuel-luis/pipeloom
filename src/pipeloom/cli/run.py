@@ -11,12 +11,11 @@ from typing import Any, Literal, cast
 import click
 
 from pipeloom.api import Project, ProjectOptions
-from pipeloom.artifacts.layout import RunPaths
+from pipeloom.cli._drive import drive
 from pipeloom.cli._events import Invocation
 from pipeloom.cli._options import (
     log_format_option,
     manifest_vars,
-    orchestrator_context,
     orchestrator_id_option,
     plugin_option,
     project_options,
@@ -24,17 +23,11 @@ from pipeloom.cli._options import (
     state_option,
     target_option,
 )
-from pipeloom.cli._signals import install_stop_handlers
 from pipeloom.config.types import parse_duration
-from pipeloom.diagnostics import Diagnostic, Report
-from pipeloom.events.bus import EventSink
-from pipeloom.events.sinks.runfile import RunFileSink
+from pipeloom.diagnostics import Report
 from pipeloom.graph.selectors import Selection
 from pipeloom.plan.manifest import read_manifest
-from pipeloom.runtime.control import RunControl
-from pipeloom.runtime.executors.process import PARENT_ENV
-from pipeloom.runtime.run import RunOptions, artifacts_root
-from pipeloom.secrets.resolve import SecretError, secret_diagnostic
+from pipeloom.runtime.run import RunOptions
 
 _HASH = re.compile(r"^[0-9a-fA-F]{64}$")
 _RUN_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
@@ -215,58 +208,21 @@ def run(
     inv = Invocation("run", log_format)
     project = Project(opts, invocation_id=inv.invocation_id)
     bound = project.bind().value
-    parent = os.environ.get(PARENT_ENV)
-    extra: list[tuple[EventSink, int]] = []
-    if bound is not None:
-        root = artifacts_root(bound, bound.loaded.project_dir.resolve())
-        invocation = inv.invocation_id
-        fallback = root / "runs" / "_invocations" / f"{invocation}.jsonl"
-        extra.append((RunFileSink(lambda rid: RunPaths(root, rid).events(invocation), fallback), 5))
-    try:
-        bus = inv.open_bus(
-            bound,
-            project_sinks=parent is None,  # a child reports to its parent only
-            extra=extra,
-            context={
-                **({} if parent is None else {"parent_invocation_id": parent}),
-                **orchestrator_context(orchestrator_ids),
-            },
-            secrets=project.secrets,
-        )
-    except SecretError as err:
-        inv.finish([secret_diagnostic(err)], 1)
-        raise  # unreachable: finish exits
-    code = 1
-    diagnostics: tuple[Diagnostic, ...] = ()
-    control = RunControl()
-    with bus, install_stop_handlers(control):
-        inv.started(bus, bound, None, None)
-        try:
-            outcome = project.run(
-                RunOptions(
-                    selection=Selection(select, exclude),
-                    manifest=manifest,
-                    expect_plan_hash=expect_plan_hash,
-                    run_id=run_id,
-                    run_started_at=run_started_at,
-                    orchestrator_ids=orchestrator_ids,
-                    full_refresh=full_refresh,
-                    fail_fast=fail_fast,
-                    lock=not no_lock,
-                    workers=workers,
-                    boundary=chosen,
-                    warn_error=warn_error,
-                    cancel_grace=cancel_grace,
-                    state=state,
-                    defer=defer,
-                ),
-                bus,
-                control,
-            )
-            code, diagnostics = outcome.exit_code, outcome.diagnostics
-        except KeyboardInterrupt:  # a second Ctrl+C, after the run was finalized
-            click.echo("Interrupted.", err=True)
-            code = 130
-        inv.completed(bus, code, diagnostics)
-    if code:
-        raise SystemExit(code)
+    run_opts = RunOptions(
+        selection=Selection(select, exclude),
+        manifest=manifest,
+        expect_plan_hash=expect_plan_hash,
+        run_id=run_id,
+        run_started_at=run_started_at,
+        orchestrator_ids=orchestrator_ids,
+        full_refresh=full_refresh,
+        fail_fast=fail_fast,
+        lock=not no_lock,
+        workers=workers,
+        boundary=chosen,
+        warn_error=warn_error,
+        cancel_grace=cancel_grace,
+        state=state,
+        defer=defer,
+    )
+    drive(inv, project, bound, orchestrator_ids, lambda bus, ctl: project.run(run_opts, bus, ctl))
