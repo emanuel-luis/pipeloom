@@ -11,6 +11,27 @@ $ pip install "pipeloom[polars]"
 Use `pipeloom[pandas]` for the pandas engine. Add the `sqlglot` extra to get warnings about SQL
 that reads tables you did not declare (`pipeloom[polars,sqlglot]`).
 
+## Start from `pipeloom init`
+
+The fastest start is to let pipeloom write the project:
+
+```console
+$ pipeloom init shop
+Project name [shop]:
+Engine (polars, pandas, spark, databricks) [polars]:
+Created project 'shop' (polars) in shop
+Next steps:
+  cd shop
+  pipeloom validate
+  pipeloom run
+```
+
+It writes `pipeloom.yml` with a `dev` target, one example model in each of `models/bronze`,
+`models/silver` and `models/gold`, a small CSV in `data/`, a `.gitignore` and a README. Pass
+`--no-input` (and `--name`, `--engine`, `--catalog`) to skip the questions; see
+[pipeloom init](reference/cli.md#pipeloom-init). The rest of this page writes a project by hand,
+to show each part.
+
 ## Write the project
 
 `pipeloom.yml`:

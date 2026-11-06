@@ -92,6 +92,8 @@ Source: [02-packages.d2](diagrams/02-packages.d2).
 6. **Execute:** the scheduler runs units through an executor. Orchestrated tasks run `pipeloom run --manifest ... --select unit:<id> --expect-plan-hash <h>`.
 7. **Finalize:** merge per-invocation results, write `run_results.json`, commit run state, flush and close sinks.
 
+**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `validate`, `compile`, `ls`, `graph`, `run`, `finalize`, `schema export` and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
+
 ![The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize.](diagrams/03-lifecycle.svg)
 
 Source: [03-lifecycle.d2](diagrams/03-lifecycle.d2).
@@ -865,7 +867,7 @@ Catalog, state-store and sink contract suites follow the same pattern.
 - **0.5 (delivered):** `pipeloom-databricks`: renderer, bundle YAML, direct deploy, run, repair, finalize with task states, task values, task grouping, compute rules, the `unity` catalog, the `databricks` secret provider and the manual live workflow. The core gained the `deploy` block, `pipeloom.commands`, `--orchestrator-id`, `pipeloom finalize` and runtime secret resolution (ADR-0034 to ADR-0036). Plugin API stays (0, 4).
 - **0.6 (delivered):** `pipeloom-airflow`: LOCAL, VIRTUALENV, KUBERNETES and DATABRICKS modes (live `per_task` and `shared` polling), `PipeloomDag` and `PipeloomTaskGroup`, the PROJECT compile cache, `pipeloom finalize --unit-states-json`, `pipeloom_databricks.api.connect_explicit`, PLA001 to PLA007, the `airflow` CI job. Later: the DOCKER mode and an `airflow` secret provider (connections and variables); a `dag.test()` end-to-end test of DATABRICKS mode needs a file-backed Databricks fake or the live workflow.
 - **0.7 (delivered):** a `catalog` setting per model and per folder that wins over the naming strategy's catalog, path catalogs that map a catalog to a leading directory (ADR-0040), and `pipeloom compile --stable` for reproducible manifests. Plugin API stays (0, 4).
-- **0.8:** `pipeloom-openlineage`, SCD2, deletes, `pipeloom retry` (`result:fail+`), `state:modified`.
+- **0.8:** `pipeloom init` (ADR-0041), `pipeloom-openlineage`, SCD2, deletes, `pipeloom retry` (`result:fail+`), `state:modified`.
 - **0.9:** hardening, performance, docs completeness, API freeze candidates, the deprecation policy.
 - **1.0:** `config_version: 1`, plugin API 1.0, manifest, event and run_results schemas v1 all declared stable.
 

@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json
+# Gold: order count and revenue per customer.
+models:
+  - name: revenue_by_customer
+    sql: |
+      select
+        customer_id,
+        count(*) as orders,
+        round(sum(amount), 2) as revenue
+      from orders_clean
+      group by customer_id
+    inputs:
+      orders_clean:
+        ref: orders_clean
+    tags: [gold]
+    expectations:
+      - name: not_empty
+        check:
+          row_count:
+            min: 1
+        on_violation: fail

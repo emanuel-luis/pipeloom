@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json
+# Silver: typed orders with a positive amount.
+models:
+  - name: orders_clean
+    python: {{name}}_models.silver:orders_clean
+    inputs:
+      orders:
+        ref: orders
+    tags: [silver]
+    expectations:
+      - name: order_id_present
+        check:
+          not_null: [order_id]
+        on_violation: fail
+      - name: order_id_unique
+        check:
+          unique: [order_id]
+        on_violation: fail

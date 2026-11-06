@@ -1,0 +1,11 @@
+"""Gold: order count and revenue per customer."""
+
+from typing import Any
+
+
+def revenue_by_customer(ctx: Any, orders_clean: Any) -> Any:
+    out = orders_clean.groupby("customer_id", as_index=False).agg(
+        orders=("order_id", "count"), revenue=("amount", "sum")
+    )
+    out["revenue"] = out["revenue"].round(2)
+    return out

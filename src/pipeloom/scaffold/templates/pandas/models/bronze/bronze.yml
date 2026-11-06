@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json
+# Bronze: the raw orders, as they arrive. Replace the source with your own data.
+sources:
+  - name: raw_orders
+    format: csv
+    location: data/orders.csv
+models:
+  - name: orders
+    python: {{name}}_models.bronze:orders
+    inputs:
+      raw_orders:
+        source: raw_orders
+    tags: [bronze]

@@ -6,6 +6,7 @@ from pipeloom.cli._ext import PipeloomGroup
 from pipeloom.cli.compile import compile_
 from pipeloom.cli.finalize import finalize
 from pipeloom.cli.graph import graph
+from pipeloom.cli.init import init
 from pipeloom.cli.ls import ls
 from pipeloom.cli.plugins import plugins
 from pipeloom.cli.run import run
@@ -19,6 +20,7 @@ def main() -> None:
     """pipeloom: declarative, engine-agnostic data pipelines in YAML."""
 
 
+main.add_command(init)
 main.add_command(validate)
 main.add_command(compile_, name="compile")
 main.add_command(ls)
