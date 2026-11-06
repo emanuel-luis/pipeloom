@@ -88,6 +88,8 @@ class RunOptions:
     unless absolute. It fills `selection.state` when that is unset, and feeds `defer`."""
     defer: bool = False
     """Read the parents this run does not select from the reference's relations. Needs `state`."""
+    parent_run_id: str | None = None
+    """The run this one retries (`Project.retry`). A reused run id keeps the parent it recorded."""
 
     def __post_init__(self) -> None:
         if self.defer and self.state is None:
@@ -414,6 +416,9 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                 except LockHeld as held:
                     return _early(bus, [*diags, _lock_held(held)])
             prior = None if unit_mode else prior
+            opts = replace(
+                opts, parent_run_id=opts.parent_run_id or (prior.parent_run_id if prior else None)
+            )
             run_started = run_started_at or started
             invocation_ids = tuple(
                 dict.fromkeys((*(prior.invocation_ids if prior else ()), rt.invocation_id))
@@ -427,6 +432,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                         plan_hash=plan.metadata.plan_hash,
                         status="running",
                         started_at=run_started,
+                        parent_run_id=opts.parent_run_id,
                         invocation_ids=invocation_ids,
                     )
                 )
@@ -443,6 +449,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                         fail_fast=opts.fail_fast,
                         engine=engine.name,
                         engine_version=engine.version,
+                        parent_run_id=opts.parent_run_id,
                     )
                 )
                 persisted = [plan.nodes[u.nodes[-1]] for u in plan.units.values()]
@@ -630,6 +637,7 @@ def _finish(
     }
     header = RunHeader(
         run_id=rt.run_id,
+        parent_run_id=opts.parent_run_id,
         invocation_id=rt.invocation_id,
         invocation_ids=invocation_ids,
         project=rt.project,
@@ -704,6 +712,7 @@ def _finish(
             status=status,
             started_at=run_started,
             ended_at=ended,
+            parent_run_id=opts.parent_run_id,
             invocation_ids=invocation_ids,
             counts=run["counts"],
         )

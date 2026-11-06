@@ -153,6 +153,8 @@ class RunHeader:
     identity: Mapping[str, Any]
     python_version: str
     git_sha: str | None
+    parent_run_id: str | None = None
+    """The run this one retries."""
 
 
 def build_run_results(
@@ -177,7 +179,7 @@ def build_run_results(
         "args": dict(h.args),
         "run": {
             "run_id": h.run_id,
-            "parent_run_id": None,
+            "parent_run_id": h.parent_run_id,
             "invocation_ids": list(h.invocation_ids),
             "project": h.project,
             "target": h.target,

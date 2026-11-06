@@ -212,6 +212,8 @@ class RunStarted(EventPayload):
     fail_fast: bool
     engine: str
     engine_version: str
+    parent_run_id: str | None = None
+    """The run this one retries."""
 
 
 class RunCompiled(EventPayload):
