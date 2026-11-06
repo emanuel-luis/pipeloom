@@ -45,3 +45,4 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0039 | [Airflow DATABRICKS mode](0039-airflow-databricks-mode.md) | Accepted | 2026-11-05 |
 | 0040 | [Per-model catalog](0040-per-model-catalog.md) | Accepted | 2026-11-05 |
 | 0041 | [pipeloom init](0041-pipeloom-init.md) | Accepted | 2026-11-05 |
+| 0043 | [Docs site](0043-docs-site.md) | Accepted | 2026-11-06 |

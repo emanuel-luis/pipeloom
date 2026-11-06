@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `pipeloom docs generate` writes one self-contained `index.html` (default `target/docs/`) that opens offline: an inline SVG lineage graph, a filterable model table, a page section per model and source (config, SQL or Python body, inputs, expectations) and, when a `run_results.json` is present, each model's last status, rows and error. It compiles the project, or reads `--manifest`; `--run-results` picks the results file. `pipeloom docs serve` serves the folder on localhost with the stdlib. The site is read only, so the non-goal is now "a scheduler service, or any UI that starts, schedules or changes runs" ([ADR-0043](docs/adr/0043-docs-site.md)).
 - `pipeloom init [DIRECTORY]` scaffolds a new project, like `dbt init`: a `dev` target for polars, pandas, spark or databricks, one example model per layer (bronze, silver, gold), a `.gitignore` and a README. polars and pandas projects run out of the box on a small CSV in `data/`. Flags `--name`, `--engine`, `--catalog` (databricks), `--no-input` and `--force`; it prompts for the rest only when stdin is a terminal. `--force` keeps existing files and lists them as skipped ([ADR-0041](docs/adr/0041-pipeloom-init.md)).
 
 ## [0.7.0] - 2026-11-05
