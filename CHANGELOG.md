@@ -6,16 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-06
+
+pipeloom 0.8 is about the first hour and fast loops. `pipeloom init` scaffolds a project that runs out of the box, with editor completion set up, and `pipeloom new model` adds models to it. `pipeloom explain` prints what a diagnostic code means. `--state` with the `state:modified`, `state:new` and `result:` selectors picks what changed or what failed, and `--defer` reads the parents a run does not build from a reference such as production. `pipeloom retry --from` reruns what a run did not finish. `pipeloom docs generate` and `docs serve` write a one-file docs and lineage site. Plugin API stays (0, 4). Artifacts only gain fields: `run_results` `args` (`state`, `defer`), `run.parent_run_id`, `model.input_read` (`relation`, `deferred`) and `run.started` (`parent_run_id`).
+
 ### Added
 
-- `pipeloom docs generate` writes one self-contained `index.html` (default `target/docs/`) that opens offline: an inline SVG lineage graph, a filterable model table, a page section per model and source (config, SQL or Python body, inputs, expectations) and, when a `run_results.json` is present, each model's last status, rows and error. It compiles the project, or reads `--manifest`; `--run-results` picks the results file. `pipeloom docs serve` serves the folder on localhost with the stdlib. The site is read only, so the non-goal is now "a scheduler service, or any UI that starts, schedules or changes runs" ([ADR-0043](docs/adr/0043-docs-site.md)).
 - `pipeloom init [DIRECTORY]` scaffolds a new project, like `dbt init`: a `dev` target for polars, pandas, spark or databricks, one example model per layer (bronze, silver, gold), a `.gitignore` and a README. polars and pandas projects run out of the box on a small CSV in `data/`. Flags `--name`, `--engine`, `--catalog` (databricks), `--no-input` and `--force`; it prompts for the rest only when stdin is a terminal. `--force` keeps existing files and lists them as skipped ([ADR-0041](docs/adr/0041-pipeloom-init.md)).
+- `pipeloom init` writes the schema modeline in every YAML file, including `_defaults.yml`, plus `.vscode/settings.json` (maps `yaml.schemas` to the published schemas) and `.vscode/extensions.json` (recommends `redhat.vscode-yaml`), so completion works with only the YAML extension ([ADR-0041](docs/adr/0041-pipeloom-init.md)).
+- `pipeloom new model NAME [--sql|--python] [--folder PATH]` adds a model file under `models/`: one block-style entry with the schema modeline and, for Python, a `build(ctx, **inputs)` stub that passes PLK602. The default kind is Python on a pandas default target, SQL otherwise ([ADR-0041](docs/adr/0041-pipeloom-init.md)).
 - `pipeloom explain <CODE>` prints the catalog entry of a diagnostic code (title, layer, severity, status, the version it appeared in and the explanation) and the link to its entry on the error-code page. The code is case-insensitive; an unknown one is a usage error (exit 2) with a did-you-mean. The console failure block gains an `explain: pipeloom explain <CODE>` line. It reads no project.
 - Selection by state. `--state DIR` on `run`, `compile`, `ls` and `graph` points at a reference `manifest.json` (and optionally `run_results.json`), for example one from `compile --stable`. New selector methods: `state:modified` (new, or the checksum or the inputs differ; a modified ephemeral model also marks the models that inline it), `state:new`, and `result:fail|skip|cancelled|succeeded` against the reference run results. New codes: PLG307 (state selector without `--state`), PLG308 (no run results in the reference) and PLX110 (reference unusable) ([ADR-0042](docs/adr/0042-state-selection-and-defer.md)).
 - `pipeloom run --defer` (with `--state`) reads the parents the run does not build from the relations of the reference manifest, so a dev run of one model reads the production upstreams. The plan hash does not change. PLX111 refuses it for unit invocations, `boundary: task` and another catalog kind; PLX112 warns when a parent cannot be deferred. `run_results.json` `args` gains `state` and `defer`, and `model.input_read` gains `relation` and `deferred` ([ADR-0042](docs/adr/0042-state-selection-and-defer.md)).
 - `pipeloom retry --from RUN_ID` runs again the units that run did not finish (failed, timed out, skipped, cancelled) in a new run, with `parent_run_id` set in `run_results.json`, the state record and `run.started`. The project is compiled fresh; vars, `--full-refresh`, `--state` and `--defer` are inherited from the parent and the flags win. A parent with nothing to retry prints a message and exits 0. New code: PLX113 (run cannot be retried). `Project.retry` is the API ([ADR-0013](docs/adr/0013-run-identity-and-reruns.md) amendment).
-- `pipeloom init` writes the schema modeline in every YAML file, including `_defaults.yml`, plus `.vscode/settings.json` (maps `yaml.schemas` to the published schemas) and `.vscode/extensions.json` (recommends `redhat.vscode-yaml`), so completion works with only the YAML extension ([ADR-0041](docs/adr/0041-pipeloom-init.md)).
-- `pipeloom new model NAME [--sql|--python] [--folder PATH]` adds a model file under `models/`: one block-style entry with the schema modeline and, for Python, a `build(ctx, **inputs)` stub that passes PLK602. The default kind is Python on a pandas default target, SQL otherwise ([ADR-0041](docs/adr/0041-pipeloom-init.md)).
+- `pipeloom docs generate` writes one self-contained `index.html` (default `target/docs/`) that opens offline: an inline SVG lineage graph, a filterable model table, a page section per model and source (config, SQL or Python body, inputs, expectations) and, when a `run_results.json` is present, each model's last status, rows and error. It compiles the project, or reads `--manifest`; `--run-results` picks the results file. `pipeloom docs serve` serves the folder on localhost with the stdlib. The site is read only, so the non-goal is now "a scheduler service, or any UI that starts, schedules or changes runs" ([ADR-0043](docs/adr/0043-docs-site.md)).
 
 ## [0.7.0] - 2026-11-05
 
@@ -263,7 +267,8 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/emanuel-luis/pipeloom/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.5.0...v0.6.0

@@ -867,7 +867,8 @@ Catalog, state-store and sink contract suites follow the same pattern.
 - **0.5 (delivered):** `pipeloom-databricks`: renderer, bundle YAML, direct deploy, run, repair, finalize with task states, task values, task grouping, compute rules, the `unity` catalog, the `databricks` secret provider and the manual live workflow. The core gained the `deploy` block, `pipeloom.commands`, `--orchestrator-id`, `pipeloom finalize` and runtime secret resolution (ADR-0034 to ADR-0036). Plugin API stays (0, 4).
 - **0.6 (delivered):** `pipeloom-airflow`: LOCAL, VIRTUALENV, KUBERNETES and DATABRICKS modes (live `per_task` and `shared` polling), `PipeloomDag` and `PipeloomTaskGroup`, the PROJECT compile cache, `pipeloom finalize --unit-states-json`, `pipeloom_databricks.api.connect_explicit`, PLA001 to PLA007, the `airflow` CI job. Later: the DOCKER mode and an `airflow` secret provider (connections and variables); a `dag.test()` end-to-end test of DATABRICKS mode needs a file-backed Databricks fake or the live workflow.
 - **0.7 (delivered):** a `catalog` setting per model and per folder that wins over the naming strategy's catalog, path catalogs that map a catalog to a leading directory (ADR-0040), and `pipeloom compile --stable` for reproducible manifests. Plugin API stays (0, 4).
-- **0.8 and later:** planned in the [roadmap](roadmap.md), starting with `pipeloom init` (ADR-0041) and block-style YAML.
+- **0.8 (delivered):** `pipeloom init` with editor setup and `pipeloom new model` (ADR-0041 and its amendment), block-style YAML, `pipeloom explain`, the `state:modified`, `state:new` and `result:` selectors with `--state` and `--defer` (ADR-0042), `pipeloom retry --from` (ADR-0013 amendment), and `pipeloom docs generate|serve`, a read-only one-file docs and lineage site (ADR-0043). Plugin API stays (0, 4).
+- **0.9 and later:** planned in the [roadmap](roadmap.md).
 
 ## 17. ADR list and diagrams
 

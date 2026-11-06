@@ -220,6 +220,9 @@ Each milestone has one headline and is sized for one maintainer. Items in the ta
 
 ### 0.8: the first hour and fast loops
 
+Delivered in 0.8.0. The docs site lays its graph out in Python instead of a vendored JavaScript library
+([ADR-0043](adr/0043-docs-site.md)).
+
 | Item | ADR | Acceptance |
 |---|---|---|
 | `init` and block-style YAML | ADR-0041 | `pipeloom init demo --engine polars`, then `pipeloom run` in `demo`, exits 0 in a clean virtualenv in CI on three operating systems |
