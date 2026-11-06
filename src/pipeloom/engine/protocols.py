@@ -131,6 +131,12 @@ class EngineSession(Protocol):
         None and timestamps with a time zone are aware UTC. Plugin API 0.5 (ADR-0045)."""
         ...
 
+    def orphans(self, rel: Relation, column: str, parent: Relation, field: str) -> int:
+        """Rows of `rel` whose non-null `column` (NaN is null) matches no `field` value of
+        `parent`; parent nulls never match. Plugin API 0.5, used by relationships data tests
+        (ADR-0045)."""
+        ...
+
 
 @runtime_checkable
 class Engine(Protocol):

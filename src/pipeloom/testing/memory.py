@@ -345,6 +345,9 @@ class MemorySession:
     def to_rows(self, rel: Relation) -> list[dict[str, Any]]:
         return [dict(r) for r in _rows(rel)]
 
+    def orphans(self, rel: Relation, column: str, parent: Relation, field: str) -> int:
+        return reference.orphans_rows(_rows(rel), column, _rows(parent), field)
+
     def create_view(
         self, target: TargetRef, query: str, inputs: Mapping[str, ReadSpec]
     ) -> WriteResult:

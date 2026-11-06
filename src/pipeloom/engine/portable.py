@@ -113,6 +113,25 @@ def to_rows(native: Any) -> list[dict[str, Any]]:
     return [{k: _plain(v) for k, v in row.items()} for row in frame.rows(named=True)]
 
 
+_ORPHAN_KEY = "__pipeloom_key"
+
+
+def _keys(native: Any, name: str) -> Any:
+    """The non-null values of one column (NaN counts as null), as a one-column eager frame."""
+    frame = _eager(native)
+    ref = nw.col(name)
+    if isinstance(frame.schema[name], nw.Float32 | nw.Float64):
+        ref = ref.fill_nan(None)
+    return frame.select(ref.alias(_ORPHAN_KEY)).filter(~nw.col(_ORPHAN_KEY).is_null())
+
+
+def orphans(native: Any, column: str, parent: Any, field: str) -> int:
+    """Rows of `native` whose non-null `column` matches no `field` value of `parent`: an anti
+    join. Parent nulls never match."""
+    child, keys = _keys(native, column), _keys(parent, field).unique()
+    return int(child.join(keys, on=_ORPHAN_KEY, how="anti").shape[0])
+
+
 def count(native: Any) -> int:
     return int(_collect(nw.from_native(native).select(nw.len())).item())
 

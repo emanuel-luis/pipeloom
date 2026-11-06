@@ -171,7 +171,15 @@ class SchemaDiff:
 
 
 CheckKind = Literal[
-    "not_null", "accepted_values", "range", "regex", "expr", "unique", "row_count", "freshness"
+    "not_null",
+    "accepted_values",
+    "range",
+    "regex",
+    "expr",
+    "unique",
+    "row_count",
+    "freshness",
+    "relationships",
 ]
 ROW_CHECKS: Final = frozenset({"not_null", "accepted_values", "range", "regex", "expr"})
 

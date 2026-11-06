@@ -245,6 +245,9 @@ class PandasSession:
     def to_rows(self, rel: Relation) -> list[dict[str, Any]]:
         return portable.to_rows(rel.native)
 
+    def orphans(self, rel: Relation, column: str, parent: Relation, field: str) -> int:
+        return portable.orphans(rel.native, column, parent.native, field)
+
     def persist(self, rel: Relation) -> Relation:
         return rel  # already in memory
 

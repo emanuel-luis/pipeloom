@@ -221,6 +221,19 @@ class SparkEngineSession:
     def count(self, rel: Relation) -> int:
         return int(rel.native.count())
 
+    def orphans(self, rel: Relation, column: str, parent: Relation, field: str) -> int:
+        """A `left_anti` join on the non-null keys; NaN counts as null on both sides."""
+        from pyspark.sql import functions as F
+
+        def keys(df: Any, name: str) -> Any:
+            col = F.col(sqltext.quote_ident(name))
+            if type(df.schema[name].dataType).__name__ in ("FloatType", "DoubleType"):
+                col = F.when(F.isnan(col), None).otherwise(col)
+            return df.select(col.alias("k")).where(F.col("k").isNotNull())
+
+        child, par = keys(rel.native, column), keys(parent.native, field).distinct()
+        return int(child.join(par, on="k", how="left_anti").count())
+
     def _dtype(self, rel: Relation, column: str) -> str:
         for col in self.schema(rel):
             if col.name == column:

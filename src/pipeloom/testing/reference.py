@@ -83,6 +83,17 @@ def _violations(
     return [[s for s in specs if not _row_passes(s, row, exprs.get(s.name))] for row in rows]
 
 
+def orphans_rows(
+    rows: Sequence[Mapping[str, Any]],
+    column: str,
+    parent: Sequence[Mapping[str, Any]],
+    field: str,
+) -> int:
+    """Rows whose non-null `column` matches no non-null `field` value of `parent`."""
+    keys = {p.get(field) for p in parent if not is_null(p.get(field))}
+    return sum(1 for r in rows if not is_null(r.get(column)) and r.get(column) not in keys)
+
+
 def evaluate_rows(
     rows: Sequence[Mapping[str, Any]],
     checks: Sequence[ExpectationSpec],

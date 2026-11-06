@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from pipeloom.config.models import ExpectationConfig, ResolvedModelConfig
+from pipeloom.config.models import DataTestConfig, ExpectationConfig, ResolvedModelConfig
 from pipeloom.diagnostics import JsonValue
 from pipeloom.engine.types import CheckKind, ExpectationSpec, Schema
 
@@ -44,6 +44,29 @@ def _spec(e: ExpectationConfig) -> ExpectationSpec:
 def build_specs(cfg: ResolvedModelConfig) -> tuple[ExpectationSpec, ...]:
     """The model's expectations in declaration order."""
     return tuple(_spec(e) for e in cfg.expectations)
+
+
+def build_data_specs(tests: Sequence[DataTestConfig]) -> tuple[ExpectationSpec, ...]:
+    """A model's data tests in declaration order. A relationships spec names its child column;
+    the parent's `field` is in `params`."""
+    out: list[ExpectationSpec] = []
+    for t in tests:
+        c = t.check
+        if c.relationships is not None:
+            rel = c.relationships
+            out.append(
+                ExpectationSpec(
+                    t.name, "relationships", t.on_violation, (rel.column,), {"field": rel.field}
+                )
+            )
+        else:
+            kind: CheckKind = "not_null" if c.not_null is not None else "unique"
+            out.append(
+                ExpectationSpec(
+                    t.name, kind, t.on_violation, tuple(c.not_null or c.unique or ()), {}
+                )
+            )
+    return tuple(out)
 
 
 def check_columns(specs: Sequence[ExpectationSpec], schema: Schema) -> list[str]:
