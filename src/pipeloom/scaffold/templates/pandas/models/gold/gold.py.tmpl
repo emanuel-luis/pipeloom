@@ -1,0 +1,14 @@
+"""Gold: order count and revenue per customer."""
+
+import pandas as pd
+
+from pipeloom import Expectation, model, row_count
+
+
+@model(expectations=[Expectation(name="not_empty", check=row_count(min=1), on_violation="fail")])
+def revenue_by_customer(orders_clean: pd.DataFrame) -> pd.DataFrame:
+    out = orders_clean.groupby("customer_id", as_index=False).agg(
+        orders=("order_id", "count"), revenue=("amount", "sum")
+    )
+    out["revenue"] = out["revenue"].round(2)
+    return out

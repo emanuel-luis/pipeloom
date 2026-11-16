@@ -6,15 +6,23 @@ compare how a pipeloom project looks on each engine.
 
 | Project | Engine | Models | Output |
 |---|---|---|---|
-| `tpch_polars` | polars | SQL | parquet under `target/warehouse` |
-| `tpch_pandas` | pandas | Python (pandas has no SQL) | parquet under `target/warehouse` |
-| `tpch_spark` | Spark, local mode | SQL | Delta under `target/warehouse` |
-| `tpch_databricks` | Spark, serverless job | SQL | Unity Catalog tables |
+| `tpch_polars` | polars | `ctx.sql(...)` | parquet under `target/warehouse` |
+| `tpch_pandas` | pandas | pandas frame code (pandas has no SQL) | parquet under `target/warehouse` |
+| `tpch_spark` | Spark, local mode | `ctx.sql(...)` | Delta under `target/warehouse` |
+| `tpch_databricks` | Spark, serverless job | `ctx.sql(...)` | Unity Catalog tables |
 
 ## Layout
 
-Each layer lives in its own catalog, and every model uses the schema `tpch`. A layer folder's
-`_defaults.yml` sets the catalog, and the target's naming sets the schema.
+Every model is a Python function decorated with `@model`, one module per layer:
+`models/bronze/bronze.py`, `models/silver/silver.py` and `models/gold/gold.py`. A function's
+parameters are its inputs: a parameter binds the model of the same name, or the source table of
+that name when no other model has it (a model never reads itself, so the bronze `orders(orders)`
+reads the source table `tpch.orders`). Each layer folder also has a `_properties.yml` with the
+model descriptions.
+
+`pipeloom.yml` declares the source group `tpch` and a `models:` tree whose `+` keys apply to every
+model in a folder: `+materialized: table` at the root, and per layer folder `+catalog` and `+tags`.
+Each layer lives in its own catalog, and the target's naming sets the schema `tpch`.
 
 | Layer | Catalog | Tables | Columns |
 |---|---|---|---|
@@ -103,10 +111,10 @@ compute, and keeps run state in `pipeloom_bronze.ops._pipeloom_state_tpch`.
 
 ## Differences between the projects
 
-- The SQL of the polars, Spark and Databricks projects is the same text. Only the sources differ:
-  parquet files for polars and Spark, `samples.tpch.<table>` for Databricks.
-- pandas has no SQL engine (PLC502), so `tpch_pandas` writes the same logic as Python models in
-  `src/tpch_pandas/`.
+- The model files of the polars, Spark and Databricks projects are the same text. Only the
+  source group in `pipeloom.yml` differs: parquet files for polars and Spark,
+  `samples.tpch.<table>` for Databricks.
+- pandas has no SQL, so the `tpch_pandas` models write the same logic as pandas frame code.
 - The tests only validate and compile the Spark and Databricks projects; the parity test below
   runs polars and pandas.
 
