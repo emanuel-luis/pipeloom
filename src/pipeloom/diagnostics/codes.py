@@ -488,7 +488,7 @@ _ACTIVE_03: Final = (
         "PLC510",
         E,
         "Expectations on an engine without quality",
-        "The selected engine does not declare the quality capability, so it cannot evaluate expectations or count nulls in non-nullable contract columns.",
+        "The selected engine does not declare the quality capability, so it cannot evaluate expectations or data tests, or count nulls in non-nullable contract columns.",
     ),
 )
 
@@ -718,6 +718,36 @@ _ACTIVE_09: Final = (
         E,
         "Run not found",
         "pipeloom runs show, or runs ls --before, names a run id that the state store (or, with --artifacts, the artifacts root) does not hold for this project and target. Check the target, or list the runs with pipeloom runs ls.",
+    ),
+    (
+        "PLR208",
+        E,
+        "Unit test reference",
+        "A unit test names a model that does not exist, gives rows for an alias that is not an input of the model, leaves an input alias without rows, or reuses a case name of its model.",
+    ),
+    (
+        "PLX114",
+        E,
+        "Unit test failed",
+        "pipeloom test ran the model body on the given rows and the output differs from expect. The message lists up to 10 missing and 10 unexpected rows; the unit_test.failed event holds up to 50 of each. Rows compare as a multiset over the expect columns.",
+    ),
+    (
+        "PLX115",
+        E,
+        "Unit test cannot run",
+        "A unit test could not run: a CSV file is missing or unreadable, a value does not cast to its column type, a column holds only nulls and declares no type, the model body raised, or the engine lacks from_rows or to_rows (plugin API 0.5). Declare columns on the given, or upgrade the engine plugin.",
+    ),
+    (
+        "PLP415",
+        E,
+        "Data tests that cannot run",
+        "data_tests is set on an ephemeral model, which writes no table to test, or a relationships check names as its parent the model itself, a descendant, an ephemeral model, an intermediate model (an intermediate table is not there when its model is not built in the run), or a model that closes a cycle among input and relationship edges. Test the relationship on a table that is not upstream of its parent.",
+    ),
+    (
+        "PLQ303",
+        E,
+        "Data test failed",
+        "A data test with on_violation: fail found violations in the written table: nulls, duplicate keys, or child keys with no parent row. Data tests run after the write and the watermark commit, so the data stays written; the unit fails, its descendants are skipped and the run exits 1. Permanent: only retry_on: any retries it.",
     ),
     (
         "PLP416",

@@ -4,6 +4,7 @@ config_version: 1
 name: tpch_spark
 vars:
   tpch_dir: ../data/tpch
+  region_csv: data/region.csv
 models:
   +materialized: table
   bronze:
@@ -28,8 +29,14 @@ sources:
         location: customer.parquet
       nation:
         location: nation.parquet
+  # Sample data committed with the project (data/region.csv). Its group has no location, so the
+  # relative path resolves against the project directory. Point region_csv at a copy on a volume
+  # (/Volumes/...) to read it there.
+  samples:
+    format: csv
+    tables:
       region:
-        location: region.parquet
+        location: ${var:region_csv}
 targets:
   dev:
     engine:

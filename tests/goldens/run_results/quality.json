@@ -12,7 +12,8 @@
         "action": "drop",
         "passed": 6,
         "failed": 1,
-        "value": null
+        "value": null,
+        "scope": "batch"
       },
       {
         "name": "customer_set",
@@ -20,7 +21,8 @@
         "action": "warn",
         "passed": 6,
         "failed": 1,
-        "value": null
+        "value": null,
+        "scope": "batch"
       },
       {
         "name": "status_paid",
@@ -28,7 +30,8 @@
         "action": "warn",
         "passed": 6,
         "failed": 1,
-        "value": null
+        "value": null,
+        "scope": "batch"
       },
       {
         "name": "amount_small",
@@ -36,7 +39,8 @@
         "action": "warn",
         "passed": 6,
         "failed": 1,
-        "value": null
+        "value": null,
+        "scope": "batch"
       },
       {
         "name": "has_rows",
@@ -44,7 +48,8 @@
         "action": "fail",
         "passed": null,
         "failed": 0,
-        "value": 6
+        "value": 6,
+        "scope": "batch"
       },
       {
         "name": "id_unique",
@@ -52,7 +57,8 @@
         "action": "fail",
         "passed": null,
         "failed": 0,
-        "value": 0
+        "value": 0,
+        "scope": "batch"
       }
     ],
     "warnings": [
@@ -75,7 +81,8 @@
         "action": "fail",
         "passed": 6,
         "failed": 1,
-        "value": null
+        "value": null,
+        "scope": "batch"
       }
     ],
     "warnings": [],

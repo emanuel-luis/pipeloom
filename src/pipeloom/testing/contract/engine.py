@@ -29,10 +29,16 @@ from pipeloom.artifacts.layout import RunPaths
 from pipeloom.config.models import (
     CheckConfig,
     ColumnConfig,
+    DataCheckConfig,
+    DataTestConfig,
     ExpectationConfig,
+    GivenConfig,
+    InputConfig,
     QualityConfig,
     RangeCheck,
+    RelationshipsCheck,
     ResolvedModelConfig,
+    UnitTestConfig,
 )
 from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine.errors import WriteKeyError
@@ -57,7 +63,9 @@ from pipeloom.plan.model import (
     PlanMetadata,
     PlanNode,
     PlanSelection,
+    PlanSource,
     PythonBody,
+    SqlBody,
 )
 from pipeloom.platform import Identity
 from pipeloom.quality import quarantine_target
@@ -71,6 +79,7 @@ from pipeloom.runtime.schema_policy import (
     resolve_columns,
     strip_scd2,
 )
+from pipeloom.runtime.unit_tests import TestOutcome, run_unit_test
 from pipeloom.state.sqlite import SqliteStore
 from pipeloom.testing import reference
 from pipeloom.testing.clock import FakeClock
@@ -290,9 +299,13 @@ def _run_one(
     node: PlanNode,
     fn: Callable[..., Any],
     upstream: tuple[PlanNode, ...] = (),
+    *,
+    sources: Mapping[str, PlanSource] | None = None,
+    data_tests: bool = False,
 ) -> ModelResult | None:
     """Run one unit made of `node` through the real `ModelRunner`, as `pipeloom run` would.
-    `upstream` are nodes already written, which `node.inputs` may name."""
+    `upstream` are nodes already written, which `node.inputs` may name; `sources` are what
+    data tests may name as their parent."""
     clock = FakeClock()
     unit = node.name
     plan = Plan(
@@ -311,7 +324,7 @@ def _run_one(
             invocation_id="contract",
         ),
         nodes={node.unique_id: node, **{u.unique_id: u for u in upstream}},
-        sources={},
+        sources=dict(sources or {}),
         units={unit: ExecutionUnit(unit_id=unit, nodes=(node.unique_id,), parents=())},
         parent_map={node.unique_id: ()},
         child_map={node.unique_id: ()},
@@ -344,6 +357,7 @@ def _run_one(
                 loader=_FnLoader(fn),
                 memo=None,
                 executor_name="thread",
+                data_tests=data_tests,
             )
             done = runner.run_unit(UnitHandle(unit, 1, 1), 0.0, CancelToken())
     finally:
@@ -408,6 +422,23 @@ class EngineContract:
             with self.session(h, tmp_path) as s:
                 rel = s.reader(fmt).read(ReadSpec(fmt, location=path.as_posix()))
                 assert _key(h.to_rows(rel.native)) == _key([dict(r) for r in ROWS]), fmt
+
+    def test_reads_a_hand_written_csv(self, h: EngineHarness, tmp_path: Path) -> None:
+        # The same bytes on every engine, as committed sample data: a header, inferred types and
+        # an empty field read as null, with the reader's default options.
+        requires(h, "formats", "csv")
+        path = tmp_path / "data" / "nation.csv"
+        path.parent.mkdir()
+        path.write_bytes(b"nation_key,name,region_key\n0,ALGERIA,0\n1,ARGENTINA,1\n2,,1\n")
+        with self.session(h, tmp_path) as s:
+            rel = s.reader("csv").read(ReadSpec("csv", location=path.as_posix()))
+            assert _key(h.to_rows(rel.native)) == _key(
+                [
+                    {"nation_key": 0, "name": "ALGERIA", "region_key": 0},
+                    {"nation_key": 1, "name": "ARGENTINA", "region_key": 1},
+                    {"nation_key": 2, "name": None, "region_key": 1},
+                ]
+            )
 
     def test_logical_types_round_trip_on_parquet(self, h: EngineHarness, tmp_path: Path) -> None:
         requires(h, "formats", "parquet")
@@ -1018,6 +1049,176 @@ class EngineContract:
         assert result.error.code == "PLM208", result.error.message
         assert problem in result.error.message
         assert result.error.category == "permanent"
+
+    # -- data tests (ADR-0045) --------------------------------------------------------------
+
+    def test_orphans_matches_the_reference(self, h: EngineHarness, tmp_path: Path) -> None:
+        """Null and NaN keys never count, parent nulls never match, duplicates count each."""
+        schema = (Column("k", "float64"),)
+        child: list[dict[str, Any]] = [
+            {"k": 1.0},
+            {"k": 2.0},
+            {"k": 2.0},
+            {"k": None},
+            {"k": float("nan")},
+            {"k": 5.0},
+        ]
+        parent: list[dict[str, Any]] = [{"k": 1.0}, {"k": 1.0}, {"k": None}, {"k": 9.0}]
+        want = reference.orphans_rows(child, "k", parent, "k")
+        assert want == 3
+        with self.session(h, tmp_path) as s:
+            got = s.orphans(
+                s.relation(h.make_native(child, schema)),
+                "k",
+                s.relation(h.make_native(parent, schema)),
+                "k",
+            )
+        assert got == want
+
+    def test_data_tests_after_write(self, h: EngineHarness, tmp_path: Path) -> None:
+        """One table unit with data tests on: entries with scope table, and a failed
+        relationships test is PLQ303, permanent, with the table still written."""
+        requires(h, "strategies", "overwrite")
+        requires(h, "quality")
+        target = _target("t_data")
+        config = ResolvedModelConfig()
+        tests = (
+            DataTestConfig(
+                name="id_in_parent",
+                check=DataCheckConfig(
+                    relationships=RelationshipsCheck(
+                        column="id", to=InputConfig(source="parent"), field="id"
+                    )
+                ),
+            ),
+            DataTestConfig(name="id_set", check=DataCheckConfig(not_null=["id"])),
+        )
+        node = PlanNode(
+            unique_id="model.contract.t_data",
+            name="t_data",
+            file="models/m.yml",
+            line=1,
+            materialized="table",
+            body=PythonBody(callable="m:build", file="src/m.py"),
+            inputs={},
+            relation=target,
+            unit_ids=("t_data",),
+            config=config.model_copy(
+                update={"write": config.write.model_copy(update={"strategy": "overwrite"})}
+            ),
+            tags=(),
+            checksum="",
+            data_tests=tests,
+        )
+        parent = PlanSource(
+            unique_id="source.contract.parent",
+            name="parent",
+            file="models/m.yml",
+            format=None,
+            location=None,
+            table="main.t_parent",
+            options={},
+            tags=(),
+        )
+        with self.session(h, tmp_path) as s:
+            self.write(s, h, "t_parent", ROWS[:1], "overwrite", "seed")
+            native = h.make_native(ROWS, SCHEMA)
+            result = _run_one(
+                h,
+                s,
+                tmp_path,
+                node,
+                lambda ctx: native,
+                sources={parent.unique_id: parent},
+                data_tests=True,
+            )
+            assert h.catalog.exists(target)  # the data stays written
+            assert len(self.read_table(s, h, "t_data")) == len(ROWS)
+        assert result is not None and result.error is not None
+        assert result.error.code == "PLQ303", result.error.message
+        assert result.error.category == "permanent"
+        entries = {e["name"]: e for e in result.row["expectations"]}
+        assert {e["scope"] for e in entries.values()} == {"table"}
+        assert entries["id_in_parent"]["failed"] == len(ROWS) - 1
+        assert entries["id_set"]["failed"] == 0
+
+    # -- unit tests (ADR-0045) --------------------------------------------------------------
+
+    def test_rows_round_trip_typed(self, h: EngineHarness, tmp_path: Path) -> None:
+        with self.session(h, tmp_path) as s:
+            rel = s.from_rows(TYPED_ROWS, TYPED_SCHEMA)
+            assert [(c.name, c.dtype) for c in s.schema(rel)] == [
+                (c.name, c.dtype) for c in TYPED_SCHEMA
+            ]
+            assert s.to_rows(rel) == [dict(r) for r in TYPED_ROWS]
+
+    def unit_case(
+        self, h: EngineHarness, tmp_path: Path, kind: str, expect: list[dict[str, Any]]
+    ) -> TestOutcome:
+        """`v2 = v * 2` over KV_ROWS, as a SQL or a Python body, through `run_unit_test`."""
+        if kind == "sql":
+            requires(h, "sql_models")
+        out_schema = (Column("id", "int64"), Column("v2", "int64"))
+
+        def build(ctx: Any, src: Any) -> Any:
+            rows = [{"id": r["id"], "v2": r["v"] * 2} for r in h.to_rows(src)]
+            return h.make_native(rows, out_schema)
+
+        node = PlanNode(
+            unique_id="model.contract.u",
+            name="u",
+            file="models/m.yml",
+            line=1,
+            materialized="table",
+            body=SqlBody(sql="select id, v * 2 as v2 from src")
+            if kind == "sql"
+            else PythonBody(callable="m:build", file="src/m.py"),
+            inputs={"src": "source.contract.raw"},
+            relation=_target("u"),
+            unit_ids=("u",),
+            config=ResolvedModelConfig(),
+            tags=(),
+            checksum="",
+        )
+        case = UnitTestConfig(
+            name="doubles",
+            given={"src": GivenConfig(rows=[dict(r) for r in KV_ROWS])},
+            expect=GivenConfig(rows=expect),
+        )
+        rt = RuntimeContext(
+            run_id="contract",
+            invocation_id="contract",
+            project="contract",
+            target="test",
+            project_dir=tmp_path,
+            clock=FakeClock(),
+            identity=Identity("tester", "host"),
+            vars={},
+        )
+        with self.session(h, tmp_path) as s:
+            return run_unit_test(
+                s,
+                node,
+                case,
+                load=lambda ref: build,
+                rt=rt,
+                sql_dialect=h.engine.capabilities.sql_dialect,
+            )
+
+    @pytest.mark.parametrize("kind", ["python", "sql"])
+    def test_unit_case_passes(self, h: EngineHarness, tmp_path: Path, kind: str) -> None:
+        out = self.unit_case(h, tmp_path, kind, [{"v2": 40, "id": 2}, {"id": 1, "v2": 20}])
+        assert out.passed, out.message
+
+    @pytest.mark.parametrize("kind", ["python", "sql"])
+    def test_unit_case_one_wrong_row_fails_with_diff(
+        self, h: EngineHarness, tmp_path: Path, kind: str
+    ) -> None:
+        out = self.unit_case(h, tmp_path, kind, [{"id": 1, "v2": 20}, {"id": 2, "v2": 41}])
+        assert out.code == "PLX114", out.message
+        assert out.missing == [{"id": 2, "v2": 41}]
+        assert out.unexpected == [{"id": 2, "v2": 40}]
+        assert "1 expected row(s) missing" in out.message
 
     # -- schema-change policy ---------------------------------------------------------------
 

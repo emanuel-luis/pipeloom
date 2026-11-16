@@ -1081,6 +1081,107 @@
       "title": "UnitSucceeded",
       "type": "object"
     },
+    "UnitTestFailed": {
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Location"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "missing": {
+          "items": {
+            "additionalProperties": {
+              "$ref": "#/$defs/JsonValue"
+            },
+            "type": "object"
+          },
+          "title": "Missing",
+          "type": "array"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "unexpected": {
+          "items": {
+            "additionalProperties": {
+              "$ref": "#/$defs/JsonValue"
+            },
+            "type": "object"
+          },
+          "title": "Unexpected",
+          "type": "array"
+        },
+        "unit_test": {
+          "title": "Unit Test",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model",
+        "unit_test",
+        "code",
+        "message",
+        "location",
+        "missing",
+        "unexpected"
+      ],
+      "title": "UnitTestFailed",
+      "type": "object"
+    },
+    "UnitTestPassed": {
+      "properties": {
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "unit_test": {
+          "title": "Unit Test",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model",
+        "unit_test"
+      ],
+      "title": "UnitTestPassed",
+      "type": "object"
+    },
+    "UnitTestsCompleted": {
+      "properties": {
+        "failed": {
+          "title": "Failed",
+          "type": "integer"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "passed",
+        "failed"
+      ],
+      "title": "UnitTestsCompleted",
+      "type": "object"
+    },
     "UnitTimedOut": {
       "properties": {
         "attempt": {
@@ -1555,6 +1656,63 @@
         "properties": {
           "data": {
             "$ref": "#/$defs/UnitTimedOut"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "unit_test.failed"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/UnitTestFailed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "unit_test.passed"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/UnitTestPassed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "unit_tests.completed"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/UnitTestsCompleted"
           }
         }
       }

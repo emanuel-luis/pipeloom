@@ -36,6 +36,7 @@ from pipeloom.config.models import (
     PropertiesEntry,
     ResolvedModelConfig,
     SourceConfig,
+    UnitTestConfig,
 )
 from pipeloom.config.yaml import LoadedDocument
 from pipeloom.diagnostics import Location, suggest
@@ -101,6 +102,8 @@ class ResolvedModel:
     """YAML keys the entry sets itself."""
     origins: Mapping[str, Origin] = field(default_factory=dict)
     """The winning layer of each setting, `description` and `columns` that some layer sets."""
+    data_tests_at: tuple[str, str] | None = None
+    """File and JSON pointer of the `data_tests` list in `entry` (the model's or its properties)."""
     site: DecoratorSite | None = None
     """The `@model` decorator of a Python-first model; None for a YAML model."""
 
@@ -128,6 +131,17 @@ class PropertiesProblem:
 
 
 @dataclass(frozen=True)
+class ResolvedUnitTest:
+    model: str
+    """Name of the tested model."""
+    name: str
+    file: str
+    pointer: str
+    """JSON pointer of the case, for example `/models/0/unit_tests/1` or `/unit_tests/0`."""
+    config: UnitTestConfig
+
+
+@dataclass(frozen=True)
 class ResolvedProject:
     bound: BoundProject
     models: Mapping[str, ResolvedModel]
@@ -138,6 +152,8 @@ class ResolvedProject:
     shadowed_sources: tuple[ResolvedSource, ...]
     docs: Mapping[str, LoadedDocument]
     interpolations: tuple[InterpolationRecord, ...]
+    unit_tests: tuple[ResolvedUnitTest, ...] = ()
+    """Every unit test, in file order (ADR-0045)."""
     properties_problems: tuple[PropertiesProblem, ...] = ()
     """Properties entries that describe no model or a model twice (PLR209)."""
     binding_problems: tuple[Problem, ...] = ()
@@ -169,6 +185,13 @@ class ResolvedProject:
             return model.site.locate(f"/{field}" if own else "")
         leaf = field if field is not None and field in model.own_fields else "name"
         return self.locate(model.file, f"{model.pointer}/{leaf}")
+
+    def locate_data_test(self, model: ResolvedModel, index: int, leaf: str = "") -> Location:
+        """Where the `index`th data test of `model` (plus `leaf`, such as `/check`) is written."""
+        if model.site is not None and model.data_tests_at is None:
+            return model.site.locate(f"/data_tests/{index}{leaf}")
+        file, pointer = model.data_tests_at or (model.file, f"{model.pointer}/data_tests")
+        return self.locate(file, f"{pointer}/{index}{leaf}")
 
 
 @dataclass(frozen=True)
@@ -330,6 +353,7 @@ def resolve_project(
     sources: dict[str, ResolvedSource] = {}
     shadowed_models: list[ResolvedModel] = []
     shadowed_sources: list[ResolvedSource] = []
+    unit_tests: list[ResolvedUnitTest] = []
     for bs in bound.sources:
         name = f"{bs.group}.{bs.table}"
         sources[source_id(project, name)] = ResolvedSource(
@@ -352,6 +376,14 @@ def resolve_project(
                 columns = Origin("model", locate(lf.path, f"{pointer}/columns"))
             elif columns is not None:
                 entry = entry.model_copy(update={"columns": props[entry.name][2].columns})
+            # data_tests is a model key like columns: the entry's list replaces the properties one.
+            tests: Layer = "model"
+            tests_at = (lf.path, f"{pointer}/data_tests")
+            if entry.data_tests is None and entry.name in props:
+                pfile, ppointer, pe = props[entry.name]
+                if pe.data_tests is not None:
+                    entry = entry.model_copy(update={"data_tests": pe.data_tests})
+                    tests, tests_at = "properties", (pfile, f"{ppointer}/data_tests")
             origins = {
                 key: Origin(layer.name, locate(layer.file, layer.pointers[key]))
                 for layer in layers
@@ -359,6 +391,8 @@ def resolve_project(
             }
             if columns is not None:
                 origins["columns"] = columns
+            if entry.data_tests is not None:
+                origins["data_tests"] = Origin(tests, locate(*tests_at))
             inputs: dict[str, InputBinding] = {}
             for alias, ic in entry.inputs.items():
                 if ic.ref is not None:
@@ -378,7 +412,22 @@ def resolve_project(
                     fields[n].alias or n for n in lf.config.models[i].model_fields_set
                 ),
                 origins=origins,
+                data_tests_at=tests_at,
             )
+            for j, case in enumerate(entry.unit_tests or ()):
+                unit_tests.append(
+                    ResolvedUnitTest(
+                        entry.name, case.name, lf.path, f"{m.pointer}/unit_tests/{j}", case
+                    )
+                )
+            if entry.name in props and m.unique_id not in models:
+                pfile, ppointer, pe = props[entry.name]
+                for j, case in enumerate(pe.unit_tests or ()):
+                    unit_tests.append(
+                        ResolvedUnitTest(
+                            entry.name, case.name, pfile, f"{ppointer}/unit_tests/{j}", case
+                        )
+                    )
             if m.unique_id in models:
                 shadowed_models.append(m)
             else:
@@ -391,6 +440,10 @@ def resolve_project(
                 shadowed_sources.append(s)
             else:
                 sources[s.unique_id] = s
+        for j, fcase in enumerate(lf.config.unit_tests):
+            unit_tests.append(
+                ResolvedUnitTest(fcase.model, fcase.name, lf.path, f"/unit_tests/{j}", fcase)
+            )
 
     known = {m.name for m in models.values()} | {p.name for p in python} | broken
     tables: dict[str, list[str]] = {}
@@ -418,6 +471,15 @@ def resolve_project(
         }
         if columns is not None:
             origins["columns"] = columns
+        # data_tests is a model key: the decorator's list replaces the properties one.
+        data_tests = p.data_tests
+        props_at: tuple[str, str] | None = None
+        if data_tests is not None:
+            origins["data_tests"] = Origin("decorator", p.site.locate("/data_tests"))
+        elif p.name in props and props[p.name][2].data_tests is not None:
+            pfile, ppointer, pe = props[p.name]
+            data_tests, props_at = pe.data_tests, (pfile, f"{ppointer}/data_tests")
+            origins["data_tests"] = Origin("properties", locate(*props_at))
         inputs = _bind(p, project, known, tables, binding)
         m = ResolvedModel(
             unique_id=model_id(project, p.name),
@@ -435,13 +497,21 @@ def resolve_project(
                     for a, b in inputs.items()
                 },
                 columns=entry_columns,
+                data_tests=data_tests,
             ),
             config=merge_settings([layer.settings for layer in layers]),
             inputs=inputs,
             own_fields=p.own_fields,
             origins=origins,
+            data_tests_at=props_at,
             site=p.site,
         )
+        if p.name in props and m.unique_id not in models:
+            pfile, ppointer, pe = props[p.name]
+            for j, case in enumerate(pe.unit_tests or ()):
+                unit_tests.append(
+                    ResolvedUnitTest(p.name, case.name, pfile, f"{ppointer}/unit_tests/{j}", case)
+                )
         if m.unique_id in models:
             shadowed_models.append(m)
         else:
@@ -465,6 +535,7 @@ def resolve_project(
         shadowed_sources=tuple(shadowed_sources),
         docs=docs,
         interpolations=loaded.interpolations,
+        unit_tests=tuple(unit_tests),
         properties_problems=tuple(problems),
         binding_problems=tuple(binding),
         broken_models=broken,

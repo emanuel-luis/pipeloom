@@ -370,6 +370,39 @@ class ModelQualityEvaluated(EventPayload):
         return Level.WARNING if noisy else Level.INFO
 
 
+class UnitTestPassed(EventPayload):
+    TYPE = "unit_test.passed"
+
+    model: str
+    unit_test: str
+
+
+class UnitTestFailed(EventPayload):
+    TYPE = "unit_test.failed"
+    LEVEL = Level.ERROR
+
+    model: str
+    unit_test: str
+    code: str
+    """PLX114 when the rows differ, PLX115 when the case could not run."""
+    message: str
+    location: dict[str, JsonValue] | None
+    missing: list[dict[str, JsonValue]]
+    """Up to 50 expected rows the output lacks."""
+    unexpected: list[dict[str, JsonValue]]
+    """Up to 50 output rows that were not expected."""
+
+
+class UnitTestsCompleted(EventPayload):
+    TYPE = "unit_tests.completed"
+
+    passed: int
+    failed: int
+
+    def event_level(self) -> Level:
+        return Level.ERROR if self.failed else Level.INFO
+
+
 class ModelLog(EventPayload):
     TYPE = "model.log"
 

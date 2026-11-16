@@ -163,6 +163,86 @@
       "title": "ColumnConfig",
       "type": "object"
     },
+    "DataCheckConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "not_null": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Not Null"
+        },
+        "relationships": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationshipsCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unique": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unique"
+        }
+      },
+      "title": "DataCheckConfig",
+      "type": "object"
+    },
+    "DataTestConfig": {
+      "additionalProperties": false,
+      "description": "A check run against the whole written table after the write (ADR-0045).",
+      "properties": {
+        "check": {
+          "$ref": "#/$defs/DataCheckConfig",
+          "description": "The check."
+        },
+        "name": {
+          "description": "Name shown in results.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "on_violation": {
+          "default": "fail",
+          "description": "warn records the count; fail fails the unit with PLQ303 (the data stays written).",
+          "enum": [
+            "warn",
+            "fail"
+          ],
+          "title": "On Violation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "check"
+      ],
+      "title": "DataTestConfig",
+      "type": "object"
+    },
     "DeletesConfig": {
       "additionalProperties": false,
       "properties": {
@@ -245,6 +325,45 @@
       "title": "ExpectationConfig",
       "type": "object"
     },
+    "FileUnitTestConfig": {
+      "additionalProperties": false,
+      "description": "A unit test in a file's top-level `unit_tests` list.",
+      "properties": {
+        "expect": {
+          "$ref": "#/$defs/GivenConfig",
+          "description": "Expected output rows; only their columns are compared, in any order."
+        },
+        "given": {
+          "description": "Rows for every input alias of the model.",
+          "patternProperties": {
+            "^[A-Za-z_][A-Za-z0-9_]*$": {
+              "$ref": "#/$defs/GivenConfig"
+            }
+          },
+          "title": "Given",
+          "type": "object"
+        },
+        "model": {
+          "description": "The model the case tests.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Model",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name of the case, unique per model.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "expect",
+        "model"
+      ],
+      "title": "FileUnitTestConfig",
+      "type": "object"
+    },
     "FreshnessCheck": {
       "additionalProperties": false,
       "properties": {
@@ -271,6 +390,60 @@
         "max_age"
       ],
       "title": "FreshnessCheck",
+      "type": "object"
+    },
+    "GivenConfig": {
+      "additionalProperties": false,
+      "description": "Rows for a unit test: inline or from a CSV file.",
+      "properties": {
+        "columns": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ColumnConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Logical types of the columns; others are taken from the upstream contract or inferred.",
+          "title": "Columns"
+        },
+        "csv": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A CSV file with a header, relative to the project dir; an empty field is null.",
+          "title": "Csv"
+        },
+        "rows": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The rows, one mapping per row.",
+          "title": "Rows"
+        }
+      },
+      "title": "GivenConfig",
       "type": "object"
     },
     "IncrementalConfig": {
@@ -411,6 +584,22 @@
           "default": null,
           "description": "Model contract: the exact output columns, checked before every write (PLM208).",
           "title": "Columns"
+        },
+        "data_tests": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/DataTestConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Checks `pipeloom build` runs against the written table (ADR-0045).",
+          "title": "Data Tests"
         },
         "description": {
           "anyOf": [
@@ -688,6 +877,22 @@
           "default": null,
           "description": "Time limit per attempt.",
           "title": "Timeout"
+        },
+        "unit_tests": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/UnitTestConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Cases `pipeloom test` runs on given rows (ADR-0045).",
+          "title": "Unit Tests"
         },
         "write": {
           "anyOf": [
@@ -1015,8 +1220,7 @@
           "anyOf": [
             {
               "items": {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/$defs/DataTestConfig"
               },
               "type": "array"
             },
@@ -1025,7 +1229,7 @@
             }
           ],
           "default": null,
-          "description": "Data tests. Accepted and kept as written; a later release checks and runs them.",
+          "description": "Checks run against the written table, used when the model sets none itself (ADR-0045).",
           "title": "Data Tests"
         },
         "description": {
@@ -1051,8 +1255,7 @@
           "anyOf": [
             {
               "items": {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/$defs/UnitTestConfig"
               },
               "type": "array"
             },
@@ -1061,7 +1264,7 @@
             }
           ],
           "default": null,
-          "description": "Unit tests. Accepted and kept as written; a later release checks and runs them.",
+          "description": "Cases `pipeloom test` runs on given rows, keyed by input alias (ADR-0045).",
           "title": "Unit Tests"
         }
       },
@@ -1174,6 +1377,33 @@
         "pattern"
       ],
       "title": "RegexCheck",
+      "type": "object"
+    },
+    "RelationshipsCheck": {
+      "additionalProperties": false,
+      "description": "Every non-null `column` value of the model must exist in `field` of `to`.",
+      "properties": {
+        "column": {
+          "description": "Column of the model that holds the key.",
+          "title": "Column",
+          "type": "string"
+        },
+        "field": {
+          "description": "Column of the parent the key must match.",
+          "title": "Field",
+          "type": "string"
+        },
+        "to": {
+          "$ref": "#/$defs/InputConfig",
+          "description": "The parent: another model (ref) or a source."
+        }
+      },
+      "required": [
+        "column",
+        "to",
+        "field"
+      ],
+      "title": "RelationshipsCheck",
       "type": "object"
     },
     "RowCountCheck": {
@@ -1301,6 +1531,38 @@
         "name"
       ],
       "title": "SourceConfig",
+      "type": "object"
+    },
+    "UnitTestConfig": {
+      "additionalProperties": false,
+      "description": "A unit test: the model body run on given input rows, compared with expected rows.",
+      "properties": {
+        "expect": {
+          "$ref": "#/$defs/GivenConfig",
+          "description": "Expected output rows; only their columns are compared, in any order."
+        },
+        "given": {
+          "description": "Rows for every input alias of the model.",
+          "patternProperties": {
+            "^[A-Za-z_][A-Za-z0-9_]*$": {
+              "$ref": "#/$defs/GivenConfig"
+            }
+          },
+          "title": "Given",
+          "type": "object"
+        },
+        "name": {
+          "description": "Name of the case, unique per model.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "expect"
+      ],
+      "title": "UnitTestConfig",
       "type": "object"
     },
     "WriteConfig": {
@@ -1439,6 +1701,14 @@
         "$ref": "#/$defs/SourceConfig"
       },
       "title": "Sources",
+      "type": "array"
+    },
+    "unit_tests": {
+      "description": "Unit tests of models defined in any file.",
+      "items": {
+        "$ref": "#/$defs/FileUnitTestConfig"
+      },
+      "title": "Unit Tests",
       "type": "array"
     }
   },

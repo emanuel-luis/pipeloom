@@ -33,7 +33,7 @@ from pipeloom_spark import errors, io, quality, sqltext
 from pipeloom_spark.catalog import DeltaPathCatalog, SparkSessionCatalog, schema_of
 from pipeloom_spark.session import SessionHandle, open_session
 from pipeloom_spark.spec import CAPABILITIES, SparkEngineOptions
-from pipeloom_spark.types import spark_ddl
+from pipeloom_spark.types import spark_ddl, to_spark
 from pipeloom_spark.write import DeltaWriter
 
 if TYPE_CHECKING:
@@ -180,6 +180,33 @@ class SparkEngineSession:
             raise TypeError(f"the spark engine takes a DataFrame, not {type(native).__name__}")
         return _rel(native)
 
+    def from_rows(self, rows: Sequence[Mapping[str, Any]], schema: Schema) -> Relation:
+        from pyspark.sql.types import StructField, StructType
+
+        struct = StructType([StructField(c.name, to_spark(c.dtype), True) for c in schema])
+        data = [tuple(r.get(c.name) for c in schema) for r in rows]
+        return _rel(self.spark.createDataFrame(data, struct))
+
+    def to_rows(self, rel: Relation) -> list[dict[str, Any]]:
+        """`collect()` gives session-local naive timestamps, so they travel as microseconds."""
+        from pyspark.sql import functions as F
+
+        fields = rel.native.schema.fields
+        stamps = {f.name for f in fields if type(f.dataType).__name__ == "TimestampType"}
+        cols = [
+            F.expr(f"unix_micros({sqltext.quote_ident(f.name)})").alias(f.name)
+            if f.name in stamps
+            else F.col(sqltext.quote_ident(f.name))
+            for f in fields
+        ]
+        out = []
+        for row in rel.native.select(*cols).collect():
+            values = row.asDict()
+            for name in stamps:
+                values[name] = _from_micros(values[name])
+            out.append(values)
+        return out
+
     def persist(self, rel: Relation) -> Relation:
         from pyspark.storagelevel import StorageLevel
 
@@ -193,6 +220,19 @@ class SparkEngineSession:
 
     def count(self, rel: Relation) -> int:
         return int(rel.native.count())
+
+    def orphans(self, rel: Relation, column: str, parent: Relation, field: str) -> int:
+        """A `left_anti` join on the non-null keys; NaN counts as null on both sides."""
+        from pyspark.sql import functions as F
+
+        def keys(df: Any, name: str) -> Any:
+            col = F.col(sqltext.quote_ident(name))
+            if type(df.schema[name].dataType).__name__ in ("FloatType", "DoubleType"):
+                col = F.when(F.isnan(col), None).otherwise(col)
+            return df.select(col.alias("k")).where(F.col("k").isNotNull())
+
+        child, par = keys(rel.native, column), keys(parent.native, field).distinct()
+        return int(child.join(par, on="k", how="left_anti").count())
 
     def _dtype(self, rel: Relation, column: str) -> str:
         for col in self.schema(rel):

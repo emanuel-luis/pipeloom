@@ -3,6 +3,7 @@
 from pipeloom._version import __version__
 from pipeloom.authoring import (
     Column,
+    DataTest,
     Deletes,
     Expectation,
     Incremental,
@@ -24,6 +25,7 @@ from pipeloom.authoring import (
 
 __all__ = [
     "Column",
+    "DataTest",
     "Deletes",
     "Expectation",
     "Incremental",

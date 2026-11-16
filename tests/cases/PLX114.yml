@@ -1,0 +1,37 @@
+cli:
+  - test
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
+  models/m.yml: |
+    sources:
+      - name: raw
+        location: raw
+    models:
+      - name: a
+        sql: select id, upper(label) as label from src
+        inputs:
+          src:
+            source: raw
+        unit_tests:
+          - name: upper_labels
+            given:
+              src:
+                rows:
+                  - id: 1
+                    label: x
+                  - id: 2
+                    label: y
+            expect:
+              rows:
+                - id: 1
+                  label: X
+                - id: 2
+                  label: Z

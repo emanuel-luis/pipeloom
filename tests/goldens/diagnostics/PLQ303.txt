@@ -1,0 +1,2 @@
+error PLQ303 models/m.yml:2 model 'a' failed data test(s): id_set: ValueError: id_set
+      hint: the data stays written; fix the data or its parent, or set on_violation: warn

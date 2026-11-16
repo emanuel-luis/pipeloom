@@ -1,0 +1,33 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine:
+          kind: memory
+  models/m.yml: |
+    sources:
+      - name: raw
+        location: raw
+    models:
+      - name: a
+        sql: select id from src
+        inputs:
+          src:
+            source: raw
+        unit_tests:
+          - name: wrong_alias
+            given:
+              source:
+                rows:
+                  - id: 1
+            expect:
+              rows:
+                - id: 1
+    unit_tests:
+      - name: unknown_model
+        model: b
+        expect:
+          rows:
+            - id: 1

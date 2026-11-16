@@ -63,6 +63,8 @@ class ChildCommand:
     cancel_grace: float | None = None
     """The parent's grace in seconds, rounded up: the flag takes whole seconds."""
     orchestrator_ids: Mapping[str, str] = field(default_factory=dict)
+    data_tests: bool = False
+    """Passed as the hidden `--data-tests true`, so each child tests what it wrote."""
 
     def argv(self, unit_id: str) -> list[str]:
         out = [
@@ -87,6 +89,8 @@ class ChildCommand:
             "--full-refresh",
             "true" if self.full_refresh else "false",
         ]
+        if self.data_tests:
+            out += ["--data-tests", "true"]
         if self.cancel_grace is not None:
             out += ["--cancel-grace", str(math.ceil(self.cancel_grace))]
         if self.vars:

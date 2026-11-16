@@ -251,8 +251,8 @@ Python-first authoring comes first; contracts and the test and build work are th
 |---|---|---|
 | Python-first authoring | [ADR-0050](adr/0050-python-first-authoring.md) | the four TPC-H examples run from decorated models, and cold discovery of 1,000 static models takes under 2 s |
 | Model contracts (`columns`) | [ADR-0044](adr/0044-model-contracts.md) | a type mismatch fails before the write with a new PLM code on polars, pandas and Spark (the shared engine contract suite) |
-| `pipeloom test` and `pipeloom build` | ADR-0045 (proposed) | a case whose expected rows match passes, and a case with one wrong row fails with a row diff, on polars, pandas and Spark |
-| Post-write data tests with `relationships` | ADR-0045 (proposed) | results appear in `run_results` with `scope: table` |
+| `pipeloom test` and `pipeloom build` | [ADR-0045](adr/0045-unit-and-data-tests.md) | a case whose expected rows match passes, and a case with one wrong row fails with a row diff, on polars, pandas and Spark |
+| Post-write data tests with `relationships` | [ADR-0045](adr/0045-unit-and-data-tests.md) | results appear in `run_results` with `scope: table` |
 | Sample data on Spark and Databricks | none | a CSV source in the TPC-H Spark example runs locally and on a Databricks volume |
 | SCD2 write strategy | [ADR-0008 amendment](adr/0008-incremental-and-state.md#amendment-09-scd2) | the SCD2 cells of the engine contract suite pass on polars and Spark |
 | `pipeloom-openlineage` sink and Airflow facets | ADR-0046 | a TPC-H run in Marquez shows the full graph, the schemas and the quality assertions |

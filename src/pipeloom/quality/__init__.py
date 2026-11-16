@@ -9,12 +9,13 @@ from pipeloom.quality.quarantine import (
     quarantine_target,
     quarantine_token,
 )
-from pipeloom.quality.specs import build_specs, check_columns
+from pipeloom.quality.specs import build_data_specs, build_specs, check_columns
 
 __all__ = [
     "QUARANTINE_SUFFIX",
     "ExpectationResult",
     "QualityReport",
+    "build_data_specs",
     "build_specs",
     "check_columns",
     "judge",

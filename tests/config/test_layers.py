@@ -149,7 +149,6 @@ def test_properties_description_and_columns(project_factory: Factory) -> None:
             "models:\n"
             "  - name: m\n    description: From properties.\n"
             "    columns:\n      - name: id\n        dtype: int32\n"
-            "    data_tests:\n      - name: t\n    unit_tests:\n      - name: u\n"
             "  - name: n\n    description: loses\n"
             "    columns:\n      - name: other\n        dtype: string\n"
         ),
@@ -165,6 +164,95 @@ def test_properties_description_and_columns(project_factory: Factory) -> None:
     assert n.config.description == "own"  # the model entry wins
     assert [c.name for c in n.entry.columns or ()] == ["id"]  # entry columns replace whole
     assert n.origins["columns"].layer == "model"
+
+
+def test_properties_data_tests_and_unit_tests(project_factory: Factory) -> None:
+    """ADR-0045: properties data_tests apply unless the model sets its own (list replace);
+    unit_tests are read from properties and keep their properties location."""
+    files = {
+        "pipeloom.yml": BASE,
+        "models/m.yml": (
+            "models:\n  - name: m\n    sql: select 1 as id\n"
+            "  - name: n\n    sql: select 1 as id\n"
+            "    data_tests:\n      - name: own\n        check:\n          not_null: [id]\n"
+        ),
+        "models/_properties.yml": (
+            "models:\n"
+            "  - name: m\n"
+            "    data_tests:\n      - name: t\n        check:\n          unique: [id]\n"
+            "    unit_tests:\n      - name: u\n        expect:\n          rows:\n"
+            "            - id: 1\n"
+            "  - name: n\n"
+            "    data_tests:\n      - name: loses\n        check:\n          unique: [id]\n"
+        ),
+    }
+    p = resolve(project_factory, files)
+    m, n = p.models["model.shop.m"], p.models["model.shop.n"]
+    assert [t.name for t in m.entry.data_tests or ()] == ["t"]
+    assert m.origins["data_tests"].layer == "properties"
+    loc = p.locate_data_test(m, 0)
+    assert (loc.file, loc.json_pointer) == ("models/_properties.yml", "/models/0/data_tests/0")
+    assert [t.name for t in n.entry.data_tests or ()] == ["own"]
+    assert n.origins["data_tests"].layer == "model"
+    assert p.locate_data_test(n, 0).file == "models/m.yml"
+    (case,) = p.unit_tests
+    assert (case.model, case.name, case.file, case.pointer) == (
+        "m",
+        "u",
+        "models/_properties.yml",
+        "/models/0/unit_tests/0",
+    )
+
+
+def test_decorator_data_tests_win_over_properties(project_factory: Factory) -> None:
+    """ADR-0050: the decorator's data_tests replace the properties list and are located on
+    the decorator; a model without its own keeps the properties list and location."""
+    files = {
+        "pipeloom.yml": BASE + "python_paths: [models]\n",
+        "models/py_models.py": (
+            "from pipeloom import DataTest, model\n"
+            "\n"
+            "\n"
+            "@model(\n"
+            '    data_tests=[DataTest(name="own", check={"not_null": ["id"]})],\n'
+            ")\n"
+            "def m():\n"
+            '    return [{"id": 1}]\n'
+            "\n"
+            "\n"
+            "@model\n"
+            "def n():\n"
+            '    return [{"id": 1}]\n'
+        ),
+        "models/_properties.yml": (
+            "models:\n"
+            "  - name: m\n"
+            "    data_tests:\n      - name: loses\n        check:\n          unique: [id]\n"
+            "    unit_tests:\n      - name: u\n        expect:\n          rows:\n"
+            "            - id: 1\n"
+            "  - name: n\n"
+            "    data_tests:\n      - name: t\n        check:\n          unique: [id]\n"
+        ),
+    }
+    p = resolve(project_factory, files)
+    m, n = p.models["model.shop.m"], p.models["model.shop.n"]
+    assert [t.name for t in m.entry.data_tests or ()] == ["own"]
+    origin = m.origins["data_tests"]
+    assert origin.layer == "decorator"
+    assert (origin.location.file, origin.location.line) == ("models/py_models.py", 5)
+    loc = p.locate_data_test(m, 0, "/check")
+    assert (loc.file, loc.line, loc.json_pointer) == (
+        "models/py_models.py",
+        5,
+        "/@model/data_tests/0/check",
+    )
+    assert [t.name for t in n.entry.data_tests or ()] == ["t"]
+    assert n.origins["data_tests"].layer == "properties"
+    loc = p.locate_data_test(n, 0)
+    assert (loc.file, loc.json_pointer) == ("models/_properties.yml", "/models/1/data_tests/0")
+    assert [(c.model, c.name, c.file) for c in p.unit_tests] == [
+        ("m", "u", "models/_properties.yml")
+    ]
 
 
 def test_properties_cannot_set_inputs(project_factory: Factory) -> None:
@@ -252,7 +340,17 @@ def test_source_groups_and_target_overrides(project_factory: Factory, target: st
     assert loc.line == line_of({"p": SOURCES}, "p", "tags: [small]")
 
 
-@pytest.mark.parametrize("location", ["D:/data/orders.parquet", "C:\\\\data\\\\x.parquet"])
+@pytest.mark.parametrize(
+    "location",
+    [
+        "D:/data/orders.parquet",
+        "C:\\\\data\\\\x.parquet",
+        "/Volumes/main/ops/orders.parquet",
+        "dbfs:/Volumes/main/ops/orders.parquet",
+        "file:/x/orders.parquet",
+        "s3://bucket/orders.parquet",
+    ],
+)
 def test_absolute_table_location_ignores_the_group_location(
     project_factory: Factory, location: str
 ) -> None:

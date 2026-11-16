@@ -5,12 +5,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
-from typing import Any
+from typing import Any, Literal
 
 from pipeloom.diagnostics import JsonValue
 from pipeloom.engine.types import ROW_CHECKS, ExpectationSpec, QualityCounts
 
 MAX_DROP_RATIO = "max_drop_ratio"
+Scope = Literal["batch", "table"]
 
 
 @dataclass(frozen=True)
@@ -23,7 +24,10 @@ class ExpectationResult:
     failed: int
     """Violating rows for a row check or `unique`; 1 or 0 for the other aggregate checks."""
     value: JsonValue | None
-    """The measured value of an aggregate check: duplicates, rows, or the age in seconds."""
+    """The measured value of an aggregate check: duplicates, rows, orphans or the age in seconds."""
+    scope: Scope = "batch"
+    """`batch` for an expectation on the rows about to be written, `table` for a data test on
+    the whole written table (ADR-0045)."""
 
     def to_json(self) -> dict[str, JsonValue]:
         return {
@@ -33,6 +37,7 @@ class ExpectationResult:
             "passed": self.passed,
             "failed": self.failed,
             "value": self.value,
+            "scope": self.scope,
         }
 
 
@@ -62,10 +67,10 @@ def _as_utc(value: Any) -> datetime | None:
     return None
 
 
-def _aggregate(spec: ExpectationSpec, value: Any, now: datetime) -> ExpectationResult:
+def _aggregate(spec: ExpectationSpec, value: Any, now: datetime, scope: Scope) -> ExpectationResult:
     failed = 0
     shown: JsonValue | None = None
-    if spec.kind == "unique":
+    if spec.kind in ("unique", "relationships"):  # duplicates or orphans
         failed = shown = int(value)
     elif spec.kind == "row_count":
         low, high = spec.params.get("min"), spec.params.get("max")
@@ -82,7 +87,7 @@ def _aggregate(spec: ExpectationSpec, value: Any, now: datetime) -> ExpectationR
         else:
             shown = round((now.astimezone(UTC) - latest).total_seconds(), 3)
             failed = int(isinstance(limit, int | float) and shown > limit)
-    return ExpectationResult(spec.name, spec.kind, spec.action, None, failed, shown)
+    return ExpectationResult(spec.name, spec.kind, spec.action, None, failed, shown, scope)
 
 
 def judge(
@@ -93,9 +98,10 @@ def judge(
     now: datetime,
     max_drop_ratio: float | None,
     cached: bool,
+    scope: Scope = "batch",
 ) -> QualityReport:
     """`row_counts` come from the full output, `agg_counts` from what is kept after the drops
-    (it may be `row_counts` itself when nothing drops)."""
+    (it may be `row_counts` itself when nothing drops). `scope` marks every result."""
     total = row_counts.total_rows
     aggregates = {} if agg_counts is None else agg_counts.aggregates
     results: list[ExpectationResult] = []
@@ -103,10 +109,12 @@ def judge(
         if spec.kind in ROW_CHECKS:
             failed = row_counts.failed[spec.name]
             results.append(
-                ExpectationResult(spec.name, spec.kind, spec.action, total - failed, failed, None)
+                ExpectationResult(
+                    spec.name, spec.kind, spec.action, total - failed, failed, None, scope
+                )
             )
         else:
-            results.append(_aggregate(spec, aggregates[spec.name], now))
+            results.append(_aggregate(spec, aggregates[spec.name], now, scope))
     ratio = row_counts.dropped / total if total else 0.0
     failures = [r.name for r in results if r.action == "fail" and r.failed > 0]
     if max_drop_ratio is not None and ratio > max_drop_ratio:

@@ -79,8 +79,18 @@ def _check_model(
     checked = "expectations" if c.expectations else ""
     if not checked and any(not col.nullable for col in m.entry.columns or ()):
         checked = "columns"
-    if checked and c.materialized not in ("view", "ephemeral") and not caps.quality:
-        what = "expectations" if checked == "expectations" else "non-nullable contract columns"
+    if not checked and m.entry.data_tests and c.materialized != "ephemeral":
+        checked = "data_tests"  # a view's data tests read its rows too
+    if (
+        checked
+        and (checked == "data_tests" or c.materialized not in ("view", "ephemeral"))
+        and (not caps.quality)
+    ):
+        what = {
+            "expectations": "expectations",
+            "columns": "non-nullable contract columns",
+            "data_tests": "data tests",
+        }[checked]
         err(
             "PLC510",
             f"engine '{engine.kind}' cannot evaluate {what} (model '{m.name}')",

@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import inspect
 import textwrap
 from typing import Any
 
 import pytest
 
+from pipeloom import authoring
 from pipeloom.authoring import NO_DEFAULT, Ref, SourceRef, Var
 from pipeloom.config import models as cfg
-from pipeloom.discovery.ast_resolver import ParsedFile, build_models, parse_file
+from pipeloom.discovery.ast_resolver import HELPERS, ParsedFile, build_models, parse_file
 from pipeloom.discovery.model import DiscoveredModel, Param
 
 
@@ -82,6 +84,36 @@ def test_helper_and_class_calls_are_evaluated(header: str, call: str) -> None:
     assert m.kwargs["expectations"] == [{"name": "e", "check": cfg.CheckConfig(not_null=["c"])}]
     assert "description" not in m.kwargs and "description" not in m.kwarg_locations
     assert [p.kind for p in m.params] == ["KEYWORD_ONLY", "KEYWORD_ONLY", "VAR_KEYWORD"]
+
+
+def test_data_tests_keyword_resolves_statically() -> None:
+    src = """
+    from pipeloom import model, DataTest
+
+    @model(data_tests=[DataTest(name="ids", check={"not_null": ["id"]}, on_violation="warn")])
+    def orders():
+        ...
+    """
+    (m,) = models(src)
+    assert m.kwargs["data_tests"] == [
+        cfg.DataTestConfig(
+            name="ids", check=cfg.DataCheckConfig(not_null=["id"]), on_violation="warn"
+        )
+    ]
+
+
+def test_helpers_cover_every_authoring_export() -> None:
+    helpers = {
+        n
+        for n in authoring.__all__
+        if n != "model"
+        and (
+            inspect.isfunction(getattr(authoring, n))
+            or getattr(getattr(authoring, n), "__module__", "") == cfg.__name__
+        )
+    }
+    assert {"DataTest", "not_null", "ref", "Write"} <= helpers
+    assert helpers <= HELPERS
 
 
 def test_bare_decorator_and_several_models_per_file() -> None:
