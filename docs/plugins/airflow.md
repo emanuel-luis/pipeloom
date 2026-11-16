@@ -326,6 +326,10 @@ use `shared`.
   is limited to 128 KiB. Above that it fails with PLA002; split the project with `select`.
 - A DATABRICKS-mode DAG needs the project files on the worker that runs the launch, and each wait
   is bounded by `databricks_timeout`.
+- On Airflow 3.2, `dag.test()` fails in the finalize task and in WATCHER sensors: they read task
+  states through the Task SDK, and the in-process Execution API that `dag.test()` starts on 3.2
+  answers that call with a server error. A real deployment on 3.2 is not affected, and `dag.test()`
+  works from Airflow 3.3.0.
 
 ## Diagnostics
 
