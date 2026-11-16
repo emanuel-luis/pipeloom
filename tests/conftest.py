@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import os
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -11,6 +12,12 @@ from hypothesis import settings
 
 GOLDENS = Path(__file__).parent / "goldens"
 FIXTURES = Path(__file__).parent / "fixtures"
+
+# sqlglot binds importlib.metadata.entry_points when its dialect module is imported. Import it
+# before any test patches entry_points (tests.plugins.fakes), or a later dialect lookup calls
+# the fake.
+with contextlib.suppress(ImportError):
+    import sqlglot.dialects.dialect  # noqa: F401
 
 settings.register_profile("dev", deadline=None)
 settings.register_profile("ci", deadline=None, derandomize=True)
