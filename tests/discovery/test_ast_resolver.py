@@ -120,8 +120,10 @@ def test_bare_decorator_and_several_models_per_file() -> None:
         "from pipeloom import model\ndef model(f): return f\n",
         "import pipeloom as pl\ntry:\n    pass\nexcept Exception as pl:\n    pass\n",
         # a marked name bound more than once at module scope
-        "from pipeloom import model\n@model(name='a')\ndef orders(): ...\n"
-        "@model(name='b')\ndef orders(): ...\n",
+        (
+            "from pipeloom import model\n@model(name='a')\ndef orders(): ...\n"
+            "@model(name='b')\ndef orders(): ...\n"
+        ),
         "from pipeloom import model\n@model\ndef a(): ...\na = wrap(a)\n",
         # pipeloom imported inside a function
         "def make():\n    from pipeloom import model\n    return model\n",

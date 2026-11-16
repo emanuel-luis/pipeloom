@@ -16,6 +16,7 @@ import pipeloom.discovery as disc
 from pipeloom.config import models as cfg
 from pipeloom.discovery import Discovery, DiscoveryResult, ModuleLoader, discover
 from pipeloom.discovery import cache as cache_mod
+from pipeloom.discovery import files as files_mod
 from pipeloom.discovery.ast_resolver import parse_file
 from pipeloom.discovery.files import SourceFile
 
@@ -224,7 +225,7 @@ def test_file_removed_between_scan_and_resolve(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     write(tmp_path, {"models/d.py": DYNAMIC, "models/s.py": STATIC})
-    real = disc.find_files
+    real = files_mod.find_files
 
     def scan(*args: Any) -> Any:
         files, failures = real(*args)
@@ -317,7 +318,12 @@ def test_warm_runs_with_a_failing_file_do_not_rewrite_the_cache(
     discover(tmp_path, ["models"])
     saves: list[object] = []
     real = cache_mod.save
-    monkeypatch.setattr(disc.cache, "save", lambda *a: (saves.append(a), real(*a)))
+
+    def spy(*args: Any) -> None:
+        saves.append(args)
+        real(*args)
+
+    monkeypatch.setattr(cache_mod, "save", spy)
     discover(tmp_path, ["models"])
     discover(tmp_path, ["models"])
     assert saves == []
