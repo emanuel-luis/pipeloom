@@ -37,7 +37,7 @@ def with_sink(project: Path, log: Path, inside_airflow: str) -> None:
 def run_base(af_project: tuple[Path, Path, str]) -> Any:
     """Build the DAG's tasks, run the task of the model `base` and return its operator."""
     project, manifest, _ = af_project
-    plan, command = _plan(
+    plan, command, _ = _plan(
         ProjectConfig(project.as_posix(), manifest_path=manifest.as_posix()),
         "dev",
         RenderConfig(),
