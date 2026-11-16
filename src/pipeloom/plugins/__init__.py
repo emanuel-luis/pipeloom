@@ -152,7 +152,7 @@ class PluginRegistry:
         Entry points and built-ins are not imported. `--plugin` modules are, because the group
         and kind are only known once the spec is read; failures go to `report` as PLU003.
         """
-        from pipeloom import __version__
+        from pipeloom._version import __version__
         from pipeloom.plugins.builtin import BUILTINS
 
         env = os.environ if env is None else env

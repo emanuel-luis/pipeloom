@@ -188,12 +188,16 @@ layers = [
     "pipeloom.plan",
     "pipeloom.validate",
     "pipeloom.graph",
+    "pipeloom.discovery",
     "pipeloom.config : pipeloom.secrets : pipeloom.events",
     "pipeloom.plugins",
     "pipeloom.engine",
     "pipeloom.diagnostics | pipeloom.platform",
 ]
 exhaustive = false
+# `pipeloom.authoring` re-exports `ModelContext` for model authors only. Discovery reads the
+# decorator through authoring and never touches the context, so this edge does not lift it.
+ignore_imports = ["pipeloom.authoring -> pipeloom.runtime.context"]
 
 [[tool.importlinter.contracts]]
 name = "Only pipeloom.testing imports pipeloom.testing"
@@ -201,12 +205,15 @@ type = "forbidden"
 # Every top-level module except testing: with `pipeloom` as the source, testing would be one too.
 source_modules = [
     "pipeloom.__main__",
+    "pipeloom._version",
     "pipeloom.api",
+    "pipeloom.authoring",
     "pipeloom.artifacts",
     "pipeloom.builtins",
     "pipeloom.cli",
     "pipeloom.config",
     "pipeloom.diagnostics",
+    "pipeloom.discovery",
     "pipeloom.docs",
     "pipeloom.engine",
     "pipeloom.events",
