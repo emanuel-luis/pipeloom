@@ -26,7 +26,8 @@ from pipeloom.events.model import (
 from pipeloom.graph.selectors import Selection
 from pipeloom.runtime.run import RunOptions, RunOutcome
 from pipeloom.testing.clock import FakeClock
-from pipeloom_openlineage.sink import OpenLineageSink, run_uuid, unit_uuid
+from pipeloom.testing.recording import RecordingSink
+from pipeloom_openlineage.sink import OpenLineageSink, run_uuid, unit_lineage, unit_uuid
 from pipeloom_openlineage.spec import SPEC, OpenLineageOptions
 
 CLOCK = FakeClock(datetime(2026, 1, 1, tzinfo=UTC), step=timedelta(0))
@@ -246,6 +247,22 @@ def test_quality_contract_schema_and_naming_from_the_manifest() -> None:
     assert start.outputs is not None and "dataQualityAssertions" not in (
         start.outputs[0].facets or {}
     )
+
+
+def test_unit_lineage_replays_a_unit_or_falls_back_to_the_manifest() -> None:
+    recording = RecordingSink()
+    with EventBus([(recording, 1)], clock=CLOCK, invocation_id="i", run_id="r") as bus:
+        emit_unit(bus)
+    done = unit_lineage(MANIFEST, Path("/p"), "m", recording.events)
+    assert done.eventType is RunState.COMPLETE
+    assert done.outputs is not None
+    assert "dataQualityAssertions" in (done.outputs[0].facets or {})
+
+    static = unit_lineage(MANIFEST, Path("/p"), "m")
+    assert static.eventType is RunState.START and static.job.name == "p.m"
+    assert static.inputs is not None and static.outputs is not None
+    assert [i.name for i in static.inputs] == ["/raw/s"]
+    assert [o.name for o in static.outputs] == ["main.m"]
 
 
 def test_a_replayed_finalize_reports_nothing() -> None:

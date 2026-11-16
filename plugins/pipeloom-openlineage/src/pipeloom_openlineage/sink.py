@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import uuid
 from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any, Final, cast
 from urllib.parse import urlsplit
@@ -37,9 +38,10 @@ from openlineage.client.facet_v2 import (
     schema_dataset,
     source_code_location_job,
 )
+from openlineage.client.transport import Transport
 
 from pipeloom.events.bus import PlanInfo
-from pipeloom.events.model import Event
+from pipeloom.events.model import Event, Level
 from pipeloom.secrets.resolve import contains_secret
 
 PRODUCER: Final = "https://github.com/emanuel-luis/pipeloom/tree/main/plugins/pipeloom-openlineage"
@@ -453,4 +455,66 @@ def _assertions(
     ]
 
 
-__all__ = ["AIRFLOW_KEY", "PRODUCER", "OpenLineageSink", "run_uuid", "unit_uuid"]
+# -- one unit, for the Airflow operators ----------------------------------------------------------
+
+
+class _Capture(Transport):
+    kind = "pipeloom-capture"
+
+    def __init__(self) -> None:
+        self.events: list[RunEvent] = []
+
+    def emit(self, event: Any) -> None:
+        self.events.append(event)
+
+
+def unit_lineage(
+    manifest: Mapping[str, Any],
+    project_dir: Path,
+    unit_id: str,
+    events: Sequence[Event] = (),
+    *,
+    namespace: str = "pipeloom.{target}",
+    dataset_namespace: str | None = None,
+) -> RunEvent:
+    """The last OpenLineage event the sink sends for one unit, given that unit's pipeloom events.
+    Without a terminal event among them it is a START built from the manifest alone (the static
+    datasets a KUBERNETES task or a task that has not run yet reports)."""
+    transport = _Capture()
+    sink = OpenLineageSink(
+        namespace=namespace,
+        dataset_namespace=dataset_namespace,
+        inside_airflow="emit",
+        client=OpenLineageClient(transport=transport),
+    )
+    sink.plan_ready(PlanInfo(manifest, project_dir))
+    for event in events:
+        if event.unit_id == unit_id:
+            sink.emit(event)
+    if not transport.events or transport.events[-1].eventType is RunState.START:
+        transport.events.clear()
+        sink.emit(
+            Event(
+                id="static",
+                run_id="static",
+                invocation_id="static",
+                seq=0,
+                ts=datetime.now(UTC),
+                type="unit.started",
+                level=Level.INFO,
+                unit_id=unit_id,
+                attempt=1,
+                data={},
+            )
+        )
+    return transport.events[-1]
+
+
+__all__ = [
+    "AIRFLOW_KEY",
+    "PRODUCER",
+    "OpenLineageSink",
+    "run_uuid",
+    "unit_lineage",
+    "unit_uuid",
+]

@@ -67,7 +67,11 @@ dev = [
 ]
 spark = ["pipeloom-spark[local]"]
 # Airflow does not support Windows: install this group on Linux, macOS or WSL only.
-airflow = ["apache-airflow>=3.2,<4", "apache-airflow-providers-cncf-kubernetes>=10.25,<11"]
+airflow = [
+    "apache-airflow>=3.2,<4",
+    "apache-airflow-providers-cncf-kubernetes>=10.25,<11",
+    "apache-airflow-providers-openlineage>=2.8,<3",
+]
 docs = ["mkdocs-material", "mkdocstrings[python]", "mkdocs-click", "mike"]
 
 [tool.uv.workspace]

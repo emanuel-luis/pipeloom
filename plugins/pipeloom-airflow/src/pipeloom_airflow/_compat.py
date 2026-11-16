@@ -52,6 +52,7 @@ __all__ = [
     "get_connection",
     "get_task_states",
     "mask_secret",
+    "operator_lineage",
 ]
 
 
@@ -82,6 +83,25 @@ def get_task_states(
     found = ti.get_task_states(dag_id=dag_id, task_ids=list(task_ids), run_ids=[run_id])
     states = found.get(run_id, {}) if isinstance(found, Mapping) else {}
     return {str(k): (None if v is None else str(v)) for k, v in states.items()}
+
+
+def operator_lineage(
+    inputs: Sequence[Any],
+    outputs: Sequence[Any],
+    run_facets: Mapping[str, Any],
+    job_facets: Mapping[str, Any],
+) -> Any:
+    """The OpenLineage provider's `OperatorLineage`, or None without the provider."""
+    try:
+        from airflow.providers.openlineage.extractors import OperatorLineage
+    except ImportError:
+        return None
+    return OperatorLineage(
+        inputs=list(inputs),
+        outputs=list(outputs),
+        run_facets=dict(run_facets),
+        job_facets=dict(job_facets),
+    )
 
 
 async def aget_connection(conn_id: str) -> Any:
