@@ -1,5 +1,3 @@
-"""Python marts."""
-
 from typing import Any
 
 from pipeloom import model, ref
@@ -11,12 +9,4 @@ from pipeloom import model, ref
     write={"strategy": "append"},
 )
 def fct_orders(ctx: Any, enriched: Any, payments: Any) -> Any:
-    return enriched
-
-
-@model(
-    inputs={"enriched": ref("orders_enriched")},
-    tags=["mart"],
-)
-def dim_customers(ctx: Any, enriched: Any) -> Any:
     return enriched

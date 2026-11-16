@@ -236,8 +236,11 @@ def test_nothing_changed_selects_nothing(shop: Path) -> None:
     assert modified(shop, "state:new") == []
 
 
+STG = "models/staging/stg_orders.py"
+
+
 def test_changing_one_sql_body_selects_exactly_that_node(shop: Path) -> None:
-    edit(shop, "models/staging/stg.yml", "select id, customer_id, amount", "select id, amount")
+    edit(shop, STG, "select id, customer_id, amount", "select id, amount")
     assert modified(shop) == ["stg_orders"]
     assert modified(shop, "state:modified+") == [
         "dim_customers",
@@ -250,28 +253,26 @@ def test_changing_one_sql_body_selects_exactly_that_node(shop: Path) -> None:
 
 
 def test_rewired_inputs_count_as_a_change(shop: Path) -> None:
-    edit(shop, "models/marts/marts.yml", "ref: stg_payments", "ref: stg_customers")
+    edit(shop, "models/marts/fct_orders.py", 'ref("stg_payments")', 'ref("stg_customers")')
     assert modified(shop) == ["fct_orders"]
 
 
 def test_a_modified_ephemeral_model_marks_the_models_that_inline_it(shop: Path) -> None:
-    edit(shop, "src/shop/enrich.py", "return orders", "return customers")
+    edit(shop, "models/marts/enrich.py", "return orders", "return customers")
     assert modified(shop) == ["dim_customers", "fct_orders", "orders_enriched"]
 
 
 def test_a_new_model_is_new_and_modified(shop: Path) -> None:
-    edit(
-        shop,
-        "models/marts/marts.yml",
-        "  - name: rpt_revenue",
-        "  - name: rpt_extra\n    sql: select 1\n  - name: rpt_revenue",
+    (shop / "models/marts/rpt_extra.py").write_text(
+        'from pipeloom import model\n\n\n@model\ndef rpt_extra(ctx):\n    return ctx.sql("select 1")\n',
+        encoding="utf-8",
     )
     assert modified(shop, "state:new") == ["rpt_extra"]
     assert modified(shop) == ["rpt_extra"]
 
 
 def test_state_is_relative_to_the_project_dir_or_absolute(shop: Path) -> None:
-    edit(shop, "models/staging/stg.yml", "select id, customer_id, amount", "select id, amount")
+    edit(shop, STG, "select id, customer_id, amount", "select id, amount")
     for state in ("state", str(shop / "state")):
         r = run(
             [
@@ -290,7 +291,7 @@ def test_state_is_relative_to_the_project_dir_or_absolute(shop: Path) -> None:
 
 
 def test_graph_takes_state(shop: Path) -> None:
-    edit(shop, "models/staging/stg.yml", "select id, customer_id, amount", "select id, amount")
+    edit(shop, STG, "select id, customer_id, amount", "select id, amount")
     r = run(
         [
             "graph",
@@ -309,7 +310,7 @@ def test_graph_takes_state(shop: Path) -> None:
 
 
 def test_compile_takes_state(shop: Path) -> None:
-    edit(shop, "models/staging/stg.yml", "select id, customer_id, amount", "select id, amount")
+    edit(shop, STG, "select id, customer_id, amount", "select id, amount")
     r = run(
         ["compile", "--project-dir", str(shop), "--target", "ci", "--state", "state"]
         + ["-s", "state:modified", "--out", "out/manifest.json"]

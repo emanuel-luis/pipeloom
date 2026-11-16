@@ -48,7 +48,7 @@
     ],
     "project": "shop",
     "target": "ci",
-    "plan_hash": "ab31335a58bb7a99ad1251b22aad2fa57d6d279ad65716d91ea1c35e3968a765",
+    "plan_hash": "f05fee053db88c1a06b6b4bcd2b2732330c5b703fb2c4a4678480edb542cc7a0",
     "selector": {
       "select": [],
       "exclude": []

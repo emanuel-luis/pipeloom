@@ -96,7 +96,7 @@ def test_cache_miss_then_hit(project: Path, tmp_path: Path, compiles: list[int])
 def test_a_touched_file_is_a_miss(project: Path, tmp_path: Path, compiles: list[int]) -> None:
     cache = tmp_path / "cache"
     go(project, cache)
-    stg = project / "models" / "staging" / "stg.yml"
+    stg = project / "models" / "staging" / "stg_orders.py"
     stg.write_text(stg.read_text(encoding="utf-8") + "\n", encoding="utf-8")
     again, _ = go(project, cache)
     assert again is not None and again.source == "project" and len(compiles) == 2

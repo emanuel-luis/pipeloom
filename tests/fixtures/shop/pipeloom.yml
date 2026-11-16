@@ -1,6 +1,6 @@
 config_version: 1
 name: shop
-python_paths: [src, models]
+python_paths: [models]
 engine:
   kind: memory
 catalog:
@@ -8,8 +8,7 @@ catalog:
 models:
   +materialized: table
   staging:
-    +tags:
-    - staging
+    +tags: [staging]
 sources:
   raw:
     tables:
@@ -22,9 +21,6 @@ sources:
       raw_payments:
         format: memory
         location: raw/payments
-model_paths:
-- models
-- src
 targets:
   dev:
     naming:

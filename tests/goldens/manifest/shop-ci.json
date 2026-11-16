@@ -25,12 +25,11 @@
       }
     },
     "config_version": 1,
-    "plan_hash": "ab31335a58bb7a99ad1251b22aad2fa57d6d279ad65716d91ea1c35e3968a765",
+    "plan_hash": "f05fee053db88c1a06b6b4bcd2b2732330c5b703fb2c4a4678480edb542cc7a0",
     "project": "shop",
     "target": "ci",
     "boundary": "process",
     "python_paths": [
-      "src",
       "models"
     ],
     "vars": {},
@@ -42,13 +41,13 @@
     "model.shop.dim_customers": {
       "unique_id": "model.shop.dim_customers",
       "name": "dim_customers",
-      "file": "src/shop/marts.py",
-      "line": 17,
+      "file": "models/marts/dim_customers.py",
+      "line": 6,
       "materialized": "table",
       "body": {
         "kind": "python",
-        "callable": "shop.marts:dim_customers",
-        "file": "src/shop/marts.py"
+        "callable": "marts.dim_customers:dim_customers",
+        "file": "models/marts/dim_customers.py"
       },
       "inputs": {
         "enriched": "model.shop.orders_enriched"
@@ -96,18 +95,18 @@
       "tags": [
         "mart"
       ],
-      "checksum": "95577cd02179fddf73105d66578ff0c4693169340aafc6ec4cb159d0f49211c8"
+      "checksum": "741fb5df346752b83bda6db46ed8860991a978f8731dfdb78021de6a1456fefa"
     },
     "model.shop.fct_orders": {
       "unique_id": "model.shop.fct_orders",
       "name": "fct_orders",
-      "file": "src/shop/marts.py",
-      "line": 8,
+      "file": "models/marts/fct_orders.py",
+      "line": 6,
       "materialized": "table",
       "body": {
         "kind": "python",
-        "callable": "shop.marts:fct_orders",
-        "file": "src/shop/marts.py"
+        "callable": "marts.fct_orders:fct_orders",
+        "file": "models/marts/fct_orders.py"
       },
       "inputs": {
         "enriched": "model.shop.orders_enriched",
@@ -156,18 +155,18 @@
       "tags": [
         "mart"
       ],
-      "checksum": "7c6af6700bee974be30b64c88dc79d629b4dc65628bea0060699994482477637"
+      "checksum": "949c1abaa075ce72774aa456eb51844187745b7246ddf6ed22b99f80f5f0adf4"
     },
     "model.shop.orders_enriched": {
       "unique_id": "model.shop.orders_enriched",
       "name": "orders_enriched",
-      "file": "src/shop/enrich.py",
+      "file": "models/marts/enrich.py",
       "line": 8,
       "materialized": "ephemeral",
       "body": {
         "kind": "python",
-        "callable": "shop.enrich:orders_enriched",
-        "file": "src/shop/enrich.py"
+        "callable": "marts.enrich:orders_enriched",
+        "file": "models/marts/enrich.py"
       },
       "inputs": {
         "orders": "model.shop.stg_orders",
@@ -209,18 +208,18 @@
         "meta": {}
       },
       "tags": [],
-      "checksum": "83d770e9d781e5e2f1b11ddf2f007ce7d82ce8a673936740efd0eb949eefe4b3"
+      "checksum": "553436734b7d9075dbad74f04daf685de8f6989428c04cb9ddf444170d66372c"
     },
     "model.shop.rpt_revenue": {
       "unique_id": "model.shop.rpt_revenue",
       "name": "rpt_revenue",
-      "file": "models/marts/marts.py",
-      "line": 4,
+      "file": "models/marts/rpt_revenue.py",
+      "line": 6,
       "materialized": "table",
       "body": {
         "kind": "python",
-        "callable": "marts.marts:rpt_revenue",
-        "file": "models/marts/marts.py"
+        "callable": "marts.rpt_revenue:rpt_revenue",
+        "file": "models/marts/rpt_revenue.py"
       },
       "inputs": {
         "fct_orders": "model.shop.fct_orders"
@@ -264,18 +263,18 @@
         "meta": {}
       },
       "tags": [],
-      "checksum": "255814ca1a4ca34ff5547f9c8d73ab323870a738a15b299482f5917ab7aefeae"
+      "checksum": "7e233611d1d22c86358b7421cc73be011eda02df36a45410b336fa964de203cd"
     },
     "model.shop.stg_customers": {
       "unique_id": "model.shop.stg_customers",
       "name": "stg_customers",
-      "file": "models/staging/stg.py",
-      "line": 4,
+      "file": "models/staging/stg_customers.py",
+      "line": 6,
       "materialized": "table",
       "body": {
         "kind": "python",
-        "callable": "staging.stg:stg_customers",
-        "file": "models/staging/stg.py"
+        "callable": "staging.stg_customers:stg_customers",
+        "file": "models/staging/stg_customers.py"
       },
       "inputs": {
         "raw_customers": "source.shop.raw.raw_customers"
@@ -323,18 +322,18 @@
       "tags": [
         "staging"
       ],
-      "checksum": "b416f34bfa68960bfc2f9fd0d0c79abcf04d492cf9930d12c242f84a13060022"
+      "checksum": "c872b369354e937061e3f31d9a0dfbdc7254a0cdd1ecd357cff4c50e18e4385c"
     },
     "model.shop.stg_orders": {
       "unique_id": "model.shop.stg_orders",
       "name": "stg_orders",
-      "file": "models/staging/stg.py",
-      "line": 11,
+      "file": "models/staging/stg_orders.py",
+      "line": 6,
       "materialized": "table",
       "body": {
         "kind": "python",
-        "callable": "staging.stg:stg_orders",
-        "file": "models/staging/stg.py"
+        "callable": "staging.stg_orders:stg_orders",
+        "file": "models/staging/stg_orders.py"
       },
       "inputs": {
         "raw_orders": "source.shop.raw.raw_orders"
@@ -382,18 +381,18 @@
       "tags": [
         "staging"
       ],
-      "checksum": "d8dea2b11d533a3210c3fb58036717e0fde516fb537b19e9c4f251f22ba4d936"
+      "checksum": "f24d2df8ae6ea93c62d24d2422f7631776f1e1a133f3cee137b9a09cf99172ed"
     },
     "model.shop.stg_payments": {
       "unique_id": "model.shop.stg_payments",
       "name": "stg_payments",
-      "file": "models/staging/stg.py",
-      "line": 18,
+      "file": "models/staging/stg_payments.py",
+      "line": 6,
       "materialized": "table",
       "body": {
         "kind": "python",
-        "callable": "staging.stg:stg_payments",
-        "file": "models/staging/stg.py"
+        "callable": "staging.stg_payments:stg_payments",
+        "file": "models/staging/stg_payments.py"
       },
       "inputs": {
         "raw_payments": "source.shop.raw.raw_payments"
@@ -441,7 +440,7 @@
       "tags": [
         "staging"
       ],
-      "checksum": "0bb7775cc6151f4c68caada0d1d2bcc5f15ab34197769f48907e84e20860caec"
+      "checksum": "e47506946140d6aff87dd91bca68fb3dd6fa781a8d43bf2c0d57e6fa96d313de"
     },
     "model.shop.top_customers": {
       "unique_id": "model.shop.top_customers",
