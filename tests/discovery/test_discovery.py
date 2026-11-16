@@ -238,6 +238,20 @@ def test_file_removed_between_scan_and_resolve(
         assert sorted(names(result)) == ["customers", "orders", "payments", "refunds"]
 
 
+def test_relpath_across_drives_is_an_outside_roots_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write(tmp_path, {"models/s.py": STATIC})
+
+    def boom(*_: Any) -> str:
+        raise ValueError("path is on mount 'D:', start on mount 'C:'")
+
+    monkeypatch.setattr(os.path, "relpath", boom)
+    result = discover(tmp_path, ["models"], use_cache=False)
+    assert result.models == ()
+    assert [f.kind for f in result.failures] == ["outside_roots"]
+
+
 # --- cache -------------------------------------------------------------------------------------
 
 

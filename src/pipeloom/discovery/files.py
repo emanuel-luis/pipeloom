@@ -55,8 +55,11 @@ def module_name(file: Path, roots: Sequence[Path]) -> str | None:
     return ".".join(parts) or None
 
 
-def _rel(path: Path, project_dir: Path) -> str:
-    return Path(os.path.relpath(path, project_dir)).as_posix()
+def _rel(path: Path, project_dir: Path) -> str | None:
+    try:
+        return Path(os.path.relpath(path, project_dir)).as_posix()
+    except ValueError:  # another drive on Windows
+        return None
 
 
 def find_files(
@@ -98,10 +101,21 @@ def find_files(
             if file not in found:
                 found[file] = module_name(file, roots) or module_name(file, [base.parent])
 
-    files = [
-        SourceFile(_rel(f, project_dir), f, own if own is not None else module_name(f, roots))
-        for f, own in found.items()
-    ]
+    files: list[SourceFile] = []
+    for f, own in found.items():
+        rel = _rel(f, project_dir)
+        if rel is None:
+            failures.append(
+                DiscoveryFailure(
+                    f.as_posix(),
+                    None,
+                    None,
+                    "outside_roots",
+                    f"'{f.as_posix()}' has no path relative to the project dir",
+                )
+            )
+            continue
+        files.append(SourceFile(rel, f, own if own is not None else module_name(f, roots)))
     return sorted(files, key=lambda s: s.path), failures
 
 
