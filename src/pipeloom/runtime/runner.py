@@ -79,6 +79,7 @@ from pipeloom.runtime.sql import (
     ViewInput,
     ViewModeError,
     ViewQuery,
+    sql_runner,
     translate,
 )
 from pipeloom.secrets.redaction import Redactor
@@ -722,15 +723,13 @@ class ModelRunner:
                 )
         api = node.config.frame_api
 
-        def run_sql(query: str, dialect: str | None, extra: Mapping[str, Any] | None) -> Any:
-            text = translate(
-                query, dialect or node.config.sql_dialect, self._engine.capabilities.sql_dialect
-            )
-            frames = dict(inputs)
-            for name, frame in (extra or {}).items():
-                frames[name] = self._session.relation(portable.from_frame_api(frame))
-            return portable.to_frame_api(self._session.sql(text, frames).native, api)
-
+        run_sql = sql_runner(
+            self._session,
+            inputs,
+            node_dialect=node.config.sql_dialect,
+            engine_dialect=self._engine.capabilities.sql_dialect,
+            api=api,
+        )
         ctx = self._context(
             node, unit_id, attempt, started, None if inc is None else inc.state, run_sql
         )

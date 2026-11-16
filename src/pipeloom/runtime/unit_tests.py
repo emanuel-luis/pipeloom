@@ -20,6 +20,7 @@ from pipeloom.plan.model import PlanNode, SqlBody
 from pipeloom.quality.rows import coerce, diff_rows, infer_dtype, read_csv_rows
 from pipeloom.runtime.context import ModelContext, RuntimeContext
 from pipeloom.runtime.runner import call_model
+from pipeloom.runtime.sql import SqlUnsupportedError, sql_runner
 
 MESSAGE_ROWS = 10
 EVENT_ROWS = 50
@@ -112,6 +113,7 @@ def _body(
     inputs: Mapping[str, Relation],
     load: Callable[[str], Callable[..., Any]],
     rt: RuntimeContext,
+    sql_dialect: str | None,
 ) -> Relation:
     if isinstance(node.body, SqlBody):
         return session.sql(node.body.sql, inputs)
@@ -130,6 +132,13 @@ def _body(
         engine=session,
         frame_api=api,
         started_at=rt.clock.now(),
+        _run_sql=sql_runner(
+            session,
+            inputs,
+            node_dialect=node.config.sql_dialect,
+            engine_dialect=sql_dialect,
+            api=api,
+        ),
     )
     args = {a: portable.to_frame_api(r.native, api) for a, r in inputs.items()}
     out = call_model(load(node.body.callable), ctx, args)
@@ -144,10 +153,11 @@ def run_unit_test(
     load: Callable[[str], Callable[..., Any]],
     rt: RuntimeContext,
     upstream: Mapping[str, Sequence[ColumnConfig] | None] | None = None,
+    sql_dialect: str | None = None,
 ) -> TestOutcome:
     """Run `case` against `node`'s body. `upstream` maps an input alias to the contract columns
     of the model it reads, which type the given rows. `load` turns `module:function` into the
-    callable."""
+    callable. `sql_dialect` is the engine's (`capabilities.sql_dialect`); None means no SQL."""
     label = f"unit test '{case.name}' of model '{node.name}'"
     if not (hasattr(session, "from_rows") and hasattr(session, "to_rows")):
         return TestOutcome(
@@ -160,9 +170,11 @@ def run_unit_test(
             rows, schema = _rows(f"given '{alias}'", case.given[alias], rt.project_dir, contract)
             inputs[alias] = session.from_rows(rows, schema)
         try:
-            out = _body(session, node, inputs, load, rt)
+            out = _body(session, node, inputs, load, rt, sql_dialect)
             actual = session.to_rows(out)
             out_types = {c.name: c.dtype for c in session.schema(out)}
+        except SqlUnsupportedError as exc:
+            raise _CannotRun("the model called ctx.sql, but the engine has no SQL") from exc
         except Exception as exc:
             raise _CannotRun(f"the model body raised {type(exc).__name__}: {exc}") from exc
         expected, schema = _rows("expect", case.expect, rt.project_dir, out_types)

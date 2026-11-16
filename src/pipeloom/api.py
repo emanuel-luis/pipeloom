@@ -351,7 +351,13 @@ class Project:
                         for alias, uid in node.inputs.items()
                     }
                     result = run_unit_test(
-                        session, node, case.config, load=loader.load, rt=rt, upstream=upstream
+                        session,
+                        node,
+                        case.config,
+                        load=loader.load,
+                        rt=rt,
+                        upstream=upstream,
+                        sql_dialect=engine.capabilities.sql_dialect,
                     )
                     if result.passed:
                         events.append(UnitTestPassed(model=case.model, unit_test=case.name))

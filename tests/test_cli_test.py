@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
 from click.testing import CliRunner
 
 from pipeloom.cli import main
@@ -87,6 +88,104 @@ def _cases(result: Any) -> dict[str, str]:
         for e in _events(result)
         if e["type"].startswith("unit_test.")
     }
+
+
+PY_PROJECT = """\
+config_version: 1
+name: shop
+python_paths:
+  - models
+targets:
+  dev:
+    engine:
+      kind: {kind}
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+default_target: dev
+"""
+PY_MODELS = """\
+import {lib} as lib
+from pipeloom import model
+
+
+@model
+def bronze():
+    return lib.DataFrame({{"id": [1]}})
+
+
+@model
+def via_sql(ctx, bronze):
+    return ctx.sql("select id, id * 2 as doubled from bronze")
+
+
+@model
+def no_ctx(bronze):
+    return bronze.with_columns(doubled=lib.col("id") * 2)  # polars only; pandas never runs it
+
+
+@model
+def kw_ctx(*, ctx, bronze):
+    return ctx.sql("select id, id * 2 as doubled from bronze")
+"""
+
+
+def _py_cases(wrong: int = 2) -> str:
+    cases = []
+    for name in ("via_sql", "no_ctx", "kw_ctx"):
+        cases.append(
+            f"""\
+  - name: {name}_case
+    model: {name}
+    given:
+      bronze:
+        rows:
+          - id: 1
+    expect:
+      rows:
+        - id: 1
+          doubled: {wrong if name == "via_sql" else 2}
+"""
+        )
+    return "unit_tests:\n" + "".join(cases)
+
+
+def _py_root(tmp_path: Path, kind: str, lib: str, wrong: int = 2) -> Path:
+    return make_project(
+        tmp_path,
+        {
+            "pipeloom.yml": PY_PROJECT.format(kind=kind),
+            "models/py_models.py": PY_MODELS.format(lib=lib),
+            "models/_tests.yml": _py_cases(wrong),
+        },
+    )
+
+
+def test_ctx_sql_model_unit_tests_on_polars(tmp_path: Path) -> None:
+    pytest.importorskip("polars")
+    result = _test(_py_root(tmp_path, "polars", "polars"))
+    assert result.exit_code == 0, result.stderr
+    assert set(_cases(result).values()) == {"unit_test.passed"}
+    assert len(_cases(result)) == 3  # ctx first, no ctx, keyword-only ctx
+
+
+def test_ctx_sql_model_unit_test_fails_with_the_diff(tmp_path: Path) -> None:
+    pytest.importorskip("polars")
+    result = _test(_py_root(tmp_path, "polars", "polars", wrong=3), "--select", "via_sql")
+    assert result.exit_code == 1
+    (failed,) = [e for e in _events(result) if e["type"] == "unit_test.failed"]
+    assert failed["data"]["code"] == "PLX114"
+    assert failed["data"]["missing"] == [{"id": 1, "doubled": 3}]
+    assert failed["data"]["unexpected"] == [{"id": 1, "doubled": 2}]
+
+
+def test_ctx_sql_model_unit_test_on_an_engine_without_sql_is_plx115(tmp_path: Path) -> None:
+    pytest.importorskip("pandas")
+    result = _test(_py_root(tmp_path, "pandas", "pandas"), "--select", "via_sql")
+    assert result.exit_code == 1
+    (failed,) = [e for e in _events(result) if e["type"] == "unit_test.failed"]
+    assert failed["data"]["code"] == "PLX115"
+    assert "ctx.sql" in failed["data"]["message"] and "no SQL" in failed["data"]["message"]
 
 
 def test_every_case_passes(tmp_path: Path) -> None:

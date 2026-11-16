@@ -1179,7 +1179,14 @@ class EngineContract:
             vars={},
         )
         with self.session(h, tmp_path) as s:
-            return run_unit_test(s, node, case, load=lambda ref: build, rt=rt)
+            return run_unit_test(
+                s,
+                node,
+                case,
+                load=lambda ref: build,
+                rt=rt,
+                sql_dialect=h.engine.capabilities.sql_dialect,
+            )
 
     @pytest.mark.parametrize("kind", ["python", "sql"])
     def test_unit_case_passes(self, h: EngineHarness, tmp_path: Path, kind: str) -> None:
