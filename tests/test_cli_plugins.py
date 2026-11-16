@@ -143,7 +143,12 @@ def test_schema_export_builtin(tmp_path: Path) -> None:
     out = tmp_path / "schemas"
     result = run(["schema", "export", "--out", str(out), "--plugins", "builtin"])
     assert result.exit_code == 0
-    assert sorted(p.name for p in out.iterdir()) == ["defaults.json", "models.json", "project.json"]
+    assert sorted(p.name for p in out.iterdir()) == [
+        "defaults.json",
+        "models.json",
+        "project.json",
+        "properties.json",
+    ]
     assert sorted(Path(line).name for line in result.stdout.splitlines()) == sorted(
         p.name for p in out.iterdir()
     )
