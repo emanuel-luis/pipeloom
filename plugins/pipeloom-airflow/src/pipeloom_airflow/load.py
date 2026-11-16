@@ -20,6 +20,7 @@ from typing import Any, Final, Literal
 import yaml
 
 from pipeloom.diagnostics import Location, Report
+from pipeloom.discovery.files import locate_package
 from pipeloom.plan.manifest import canonical_json, manifest_bytes, read_manifest
 from pipeloom.plan.model import Plan
 from pipeloom_airflow.config import LoadMode, ProjectConfig, RenderConfig
@@ -98,6 +99,13 @@ def _cache_key(project_dir: Path, target: str, vars_: Mapping[str, Any]) -> str:
     for rel in roots:
         files.update(_walk(project_dir, posixpath.normpath(str(rel)), skip))
     files.update(_walk(project_dir, "pipeloom.yml", skip))
+    # ADR-0050 point 17: the model_packages directories, wherever they are installed.
+    py_roots = [project_dir / str(p) for p in doc.get("python_paths") or ["."]]
+    for name in doc.get("model_packages") or ():
+        base = locate_package(str(name).split(".")[0], py_roots)
+        for path in sorted(base.rglob("*.py")) if base is not None else ():
+            st = path.stat()
+            files.add((path.resolve().as_posix(), st.st_size, st.st_mtime_ns))
     body = {
         "schema": CACHE_SCHEMA,
         "versions": _versions(),

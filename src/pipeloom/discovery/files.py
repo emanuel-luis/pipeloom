@@ -87,7 +87,7 @@ def find_files(
     failures: list[DiscoveryFailure] = []
     for dotted in model_packages:
         top, _, rest = dotted.partition(".")
-        base = _locate_package(top, roots)
+        base = locate_package(top, roots)
         target = base.joinpath(*rest.split(".")) if base and rest else base
         if base is None or target is None or not target.is_dir():
             failures.append(
@@ -119,7 +119,7 @@ def find_files(
     return sorted(files, key=lambda s: s.path), failures
 
 
-def _locate_package(top: str, roots: Sequence[Path]) -> Path | None:
+def locate_package(top: str, roots: Sequence[Path]) -> Path | None:
     """The directory of a top-level package: under a `python_paths` root first, then wherever
     `find_spec` finds it. `find_spec` on a top-level name imports nothing."""
     for root in roots:
