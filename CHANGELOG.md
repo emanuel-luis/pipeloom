@@ -9,6 +9,11 @@ All notable changes to this project are documented here. The format follows
 ### Added
 
 - The published JSON Schema for the manifest, `schema/v1/manifest.json` (`pipeloom.manifest/1`): a hand-written top level as `compile` writes it, with or without `--stable`, and node, source and metadata objects generated from the plan models; `materialized` is a closed enum. Objects are open, so consumers ignore unknown fields; CI validates the manifest goldens and real compiles of the reference project and the TPC-H examples against a strict variant ([ADR-0049](docs/adr/0049-artifact-schemas-and-orchestrator-protocol.md)).
+- Version check and `[tool.pipeloom]` ([ADR-0016](docs/adr/0016-versioning-and-plugin-api.md#version-check)): every distribution declares `config-version = 1` and `plugin-api = "1.0"`. `tools/versions.py check` compares the declarations with `CONFIG_VERSION` and `API_VERSION` in the source, requires every distribution to match the root, and requires every `PluginSpec` to pass `API_VERSION`. `check`, `bump` and `--tag` accept prereleases such as `1.0.0rc1`, with members pinned `pipeloom~=1.0.0rc1`; the lint job of CI runs the check, and the release workflow marks a prerelease tag as a GitHub prerelease.
+
+### Changed
+
+- Breaking for plugin authors: the plugin API is (1, 0). A plugin built for (0, 5) fails with PLU001. From now on the core accepts a plugin with the same major and a minor not above its own. `config_version: 1` stays the only accepted value, now named by `CONFIG_VERSION` in `pipeloom.config.types`.
 
 ## [0.9.0] - 2026-11-16
 

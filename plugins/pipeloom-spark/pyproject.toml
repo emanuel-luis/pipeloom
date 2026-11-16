@@ -47,6 +47,10 @@ table = "pipeloom_spark.spec:TABLE_STATE_SPEC"
 [tool.uv.sources]
 pipeloom = { workspace = true }
 
+[tool.pipeloom]
+config-version = 1
+plugin-api = "1.0"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/pipeloom_spark"]
 
