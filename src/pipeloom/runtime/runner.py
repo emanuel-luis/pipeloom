@@ -779,11 +779,17 @@ class ModelRunner:
         raise _Fail(code, phase, exc, message, hint) from exc
 
     def _call(self, body: PythonBody, ctx: ModelContext, args: Mapping[str, Any]) -> Any:
-        """Call the body by keyword: the input aliases, plus `ctx` when it has that parameter."""
+        """Call the body with the input aliases by keyword. `ctx` goes first and positional when
+        it is the first parameter (so `ctx, /` and `*args` wrappers work), by name when it is
+        elsewhere, and is left out when the function has no such parameter."""
         fn = self._loader.load(body.callable)
-        if "ctx" in inspect.signature(fn).parameters:
-            args = {"ctx": ctx, **args}
-        out = fn(**args)
+        names = list(inspect.signature(fn).parameters)
+        if names[:1] == ["ctx"]:
+            out = fn(ctx, **args)
+        elif "ctx" in names:
+            out = fn(**{"ctx": ctx, **args})
+        else:
+            out = fn(**args)
         return asyncio.run(_await(out)) if inspect.isawaitable(out) else out
 
     def _python_view(

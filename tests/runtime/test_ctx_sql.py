@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
@@ -120,6 +121,29 @@ def test_ctx_is_passed_only_when_it_is_a_parameter() -> None:
     assert runner._call(body, ctx, {"src": 1}) == 1
     runner._loader = Loader(with_ctx)  # type: ignore[assignment]
     assert runner._call(body, ctx, {"src": 1}) == ("ctx", 1)
+
+
+def test_ctx_goes_first_and_positional_when_it_is_the_first_parameter() -> None:
+    class Loader:
+        def __init__(self, fn: Callable[..., Any]) -> None:
+            self.load = lambda ref: fn
+
+    def positional_only(ctx: str, /, src: int) -> tuple[str, int]:
+        return ctx, src
+
+    def inner(ctx: str, src: int) -> tuple[str, int]:
+        return ctx, src
+
+    @functools.wraps(inner)
+    def wrapper(*args: Any, **kwargs: Any) -> tuple[str, int]:
+        return inner(*args, **kwargs)
+
+    runner = ModelRunner.__new__(ModelRunner)
+    body = PythonBody(callable="m:f", file="src/m.py")
+    ctx = cast(ModelContext, "ctx")
+    for fn in (positional_only, wrapper):
+        runner._loader = Loader(fn)  # type: ignore[assignment]
+        assert runner._call(body, ctx, {"src": 1}) == ("ctx", 1)
 
 
 def test_a_declared_dialect_is_translated(tmp_path: Path) -> None:
