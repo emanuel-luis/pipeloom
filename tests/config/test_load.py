@@ -30,9 +30,8 @@ def test_fixture_project_loads() -> None:
     assert outcome.value is not None and outcome.diagnostics == ()
     project = outcome.value
     assert project.config.name == "minimal"
-    assert [f.path for f in project.model_files] == ["models/staging/orders.yml"]
-    assert [f.path for f in project.defaults_files] == ["models/_defaults.yml"]
-    assert project.config.defaults.models.timeout == 1800
+    assert project.model_files == () and project.defaults_files == ()
+    assert project.config.models.timeout == 1800
 
 
 def test_load_is_memoized(project_factory: Factory) -> None:

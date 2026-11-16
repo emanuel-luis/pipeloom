@@ -2,8 +2,8 @@
   "name": "pipeloom_shop_main_ci",
   "tags": {
     "pipeloom_job": "shop.main.ci",
-    "pipeloom_plan_hash": "2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da",
-    "pipeloom_settings_hash": "708518163c052cd8363625fcd0aeaa731f6317f1dd9291dc76cc130e7adf1cdd",
+    "pipeloom_plan_hash": "ab31335a58bb7a99ad1251b22aad2fa57d6d279ad65716d91ea1c35e3968a765",
+    "pipeloom_settings_hash": "50bcb094a09f1ee33854e37c47b2bb6dcf29d7fe84b1d2f93144aa29b4de9eeb",
     "pipeloom_version": "1.2.3"
   },
   "parameters": [
@@ -37,7 +37,7 @@
       "task_key": "dir_models_marts",
       "depends_on": [
         {
-          "task_key": "dir_models_staging"
+          "task_key": "dir_src_shop"
         }
       ],
       "environment_key": "pipeloom_default",
@@ -51,7 +51,7 @@
           "--target=ci",
           "--pipeline=main",
           "--group=dir_models_marts",
-          "--plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da",
+          "--plan-hash=ab31335a58bb7a99ad1251b22aad2fa57d6d279ad65716d91ea1c35e3968a765",
           "--run-id={{job.parameters.pipeloom_run_id}}",
           "--full-refresh={{job.parameters.full_refresh}}",
           "--job-id={{job.id}}",
@@ -78,7 +78,38 @@
           "--target=ci",
           "--pipeline=main",
           "--group=dir_models_staging",
-          "--plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da",
+          "--plan-hash=ab31335a58bb7a99ad1251b22aad2fa57d6d279ad65716d91ea1c35e3968a765",
+          "--run-id={{job.parameters.pipeloom_run_id}}",
+          "--full-refresh={{job.parameters.full_refresh}}",
+          "--job-id={{job.id}}",
+          "--job-run-id={{job.run_id}}",
+          "--task-key={{task.name}}",
+          "--task-run-id={{task.run_id}}",
+          "--start-ms={{job.start_time.timestamp_ms}}"
+        ]
+      },
+      "max_retries": 0,
+      "disable_auto_optimization": true
+    },
+    {
+      "task_key": "dir_src_shop",
+      "depends_on": [
+        {
+          "task_key": "dir_models_staging"
+        }
+      ],
+      "environment_key": "pipeloom_default",
+      "python_wheel_task": {
+        "package_name": "pipeloom_databricks",
+        "entry_point": "pipeloom_databricks_task",
+        "parameters": [
+          "unit",
+          "--project-dir=/Workspace/pipeloom/shop",
+          "--manifest=/Workspace/pipeloom/shop/manifest.json",
+          "--target=ci",
+          "--pipeline=main",
+          "--group=dir_src_shop",
+          "--plan-hash=ab31335a58bb7a99ad1251b22aad2fa57d6d279ad65716d91ea1c35e3968a765",
           "--run-id={{job.parameters.pipeloom_run_id}}",
           "--full-refresh={{job.parameters.full_refresh}}",
           "--job-id={{job.id}}",
@@ -109,7 +140,7 @@
           "--manifest=/Workspace/pipeloom/shop/manifest.json",
           "--target=ci",
           "--pipeline=main",
-          "--plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da",
+          "--plan-hash=ab31335a58bb7a99ad1251b22aad2fa57d6d279ad65716d91ea1c35e3968a765",
           "--run-id={{job.parameters.pipeloom_run_id}}",
           "--full-refresh={{job.parameters.full_refresh}}",
           "--job-id={{job.id}}",

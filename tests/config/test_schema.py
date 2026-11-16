@@ -63,10 +63,6 @@ def test_ids_use_the_public_base_url() -> None:
 def test_the_fixture_project_validates_against_the_exported_schemas() -> None:
     schemas = builtin_schemas()
     validator(schemas["project.json"]).validate(load_yaml(MINIMAL / "pipeloom.yml"))
-    validator(schemas["defaults.json"]).validate(load_yaml(MINIMAL / "models" / "_defaults.yml"))
-    validator(schemas["models.json"]).validate(
-        load_yaml(MINIMAL / "models" / "staging" / "orders.yml")
-    )
 
 
 def project(**overrides: Any) -> dict[str, Any]:
