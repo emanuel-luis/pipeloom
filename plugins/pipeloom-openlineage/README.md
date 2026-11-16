@@ -23,7 +23,7 @@ events:
 
 - The pipeloom run is the OpenLineage job `<project>`. Each persisted model is a child job
   `<project>.<model>` with a parent run facet that points at the pipeline run.
-- Run ids are uuid5 values derived from the pipeloom run id, the unit id and the attempt, so every
+- Run ids are uuid5 values derived from the project, the pipeloom run id, the unit id and the attempt, so every
   process of one run (a unit task, `pipeloom finalize`) reports to the same OpenLineage runs.
 - Inputs and outputs come from the manifest: catalog relations and source locations.
 - Facets: `schema`, `outputStatistics`, `dataQualityAssertions`, `errorMessage`, `parent`,
