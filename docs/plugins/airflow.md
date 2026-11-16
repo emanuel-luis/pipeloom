@@ -191,7 +191,8 @@ is optional, as in VIRTUALENV.
   `retries` and `retry_on` allow no more, or timed out, or was cancelled. If the producer ended and
   left no run results, the watcher raises PLA009 after a short grace, and a retry runs again.
 - The watcher's log shows the attempt summary and the last 200 lines of the unit's log, or the error
-  code, message and trace excerpt.
+  code, message and trace excerpt. A unit has a log of its own only with `boundary: task`;
+  otherwise the watcher says that the unit's output is in the producer task's log.
 - To rerun a unit, clear its failed watcher with Downstream. At try 2 or later, when the producer is
   no longer running the unit, the watcher runs the unit itself (same run id, one attempt), and the
   cleared descendants follow. Finalize then merges the new attempt.
@@ -325,6 +326,10 @@ use `shared`.
   is limited to 128 KiB. Above that it fails with PLA002; split the project with `select`.
 - A DATABRICKS-mode DAG needs the project files on the worker that runs the launch, and each wait
   is bounded by `databricks_timeout`.
+- On Airflow 3.2, `dag.test()` fails in the finalize task and in WATCHER sensors: they read task
+  states through the Task SDK, and the in-process Execution API that `dag.test()` starts on 3.2
+  answers that call with a server error. A real deployment on 3.2 is not affected, and `dag.test()`
+  works from Airflow 3.3.0.
 
 ## Diagnostics
 

@@ -131,6 +131,18 @@ def test_a_succeeded_attempt_succeeds_and_logs_its_tail(
     assert "last 200 lines" in text
 
 
+def test_a_succeeded_attempt_without_a_unit_log_points_at_the_producer(
+    af_project: Project, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    op = watcher(af_project)
+    log = capture_log(op, monkeypatch)
+    write_attempt(af_project, op.unit_id, 1, "succeeded")
+    assert op.execute(context(op, "success")) is None
+    text = logged(log)
+    assert f"its output is in the log of task {naming.PRODUCER_ID}" in text
+    assert "no log at" not in text
+
+
 def test_a_reported_failure_fails_without_retry(
     af_project: Project, monkeypatch: pytest.MonkeyPatch
 ) -> None:
