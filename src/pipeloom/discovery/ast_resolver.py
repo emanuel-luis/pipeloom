@@ -17,6 +17,7 @@ from __future__ import annotations
 import ast
 import inspect
 import typing
+from collections import Counter
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -304,6 +305,12 @@ def parse_file(source: bytes, path: str) -> ParsedFile:
                 defs.append((stmt, dec))
                 if len(stmt.decorator_list) > 1:
                     dynamic = True  # another decorator may wrap the marked function
+
+    # A marked name bound again at module scope: the earlier or the wrapped function may be
+    # what the module ends up holding, so only an import can tell.
+    bindings = Counter(n for s in scope for n in _bound_names(s))
+    if any(bindings[fn.name] > 1 for fn, _ in defs):
+        dynamic = True
 
     bad_defs: set[int] = set()
     for node in ast.walk(tree):
