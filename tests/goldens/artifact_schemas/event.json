@@ -1,0 +1,1649 @@
+{
+  "$defs": {
+    "ArtifactWritten": {
+      "properties": {
+        "bytes": {
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "bytes",
+        "sha256"
+      ],
+      "title": "ArtifactWritten",
+      "type": "object"
+    },
+    "DiagnosticEmitted": {
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "context": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Context",
+          "type": "object"
+        },
+        "hint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Hint"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Location"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "severity": {
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message",
+        "hint",
+        "location",
+        "context"
+      ],
+      "title": "DiagnosticEmitted",
+      "type": "object"
+    },
+    "ErrorInfo": {
+      "description": "Why a unit failed. `category` tells a retry policy whether trying again can help.",
+      "properties": {
+        "category": {
+          "enum": [
+            "transient",
+            "permanent"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "exception_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exception Type"
+        },
+        "hint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hint"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Location"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "trace_excerpt": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Trace Excerpt",
+          "type": "array"
+        }
+      },
+      "required": [
+        "code",
+        "category",
+        "message"
+      ],
+      "title": "ErrorInfo",
+      "type": "object"
+    },
+    "InvocationCompleted": {
+      "properties": {
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Counts",
+          "type": "object"
+        },
+        "duration_ms": {
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "exit_code": {
+          "title": "Exit Code",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "command",
+        "exit_code",
+        "duration_ms",
+        "counts"
+      ],
+      "title": "InvocationCompleted",
+      "type": "object"
+    },
+    "InvocationStarted": {
+      "properties": {
+        "args": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Args",
+          "type": "object"
+        },
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "pipeloom_version": {
+          "title": "Pipeloom Version",
+          "type": "string"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Project"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Target"
+        }
+      },
+      "required": [
+        "command",
+        "args",
+        "pipeloom_version",
+        "project",
+        "target"
+      ],
+      "title": "InvocationStarted",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Level": {
+      "enum": [
+        "debug",
+        "info",
+        "warning",
+        "error"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "ModelInputRead": {
+      "properties": {
+        "alias": {
+          "title": "Alias",
+          "type": "string"
+        },
+        "deferred": {
+          "default": false,
+          "title": "Deferred",
+          "type": "boolean"
+        },
+        "duration_ms": {
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "source",
+            "model",
+            "ephemeral"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "relation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Relation"
+        },
+        "rows": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rows"
+        }
+      },
+      "required": [
+        "alias",
+        "kind",
+        "name",
+        "rows",
+        "duration_ms"
+      ],
+      "title": "ModelInputRead",
+      "type": "object"
+    },
+    "ModelLog": {
+      "properties": {
+        "fields": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Fields",
+          "type": "object"
+        },
+        "level": {
+          "default": "info",
+          "enum": [
+            "debug",
+            "info",
+            "warning"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message"
+      ],
+      "title": "ModelLog",
+      "type": "object"
+    },
+    "ModelQualityEvaluated": {
+      "properties": {
+        "cached": {
+          "title": "Cached",
+          "type": "boolean"
+        },
+        "drop_ratio": {
+          "title": "Drop Ratio",
+          "type": "number"
+        },
+        "failures": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Failures",
+          "type": "array"
+        },
+        "results": {
+          "items": {
+            "additionalProperties": {
+              "$ref": "#/$defs/JsonValue"
+            },
+            "type": "object"
+          },
+          "title": "Results",
+          "type": "array"
+        },
+        "rows_dropped": {
+          "title": "Rows Dropped",
+          "type": "integer"
+        },
+        "rows_quarantined": {
+          "title": "Rows Quarantined",
+          "type": "integer"
+        },
+        "total_rows": {
+          "title": "Total Rows",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "total_rows",
+        "results",
+        "rows_dropped",
+        "rows_quarantined",
+        "drop_ratio",
+        "cached",
+        "failures"
+      ],
+      "title": "ModelQualityEvaluated",
+      "type": "object"
+    },
+    "ModelSchemaChanged": {
+      "properties": {
+        "action": {
+          "enum": [
+            "applied",
+            "ignored",
+            "rejected",
+            "replaced"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "changes": {
+          "items": {
+            "additionalProperties": {
+              "$ref": "#/$defs/JsonValue"
+            },
+            "type": "object"
+          },
+          "title": "Changes",
+          "type": "array"
+        },
+        "policy": {
+          "title": "Policy",
+          "type": "string"
+        },
+        "relation": {
+          "title": "Relation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relation",
+        "policy",
+        "action",
+        "changes"
+      ],
+      "title": "ModelSchemaChanged",
+      "type": "object"
+    },
+    "ModelWritten": {
+      "properties": {
+        "bytes_written": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Bytes Written"
+        },
+        "duration_ms": {
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "materialization": {
+          "title": "Materialization",
+          "type": "string"
+        },
+        "relation": {
+          "title": "Relation",
+          "type": "string"
+        },
+        "rows_inserted": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rows Inserted"
+        },
+        "rows_written": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rows Written"
+        },
+        "skipped": {
+          "default": false,
+          "title": "Skipped",
+          "type": "boolean"
+        },
+        "strategy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Strategy"
+        }
+      },
+      "required": [
+        "relation",
+        "materialization",
+        "strategy",
+        "rows_written",
+        "rows_inserted",
+        "bytes_written",
+        "duration_ms"
+      ],
+      "title": "ModelWritten",
+      "type": "object"
+    },
+    "PlanCompiled": {
+      "properties": {
+        "by_materialization": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "By Materialization",
+          "type": "object"
+        },
+        "ephemeral_inlined": {
+          "title": "Ephemeral Inlined",
+          "type": "integer"
+        },
+        "plan_hash": {
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "project": {
+          "title": "Project",
+          "type": "string"
+        },
+        "selected": {
+          "title": "Selected",
+          "type": "integer"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "units": {
+          "title": "Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "project",
+        "target",
+        "plan_hash",
+        "units",
+        "by_materialization",
+        "ephemeral_inlined",
+        "selected"
+      ],
+      "title": "PlanCompiled",
+      "type": "object"
+    },
+    "RunCancelRequested": {
+      "properties": {
+        "grace_s": {
+          "title": "Grace S",
+          "type": "number"
+        },
+        "signal": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Signal"
+        }
+      },
+      "required": [
+        "signal",
+        "grace_s"
+      ],
+      "title": "RunCancelRequested",
+      "type": "object"
+    },
+    "RunCompiled": {
+      "properties": {
+        "by_materialization": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "By Materialization",
+          "type": "object"
+        },
+        "ephemeral_inlined": {
+          "title": "Ephemeral Inlined",
+          "type": "integer"
+        },
+        "executor": {
+          "title": "Executor",
+          "type": "string"
+        },
+        "plan_hash": {
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "selected": {
+          "title": "Selected",
+          "type": "integer"
+        },
+        "units": {
+          "title": "Units",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "units",
+        "by_materialization",
+        "ephemeral_inlined",
+        "selected",
+        "plan_hash",
+        "executor"
+      ],
+      "title": "RunCompiled",
+      "type": "object"
+    },
+    "RunCompleted": {
+      "properties": {
+        "abandoned_threads": {
+          "default": 0,
+          "title": "Abandoned Threads",
+          "type": "integer"
+        },
+        "artifacts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Artifacts",
+          "type": "array"
+        },
+        "bytes_written": {
+          "title": "Bytes Written",
+          "type": "integer"
+        },
+        "counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Counts",
+          "type": "object"
+        },
+        "duration_ms": {
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "exit_code": {
+          "title": "Exit Code",
+          "type": "integer"
+        },
+        "failures": {
+          "items": {
+            "additionalProperties": {
+              "$ref": "#/$defs/JsonValue"
+            },
+            "type": "object"
+          },
+          "title": "Failures",
+          "type": "array"
+        },
+        "replay": {
+          "default": false,
+          "title": "Replay",
+          "type": "boolean"
+        },
+        "rows_written": {
+          "title": "Rows Written",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "cancelled"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "exit_code",
+        "duration_ms",
+        "counts",
+        "rows_written",
+        "bytes_written",
+        "failures",
+        "artifacts"
+      ],
+      "title": "RunCompleted",
+      "type": "object"
+    },
+    "RunStarted": {
+      "properties": {
+        "boundary": {
+          "enum": [
+            "process",
+            "task"
+          ],
+          "title": "Boundary",
+          "type": "string"
+        },
+        "engine": {
+          "title": "Engine",
+          "type": "string"
+        },
+        "engine_version": {
+          "title": "Engine Version",
+          "type": "string"
+        },
+        "executor": {
+          "title": "Executor",
+          "type": "string"
+        },
+        "fail_fast": {
+          "title": "Fail Fast",
+          "type": "boolean"
+        },
+        "full_refresh": {
+          "title": "Full Refresh",
+          "type": "boolean"
+        },
+        "parent_run_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Run Id"
+        },
+        "plan_hash": {
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "project": {
+          "title": "Project",
+          "type": "string"
+        },
+        "selected": {
+          "title": "Selected",
+          "type": "integer"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "workers": {
+          "title": "Workers",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "project",
+        "target",
+        "plan_hash",
+        "selected",
+        "workers",
+        "boundary",
+        "executor",
+        "full_refresh",
+        "fail_fast",
+        "engine",
+        "engine_version"
+      ],
+      "title": "RunStarted",
+      "type": "object"
+    },
+    "SinkDisabled": {
+      "properties": {
+        "code": {
+          "default": "PLE401",
+          "title": "Code",
+          "type": "string"
+        },
+        "error": {
+          "title": "Error",
+          "type": "string"
+        },
+        "failures": {
+          "title": "Failures",
+          "type": "integer"
+        },
+        "sink": {
+          "title": "Sink",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sink",
+        "failures",
+        "error"
+      ],
+      "title": "SinkDisabled",
+      "type": "object"
+    },
+    "StateWatermarkCommitted": {
+      "properties": {
+        "after": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "before": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "column": {
+          "title": "Column",
+          "type": "string"
+        },
+        "dtype": {
+          "title": "Dtype",
+          "type": "string"
+        },
+        "seeded": {
+          "title": "Seeded",
+          "type": "boolean"
+        },
+        "source": {
+          "enum": [
+            "state",
+            "target"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "column",
+        "dtype",
+        "before",
+        "after",
+        "source",
+        "seeded"
+      ],
+      "title": "StateWatermarkCommitted",
+      "type": "object"
+    },
+    "UnitCancelled": {
+      "properties": {
+        "reason": {
+          "default": "cancel",
+          "enum": [
+            "cancel",
+            "timeout"
+          ],
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "title": "UnitCancelled",
+      "type": "object"
+    },
+    "UnitFailed": {
+      "properties": {
+        "duration_ms": {
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "error": {
+          "$ref": "#/$defs/ErrorInfo"
+        },
+        "traceback": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Traceback"
+        }
+      },
+      "required": [
+        "error",
+        "duration_ms"
+      ],
+      "title": "UnitFailed",
+      "type": "object"
+    },
+    "UnitQueued": {
+      "properties": {
+        "downstream": {
+          "title": "Downstream",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "downstream"
+      ],
+      "title": "UnitQueued",
+      "type": "object"
+    },
+    "UnitRetrying": {
+      "properties": {
+        "attempt": {
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "delay_ms": {
+          "title": "Delay Ms",
+          "type": "integer"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ErrorInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "next_attempt": {
+          "title": "Next Attempt",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "attempt",
+        "next_attempt",
+        "delay_ms"
+      ],
+      "title": "UnitRetrying",
+      "type": "object"
+    },
+    "UnitSkipped": {
+      "properties": {
+        "reason": {
+          "description": "upstream_failed, fail_fast, not_run, or a reason added later.",
+          "type": "string"
+        },
+        "upstream": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Upstream"
+        }
+      },
+      "required": [
+        "reason",
+        "upstream"
+      ],
+      "title": "UnitSkipped",
+      "type": "object"
+    },
+    "UnitStarted": {
+      "properties": {
+        "executor": {
+          "title": "Executor",
+          "type": "string"
+        },
+        "materialization": {
+          "title": "Materialization",
+          "type": "string"
+        },
+        "queue_wait_ms": {
+          "title": "Queue Wait Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "materialization",
+        "executor",
+        "queue_wait_ms"
+      ],
+      "title": "UnitStarted",
+      "type": "object"
+    },
+    "UnitSucceeded": {
+      "properties": {
+        "bytes_written": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Bytes Written"
+        },
+        "duration_ms": {
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "materialization": {
+          "title": "Materialization",
+          "type": "string"
+        },
+        "relation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Relation"
+        },
+        "rows_inserted": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rows Inserted"
+        },
+        "rows_written": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rows Written"
+        },
+        "strategy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Strategy"
+        }
+      },
+      "required": [
+        "materialization",
+        "strategy",
+        "relation",
+        "rows_written",
+        "rows_inserted",
+        "bytes_written",
+        "duration_ms"
+      ],
+      "title": "UnitSucceeded",
+      "type": "object"
+    },
+    "UnitTimedOut": {
+      "properties": {
+        "attempt": {
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "timeout_s": {
+          "title": "Timeout S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "timeout_s",
+        "attempt"
+      ],
+      "title": "UnitTimedOut",
+      "type": "object"
+    }
+  },
+  "$id": "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/event.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "artifact.written"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/ArtifactWritten"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "diagnostic"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DiagnosticEmitted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "invocation.completed"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/InvocationCompleted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "invocation.started"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/InvocationStarted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "model.input_read"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/ModelInputRead"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "model.log"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/ModelLog"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "model.quality_evaluated"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/ModelQualityEvaluated"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "model.schema_changed"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/ModelSchemaChanged"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "model.written"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/ModelWritten"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "plan.compiled"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/PlanCompiled"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.cancel_requested"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/RunCancelRequested"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.compiled"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/RunCompiled"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.completed"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/RunCompleted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run.started"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/RunStarted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "sink.disabled"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/SinkDisabled"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "state.watermark_committed"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/StateWatermarkCommitted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "unit.cancelled"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/UnitCancelled"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "unit.failed"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/UnitFailed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "unit.queued"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/UnitQueued"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "unit.retrying"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/UnitRetrying"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "unit.skipped"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/UnitSkipped"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "unit.started"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/UnitStarted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "unit.succeeded"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/UnitSucceeded"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "unit.timed_out"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/UnitTimedOut"
+          }
+        }
+      }
+    }
+  ],
+  "description": "One event: the envelope, and a data object per event type.",
+  "properties": {
+    "attempt": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Attempt"
+    },
+    "context": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Context",
+      "type": "object"
+    },
+    "data": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Data",
+      "type": "object"
+    },
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "invocation_id": {
+      "title": "Invocation Id",
+      "type": "string"
+    },
+    "level": {
+      "$ref": "#/$defs/Level"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    },
+    "run_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Run Id"
+    },
+    "schema": {
+      "const": "pipeloom.event/1",
+      "description": "Schema name and version."
+    },
+    "seq": {
+      "title": "Seq",
+      "type": "integer"
+    },
+    "ts": {
+      "title": "Ts",
+      "type": "string"
+    },
+    "type": {
+      "title": "Type",
+      "type": "string"
+    },
+    "unit_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Unit Id"
+    }
+  },
+  "required": [
+    "schema",
+    "id",
+    "run_id",
+    "invocation_id",
+    "seq",
+    "ts",
+    "type",
+    "level",
+    "data"
+  ],
+  "title": "pipeloom event",
+  "type": "object"
+}

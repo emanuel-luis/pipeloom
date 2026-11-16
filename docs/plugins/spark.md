@@ -98,9 +98,11 @@ materialization. Declare it as a source:
 
 ```yaml
 sources:
-  - name: tpch_region
+  samples:
     format: csv
-    location: "${var:region_csv}"
+    tables:
+      region:
+        location: ${var:region_csv}
 ```
 
 The location can be a path relative to the project directory (`data/region.csv`), an absolute

@@ -33,7 +33,7 @@ One typed stream (`pipeloom.event/1`) and a synchronous in-process bus.
 
 ## Status
 
-Accepted
+Accepted. Amended by [ADR-0049](0049-artifact-schemas-and-orchestrator-protocol.md): published artifact schemas.
 
 ## Date
 

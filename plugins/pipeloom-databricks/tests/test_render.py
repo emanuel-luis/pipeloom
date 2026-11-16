@@ -134,7 +134,7 @@ def test_job_shape(shop: Plan, deploy: Deploy, render: Render) -> None:
     final = by_key["pipeloom__finalize"]
     assert final["run_if"] == "ALL_DONE" and final["max_retries"] == 1
     assert final["timeout_seconds"] == 1800
-    assert final["depends_on"] == [{"task_key": "dim_customers"}, {"task_key": "rpt_revenue"}]
+    assert final["depends_on"] == [{"task_key": "dim_customers"}, {"task_key": "top_customers"}]
     params = by_key["fct_orders"]["python_wheel_task"]["parameters"]
     assert params[:2] == ["unit", "--project-dir=/Workspace/pipeloom/shop"]
     assert "--unit=fct_orders" in params and "--run-id={{job.parameters.pipeloom_run_id}}" in params

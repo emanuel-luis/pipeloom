@@ -245,6 +245,7 @@ def test_changing_one_sql_body_selects_exactly_that_node(shop: Path) -> None:
         "orders_enriched",
         "rpt_revenue",
         "stg_orders",
+        "top_customers",
     ]
 
 

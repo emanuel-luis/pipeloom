@@ -25,12 +25,13 @@
       }
     },
     "config_version": 1,
-    "plan_hash": "e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0",
+    "plan_hash": "2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da",
     "project": "shop",
     "target": "ci",
     "boundary": "process",
     "python_paths": [
-      "src"
+      "src",
+      "models"
     ],
     "vars": {},
     "env_vars": [],
@@ -437,6 +438,61 @@
         "staging"
       ],
       "checksum": "df4399649f77deab550d2b302c5328e4404427700b533df2ba97b1c31e53cfa0"
+    },
+    "model.shop.top_customers": {
+      "unique_id": "model.shop.top_customers",
+      "name": "top_customers",
+      "file": "models/marts/top_customers.py",
+      "line": 8,
+      "materialized": "table",
+      "body": {
+        "kind": "python",
+        "callable": "marts.top_customers:top_customers",
+        "file": "models/marts/top_customers.py"
+      },
+      "inputs": {
+        "rpt_revenue": "model.shop.rpt_revenue"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "top_customers"
+      },
+      "unit_ids": [
+        "top_customers"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "overwrite",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [],
+        "retries": 1,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "catalog": null,
+        "meta": {}
+      },
+      "tags": [],
+      "checksum": "891668d25abab195714d2438e08d09c551e79821a9909107acbb932ce5334249"
     }
   },
   "sources": {
@@ -491,6 +547,9 @@
     ],
     "stg_payments": [
       "model.shop.stg_payments"
+    ],
+    "top_customers": [
+      "model.shop.top_customers"
     ]
   },
   "unit_parent_map": {
@@ -508,7 +567,10 @@
     ],
     "stg_customers": [],
     "stg_orders": [],
-    "stg_payments": []
+    "stg_payments": [],
+    "top_customers": [
+      "rpt_revenue"
+    ]
   },
   "parent_map": {
     "model.shop.dim_customers": [
@@ -534,6 +596,9 @@
     "model.shop.stg_payments": [
       "source.shop.raw_payments"
     ],
+    "model.shop.top_customers": [
+      "model.shop.rpt_revenue"
+    ],
     "source.shop.raw_customers": [],
     "source.shop.raw_orders": [],
     "source.shop.raw_payments": []
@@ -547,7 +612,9 @@
       "model.shop.dim_customers",
       "model.shop.fct_orders"
     ],
-    "model.shop.rpt_revenue": [],
+    "model.shop.rpt_revenue": [
+      "model.shop.top_customers"
+    ],
     "model.shop.stg_customers": [
       "model.shop.orders_enriched"
     ],
@@ -557,6 +624,7 @@
     "model.shop.stg_payments": [
       "model.shop.fct_orders"
     ],
+    "model.shop.top_customers": [],
     "source.shop.raw_customers": [
       "model.shop.stg_customers"
     ],
@@ -577,7 +645,8 @@
       "model.shop.rpt_revenue",
       "model.shop.stg_customers",
       "model.shop.stg_orders",
-      "model.shop.stg_payments"
+      "model.shop.stg_payments",
+      "model.shop.top_customers"
     ]
   }
 }

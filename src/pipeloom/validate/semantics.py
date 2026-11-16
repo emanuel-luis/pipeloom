@@ -59,9 +59,13 @@ def _scd2_problems(m: ResolvedModel) -> list[str]:
 
 
 def where(project: ResolvedProject, m: ResolvedModel, field: str, sub: str = "") -> Location:
-    """The model's own `field` (and `sub` pointer below it) when it sets one, else its name."""
-    if field in m.own_fields:
-        return project.locate(m.file, f"{m.pointer}/{field}{sub}")
+    """Where the winning layer sets `field` (and `sub` below it), else the model's name."""
+    origin = m.origins.get(field)
+    if origin is not None and origin.layer != "decorator":
+        loc = origin.location
+        return project.locate(loc.file or m.file, f"{loc.json_pointer or ''}{sub}")
+    if origin is not None or field in m.own_fields:
+        return project.at(m, f"/{field}{sub}")
     return project.locate_model(m)
 
 
@@ -191,20 +195,14 @@ def _check_model(project: ResolvedProject, m: ResolvedModel, report: Report) -> 
 def _check_view(
     project: ResolvedProject, m: ResolvedModel, inlined: list[str], report: Report
 ) -> None:
-    """PLP409: a view stores its SQL as written, so it cannot be Python or inline an ephemeral."""
-    if m.entry.sql is None:
-        why = "is a Python model"
-        hint = "write the view as SQL, or materialize it as a table"
-    elif inlined:
-        why = f"reads ephemeral model(s) {', '.join(inlined)}"
-        hint = "make those models tables, or materialize the view as a table"
-    else:
+    """PLP409: a view stores its query in the catalog, so it cannot inline an ephemeral model."""
+    if not inlined:
         return
     report.add(
         "PLP409",
-        f"view '{m.name}' {why}",
+        f"view '{m.name}' reads ephemeral model(s) {', '.join(inlined)}",
         location=where(project, m, "materialized"),
-        hint=hint,
+        hint="make those models tables, or materialize the view as a table",
         context={"model": m.name},
     )
 

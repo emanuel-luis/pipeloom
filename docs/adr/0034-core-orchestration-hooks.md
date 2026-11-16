@@ -40,7 +40,7 @@ An orchestrator plugin can carry its options in the manifest without touching th
 
 ## Status
 
-Accepted.
+Accepted. Amended by [ADR-0049](0049-artifact-schemas-and-orchestrator-protocol.md): the unit-states schema, the unit graph and the orchestrator protocol.
 
 ## Date
 

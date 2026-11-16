@@ -3,9 +3,32 @@ config_version: 1
 name: tpch_polars
 vars:
   tpch_dir: ../data/tpch
-defaults:
-  models:
-    materialized: table
+models:
+  +materialized: table
+  bronze:
+    +catalog: pipeloom_bronze
+    +tags: [bronze]
+  silver:
+    +catalog: pipeloom_silver
+    +tags: [silver]
+  gold:
+    +catalog: pipeloom_gold
+    +tags: [gold]
+sources:
+  tpch:
+    format: parquet
+    location: ${var:tpch_dir}
+    tables:
+      orders:
+        location: orders.parquet
+      lineitem:
+        location: lineitem.parquet
+      customer:
+        location: customer.parquet
+      nation:
+        location: nation.parquet
+      region:
+        location: region.parquet
 targets:
   dev:
     engine:

@@ -1,0 +1,2 @@
+error PLR210 models/staging.py:4:2 input 'orders' of model 'stg_orders' matches several source tables: archive.orders, raw.orders
+      hint: bind it with inputs={'orders': source(...)}

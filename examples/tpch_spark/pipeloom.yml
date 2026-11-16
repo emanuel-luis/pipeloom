@@ -5,9 +5,38 @@ name: tpch_spark
 vars:
   tpch_dir: ../data/tpch
   region_csv: data/region.csv
-defaults:
-  models:
-    materialized: table
+models:
+  +materialized: table
+  bronze:
+    +catalog: pipeloom_bronze
+    +tags: [bronze]
+  silver:
+    +catalog: pipeloom_silver
+    +tags: [silver]
+  gold:
+    +catalog: pipeloom_gold
+    +tags: [gold]
+sources:
+  tpch:
+    format: parquet
+    location: ${var:tpch_dir}
+    tables:
+      orders:
+        location: orders.parquet
+      lineitem:
+        location: lineitem.parquet
+      customer:
+        location: customer.parquet
+      nation:
+        location: nation.parquet
+  # Sample data committed with the project (data/region.csv). Its group has no location, so the
+  # relative path resolves against the project directory. Point region_csv at a copy on a volume
+  # (/Volumes/...) to read it there.
+  samples:
+    format: csv
+    tables:
+      region:
+        location: ${var:region_csv}
 targets:
   dev:
     engine:

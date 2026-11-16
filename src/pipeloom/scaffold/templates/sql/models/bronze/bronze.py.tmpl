@@ -1,0 +1,11 @@
+"""Bronze: the raw orders, as they arrive.
+
+A model never reads itself, so the `orders` parameter binds the source table `raw.orders`.
+"""
+
+from pipeloom import ModelContext, model
+
+
+@model
+def orders(ctx: ModelContext, orders):
+    return ctx.sql("select * from orders")

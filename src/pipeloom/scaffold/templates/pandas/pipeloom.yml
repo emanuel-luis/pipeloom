@@ -1,11 +1,27 @@
 # yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
-# pandas has no SQL models: each model is a Python function under src/.
+# pandas has no SQL: each model under models/ is a function that returns a DataFrame.
 config_version: 1
 name: {{name}}
-python_paths: [src]
-defaults:
-  models:
-    materialized: table
+# Settings by model folder: `+key` applies to every model below that folder.
+models:
+  +materialized: table
+  bronze:
+    +schema: bronze
+    +tags: [bronze]
+  silver:
+    +schema: silver
+    +tags: [silver]
+  gold:
+    +schema: gold
+    +tags: [gold]
+# Replace the sample data with your own. A model parameter named like a table binds to it.
+sources:
+  raw:
+    format: csv
+    location: data
+    tables:
+      orders:
+        location: orders.csv
 targets:
   dev:
     engine:

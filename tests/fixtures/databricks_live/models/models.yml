@@ -1,15 +1,4 @@
-sources:
-  # tools/databricks_live.py uploads examples/tpch_spark/data/region.csv to the volume.
-  - name: region_csv
-    format: csv
-    location: "${var:sample_csv}"
 models:
-  - name: r
-    tags: [stable]
-    sql: select * from region
-    inputs:
-      region:
-        source: region_csv
   - name: a
     tags: [stable]
     sql: select 1 as id, 'a' as label

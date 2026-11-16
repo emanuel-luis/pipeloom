@@ -1,6 +1,6 @@
 config_version: 1
 name: live
-python_paths: [src]
+python_paths: [., src]
 # tools/databricks_live.py passes every var below with --vars.
 vars:
   catalog: main
@@ -14,6 +14,13 @@ vars:
 defaults:
   models:
     materialized: table
+sources:
+  # tools/databricks_live.py uploads examples/tpch_spark/data/region.csv to the volume.
+  samples:
+    format: csv
+    tables:
+      region:
+        location: ${var:sample_csv}
 targets:
   live:
     engine:

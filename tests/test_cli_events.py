@@ -68,7 +68,7 @@ def test_log_format_on_plugins_list_and_schema_export(tmp_path: Path) -> None:
         ["schema", "export", "--out", str(out), "--plugins", "builtin", "--log-format", "json"]
     )
     got = events(exported)
-    assert [e.type for e in got] == ["invocation.started"] + ["artifact.written"] * 3 + [
+    assert [e.type for e in got] == ["invocation.started"] + ["artifact.written"] * 4 + [
         "invocation.completed"
     ]
     first = got[1].data
