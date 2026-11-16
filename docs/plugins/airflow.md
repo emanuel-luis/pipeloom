@@ -4,7 +4,8 @@
 (or a task group inside one): one Airflow task per execution unit, plus a finalize task that closes
 the pipeloom run. Four execution modes are supported: `local`, `virtualenv`, `kubernetes` and
 `databricks`. The design is in [architecture section 13](../architecture.md#13-the-airflow-plugin)
-and ADR-0037 to ADR-0039.
+and ADR-0037 to ADR-0039. For another orchestrator, the same per-unit protocol is described in
+[Orchestrator protocol](../guide/orchestrators.md).
 
 ```python
 from datetime import datetime
