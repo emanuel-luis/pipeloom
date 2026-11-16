@@ -24,7 +24,7 @@ from pipeloom.config.bind import BoundProject
 from pipeloom.diagnostics import Diagnostic, JsonValue, Location, Report, Severity
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
 from pipeloom.engine.types import TargetRef
-from pipeloom.events.bus import EventBus
+from pipeloom.events.bus import EventBus, PlanInfo
 from pipeloom.events.model import (
     ArtifactWritten,
     DiagnosticEmitted,
@@ -34,7 +34,7 @@ from pipeloom.events.model import (
 )
 from pipeloom.graph.selectors import Selection, SelectorError, apply_to_plan, is_unit_selection
 from pipeloom.plan.defer import defer_refusal, deferred_relations
-from pipeloom.plan.manifest import read_manifest, write_manifest
+from pipeloom.plan.manifest import manifest_dict, read_manifest, write_manifest
 from pipeloom.plan.model import Plan, PlanSelection
 from pipeloom.platform import check_orchestrator_id
 from pipeloom.runtime.context import RuntimeContext
@@ -457,7 +457,10 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                         parent_run_id=opts.parent_run_id,
                     )
                 )
-                persisted = [plan.nodes[u.nodes[-1]] for u in plan.units.values()]
+            # A unit invocation has no run.started, but its unit events still need the plan.
+            bus.plan_ready(PlanInfo(manifest_dict(plan), project_dir))
+            if not unit_mode:
+                persisted =[plan.nodes[u.nodes[-1]] for u in plan.units.values()]
                 bus.emit(
                     RunCompiled(
                         units=len(plan.units),

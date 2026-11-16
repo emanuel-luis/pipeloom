@@ -28,10 +28,10 @@ from pipeloom.artifacts.results import (
     result_row,
 )
 from pipeloom.diagnostics import Diagnostic, JsonValue, Report
-from pipeloom.events.bus import EventBus
+from pipeloom.events.bus import EventBus, PlanInfo
 from pipeloom.events.model import ArtifactWritten, RunCompleted
 from pipeloom.graph.selectors import Selection
-from pipeloom.plan.manifest import write_manifest
+from pipeloom.plan.manifest import manifest_dict, write_manifest
 from pipeloom.platform import check_orchestrator_id
 from pipeloom.runtime.context import RuntimeContext
 from pipeloom.runtime.errors import ErrorInfo, to_diagnostic
@@ -279,6 +279,7 @@ def finalize_run(project: Project, opts: FinalizeOptions, bus: EventBus) -> RunO
             )
             if not paths.manifest.is_file():
                 write_manifest(plan, paths.manifest)
+            bus.plan_ready(PlanInfo(manifest_dict(plan), project_dir))
 
             have = latest_attempts(paths)
             external: dict[str, dict[str, Any]] = {}

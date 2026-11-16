@@ -5,7 +5,7 @@ from __future__ import annotations
 import threading
 from collections import deque
 
-from pipeloom.events.bus import EventSink
+from pipeloom.events.bus import EventSink, PlanInfo
 from pipeloom.events.model import Event
 
 
@@ -14,7 +14,7 @@ class BufferedSink:
 
     `dropped` counts the drops. While the inner sink's latest attempt failed, `emit` and
     `flush` raise that error, so the bus's failure budget still applies; a later success clears
-    it.
+    it. `plan_ready` is queued in order with the events and is never dropped.
     """
 
     def __init__(self, inner: EventSink, maxsize: int = 10_000) -> None:
@@ -24,7 +24,7 @@ class BufferedSink:
         self._inner = inner
         self.forwarded: bool = getattr(inner, "forwarded", True)
         self._max = maxsize
-        self._queue: deque[Event] = deque()
+        self._queue: deque[Event | PlanInfo] = deque()
         self._cond = threading.Condition()
         self._busy = False
         self._closed = False
@@ -39,10 +39,15 @@ class BufferedSink:
                 self._cond.wait_for(lambda: bool(self._queue) or self._closed)
                 if not self._queue:
                     return
-                event = self._queue.popleft()
+                item = self._queue.popleft()
                 self._busy = True
             try:
-                self._inner.emit(event)
+                if isinstance(item, PlanInfo):
+                    hook = getattr(self._inner, "plan_ready", None)
+                    if hook is not None:
+                        hook(item)
+                else:
+                    self._inner.emit(item)
                 with self._cond:
                     self._error = None
             except Exception as exc:  # noqa: BLE001 - reported to the bus on the next call
@@ -59,17 +64,27 @@ class BufferedSink:
         if exc is not None:
             raise exc
 
-    def emit(self, event: Event) -> None:
+    def _put(self, item: Event | PlanInfo) -> None:
         # Queue first, so the inner sink keeps being tried and can recover; then report.
         with self._cond:
             if self._closed:
                 raise RuntimeError("the buffered sink is closed")
             if len(self._queue) >= self._max:
-                self._queue.popleft()
-                self.dropped += 1
-            self._queue.append(event)
+                drop = next(
+                    (i for i, q in enumerate(self._queue) if not isinstance(q, PlanInfo)), None
+                )
+                if drop is not None:
+                    del self._queue[drop]
+                    self.dropped += 1
+            self._queue.append(item)
             self._cond.notify_all()
         self._raise_pending()
+
+    def emit(self, event: Event) -> None:
+        self._put(event)
+
+    def plan_ready(self, info: PlanInfo) -> None:
+        self._put(info)
 
     def flush(self) -> None:
         """Wait until the queue is drained, then flush the inner sink."""
