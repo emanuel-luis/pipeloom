@@ -1403,8 +1403,9 @@ Next steps:
   pipeloom validate
   pipeloom run
 </code></pre>
-<p>It writes <code>pipeloom.yml</code> with a <code>dev</code> target, one example model in each of <code>models/bronze</code>,
-<code>models/silver</code> and <code>models/gold</code>, a small CSV in <code>data/</code>, a <code>.gitignore</code> and a README. Pass
+<p>It writes <code>pipeloom.yml</code> with a <code>dev</code> target, a source group and a <code>models:</code> tree, one decorated
+model in each of <code>models/bronze</code>, <code>models/silver</code> and <code>models/gold</code>, a properties file
+<code>models/silver/_properties.yml</code>, a small CSV in <code>data/</code>, a <code>.gitignore</code> and a README. Pass
 <code>--no-input</code> (and <code>--name</code>, <code>--engine</code>, <code>--catalog</code>) to skip the questions; see
 <a href="../reference/cli/#pipeloom-init">pipeloom init</a>.</p>
 <p>Every YAML file starts with a schema modeline, and <code>.vscode/settings.json</code> maps the published
@@ -1412,14 +1413,14 @@ schemas to the project files. With only the YAML extension (<code>redhat.vscode-
 <code>.vscode/extensions.json</code>), VS Code completes keys and flags mistakes as you type.</p>
 <h3 id="add-a-model">Add a model<a class="headerlink" href="#add-a-model" title="Permanent link">&para;</a></h3>
 <pre><code class="language-console">$ pipeloom new model customers_clean --folder silver
-models/silver/customers_clean.yml
+models/silver/customers_clean.py
 $ pipeloom validate
 </code></pre>
-<p><code>pipeloom new model NAME</code> writes one model file under <code>models/</code>. It writes a SQL model by default
-and a Python model when the default target is pandas; pass <code>--sql</code> or <code>--python</code> to choose. A
-Python model also gets a <code>build(ctx, **inputs)</code> stub in the project's <code>&lt;name&gt;_models</code> package
-(this needs <code>python_paths: [src]</code> in <code>pipeloom.yml</code>). Declare its inputs in the commented
-<code>inputs:</code> block, then fill in the body. See <a href="../reference/cli/#pipeloom-new-model">pipeloom new</a>.</p>
+<p><code>pipeloom new model NAME</code> writes one <code>.py</code> file under <code>models/</code> with a function decorated with
+<code>@model</code>. By default its body returns <code>ctx.sql("select 1 as id")</code>, or, when the default target is
+pandas, a frame stub; pass <code>--sql</code> or <code>--python</code> to choose. Add a parameter for each input,
+named like the model or source table it reads, then fill in the body. See
+<a href="../reference/cli/#pipeloom-new-model">pipeloom new</a>.</p>
 <p>The rest of this page writes a project by hand, to show each part.</p>
 <h2 id="write-the-project">Write the project<a class="headerlink" href="#write-the-project" title="Permanent link">&para;</a></h2>
 <p><code>pipeloom.yml</code>:</p>
