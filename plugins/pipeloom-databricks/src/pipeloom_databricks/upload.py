@@ -82,7 +82,7 @@ def collect(
     for rel_file in [n.file for n in plan.nodes.values()] + [s.file for s in plan.sources.values()]:
         add(root / rel_file)
     # Properties YAML under model_paths, for parity with the project folder (ADR-0050 point 17).
-    entries = [(e, (".py",)) for e in plan.metadata.python_paths]
+    entries: list[tuple[str, tuple[str, ...]]] = [(e, (".py",)) for e in plan.metadata.python_paths]
     entries += [(e, (".yml", ".yaml")) for e in _model_paths(root)]
     for entry, suffixes in entries:
         base = (root / entry).resolve()
