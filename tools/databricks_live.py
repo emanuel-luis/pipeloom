@@ -33,6 +33,9 @@ FIXTURE = ROOT / "tests" / "fixtures" / "databricks_live"
 TARGET = "live"
 WHEELS = ("pipeloom", "pipeloom_spark", "pipeloom_databricks")
 """Wheel file name prefixes, in the order of the fixture's `wheel_*` vars."""
+SAMPLE = ROOT / "examples" / "tpch_spark" / "data" / "region.csv"
+"""The CSV the fixture's `region_csv` source reads from the volume (`sample_csv` var)."""
+SAMPLE_ROWS = 5
 
 WAIT_SECONDS = "1200"
 """`--timeout` of every run and repair: bounds each wait so the cleanup always gets time."""
@@ -50,6 +53,7 @@ EXPECTED_FACTS = (
     "repair_runs_attempt_two",
     "job_start_time_across_repairs",
     "ephemeral_runs_at_most_once",
+    "csv_source_on_volume",
 )
 
 Cli = Callable[[Sequence[str]], tuple[int, str]]
@@ -123,10 +127,11 @@ def _ids_resolved(row: Mapping[str, Any], job_run_id: int) -> bool:
 
 
 def check_full_run(run: RunInfo, doc: Mapping[str, Any], exit_code: int) -> list[Check]:
-    """A run without `--run-id` over the stable pipeline (models a and b)."""
+    """A run without `--run-id` over the stable pipeline (models a, b and r)."""
     rows = unit_rows(doc)
     both = {"a", "b"} <= rows.keys() and all(rows[u]["status"] == "succeeded" for u in "ab")
     attempts = both and all(rows[u]["attempt"] == 1 for u in "ab")
+    region = rows.get("r", {})
     return [
         Check("run_succeeded", exit_code == 0 and run.result_state == "SUCCESS"),
         Check(
@@ -142,6 +147,11 @@ def check_full_run(run: RunInfo, doc: Mapping[str, Any], exit_code: int) -> list
         Check(
             "job_start_time_reference",
             run.start_time_ms is not None and bool(doc.get("run", {}).get("started_at")),
+        ),
+        Check(
+            "csv_source_on_volume",
+            region.get("status") == "succeeded" and region.get("rows_written") == SAMPLE_ROWS,
+            f"r is {region.get('status')} with {region.get('rows_written')} row(s) written",
         ),
     ]
 
@@ -223,7 +233,13 @@ def check_repair(
 
 
 def _vars(
-    *, catalog: str, schema: str, volume: str, environment_version: str, wheels: Sequence[str]
+    *,
+    catalog: str,
+    schema: str,
+    volume: str,
+    environment_version: str,
+    wheels: Sequence[str],
+    sample_csv: str,
 ) -> str:
     doc = {
         "catalog": catalog,
@@ -231,8 +247,14 @@ def _vars(
         "volume": volume,
         "environment_version": environment_version,
         **dict(zip(("wheel_core", "wheel_spark", "wheel_databricks"), wheels, strict=True)),
+        "sample_csv": sample_csv,
     }
     return json.dumps(doc)
+
+
+def sample_path(volume: str, sha: str) -> str:
+    """Where the sample CSV goes on the volume, next to the wheels of the same commit."""
+    return f"{volume.rstrip('/')}/samples/{sha}/{SAMPLE.name}"
 
 
 def wheel_paths(dist: Path, volume: str, sha: str) -> dict[str, str]:
@@ -422,12 +444,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     for name, target in paths.items():
         with (args.dist / name).open("rb") as handle:
             sdk.files.upload(target, handle, overwrite=True)
+    sample = sample_path(args.volume, args.sha)
+    with SAMPLE.open("rb") as handle:
+        sdk.files.upload(sample, handle, overwrite=True)
     vars_json = _vars(
         catalog=args.catalog,
         schema=schema,
         volume=args.volume,
         environment_version=args.environment_version,
         wheels=pick_wheels(paths),
+        sample_csv=sample,
     )
     # The state table lives in the scratch schema and is created before any model write
     # creates the schema, so the schema has to exist first; the cleanup drops it.

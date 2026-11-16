@@ -686,7 +686,9 @@ quality:
 - `buffered: true` wraps a sink in a bounded queue and worker thread for slow transports, with drop-oldest and a count of drops.
 - A redaction filter masks registered secret values before any sink sees an event.
 - Built-in sinks: `console`, `jsonl` (stdout or file), `file` (per-invocation event files under artifacts), `artifacts` (always on; builds the result files).
-- `pipeloom-openlineage` maps units to OpenLineage jobs: `<project>.<model>`, with a parent run facet for the pipeline run, the error facet, and input and output datasets from the manifest. The output-statistics facet is used if available (unverified).
+- `pipeloom-openlineage` (0.9, [ADR-0046](adr/0046-openlineage.md)) maps the run to the OpenLineage job `<project>` and each unit to `<project>.<model>`, with uuid5 run ids, a parent run facet for the pipeline run, input and output datasets from the manifest, and the schema, outputStatistics, dataQualityAssertions, errorMessage, jobType and sourceCodeLocation facets. Inside an Airflow task it stays silent unless `inside_airflow: emit`; the unit operators give the Airflow OpenLineage provider the same datasets and facets through `get_openlineage_facets_on_*` (LOCAL and VIRTUALENV from the child's events, KUBERNETES from the manifest). Guide: [Lineage with OpenLineage](guide/openlineage.md).
+- A sink may define `plan_ready(PlanInfo)` (0.9, additive in plugin API (0, 5)): the bus hands it the run's manifest dict and project dir right after `run.started` (or where a unit invocation would emit it) and in `finalize`.
+- `model.written` also carries `columns` (0.9): the table's columns after the write, null for intermediates, views and replayed writes.
 - `RecordingSink` in `pipeloom.testing` asserts ordered events.
 
 ![The event bus fans out to sinks through a redaction filter. Each sink has a failure budget, slow sinks can be buffered, and the artifacts sink writes the result files.](diagrams/05-events.svg)

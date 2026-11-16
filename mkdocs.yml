@@ -36,6 +36,7 @@ nav:
       - Docs site: guide/docs-site.md
       - Run history: guide/run-history.md
       - Alerts with the webhook sink: guide/alerts.md
+      - Lineage with OpenLineage: guide/openlineage.md
       - Orchestrator protocol: guide/orchestrators.md
       - "Recipe: GitHub Actions": guide/recipe-github-actions.md
   - Plugins:

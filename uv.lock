@@ -24,6 +24,7 @@ members = [
     "pipeloom",
     "pipeloom-airflow",
     "pipeloom-databricks",
+    "pipeloom-openlineage",
     "pipeloom-pandas",
     "pipeloom-polars",
     "pipeloom-spark",
@@ -441,6 +442,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/fe/83/addb51c36e20de3121f25a7d83fdd43eb7b15464d7ffe912b12b4cb1f3ca/apache_airflow_providers_common_sql-2.4.0.tar.gz", hash = "sha256:363f89dab28bdb00e9090a50476a71795b8237adb0b1768c9490b805b1868e0d", size = 161884, upload-time = "2026-10-24T18:48:44.92Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e0/dc/802061fa7f25f41e114a27986f21dd772c14458091328739733b9f78c4c4/apache_airflow_providers_common_sql-2.4.0-py3-none-any.whl", hash = "sha256:1b0b1364d92df2390f5b4278dc570061f2f81b9c7ad61e0467c9f9cc3159781e", size = 103189, upload-time = "2026-10-24T18:48:15.379Z" },
+]
+
+[[package]]
+name = "apache-airflow-providers-openlineage"
+version = "2.21.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "apache-airflow" },
+    { name = "apache-airflow-providers-common-compat" },
+    { name = "apache-airflow-providers-common-sql" },
+    { name = "attrs" },
+    { name = "openlineage-integration-common" },
+    { name = "openlineage-python" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ef/0a/88fabacbcd2199d554656c50b1071acaf53f571d2e1267479b415702518f/apache_airflow_providers_openlineage-2.21.0.tar.gz", hash = "sha256:915a017dcd607b8c25a44e228360da9d69eb9930ea68c82432386c425bb69770", size = 374742, upload-time = "2026-11-01T18:27:19.543Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3b/5a/9a7c66bb55b999796ee544573b5df53125942619c13402b40f5d1ed2f540/apache_airflow_providers_openlineage-2.21.0-py3-none-any.whl", hash = "sha256:accc0cad751502247b8de657545bd59736ab0dcf4919f9ac4e231e9357b668d5", size = 132278, upload-time = "2026-11-01T18:27:17.139Z" },
 ]
 
 [[package]]
@@ -1833,6 +1851,19 @@ wheels = [
 ]
 
 [[package]]
+name = "httpcore2"
+version = "2.16.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "h11" },
+    { name = "truststore" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c0/61/afa9d6b7452f9eca73f73d45324eb0bb52f098fd5e6049bf6b8263be9b4e/httpcore2-2.16.0.tar.gz", hash = "sha256:c72cd0413563b17e1cd8354677dff887466f8ec2551679759e93126534428643", size = 69886, upload-time = "2026-10-21T07:09:45.31Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/af/c2/ce417c397afa5181f0e3c6ff01a4d01639414e1adef08730d97571297151/httpcore2-2.16.0-py3-none-any.whl", hash = "sha256:5c4358319f2602d984ad93182c9fee5160f22e9da7babdda870a5e7c4e2dc34f", size = 85070, upload-time = "2026-10-21T07:09:42.802Z" },
+]
+
+[[package]]
 name = "httptools"
 version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1944,6 +1975,32 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc", size = 141406, upload-time = "2024-12-06T15:37:23.222Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad", size = 73517, upload-time = "2024-12-06T15:37:21.509Z" },
+]
+
+[[package]]
+name = "httpx2"
+version = "2.16.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio", marker = "sys_platform != 'emscripten'" },
+    { name = "httpcore2", marker = "sys_platform != 'emscripten'" },
+    { name = "httpx2-jsfetch", marker = "python_full_version >= '3.12' and sys_platform == 'emscripten'" },
+    { name = "idna" },
+    { name = "truststore", marker = "sys_platform != 'emscripten'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/43/73/5ca2cedf5e4e50423d1c258877865a6b62793633b561c58499f8aeb33b7e/httpx2-2.16.0.tar.gz", hash = "sha256:0d54c98128e8f2ff7fbbde0fca8c359e5f032edeaaaac443cdb7f31f685bcd7f", size = 103116, upload-time = "2026-10-21T07:09:46.348Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7b/3d/2e4bc4fd1ef9770871669adb348d612a6e4786b303a23f9935b81c48dd60/httpx2-2.16.0-py3-none-any.whl", hash = "sha256:fd2c5d7909e8d86fe92d53020c310ca0e4e431b838c207c5754b9bbf0308d49a", size = 97880, upload-time = "2026-10-21T07:09:44.01Z" },
+]
+
+[[package]]
+name = "httpx2-jsfetch"
+version = "1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/c4/0e5636363151a2a1795e0a77617168b9ca438e1748ec05fc9b5687f93d64/httpx2_jsfetch-1.0.tar.gz", hash = "sha256:70a0e3eabfef7cce5ad9c629f7d01ca05e418f586646f4ddf14782e4c1454c60", size = 6872, upload-time = "2026-08-07T00:13:07.492Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9b/43/832f631d32e4f1211caa2ba368317739fe71f0b8530e4c9d15dc454bac2a/httpx2_jsfetch-1.0-py3-none-any.whl", hash = "sha256:cb916b707601e69a07721aabc8f3f6659be3a6893bc1ff5c6f9e02241df2da32", size = 6382, upload-time = "2026-08-07T00:13:06.567Z" },
 ]
 
 [[package]]
@@ -3329,6 +3386,48 @@ wheels = [
 ]
 
 [[package]]
+name = "openlineage-integration-common"
+version = "1.55.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "jinja2" },
+    { name = "openlineage-python" },
+    { name = "openlineage-sql" },
+    { name = "pyyaml" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/83/a0/5d5b3f6521f024f845609e5f8a7eae31297d94c508254bd874ab26b38b8f/openlineage_integration_common-1.55.0-py3-none-any.whl", hash = "sha256:d01614dd3b941fe5812a85c2d04b39e08a28a05fc7a9355603a6a224c75ec305", size = 88660, upload-time = "2026-10-29T15:08:38.768Z" },
+]
+
+[[package]]
+name = "openlineage-python"
+version = "1.55.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "httpx2" },
+    { name = "packaging" },
+    { name = "python-dateutil" },
+    { name = "pyyaml" },
+    { name = "requests" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/09/a3/6a2c400405a648fa305651a38b6a588fabf92d852e9d6f655a4c1e6bae6d/openlineage_python-1.55.0-py3-none-any.whl", hash = "sha256:fc26969dc8c379109f148d27ddd6525527ad9e811052c9943f98721f85638bf8", size = 130784, upload-time = "2026-10-29T15:08:39.917Z" },
+]
+
+[[package]]
+name = "openlineage-sql"
+version = "1.55.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ba/c9/68ec139383e15a5641fa22a4d19ff6443ed7e7b82ba75523159cc1b2e9e6/openlineage_sql-1.55.0.tar.gz", hash = "sha256:51901e5b442409341badb7c1a7c2b3961a6df7a80d7ad70528aef2ff47a6394b", size = 48375, upload-time = "2026-10-29T15:08:45.17Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c4/e6/cc352f0169400f54ea342994ac4e2fdaa43141bb30c9169862dff8968cc8/openlineage_sql-1.55.0-cp310-abi3-macosx_10_12_universal2.macosx_10_12_x86_64.macosx_11_0_arm64.whl", hash = "sha256:01e50ae3f4fe5e5b45a0d99c96d66184dfd159e94b9ad80fbdb2d7e9796450a6", size = 5737843, upload-time = "2026-10-29T15:08:41.066Z" },
+    { url = "https://files.pythonhosted.org/packages/9c/46/66d7ca2c99d009544ba4eeebea9c9b213b79e11ec2f6efde28fd119528d8/openlineage_sql-1.55.0-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:92fac8ad779d7e2704fac06451af55e4ede4e5ae2267f1c7e58da6e4431c78dd", size = 2857413, upload-time = "2026-10-29T15:08:42.581Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/e6/092d57a888e89209e8922ffd0fe0b9cde01b2bafa8ac2af1475b1ea108f7/openlineage_sql-1.55.0-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:acd36c6f335e071f9903c09103eb9741e632934efc128dac7a0ec2312ce7a371", size = 3057090, upload-time = "2026-10-29T15:08:43.756Z" },
+]
+
+[[package]]
 name = "opentelemetry-api"
 version = "1.45.2"
 source = { registry = "https://pypi.org/simple" }
@@ -3696,6 +3795,9 @@ airflow = [
 databricks = [
     { name = "pipeloom-databricks" },
 ]
+openlineage = [
+    { name = "pipeloom-openlineage" },
+]
 pandas = [
     { name = "pipeloom-pandas" },
 ]
@@ -3713,6 +3815,7 @@ sqlglot = [
 airflow = [
     { name = "apache-airflow" },
     { name = "apache-airflow-providers-cncf-kubernetes" },
+    { name = "apache-airflow-providers-openlineage" },
 ]
 dev = [
     { name = "hypothesis" },
@@ -3746,6 +3849,7 @@ requires-dist = [
     { name = "narwhals", specifier = ">=2.0" },
     { name = "pipeloom-airflow", marker = "extra == 'airflow'", editable = "plugins/pipeloom-airflow" },
     { name = "pipeloom-databricks", marker = "extra == 'databricks'", editable = "plugins/pipeloom-databricks" },
+    { name = "pipeloom-openlineage", marker = "extra == 'openlineage'", editable = "plugins/pipeloom-openlineage" },
     { name = "pipeloom-pandas", marker = "extra == 'pandas'", editable = "plugins/pipeloom-pandas" },
     { name = "pipeloom-polars", marker = "extra == 'polars'", editable = "plugins/pipeloom-polars" },
     { name = "pipeloom-spark", extras = ["local"], marker = "extra == 'spark'", editable = "plugins/pipeloom-spark" },
@@ -3754,12 +3858,13 @@ requires-dist = [
     { name = "rich", specifier = ">=13.7" },
     { name = "sqlglot", marker = "extra == 'sqlglot'", specifier = ">=26" },
 ]
-provides-extras = ["polars", "pandas", "spark", "databricks", "airflow", "sqlglot"]
+provides-extras = ["polars", "pandas", "spark", "databricks", "airflow", "openlineage", "sqlglot"]
 
 [package.metadata.requires-dev]
 airflow = [
     { name = "apache-airflow", specifier = ">=3.2,<4" },
     { name = "apache-airflow-providers-cncf-kubernetes", specifier = ">=10.25,<11" },
+    { name = "apache-airflow-providers-openlineage", specifier = ">=2.8,<3" },
 ]
 dev = [
     { name = "hypothesis", specifier = ">=6.170.14" },
@@ -3832,6 +3937,21 @@ requires-dist = [
     { name = "databricks-sdk", specifier = ">=0.50,<1" },
     { name = "pipeloom", editable = "." },
     { name = "pipeloom-spark", editable = "plugins/pipeloom-spark" },
+]
+
+[[package]]
+name = "pipeloom-openlineage"
+version = "0.8.0"
+source = { editable = "plugins/pipeloom-openlineage" }
+dependencies = [
+    { name = "openlineage-python" },
+    { name = "pipeloom" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "openlineage-python", specifier = ">=1.52.0,<2" },
+    { name = "pipeloom", editable = "." },
 ]
 
 [[package]]
@@ -5213,6 +5333,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ab/e2/e9a00f0ccb71718418230718b3d900e71a5d16e701a3dae079a21e9cd8f8/text-unidecode-1.3.tar.gz", hash = "sha256:bad6603bb14d279193107714b288be206cac565dfa49aa5b105294dd5c4aab93", size = 76885, upload-time = "2019-08-30T21:36:45.405Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a6/a5/c0b6468d3824fe3fde30dbb5e1f687b291608f9473681bbf7dabbf5a87d7/text_unidecode-1.3-py2.py3-none-any.whl", hash = "sha256:1311f10e8b895935241623731c2ba64f4c455287888b18189350b67134a822e8", size = 78154, upload-time = "2019-08-30T21:37:03.543Z" },
+]
+
+[[package]]
+name = "truststore"
+version = "0.10.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ee/9f/c5201d42a484c061e528825fc8e2d565f5abd50a4ced6fb7d29c4ec99b2b/truststore-0.10.5.tar.gz", hash = "sha256:30d36967ccaded5cbb38d602c433f53600036c79d502f4533a49b60a03bbefcd", size = 28091, upload-time = "2026-10-12T22:27:31.808Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/51/e9/3a7820be2bb0fe53b6bc9c3be26d3d1158004e4c3ab953aa6840b955b1e9/truststore-0.10.5-py3-none-any.whl", hash = "sha256:9aaaedaefaf06d8b206278cf8b5012bc897f485a874503501e12d776df78951c", size = 19017, upload-time = "2026-10-12T22:27:30.377Z" },
 ]
 
 [[package]]

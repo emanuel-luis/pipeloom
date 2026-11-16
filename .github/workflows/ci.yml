@@ -45,7 +45,7 @@ jobs:
       # checked against the real types
       # and so does Airflow, for the Airflow plugin
       - run: uv sync --locked --all-packages --group spark --group airflow
-      - run: uv run mypy --strict src plugins/pipeloom-polars/src plugins/pipeloom-pandas/src plugins/pipeloom-spark/src plugins/pipeloom-databricks/src plugins/pipeloom-airflow/src tests/typing/authoring_sample.py
+      - run: uv run mypy --strict src plugins/pipeloom-polars/src plugins/pipeloom-pandas/src plugins/pipeloom-spark/src plugins/pipeloom-databricks/src plugins/pipeloom-airflow/src plugins/pipeloom-openlineage/src tests/typing/authoring_sample.py
 
   test:
     needs: [lint]
@@ -107,9 +107,11 @@ jobs:
         with:
           python-version: "3.12"
           enable-cache: true
+      # Spark 4 resolves --packages (the Delta jar) into ~/.ivy2.5.2, not ~/.ivy2; caching it
+      # spares every leg a Maven Central download that sometimes fails with "not found".
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.ivy2/cache
+          path: ~/.ivy2.5.2
           key: ivy-${{ runner.os }}-${{ hashFiles('uv.lock') }}
           restore-keys: ivy-${{ runner.os }}-
       - run: uv sync --locked --all-packages --group spark
@@ -160,10 +162,13 @@ jobs:
         run: |
           uv venv "$RUNNER_TEMP/af-floor" --python 3.11
           # The DATABRICKS-mode render tests need the Databricks plugin (and its Spark plugin,
-          # without the pyspark extra); KUBERNETES mode needs the cncf provider.
+          # without the pyspark extra); KUBERNETES mode needs the cncf provider; the lineage
+          # facets test needs the OpenLineage plugin and provider.
           uv pip install --python "$RUNNER_TEMP/af-floor" -e . -e plugins/pipeloom-airflow \
             -e plugins/pipeloom-polars -e plugins/pipeloom-spark -e plugins/pipeloom-databricks \
+            -e plugins/pipeloom-openlineage \
             "apache-airflow==3.2.2" "apache-airflow-providers-cncf-kubernetes>=10.25,<11" \
+            "apache-airflow-providers-openlineage>=2.8,<3" \
             pytest pytest-timeout
           "$RUNNER_TEMP/af-floor/bin/python" -m pytest -q -p no:cacheprovider \
             plugins/pipeloom-airflow/tests -m "not airflow_e2e"

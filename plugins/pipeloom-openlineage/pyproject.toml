@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pipeloom-openlineage"
+version = "0.8.0"
+description = "OpenLineage event sink for pipeloom: runs, jobs, datasets and facets."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Emanuel Luis", email = "emanuel.filho08@gmail.com" }]
+keywords = ["pipeloom", "openlineage", "lineage", "data-engineering", "pipelines"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
+# The floor is what apache-airflow-providers-openlineage requires, so both share one client.
+dependencies = ["pipeloom~=0.8.0", "openlineage-python>=1.52.0,<2"]
+
+[project.urls]
+Repository = "https://github.com/emanuel-luis/pipeloom"
+Documentation = "https://emanuel-luis.github.io/pipeloom/"
+Changelog = "https://github.com/emanuel-luis/pipeloom/blob/main/CHANGELOG.md"
+
+[project.entry-points."pipeloom.sinks"]
+openlineage = "pipeloom_openlineage.spec:SPEC"
+
+[tool.uv.sources]
+pipeloom = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pipeloom_openlineage"]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["src", "tests", "LICENSE", "NOTICE", "README.md"]

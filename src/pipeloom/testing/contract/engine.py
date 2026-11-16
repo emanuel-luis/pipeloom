@@ -423,6 +423,23 @@ class EngineContract:
                 rel = s.reader(fmt).read(ReadSpec(fmt, location=path.as_posix()))
                 assert _key(h.to_rows(rel.native)) == _key([dict(r) for r in ROWS]), fmt
 
+    def test_reads_a_hand_written_csv(self, h: EngineHarness, tmp_path: Path) -> None:
+        # The same bytes on every engine, as committed sample data: a header, inferred types and
+        # an empty field read as null, with the reader's default options.
+        requires(h, "formats", "csv")
+        path = tmp_path / "data" / "nation.csv"
+        path.parent.mkdir()
+        path.write_bytes(b"nation_key,name,region_key\n0,ALGERIA,0\n1,ARGENTINA,1\n2,,1\n")
+        with self.session(h, tmp_path) as s:
+            rel = s.reader("csv").read(ReadSpec("csv", location=path.as_posix()))
+            assert _key(h.to_rows(rel.native)) == _key(
+                [
+                    {"nation_key": 0, "name": "ALGERIA", "region_key": 0},
+                    {"nation_key": 1, "name": "ARGENTINA", "region_key": 1},
+                    {"nation_key": 2, "name": None, "region_key": 1},
+                ]
+            )
+
     def test_logical_types_round_trip_on_parquet(self, h: EngineHarness, tmp_path: Path) -> None:
         requires(h, "formats", "parquet")
         path = tmp_path / "typed.parquet"
