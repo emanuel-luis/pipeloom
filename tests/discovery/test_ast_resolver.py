@@ -130,10 +130,16 @@ def test_dynamic_rules(src: str) -> None:
 
 
 def test_dynamic_file_keeps_ast_sites() -> None:
-    parsed = parse("from pipeloom import model\nX = 1\n\n@model(retries=X, tags=[])\ndef a(): ...\n")
+    parsed = parse(
+        "from pipeloom import model\nX = 1\n\n@model(retries=X, tags=[])\ndef a(): ...\n"
+    )
     assert parsed.kind == "dynamic"
     site = parsed.sites["a"]
-    assert (site.line, site.col, site.kwarg_locations) == (4, 2, {"retries": (4, 8), "tags": (4, 19)})
+    assert (site.line, site.col, site.kwarg_locations) == (
+        4,
+        2,
+        {"retries": (4, 8), "tags": (4, 19)},
+    )
 
 
 @pytest.mark.parametrize(
@@ -165,7 +171,9 @@ def test_unknown_keyword_is_a_failure_with_a_suggestion() -> None:
 
 
 def test_unknown_keyword_is_checked_in_dynamic_modules() -> None:
-    parsed = parse("from pipeloom import model\ndef make(f):\n    return model(materialised='view')(f)\n")
+    parsed = parse(
+        "from pipeloom import model\ndef make(f):\n    return model(materialised='view')(f)\n"
+    )
     assert parsed.kind == "dynamic"
     assert [f.kind for f in parsed.failures] == ["unknown_keyword"]
 
