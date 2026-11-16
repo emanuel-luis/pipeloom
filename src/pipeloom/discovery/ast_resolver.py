@@ -313,6 +313,7 @@ def parse_file(source: bytes, path: str) -> ParsedFile:
         dynamic = True
 
     bad_defs: set[int] = set()
+    def_names = {id(dec): fn.name for fn, dec in defs}
     for node in ast.walk(tree):
         if isinstance(node, ast.Name | ast.Attribute) and names.qual(node) == "model":
             if isinstance(node, ast.Name) and not isinstance(node.ctx, ast.Load):
@@ -320,11 +321,19 @@ def parse_file(source: bytes, path: str) -> ParsedFile:
             if id(node) not in allowed:
                 dynamic = True  # factories, loops, model(...)(fn)
         if isinstance(node, ast.Call) and names.qual(node.func) == "model":
+            literal = next((k.value for k in node.keywords if k.arg == "name"), None)
+            known = (
+                literal.value
+                if isinstance(literal, ast.Constant) and isinstance(literal.value, str)
+                else def_names.get(id(node))
+            )
             for kw in node.keywords:
                 if kw.arg is not None and kw.arg not in MODEL_KEYWORDS:
                     hint = suggest(kw.arg, sorted(MODEL_KEYWORDS))
                     msg = f"unknown @model argument '{kw.arg}'" + (f"; {hint}" if hint else "")
-                    out.failures.append(DiscoveryFailure(path, *_loc(kw), "unknown_keyword", msg))
+                    out.failures.append(
+                        DiscoveryFailure(path, *_loc(kw), "unknown_keyword", msg, model=known)
+                    )
                     bad_defs.add(id(node))
 
     for fn, dec in defs:

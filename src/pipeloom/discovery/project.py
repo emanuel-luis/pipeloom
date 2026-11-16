@@ -42,12 +42,14 @@ class PythonModels:
 def python_models(result: DiscoveryResult, vars: Mapping[str, Any], report: Report) -> PythonModels:
     """Report the discovery failures and validate the discovered models."""
     incomplete = False
-    broken: set[str] = set()
+    broken: set[str] = set(result.skipped)
     for f in result.failures:
         loc = Location(f.file, f.line, f.col)
         if f.kind == "unknown_keyword":
             message, _, hint = f.message.partition("; ")
             report.add("PLS101", message, location=loc, hint=hint or None)
+            if f.model is not None:
+                broken.add(f.model)
         elif f.kind == "invalid_argument":
             report.add("PLS102", f.message, location=loc)
             if f.model is not None:

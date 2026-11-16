@@ -209,6 +209,39 @@ def test_models_built_in_a_loop_or_factory_validate(tmp_path: Path, code: str) -
     assert [d for d in outcome.diagnostics if d.severity == "error"] == []
 
 
+TYPO = """\
+from pipeloom import model
+
+
+def src(ctx):
+    return []
+
+
+@model(retires=2{name})
+def big(src):
+    return src
+
+
+@model
+def check(big):
+    return big
+{extra}"""
+
+
+@pytest.mark.parametrize(
+    ("name", "extra"),
+    [("", ""), (', name="big"', ""), ("", "\n\nother = model(name='other')(lambda src: src)\n")],
+    ids=["def-name", "literal-name", "dynamic-file"],
+)
+def test_a_keyword_typo_is_pls101_only(tmp_path: Path, name: str, extra: str) -> None:
+    code = TYPO.format(name=name, extra=extra)
+    # In a dynamic file the typo skips the import, so `check` is unknown too.
+    props = {"models/_check.yml": "models:\n  - name: check\n"}
+    root = make_project(tmp_path, {**FILES, **props, "models/shop_models.py": code})
+    outcome = Project(ProjectOptions(project_dir=root, env={})).validate()
+    assert [d.code for d in outcome.diagnostics if d.severity == "error"] == ["PLS101"]
+
+
 def test_python_and_yaml_models_with_one_name(tmp_path: Path) -> None:
     code = """\
 from pipeloom import model

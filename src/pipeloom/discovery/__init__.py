@@ -72,6 +72,7 @@ class Discovery:
         models: list[DiscoveredModel] = []
         dynamic: list[SourceFile] = []
         sites: dict[str, dict[str, Site]] = {}
+        skipped: set[str] = set()
         for sf in files:
             try:
                 if sf.stat is None:
@@ -98,6 +99,8 @@ class Discovery:
             elif parsed.kind == "dynamic" and not parsed.failures:
                 dynamic.append(sf)
                 sites[sf.path] = parsed.sites
+            elif parsed.kind == "dynamic":
+                skipped.update(parsed.sites)
         self._entries = entries
         # A file with parse failures is never stored, so it must not make the cache look stale.
         if self.use_cache and {p: e for p, e in entries.items() if not e.parsed.failures} != {
@@ -120,6 +123,7 @@ class Discovery:
         return DiscoveryResult(
             tuple(sorted(models, key=lambda m: (m.file, m.line, m.attr))),
             tuple(sorted(failures, key=lambda f: (f.file, f.line or 0, f.col or 0, f.kind))),
+            frozenset(skipped),
         )
 
 
