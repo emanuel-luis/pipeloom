@@ -1136,6 +1136,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-09-adr-0050" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment 0.9 (ADR-0050)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1189,9 +1200,11 @@
 <li>PLP412 compares the effective catalog and schema: the model's own value, else the <code>catalog</code> and <code>schema</code> options of the naming strategy.</li>
 </ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted.</p>
+<p>Accepted. Amended in 0.9 by <a href="../0050-python-first-authoring/">ADR-0050</a>.</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
 <p>2026-11-05</p>
+<h2 id="amendment-09-adr-0050">Amendment 0.9 (ADR-0050)<a class="headerlink" href="#amendment-09-adr-0050" title="Permanent link">&para;</a></h2>
+<p><code>catalog</code> keeps its meaning and cascades through the layers of <a href="../0050-python-first-authoring/">ADR-0050</a>: the <code>@model</code> decorator, then the <code>config</code> of a properties entry, then the <code>models:</code> tree of <code>pipeloom.yml</code> (<code>+catalog</code>) from the folder nearest the model up to the root, then the project root <code>+catalog</code>, then the built-in default. <code>_defaults.yml</code> and <code>defaults.models</code> are removed with the legacy YAML path before 0.9.0; until then they map onto the folder and project layers. The rest of this decision (the catalog replaces the naming strategy's, path catalogs lay tables out under it) does not change.</p>
 
 
 

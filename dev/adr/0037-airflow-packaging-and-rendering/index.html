@@ -1136,6 +1136,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-09-adr-0050" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment 0.9 (ADR-0050)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1183,9 +1194,11 @@
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <p>A machine that renders or parses a DAG needs the extra, and the pure code is testable everywhere. Airflow internals drift between minors, so every Airflow import sits in two modules. A project compile can run at task start when the cache misses; the stat-based key keeps that rare. The plugin does not record <code>model_paths</code> in the plan, so folder groups use the folder every rendered model shares as the model path. The DOCKER mode is PLA001 until it exists.</p>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted. A second half, covering the execution modes and the artifact store, follows with the operators.</p>
+<p>Accepted. A second half, covering the execution modes and the artifact store, follows with the operators. Amended in 0.9 by <a href="../0050-python-first-authoring/">ADR-0050</a>.</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
 <p>2026-11-05</p>
+<h2 id="amendment-09-adr-0050">Amendment 0.9 (ADR-0050)<a class="headerlink" href="#amendment-09-adr-0050" title="Permanent link">&para;</a></h2>
+<p>With Python-first authoring (<a href="../0050-python-first-authoring/">ADR-0050</a>), "compiling runs no user code" holds only for model modules whose decorator arguments are static. A PROJECT load imports the dynamic model modules, and only those, inside the DAG processor, so their top-level code runs at parse time. PROJECT unit tasks pass no manifest and compile in every task (<code>CoreCommand</code>), so dynamic modules are also imported on workers. The PROJECT cache key also covers the directories of the packages named in <code>model_packages</code>, walked like <code>model_paths</code>. MANIFEST stays the default and recommended mode and imports nothing at parse or run time except the one module of the unit being run.</p>
 
 
 

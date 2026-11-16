@@ -1606,12 +1606,13 @@
 <h1 id="pipeloom-architecture">pipeloom architecture<a class="headerlink" href="#pipeloom-architecture" title="Permanent link">&para;</a></h1>
 <blockquote>
 <p><strong>Status:</strong> 0.7 implements the versions listed in section 16: the scheduler, the polars, pandas and Spark engines, incremental models, merge and replace_partitions, expectations and quarantine, retries, timeouts and cancellation, the Databricks and Airflow integrations, and per-model catalogs. Planned work lives in the <a href="../roadmap/">roadmap</a>.
-Decisions are recorded as ADRs in <a href="../adr/">adr/</a>. Diagrams are D2 sources in <a href="diagrams/">diagrams/</a> with committed SVGs.</p>
+Decisions are recorded as ADRs in <a href="../adr/">adr/</a>. Diagrams are D2 sources in <a href="diagrams/">diagrams/</a> with committed SVGs.
+Model authoring changes in 0.9 (<a href="../adr/0050-python-first-authoring/">ADR-0050</a>): models become decorated Python functions, and YAML keeps the project and properties files. Text marked "from 0.9" describes that planned design; through 0.8 every model is declared in a YAML model file (<a href="../adr/0003-model-authoring/">ADR-0003</a>, superseded), and that legacy path keeps working on main until it is removed before 0.9.0.</p>
 </blockquote>
 <h2 id="1-vision-goals-non-goals-principles">1. Vision, goals, non-goals, principles<a class="headerlink" href="#1-vision-goals-non-goals-principles" title="Permanent link">&para;</a></h2>
-<p><strong>Vision.</strong> A small, typed framework. Pipelines are declared in YAML and compiled into an immutable plan. That plan runs the same way on pandas, polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG. Every run produces a single event stream and artifacts you can query.</p>
-<p><strong>Goals:</strong> declarative YAML with layered validation and editor completion; an engine-agnostic core with one plugin per tool; end-to-end events and styled logs; persisted metadata for each run and each model; a Databricks one-job renderer; a cosmos-style Airflow integration; open-source hygiene.</p>
-<p><strong>Non-goals (through 1.0):</strong> streaming; a scheduler service, or any UI that starts, schedules or changes runs (<a href="../adr/0043-docs-site/">ADR-0043</a>); a portable SQL dialect; Jinja templating; running user code at compile time; Airflow 2 support.</p>
+<p><strong>Vision.</strong> A small, typed framework. Models are written in Python and the project and properties in YAML (from 0.9; through 0.8 pipelines are declared in YAML), then compiled into an immutable plan. That plan runs the same way on pandas, polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG. Every run produces a single event stream and artifacts you can query.</p>
+<p><strong>Goals:</strong> Python models with a typed decorator, and YAML project and properties files with layered validation and editor completion; an engine-agnostic core with one plugin per tool; end-to-end events and styled logs; persisted metadata for each run and each model; a Databricks one-job renderer; a cosmos-style Airflow integration; open-source hygiene.</p>
+<p><strong>Non-goals (through 1.0):</strong> streaming; a scheduler service, or any UI that starts, schedules or changes runs (<a href="../adr/0043-docs-site/">ADR-0043</a>); a portable SQL dialect; Jinja templating; running user code at compile time (from 0.9: user code runs at compile time only for modules with dynamic decorator arguments, <a href="../adr/0050-python-first-authoring/">ADR-0050</a>); Airflow 2 support.</p>
 <p><strong>Principles. Each answers a lesson (L) from the concept spec.</strong>
 1. One event stream. Logs, metrics, artifacts and lineage subscribe to it (L1).
 2. Dependencies are declared, never traced. Tracing is an opt-in static check that warns (L2).
@@ -1625,12 +1626,14 @@ Decisions are recorded as ADRs in <a href="../adr/">adr/</a>. Diagrams are D2 so
 10. Platform behavior is injected: clock, identity, catalog, secrets (L11).
 11. Incremental logic is a declared key plus a lookback, with a watermark store (L12).
 12. Retries, timeouts, data quality, persisted metadata, selectors, schema-change policy, SCD2 and deletes are all first-class (L13).
-13. YAML first, with JSON Schema (L14).</p>
+13. Python-first models, YAML with JSON Schema for the project and properties (L14; from 0.9, <a href="../adr/0050-python-first-authoring/">ADR-0050</a>; through 0.8 YAML first).</p>
 <h2 id="2-glossary">2. Glossary<a class="headerlink" href="#2-glossary" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Project:</strong> a directory with <code>pipeloom.yml</code> and model files.</li>
-<li><strong>Model:</strong> a named dataset built from declared inputs by a Python callable or a SQL body.</li>
-<li><strong>Source:</strong> an external dataset declared in YAML.</li>
+<li><strong>Project:</strong> a directory with <code>pipeloom.yml</code> and model files (from 0.9: Python model modules and properties YAML files).</li>
+<li><strong>Model:</strong> a named dataset built from declared inputs. From 0.9 it is a Python function marked with <code>@model</code>, whose parameters are its inputs; through 0.8 it is a YAML entry with a Python callable or a SQL body.</li>
+<li><strong>Source:</strong> an external dataset declared in YAML. From 0.9 sources are tables in named groups under <code>sources:</code> in <code>pipeloom.yml</code>, with the unique id <code>source.&lt;project&gt;.&lt;group&gt;.&lt;table&gt;</code>.</li>
+<li><strong>Properties file:</strong> (from 0.9) any <code>*.yml</code> or <code>*.yaml</code> under <code>model_paths</code> other than <code>pipeloom.yml</code>; it describes and configures models by name and never declares one.</li>
+<li><strong>Folder config:</strong> (from 0.9) the <code>models:</code> tree of <code>pipeloom.yml</code>, whose <code>+key</code> settings apply to the models of a folder and its subfolders.</li>
 <li><strong>Target:</strong> a named runtime environment (engine, catalog, naming, state store).</li>
 <li><strong>Materialization:</strong> <code>table</code>, <code>incremental</code>, <code>view</code>, <code>ephemeral</code> or <code>intermediate</code>.</li>
 <li><strong>Write strategy:</strong> <code>append</code>, <code>overwrite</code>, <code>replace_partitions</code>, <code>merge</code> or <code>scd2</code>.</li>
@@ -1655,6 +1658,8 @@ Decisions are recorded as ADRs in <a href="../adr/">adr/</a>. Diagrams are D2 so
 <pre><code>CLI / Python API (pipeloom.api.Project)
   ├─ diagnostics  Diagnostic, Report, Outcome and the error-code catalog (`pipeloom.diagnostics.codes`); a leaf package
   ├─ platform   Clock and Identity seams
+  ├─ authoring  `@model`, `ModelSpec`, `ref`, `source`, `var` and the check helpers (from 0.9)
+  ├─ discovery  AST resolver, discovery cache, ModuleLoader, load summary (from 0.9)
   ├─ config     YAML loader with line marks, pydantic models, defaults resolution, target binding, schema export
   ├─ validate   L2 references, L4 plan semantics, L5 capabilities, L6 static code (L0-L1 live in config, L3 in graph)
   ├─ graph      DAG, selectors, topological order, cycle paths
@@ -1675,31 +1680,42 @@ Plugins: pipeloom-pandas | -polars | -spark (0.4) | planned: -databricks | -airf
 <p>Source: <a href="../diagrams/02-packages.d2">02-packages.d2</a>.</p>
 <p><strong>Lifecycle.</strong> Each stage is a pure function from the previous stage's output. Every stage emits events.</p>
 <ol>
-<li><strong>Load:</strong> discover YAML files, then parse them while recording file, line and column for every node.</li>
-<li><strong>Validate schema:</strong> pydantic models (L0-L1).</li>
-<li><strong>Resolve graph:</strong> bind refs and sources, apply defaults and precedence, apply naming strategies to get physical names, apply selectors (L2-L3). A model's <code>schema</code> goes to the naming strategy; a model's <code>catalog</code> (model file, folder <code>_defaults.yml</code> or <code>defaults.models</code>, same cascade as <code>schema</code>) replaces the catalog of the relation the strategy returns, so naming strategies keep transforming only the schema (<a href="../adr/0040-per-model-catalog/">ADR-0040</a>). Path catalogs (<code>filesystem</code>, <code>delta_path</code>) lay a table out at <code>&lt;root&gt;/&lt;catalog&gt;/&lt;schema&gt;/&lt;name&gt;/</code> when the relation has a catalog; catalogs with a catalog level (<code>spark_catalog</code>, <code>unity</code>) never create the catalog, only the schema.</li>
+<li><strong>Load:</strong> discover YAML files, then parse them while recording file, line and column for every node. From 0.9 the same scan also finds Python model files: an AST pass resolves static <code>@model</code> decorators without importing, the discovery cache skips unchanged files, and an import pass loads only the modules with dynamic decorator arguments (section 4).</li>
+<li><strong>Validate schema:</strong> pydantic models (L0-L1), over YAML and, from 0.9, over decorator arguments.</li>
+<li><strong>Resolve graph:</strong> bind refs and sources (from 0.9, function parameters), apply defaults and precedence, apply naming strategies to get physical names, apply selectors (L2-L3). A model's <code>schema</code> goes to the naming strategy; a model's <code>catalog</code> (same cascade as <code>schema</code>: through 0.8 the model file, folder <code>_defaults.yml</code> or <code>defaults.models</code>; from 0.9 the decorator, properties and the <code>models:</code> tree) replaces the catalog of the relation the strategy returns, so naming strategies keep transforming only the schema (<a href="../adr/0040-per-model-catalog/">ADR-0040</a>). Path catalogs (<code>filesystem</code>, <code>delta_path</code>) lay a table out at <code>&lt;root&gt;/&lt;catalog&gt;/&lt;schema&gt;/&lt;name&gt;/</code> when the relation has a catalog; catalogs with a catalog level (<code>spark_catalog</code>, <code>unity</code>) never create the catalog, only the schema.</li>
 <li><strong>Validate plan:</strong> semantics, plugin capabilities and static code checks (L4-L6).</li>
 <li><strong>Compile:</strong> fuse ephemeral models into units for the chosen boundary, then freeze. Output is <code>Plan</code> plus <code>manifest.json</code> with a <code>plan_hash</code> (sha256 of the canonical JSON of nodes, sources, units, edges and the project, target, boundary and config version; selection, versions, timestamps and ids are excluded).</li>
 <li><strong>Execute:</strong> the scheduler runs units through an executor. Orchestrated tasks run <code>pipeloom run --manifest ... --select unit:&lt;id&gt; --expect-plan-hash &lt;h&gt;</code>.</li>
 <li><strong>Finalize:</strong> merge per-invocation results, write <code>run_results.json</code>, commit run state, flush and close sinks.</li>
 </ol>
-<p><strong>Commands.</strong> <code>init</code> (scaffold a new project, <a href="../adr/0041-pipeloom-init/">ADR-0041</a>), <code>new model</code> (add a model file and, for Python, its stub; ADR-0041 amendment), <code>validate</code>, <code>compile</code>, <code>ls</code>, <code>graph</code>, <code>run</code>, <code>retry</code> (run again what a finished run did not finish, ADR-0013 amendment), <code>finalize</code>, <code>docs generate|serve</code> (a read-only one-file site, <a href="../adr/0043-docs-site/">ADR-0043</a>), <code>schema export</code>, <code>explain</code> (print a diagnostic code's catalog entry and docs link) and <code>plugins list</code>; plugins add their own through <code>pipeloom.commands</code> (for example <code>pipeloom databricks</code>).</p>
+<p><strong>Commands.</strong> <code>init</code> (scaffold a new project, <a href="../adr/0041-pipeloom-init/">ADR-0041</a>), <code>new model</code> (add a model file and, for Python, its stub; from 0.9 one decorated <code>.py</code> file; ADR-0041 amendments), <code>validate</code>, <code>compile</code>, <code>ls</code>, <code>graph</code>, <code>run</code>, <code>retry</code> (run again what a finished run did not finish, ADR-0013 amendment), <code>finalize</code>, <code>docs generate|serve</code> (a read-only one-file site, <a href="../adr/0043-docs-site/">ADR-0043</a>), <code>schema export</code>, <code>explain</code> (print a diagnostic code's catalog entry and docs link) and <code>plugins list</code>; plugins add their own through <code>pipeloom.commands</code> (for example <code>pipeloom databricks</code>).</p>
 <p><img alt="The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize." src="../diagrams/03-lifecycle.svg" /></p>
 <p>Source: <a href="../diagrams/03-lifecycle.d2">03-lifecycle.d2</a>.</p>
 <h2 id="4-configuration">4. Configuration<a class="headerlink" href="#4-configuration" title="Permanent link">&para;</a></h2>
+<p>From 0.9 (<a href="../adr/0050-python-first-authoring/">ADR-0050</a>) a project is one <code>pipeloom.yml</code>, Python model modules and optional properties files. This section describes that planned design; the YAML model files of 0.8 are summarized under "Legacy model files" below.</p>
 <p><strong>Project file.</strong></p>
 <pre><code class="language-yaml"># yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
 config_version: 1
 name: shop
 model_paths: [models]
-python_paths: [src]            # added to sys.path at execution only
+python_paths: [&quot;.&quot;]            # default; model modules are imported relative to these roots
 vars:
   country: BR
-defaults:
-  models:
-    materialized: table
-    retries: 1
-    timeout: 30m
+models:                        # folder config, from 0.9
+  +materialized: table         # root +keys are project defaults
+  +retries: 1
+  +timeout: 30m
+  marts:
+    +tags: [daily]
+sources:                       # source groups, from 0.9
+  raw:
+    format: parquet
+    location: data/raw
+    tables:
+      orders:
+        location: orders/
+      customers:
+        location: customers/
 targets:
   dev:
     engine:
@@ -1745,7 +1761,47 @@ events:
       path: target/events.jsonl
       failure_budget: 5
 </code></pre>
-<p><strong>Model files.</strong> Any <code>*.yml</code> under <code>model_paths</code>.</p>
+<p><strong>Sources (from 0.9).</strong> <code>sources</code> maps a group name to <code>format</code>, <code>location</code>, <code>schema</code>, <code>options</code>, <code>tags</code>, <code>meta</code> and <code>tables</code>. A table may set the same keys plus <code>location</code> or <code>table</code>: a table <code>location</code> is joined to the group <code>location</code>, a table <code>table</code> is qualified by the group <code>schema</code>. A table entry whose merged result has no <code>location</code> and no <code>table</code> uses its key as <code>table</code>, qualified by the group <code>schema</code>; one with both is PLS108. <code>targets.&lt;t&gt;.sources.&lt;group&gt;</code> deep-merges over the group, and an explicit <code>null</code> removes a key, so a prod target can read the same tables from a catalog. Sources in properties files are rejected for now.</p>
+<p><strong>Models (from 0.9).</strong> A model is a function marked with <code>@model</code> in any <code>*.py</code> file under <code>model_paths</code> (a directory scanned recursively, or a glob) or inside a package named in <code>model_packages</code>. Every model file must lie under a <code>python_paths</code> root.</p>
+<pre><code class="language-python">from pipeloom import ModelContext, Write, model
+
+@model(materialized=&quot;incremental&quot;,
+       incremental={&quot;input&quot;: &quot;orders&quot;, &quot;column&quot;: &quot;updated_at&quot;, &quot;lookback&quot;: &quot;2d&quot;},
+       write=Write(strategy=&quot;merge&quot;, unique_key=[&quot;order_id&quot;]))
+def fct_orders(ctx: ModelContext, orders, stg_customers):
+    return ctx.sql(&quot;select o.*, c.name from orders o join stg_customers c using (customer_id)&quot;)
+</code></pre>
+<ul>
+<li>Parameters are the inputs. Each binds in this order: (1) an <code>inputs=</code> entry (<code>ref(...)</code>, <code>source(...)</code> or a bare name, which resolves by steps 3 and 4); (2) a parameter with a default is never an input unless <code>inputs=</code> lists it; (3) a model of that name other than the model itself; (4) a source table of that name when exactly one group has it; (5) anything else is PLR201. A table name in two groups is PLR210. <code>ctx</code> is optional and reserved.</li>
+<li>The default name is the function name, and a file may hold several models. Decorator arguments use the YAML keys, as plain dicts or as the re-exported config models (<code>Write</code>, <code>Incremental</code>, <code>Column</code>, <code>Expectation</code>, <code>Quality</code>, <code>Deletes</code>), plus the helpers <code>ref</code>, <code>source</code>, <code>var</code> and the check helpers (<code>not_null</code>, <code>unique</code>, <code>accepted_values</code>, <code>between</code>, <code>regex</code>, <code>row_count</code>, <code>freshness</code>).</li>
+<li>SQL runs through <code>ctx.sql(query, *, dialect=None, inputs=None)</code> against the inputs by alias (section 5). There are no SQL model files.</li>
+</ul>
+<p><strong>Properties files (from 0.9).</strong> Any <code>*.yml</code> or <code>*.yaml</code> under <code>model_paths</code> except <code>pipeloom.yml</code>. They describe and configure models; they never create one or set <code>inputs</code>.</p>
+<pre><code class="language-yaml"># yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+models:
+  - name: fct_orders
+    description: One row per order.
+    config:
+      partition_by: [order_date]
+      tags: [finance]
+    columns:
+      - name: order_id
+        dtype: int64
+        nullable: false
+    data_tests:
+      - name: order_id_unique
+        check:
+          unique: [order_id]
+        on_violation: fail
+</code></pre>
+<p>An entry that names no model, or a model another entry already describes, is PLR209 (suppressed while any PLY005 exists). <code>unit_tests</code> also live here (ADR-0045).</p>
+<p><strong>Discovery (from 0.9).</strong> One scan of <code>model_paths</code> and <code>model_packages</code> finds model modules and properties files.
+- An AST pass parses every <code>.py</code> file that imports pipeloom. A <code>@model</code> on a top-level <code>def</code> whose arguments are all static (literals, containers of static values, or calls to known helpers and re-exported config classes on static values) is resolved without importing the module. Any other use makes the module dynamic. Unknown keywords are PLS101 from the AST in both cases.
+- Dynamic modules, and only those, are imported through <code>pipeloom.discovery.loader.ModuleLoader</code>, which puts the <code>python_paths</code> roots on <code>sys.path</code> under a process-wide lock and purges the project's modules on exit. Each module that cannot be loaded is one PLY005; loading never stops at the first.
+- <code>&lt;project&gt;/.pipeloom/cache/discovery.json</code> caches static results per file, keyed by path, <code>mtime_ns</code>, size and the pipeloom and Python versions. Dynamic modules are always imported again. The cache is never part of the manifest or the plan hash, and a failed write is ignored.
+- <code>Discovery.refresh()</code> re-reads changed files and re-imports dynamic modules for long-lived processes such as <code>docs serve</code>.
+- An executor running a unit from a manifest never runs discovery: it imports the one module named by its node's <code>callable</code>. Any invocation that compiles runs discovery, including <code>pipeloom run</code> without <code>--manifest</code> and every unit task in Airflow PROJECT mode, so dynamic modules are imported there too.</p>
+<p><strong>Legacy model files (through 0.8, removed before 0.9.0).</strong> Any <code>*.yml</code> under <code>model_paths</code> with <code>sources:</code> and <code>models:</code> lists, each model with a SQL body or a <code>python: module:function</code> pointer and an <code>inputs</code> map. Both paths coexist on main, with no warning, until the removal; one project may mix them.</p>
 <pre><code class="language-yaml">sources:
   - name: raw_orders
     format: parquet
@@ -1783,24 +1839,21 @@ models:
         on_violation: drop
     tags: [finance, daily]
 </code></pre>
-<p><code>_defaults.yml</code> files set folder-level defaults. They cascade from the model's own folder up to its <code>model_paths</code> root, nearest first; mappings merge deeply, lists replace and <code>tags</code> is an ordered union without duplicates.</p>
-<p><strong>ADR-0003: Model authoring.</strong>
-- Context: L2 and L14 require declared dependencies and YAML validation. Users still need a real transformation language.
-- Options: YAML-only (too weak for transformations), YAML plus Python, YAML plus SQL, or YAML plus both.
-- Choice: YAML declares every model. The body is either a Python callable or a SQL body. The <code>inputs</code> map binds local aliases to <code>ref</code> or <code>source</code>.
-  - A Python callable is called as <code>build(ctx, **inputs)</code>. Each alias becomes a keyword argument holding a relation.
-  - SQL refers to aliases as table names. The engine registers them as named relations for that query only.
-  - At compile time pipeloom imports nothing from the project. L6 parses the callable's file with <code>ast</code> to check that the function exists and that its parameters equal <code>ctx</code> plus the input aliases.
-  - Opt-in SQL table-reference checking via the sqlglot extra warns on mismatch.
-- Consequences: graphs are cheap to build, so Airflow can parse DAG files safely. No Jinja. Reads of undeclared tables through <code>ctx.engine.native</code> are a documented escape hatch outside lineage.</p>
-<p><strong>JSON Schema.</strong> <code>pipeloom schema export --out schemas/</code> writes <code>project.json</code>, <code>models.json</code> and <code>defaults.json</code> (draft 2020-12) from the pydantic models.
+<p>Legacy <code>_defaults.yml</code> files set folder-level defaults. They cascade from the model's own folder up to its <code>model_paths</code> root, nearest first; mappings merge deeply, lists replace and <code>tags</code> is an ordered union without duplicates. From 0.9 they and <code>defaults.models</code> map onto the folder and project layers of the <code>models:</code> tree until they are removed.</p>
+<p><strong>ADR-0050: Python-first model authoring</strong> (supersedes ADR-0003, which made YAML declare every model).
+- Context: a YAML-declared Python model was written twice, once in YAML and once as a function whose parameters had to match (PLK602). A benchmark of 1,000 models measured about 11 s to import every module and 1.4 s to parse them with <code>ast</code>.
+- Options: keep YAML-first; Python-first with static discovery only (no computed config); Python-first importing every module (slow, runs user code on every compile); Python-first with hybrid discovery.
+- Choice: hybrid. Every model is a decorated Python function; YAML holds the project, folder config, sources, targets and properties. The compiler resolves static decorators from the AST and imports only dynamic modules, with a per-file cache. SQL runs through <code>ctx.sql</code>. Dependencies stay declared through parameters and <code>inputs=</code>, never traced.
+- Consequences: a model is written once, with typed completion. Most compiles run no user code; a dynamic module runs its code at compile time. Every project is rewritten once, with no deprecation release, and plan hashes change once.</p>
+<p><strong>JSON Schema.</strong> <code>pipeloom schema export --out schemas/</code> writes <code>project.json</code>, <code>models.json</code> and <code>defaults.json</code> (draft 2020-12) from the pydantic models. From 0.9 it writes <code>project.json</code> and <code>properties.json</code>; <code>models.json</code> and <code>defaults.json</code> stop being published under <code>latest/</code> with the removal of the legacy path (older version folders keep them).
 - Plugin option models (engine, catalog, sink, state) are composed as <code>oneOf</code> branches on <code>kind</code>, using the plugins that are installed (<code>--plugins builtin</code> limits it to the built-ins).
 - The docs site publishes the schemas of the built-in plugins under <code>latest/schema/v1/</code> (and under each version folder).
 - The modeline above enables completion in editors that use yaml-language-server.</p>
 <p><strong>Precedence.</strong>
 - Runtime settings (highest first): CLI flags; <code>PIPELOOM_*</code> environment variables (for example <code>PIPELOOM_TARGET</code>, <code>PIPELOOM_WORKERS</code>); an optional git-ignored user file <code>~/.pipeloom/profiles.yml</code> with per-target overrides; the <code>targets.&lt;t&gt;</code> block; then top-level project keys.
-- Model config: the model entry; <code>_defaults.yml</code> files from the nearest folder up to the <code>model_paths</code> root; then <code>defaults.models</code>; then built-in defaults.
-- Targets may change runtime keys only (engine options, catalog, naming, state, workers, artifacts, deploy). <code>deploy</code> is a runtime key like the others: the target block wins over the top-level one. The core validates its options with the <code>config_model</code> of the <code>renderers</code> plugin it names (the factory is never called), records them in the manifest as <code>metadata.deploy</code> (not part of the plan hash) and resolves nothing in them at runtime except <code>${secret:...}</code> references in plugin options. They may not change model semantics, so plans differ across targets only in physical names and runtime settings.
+- Model config, from 0.9: the <code>@model</code> decorator; then the <code>config</code> of the model's properties entry; then the <code>models:</code> tree from the folder nearest the model up to the root; then the root <code>+keys</code>; then built-in defaults. Mappings deep-merge, lists replace, <code>tags</code> is an ordered union and an explicit <code>null</code> removes a key (YAML only). <code>columns</code> is a model key that the folder tree cannot set, and decorator columns replace properties columns whole. <code>ResolvedModel.origins</code> records the layer and location of each top-level key, so a diagnostic points at the layer that set the value; origins are not in the manifest.
+- Model config, through 0.8: the model entry; <code>_defaults.yml</code> files from the nearest folder up to the <code>model_paths</code> root; then <code>defaults.models</code>; then built-in defaults.
+- Targets may change runtime keys (engine options, catalog, naming, state, workers, artifacts, deploy) and, from 0.9, override source groups (<code>targets.&lt;t&gt;.sources</code>: format, location, schema, options, tables). <code>deploy</code> is a runtime key like the others: the target block wins over the top-level one. The core validates its options with the <code>config_model</code> of the <code>renderers</code> plugin it names (the factory is never called), records them in the manifest as <code>metadata.deploy</code> (not part of the plan hash) and resolves nothing in them at runtime except <code>${secret:...}</code> references in plugin options. They may not change model semantics, so plans differ across targets only in physical names, source relations and runtime settings.
 - Interpolation: <code>${env:NAME}</code>, <code>${env:NAME:-default}</code> and <code>${var:name}</code> resolve at compile time and are recorded in the manifest. <code>${secret:provider/path}</code> resolves only at runtime (section 14).</p>
 <h2 id="5-core-protocols">5. Core protocols<a class="headerlink" href="#5-core-protocols" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">from typing import Any, Protocol, Mapping, Sequence, Iterator, ContextManager
@@ -1824,6 +1877,7 @@ class EngineCapabilities:
     cancel: bool; bytes_metrics: bool; portable: bool   # Narwhals-compatible frames
     quality: bool                                       # evaluate and apply_drops (0.3)
     materializations: frozenset[str]                    # table, view, ephemeral (0.2)
+    sql_dialect: str | None = None                      # sqlglot dialect for ctx.sql (0.9, ADR-0050)
 
 @dataclass(frozen=True)
 class StateStoreCapabilities: shared: bool              # visible to every process and task of a run
@@ -1934,7 +1988,9 @@ class SecretProvider(Protocol):
 - <code>unit_scope</code> spans a unit's reads, body, checks and write, because a lazy engine does its work at the write.
 - <code>WriteRefusedError</code> is what an engine raises when its idempotency guard refuses a write; the core reports PLM207 (section 7).</p>
 <p><strong>0.9 contract additions (plugin API (0, 5), <a href="../adr/0047-run-history-and-webhook/">ADR-0047</a>).</strong>
-- <code>StateStore.list_runs(project, target, limit, before=None)</code> returns the runs of one project and target, newest first by <code>(started_at, run_id)</code>, at most <code>limit</code>; <code>before</code> is a run id to page from, and an unknown one raises <code>UnknownRun</code>. <code>pipeloom.state.types.page_runs</code> does the ordering and paging for any store. The core calls it through <code>pipeloom.state.types.list_runs</code>, which raises <code>ListRunsUnsupported</code> (PLX117) for a store that lacks the method.</p>
+- <code>StateStore.list_runs(project, target, limit, before=None)</code> returns the runs of one project and target, newest first by <code>(started_at, run_id)</code>, at most <code>limit</code>; <code>before</code> is a run id to page from, and an unknown one raises <code>UnknownRun</code>. <code>pipeloom.state.types.page_runs</code> does the ordering and paging for any store. The core calls it through <code>pipeloom.state.types.list_runs</code>, which raises <code>ListRunsUnsupported</code> (PLX117) for a store that lacks the method.
+- <code>EngineCapabilities.sql_dialect</code> (planned for 0.9, <a href="../adr/0050-python-first-authoring/">ADR-0050</a>) names the engine's sqlglot dialect, or <code>None</code>. It is part of (0, 5), which is unreleased, so the version does not change.</p>
+<p><strong><code>ModelContext.sql</code> (planned for 0.9, <a href="../adr/0050-python-first-authoring/">ADR-0050</a>).</strong> <code>ModelContext</code> keeps its fields and gains <code>sql(query, *, dialect=None, inputs=None)</code>, backed by a private callable the runner sets. The query sees the model's inputs by alias as read (after the incremental filter); <code>inputs=</code> adds or replaces frames by name. It returns the native frame, or a Narwhals frame under <code>frame_api: narwhals</code>. The dialect is the <code>dialect</code> argument, then the inheritable model setting <code>sql_dialect</code>, then the engine's own. Only when the chosen dialect differs from the engine's does <code>pipeloom.runtime.sql</code> translate the query with sqlglot <code>transpile</code>, imported lazily; without the sqlglot extra that is PLC513. pandas has no SQL and raises <code>SqlUnsupportedError</code> (PLX101 with a hint); L6 warns with PLK606 beforehand. In a <code>view</code> model the runner calls the function in view mode and <code>ctx.sql</code> returns a <code>ViewQuery</code> for <code>create_view</code>; any other return value is PLX120. The function is called by keyword: the input aliases, plus <code>ctx</code> when it is a parameter.</p>
 <p><strong>ADR-0002: Engine abstraction.</strong>
 - Context: the spec (section 4) lists coupling in the return type, reads, schema, temporary views, writes, merge, metrics and catalog SQL.
 - Options:
@@ -1986,7 +2042,7 @@ class SecretProvider(Protocol):
 <tr>
 <td>L0 parse</td>
 <td>PLY</td>
-<td>PLY001 YAML syntax, several documents or an alias bomb; PLY002 duplicate key; PLY003 not valid UTF-8; PLY004 project or model file missing or unreadable</td>
+<td>PLY001 YAML syntax, several documents or an alias bomb; PLY002 duplicate key; PLY003 not valid UTF-8; PLY004 project or model file missing or unreadable; PLY005 model module cannot be loaded: syntax error, exception on import, file outside every <code>python_paths</code> root, or a module name that resolves to another file (0.9)</td>
 </tr>
 <tr>
 <td>L1 schema</td>
@@ -1996,7 +2052,7 @@ class SecretProvider(Protocol):
 <tr>
 <td>L2 references</td>
 <td>PLR</td>
-<td>PLR201 unknown ref (fuzzy suggestion); PLR202 duplicate model name; PLR203 unknown source; PLR204 unknown target or plugin kind; PLR205 duplicate source; PLR206 a <code>model_paths</code> entry does not exist (warning); PLR207 no target selected</td>
+<td>PLR201 unknown ref (fuzzy suggestion); PLR202 duplicate model name; PLR203 unknown source; PLR204 unknown target or plugin kind; PLR205 duplicate source; PLR206 a <code>model_paths</code> entry does not exist (warning); PLR207 no target selected; PLR209 properties entry names no model, or describes one twice (0.9); PLR210 input name matches a table in several source groups (0.9). From 0.9 PLR201, PLR202 and PLR203 are also located on a decorator or parameter in Python</td>
 </tr>
 <tr>
 <td>L3 graph</td>
@@ -2006,17 +2062,17 @@ class SecretProvider(Protocol):
 <tr>
 <td>L4 plan semantics</td>
 <td>PLP</td>
-<td>PLP401 merge or scd2 without <code>unique_key</code>; PLP402 incremental without <code>column</code>; PLP403 aggregate expectation with <code>drop</code>; PLP404 <code>incremental.input</code> not in <code>inputs</code>; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 <code>replace_partitions</code> without <code>partition_by</code>; PLP408 ephemeral model with no consumer (warning); PLP409 a view needs a SQL model with no inlined ephemerals (0.2); PLP410 append with a lookback above zero reloads rows (warning, 0.3); PLP411 expectations on a view or ephemeral model (0.3); PLP412 <code>&lt;model&gt;__quarantine</code> is also a model in the same catalog and schema (0.3); PLP413 an <code>intermediate</code> model with <code>incremental</code>, a strategy other than overwrite, or <code>partition_by</code> (0.4); PLP414 <code>columns</code> (a contract) on a view or ephemeral model (0.9)</td>
+<td>PLP401 merge or scd2 without <code>unique_key</code>; PLP402 incremental without <code>column</code>; PLP403 aggregate expectation with <code>drop</code>; PLP404 <code>incremental.input</code> not in <code>inputs</code>; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 <code>replace_partitions</code> without <code>partition_by</code>; PLP408 ephemeral model with no consumer (warning); PLP409 a view needs a SQL model with no inlined ephemerals (0.2; narrowed in 0.9 to "a view cannot inline an ephemeral model"); PLP410 append with a lookback above zero reloads rows (warning, 0.3); PLP411 expectations on a view or ephemeral model (0.3); PLP412 <code>&lt;model&gt;__quarantine</code> is also a model in the same catalog and schema (0.3); PLP413 an <code>intermediate</code> model with <code>incremental</code>, a strategy other than overwrite, or <code>partition_by</code> (0.4); PLP414 <code>columns</code> (a contract) on a view or ephemeral model (0.9)</td>
 </tr>
 <tr>
 <td>L5 capability</td>
 <td>PLC</td>
-<td>PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 <code>boundary: task</code> with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries &gt; 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 <code>frame_api: narwhals</code> without a portable engine; PLC509 materialization unsupported by the engine (0.3: the memory, polars and pandas engines accept <code>incremental</code>; 0.4: they and the Spark engine accept <code>intermediate</code>); PLC510 expectations on an engine without the <code>quality</code> capability (0.3)</td>
+<td>PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL (retired in 0.9); PLC503 <code>boundary: task</code> with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries &gt; 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 <code>frame_api: narwhals</code> without a portable engine; PLC509 materialization unsupported by the engine (0.3: the memory, polars and pandas engines accept <code>incremental</code>; 0.4: they and the Spark engine accept <code>intermediate</code>); PLC510 expectations on an engine without the <code>quality</code> capability (0.3); PLC513 <code>ctx.sql</code> needs translation and the sqlglot extra is missing (0.9)</td>
 </tr>
 <tr>
 <td>L6 static code</td>
 <td>PLK</td>
-<td>PLK601 callable file or function not found; PLK602 parameters do not match inputs; PLK603 SQL references undeclared table (warning, active when the <code>sqlglot</code> extra is installed, 0.2); PLK604 callable name bound by something other than a def (warning); PLK605 SQL not parseable for that check (warning, 0.2)</td>
+<td>PLK601 callable file or function not found (retired in 0.9); PLK602 parameters do not match inputs (from 0.9: <code>*args</code>, positional-only parameters, or an <code>inputs=</code> key that is not a parameter, emitted while binding); PLK603 SQL references undeclared table (warning, active when the <code>sqlglot</code> extra is installed, 0.2; from 0.9 on literal <code>ctx.sql</code> queries); PLK604 callable name bound by something other than a def (warning; retired in 0.9); PLK605 SQL not parseable for that check (warning, 0.2; from 0.9 on literal <code>ctx.sql</code> queries); PLK606 <code>ctx.sql</code> on an engine without SQL (warning, 0.9)</td>
 </tr>
 <tr>
 <td>L7 preflight (opt-in, connects)</td>
@@ -2026,7 +2082,7 @@ class SecretProvider(Protocol):
 <tr>
 <td>Runtime</td>
 <td>PLX, PLM, PLQ, PLE, PLU</td>
-<td>PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict (data already written; permanent); PLM205 watermark unusable (missing column, family mismatch or a lookback on a non-temporal column, 0.3); PLM206 write key invalid (missing key column or duplicate merge key, 0.3); PLM207 write refused by the idempotency guard: the engine skipped it because the model already has a later transaction version, nothing was written, permanent (0.4); PLM208 model contract violated: a missing or extra column, a type other than the declared <code>dtype</code>, or a null in a <code>nullable: false</code> column; nothing is written, permanent (0.9, <a href="../adr/0044-model-contracts/">ADR-0044</a>); PLQ301 expectation failed or <code>max_drop_ratio</code> exceeded; PLQ302 expectation names an unknown column or an <code>expr</code> the engine rejects (0.3); PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX105 run lock held (0.2); PLX106 unit process exited without a result (0.2); PLX107 manifest invalid (0.2); PLM204 input read failed (0.2); PLX109 a <code>${secret:provider/path}</code> reference could not be resolved (0.5); PLX110 the <code>--state</code> folder is unusable as a reference (0.8); PLX111 <code>--defer</code> refused: unit invocation, <code>boundary: task</code> or another catalog kind (0.8); PLX112 an unselected parent is read from this target instead of the reference (warning, 0.8)</td>
+<td>PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict (data already written; permanent); PLM205 watermark unusable (missing column, family mismatch or a lookback on a non-temporal column, 0.3); PLM206 write key invalid (missing key column or duplicate merge key, 0.3); PLM207 write refused by the idempotency guard: the engine skipped it because the model already has a later transaction version, nothing was written, permanent (0.4); PLM208 model contract violated: a missing or extra column, a type other than the declared <code>dtype</code>, or a null in a <code>nullable: false</code> column; nothing is written, permanent (0.9, <a href="../adr/0044-model-contracts/">ADR-0044</a>); PLQ301 expectation failed or <code>max_drop_ratio</code> exceeded; PLQ302 expectation names an unknown column or an <code>expr</code> the engine rejects (0.3); PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX105 run lock held (0.2); PLX106 unit process exited without a result (0.2); PLX107 manifest invalid (0.2); PLM204 input read failed (0.2); PLX109 a <code>${secret:provider/path}</code> reference could not be resolved (0.5); PLX110 the <code>--state</code> folder is unusable as a reference (0.8); PLX111 <code>--defer</code> refused: unit invocation, <code>boundary: task</code> or another catalog kind (0.8); PLX112 an unselected parent is read from this target instead of the reference (warning, 0.8); PLX120 a view model did not return <code>ctx.sql(...)</code> (0.9)</td>
 </tr>
 <tr>
 <td>Renderers</td>
@@ -2035,6 +2091,7 @@ class SecretProvider(Protocol):
 </tr>
 </tbody>
 </table>
+<p><strong>Locations in Python (from 0.9, <a href="../adr/0050-python-first-authoring/">ADR-0050</a>).</strong> A finding on a model carries the <code>.py</code> file, the decorator's line and column and, for a keyword argument, that argument's own line and column from the AST, whether the model was resolved statically or imported. The JSON pointer reads <code>/@model/write/unique_key</code>. Pydantic errors map through <code>DecoratorSite.locate(pointer)</code>, which has the interface of <code>LoadedDocument.locate</code>. A retired code keeps its catalog entry with <code>status: retired</code> and the version, the docs page says "Retired in 0.9: no longer emitted", and it has no case file.</p>
 <p><strong>Commands:</strong>
 - <code>pipeloom validate</code> runs L0-L6.
 - <code>--preflight</code> adds L7.
@@ -2280,6 +2337,7 @@ quality:
 - <code>manifest.json</code> (<code>pipeloom.manifest/1</code>): <code>metadata{pipeloom_version, plugins, config_version, plan_hash, project, target, boundary, python_paths, vars, env_vars, generated_at, invocation_id}</code>, <code>nodes{unique_id: resolved config, body, inputs, relation, unit_ids, checksum}</code>, <code>sources</code>, <code>units{unit_id: [unique_ids]}</code>, <code>unit_parent_map{unit_id: [unit_ids]}</code>, <code>parent_map</code>, <code>child_map</code>, <code>selectors{select, exclude, selected}</code>.
   - <code>plan_hash</code> is the sha256 of the canonical JSON (sorted keys, no spaces) of <code>nodes</code>, <code>sources</code>, <code>units</code>, <code>unit_parent_map</code>, <code>parent_map</code>, <code>child_map</code> and <code>metadata</code> reduced to <code>project</code>, <code>target</code>, <code>boundary</code> and <code>config_version</code>. Selection, versions, timestamps and ids do not change it. A <code>per_user</code> naming strategy puts the user into the relations, so use <code>none</code> where the hash must match across machines.
   - A node <code>checksum</code> is the sha256 of its canonical config plus its body (the SQL text, or the callable and its file bytes), with CRLF read as LF.
+  - From 0.9 (<a href="../adr/0050-python-first-authoring/">ADR-0050</a>) the schema stays <code>pipeloom.manifest/1</code> with a breaking change before 1.0. Every node body is <code>{kind: "python", callable: "module:attr", file}</code>; <code>nodes[].file</code> is the <code>.py</code> file and <code>nodes[].line</code> the decorator line. The SQL body goes away with the legacy path, after which a manifest with <code>kind: sql</code> is PLX107. The checksum keeps its formula (resolved config, <code>callable</code>, NUL, module file bytes, plus <code>columns</code> without <code>description</code>), so editing any function in a module marks every model of that module modified. Dynamic decorator config must be deterministic, or the plan hash differs between compiles (PLX103).
 - <code>run_results.json</code> (<code>pipeloom.run_results/1</code>): <code>metadata</code>, <code>args</code>, <code>run</code>, <code>results[]</code>.
 - Finalize merges unit files and picks the latest attempt per unit. Run records also go to the state store for history.
 - <code>pipeloom finalize --run-id ID</code> (0.5, ADR-0034) closes a run that an orchestrator drove unit by unit. A unit takes its attempt file, else the state given with <code>--unit-states</code> (<code>pipeloom.unit_states/1</code>: <code>skipped</code>, <code>cancelled</code>, <code>failed</code> or <code>excluded</code>), else it is <code>skipped</code> with the reason <code>not_run</code>, which does not fail the run; <code>excluded</code> drops the unit. <code>orchestrator_ids</code> come from <code>--orchestrator-id KEY=VALUE</code>. It exits 0, 1 or 130 and rewrites the same results when repeated.</p>
@@ -2317,7 +2375,7 @@ quality:
 - <code>runs/submit</code> is used only with <code>pipeloom databricks run --ephemeral</code> (dev, serverless only). It shares the 1,000-task limit, so PLD002 is reserved and never emitted.</p>
 <p><strong>Bundles and direct deploy.</strong>
 - <code>pipeloom databricks bundle --target prod --out resources/</code> writes, per pipeline, <code>pipeloom_&lt;project&gt;_&lt;pipeline&gt;_&lt;target&gt;.job.yml</code> and a stable manifest next to it. The output must lie inside the bundle; paths use <code>${workspace.file_path}</code>; <code>--check</code> lists stale files. <code>databricks bundle deploy</code> remains the user's step.
-- <code>pipeloom databricks deploy</code> renders the same settings, uploads the project (content addressed, only <code>pipeloom.yml</code>, model files, <code>*.py</code> below <code>python_paths</code> and the stable manifest) to <code>&lt;workspace_root&gt;/&lt;project&gt;/&lt;pipeline&gt;/&lt;target&gt;/&lt;hash&gt;</code>, then creates or resets the job. A folder with the marker <code>_pipeloom/complete</code> is never uploaded again; the current folder and the two newest others are kept.
+- <code>pipeloom databricks deploy</code> renders the same settings, uploads the project (content addressed, only <code>pipeloom.yml</code>, model files, <code>*.py</code> below <code>python_paths</code> and the stable manifest; from 0.9 <code>pipeloom.yml</code>, the nodes' <code>.py</code> files, every <code>*.py</code> below <code>python_paths</code>, the properties YAML files and the stable manifest, while <code>model_packages</code> modules must be installed in the job environment, <a href="../adr/0035-databricks-rendering-and-job-lifecycle/">ADR-0035</a> amendment) to <code>&lt;workspace_root&gt;/&lt;project&gt;/&lt;pipeline&gt;/&lt;target&gt;/&lt;hash&gt;</code>, then creates or resets the job. A folder with the marker <code>_pipeloom/complete</code> is never uploaded again; the current folder and the two newest others are kept.
 - A <code>load_resources</code> hook for Python bundle resources is on the roadmap.</p>
 <p><strong>Run identity and metadata.</strong>
 - An empty <code>pipeloom_run_id</code> resolves to <code>dbx-&lt;job run id&gt;</code>. Repairs keep the same job run id, so the pipeloom <code>run_id</code> is stable and the attempt number increments.
@@ -2349,8 +2407,8 @@ shop_daily = PipeloomDag(
 <p><strong>ADR-0012: Airflow rendering.</strong></p>
 <p><strong>Load methods (parse time):</strong>
 - <code>MANIFEST</code> (recommended): reads a precompiled <code>manifest.json</code>.
-- <code>PROJECT</code>: compiles YAML. This is safe because no user code runs (ADR-0003), and it is cached by a hash of the inputs.
-- Neither imports engines or connects to anything.</p>
+- <code>PROJECT</code>: compiles the project, cached by a hash of the inputs. Through 0.8 no user code runs (ADR-0003). From 0.9 static model modules are still read without importing, but the dynamic ones are imported inside the DAG processor and in every unit task, which compiles, and the cache key adds the <code>model_packages</code> directories (<a href="../adr/0037-airflow-packaging-and-rendering/">ADR-0037</a> amendment, <a href="../adr/0050-python-first-authoring/">ADR-0050</a>).
+- Neither imports engines or connects to anything. <code>MANIFEST</code> imports no user code.</p>
 <p><strong>Execution modes:</strong>
 - <code>LOCAL</code>: <code>PipeloomRunOperator</code> per unit runs <code>pipeloom run --select unit:&lt;id&gt; --run-id &lt;rid&gt;</code> (with <code>--manifest</code> in MANIFEST mode, and always <code>--expect-plan-hash</code>) in a child process group.
 - <code>VIRTUALENV</code>: the same, using a prebuilt venv path.
@@ -2423,6 +2481,7 @@ shop_daily = PipeloomDag(
 - Unit tests per package.
 - Property tests (hypothesis) for the scheduler: random DAGs, injected failures and timeouts. Invariants: a unit starts only after all parents succeed; every unit reaches exactly one terminal state; no level barrier, checked with timed fakes.
 - Golden tests for the manifest and diagnostics.
+- The case harness: one <code>tests/cases/&lt;CODE&gt;.yml</code> per diagnostic code, each an inline project compiled in the same process. From 0.9 its projects use Python models; <code>ModuleLoader</code> purges each project's modules on exit, so about a hundred projects load in one process without seeing each other, and every code located in Python has a case for a static and for an imported model. A retired code has no case.
 - CLI tests for every flag via <code>click.testing.CliRunner</code> (L4).
 - A synthetic, deterministic "shop" dataset (customers, orders, payments) generated in <code>pipeloom.testing.data</code>.</p>
 <p><strong>Engine contract suite (<code>pipeloom.testing.contract.EngineContract</code>).</strong> Every engine plugin subclasses it with a factory fixture, and each test is skipped unless the matching capability is declared. It covers:
@@ -2494,7 +2553,7 @@ shop_daily = PipeloomDag(
 </tr>
 <tr>
 <td>0003</td>
-<td>Model authoring: YAML plus Python or SQL, declared inputs</td>
+<td>Model authoring: YAML plus Python or SQL, declared inputs (superseded by 0050)</td>
 <td>§4</td>
 </tr>
 <tr>
@@ -2576,6 +2635,11 @@ shop_daily = PipeloomDag(
 <td>0036</td>
 <td>Databricks client and connection</td>
 <td>§12, §15</td>
+</tr>
+<tr>
+<td>0050</td>
+<td>Python-first model authoring (supersedes 0003; amends 0035, 0037, 0040, 0041, 0042, 0044, 0047)</td>
+<td>§1-§5, §7, §11-§13, §15</td>
 </tr>
 </tbody>
 </table>

@@ -1136,6 +1136,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-09-adr-0050" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment 0.9 (ADR-0050)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1183,9 +1194,11 @@
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <p>The job is a plain JSON document that a person can read, diff and send to the Jobs API unchanged, and rendering is testable with goldens and no workspace. The renderer needs three inputs the plan does not hold (artifacts root, state sharing, cancel grace), which the caller reads from the bound target. Tasks of a pipeline ignore dependencies on units outside it. Platform behaviors that only a live run can confirm (references in wheel task parameters, <code>only</code> with an <code>ALL_DONE</code> finalize) are guarded by the wrapper and checked by the manual workflow, not here.</p>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted (first half: rendering, wrapper and bundle command; second half: run, repair and finalize states).</p>
+<p>Accepted (first half: rendering, wrapper and bundle command; second half: run, repair and finalize states). Amended in 0.9 by <a href="../0050-python-first-authoring/">ADR-0050</a>.</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
 <p>2026-11-05</p>
+<h2 id="amendment-09-adr-0050">Amendment 0.9 (ADR-0050)<a class="headerlink" href="#amendment-09-adr-0050" title="Permanent link">&para;</a></h2>
+<p>With Python-first authoring (<a href="../0050-python-first-authoring/">ADR-0050</a>) the upload set of <code>deploy</code> and <code>run --ephemeral</code> is <code>pipeloom.yml</code>, the <code>.py</code> file of every node, every <code>*.py</code> under <code>python_paths</code>, the properties YAML files under <code>model_paths</code> (not read at run time, uploaded so the folder mirrors the project) and the stable manifest. A task never runs discovery: it imports the one module named by the node's <code>callable</code>. Modules found through <code>model_packages</code> are not uploaded; they must be installed in the job environment (for example through the compute's <code>dependencies</code>), and the plugin guide says so.</p>
 
 
 

@@ -1136,6 +1136,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-09-adr-0050" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment 0.9 (ADR-0050)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1196,9 +1207,11 @@
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <p>Run history works on every built-in store and on the Spark table store, and on any artifacts root without a store. Third-party state stores must add <code>list_runs</code> and rebuild for (0, 5); until they do, PLU001 stops them. A store that declares (0, 5) but lacks the method still runs pipelines, and <code>runs</code> reports PLX117 for it. Alerting needs no new dependency, and a broken webhook costs at most <code>max_failures</code> timeouts per invocation. Paging pushdown in the stores, filters by status, and alert templates are left for later.</p>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted.</p>
+<p>Accepted. Amended in 0.9 by <a href="../0050-python-first-authoring/">ADR-0050</a>.</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
 <p>2026-11-06</p>
+<h2 id="amendment-09-adr-0050">Amendment 0.9 (ADR-0050)<a class="headerlink" href="#amendment-09-adr-0050" title="Permanent link">&para;</a></h2>
+<p>Plugin API (0, 5) also carries <code>EngineCapabilities.sql_dialect: str | None = None</code>, the engine's sqlglot dialect for <code>ctx.sql</code> (<a href="../0050-python-first-authoring/">ADR-0050</a>). (0, 5) is not released yet, so the version does not change.</p>
 
 
 

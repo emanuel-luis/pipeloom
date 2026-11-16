@@ -1125,6 +1125,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-09-adr-0050" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment 0.9 (ADR-0050)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1182,7 +1193,9 @@
 <li>Defer trusts the reference. A parent that was never built there, or that this target cannot read, fails the child with PLM204 and a hint that says so.</li>
 </ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted.</p>
+<p>Accepted. Amended in 0.9 by <a href="../0050-python-first-authoring/">ADR-0050</a>.</p>
+<h2 id="amendment-09-adr-0050">Amendment 0.9 (ADR-0050)<a class="headerlink" href="#amendment-09-adr-0050" title="Permanent link">&para;</a></h2>
+<p>With Python-first authoring (<a href="../0050-python-first-authoring/">ADR-0050</a>) the checksum formula keeps its shape: the resolved config, the <code>callable</code>, a NUL byte and the bytes of the model's module file, plus <code>columns</code> without their <code>description</code>. The resolved config now includes what properties files and the <code>models:</code> tree of <code>pipeloom.yml</code> set, so a change in either marks the node modified. The body is always a module file, and editing any function in it marks every model of that file modified; this is conservative and accepted. Checksums and plan hashes change once for every project.</p>
 
 
 

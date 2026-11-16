@@ -1175,6 +1175,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-09-adr-0050" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment 0.9 (ADR-0050)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1231,7 +1242,7 @@
 <li>A plugin cannot add its own template yet. When one needs to, an entry-point group can be added then.</li>
 </ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted. Amended in 0.8 (editor setup, <code>pipeloom new model</code>).</p>
+<p>Accepted. Amended in 0.8 (editor setup, <code>pipeloom new model</code>) and in 0.9 by <a href="../0050-python-first-authoring/">ADR-0050</a>.</p>
 <h2 id="amendment-08-editor-setup-and-pipeloom-new-model">Amendment (0.8): editor setup and pipeloom new model<a class="headerlink" href="#amendment-08-editor-setup-and-pipeloom-new-model" title="Permanent link">&para;</a></h2>
 <h3 id="what-changed">What changed<a class="headerlink" href="#what-changed" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1253,6 +1264,8 @@
 <li>The <code>.vscode</code> templates ship in the wheel with the other templates.</li>
 <li>New files stay valid by construction: tests run <code>validate</code> on generated models for polars and pandas and check every generated YAML against the exported JSON Schemas.</li>
 </ul>
+<h2 id="amendment-09-adr-0050">Amendment 0.9 (ADR-0050)<a class="headerlink" href="#amendment-09-adr-0050" title="Permanent link">&para;</a></h2>
+<p>With Python-first authoring (<a href="../0050-python-first-authoring/">ADR-0050</a>) <code>pipeloom new model NAME [--sql|--python] [--folder PATH]</code> writes one file, <code>models/&lt;folder&gt;/&lt;name&gt;.py</code>, with a decorated function and no YAML entry. With <code>--sql</code> the body returns <code>ctx.sql("select 1 as id")</code>; with <code>--python</code> it returns a frame stub. The default stays <code>--python</code> on pandas and <code>--sql</code> otherwise. The usage error for a Python model without <code>python_paths</code> goes away, because <code>python_paths</code> defaults to <code>["."]</code>. <code>init</code> writes one <code>.py</code> model per layer, a <code>models:</code> tree in <code>pipeloom.yml</code> instead of <code>_defaults.yml</code>, and <code>models/silver/_properties.yml</code>; <code>.vscode/settings.json</code> maps <code>project.json</code> to <code>pipeloom.yml</code> and <code>properties.json</code> to <code>models/**/*.yml</code>, and the <code>defaults.json</code> and <code>models.json</code> globs go away. These templates change with the examples, after the discovery and resolve changes of ADR-0050.</p>
 
 
 

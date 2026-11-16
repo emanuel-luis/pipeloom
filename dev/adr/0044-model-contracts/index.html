@@ -1136,6 +1136,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-09-adr-0050" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment 0.9 (ADR-0050)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1194,9 +1205,11 @@
 <li>Contracts do not check sources, and they carry no column descriptions yet.</li>
 </ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted</p>
+<p>Accepted. Amended in 0.9 by <a href="../0050-python-first-authoring/">ADR-0050</a>.</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
 <p>2026-11-06</p>
+<h2 id="amendment-09-adr-0050">Amendment 0.9 (ADR-0050)<a class="headerlink" href="#amendment-09-adr-0050" title="Permanent link">&para;</a></h2>
+<p>With Python-first authoring (<a href="../0050-python-first-authoring/">ADR-0050</a>) <code>columns</code> comes from the <code>@model</code> decorator (a list of <code>Column(...)</code> or plain mappings) or from the <code>columns</code> of a properties entry. It stays a model key: the <code>models:</code> tree of <code>pipeloom.yml</code> cannot set it, as <code>_defaults.yml</code> and <code>defaults.models</code> could not. When both set it, the decorator's list replaces the properties list whole; the lists are never merged column by column. <code>ColumnConfig</code> gains an optional <code>description</code>, kept out of the node checksum and the plan hash, so editing a description neither marks a model modified nor makes a deployed job stale. Where descriptions appear in the manifest and on the docs site is settled later in 0.9, outside the plan hash. Every model is a Python function, so the line about Python and SQL models no longer applies. PLP414 does not change.</p>
 
 
 
