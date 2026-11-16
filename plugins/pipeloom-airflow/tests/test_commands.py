@@ -110,6 +110,42 @@ def test_run_argv_for_a_project_passes_no_manifest() -> None:
     assert argv[-2:] == ["--vars", '{"a":1}']
 
 
+def test_producer_argv() -> None:
+    c = ctx()
+    argv = command("/m.json", '{"a":1}').producer_argv(
+        ["py"], c, select=["tag:a", "b"], exclude=["c"], workers=4
+    )
+    assert argv == [
+        *RUN_HEAD,
+        "--target",
+        "prod",
+        "--manifest",
+        "/m.json",
+        "--expect-plan-hash",
+        "a" * 64,
+        "--select",
+        "tag:a",
+        "--select",
+        "b",
+        "--exclude",
+        "c",
+        "--run-id",
+        c.run_id,
+        "--run-started-at",
+        "2026-11-05T10:00:00+00:00",
+        "--full-refresh",
+        "false",
+        *IDS,
+        "--vars",
+        '{"a":1}',
+        "--workers",
+        "4",
+    ]
+    bare = command(None).producer_argv(["py"], c, select=[], exclude=[], workers=None)
+    assert not {"--manifest", "--select", "--exclude", "--workers", "--vars"} & set(bare)
+    assert "--expect-plan-hash" in bare
+
+
 def test_finalize_argv() -> None:
     c = ctx()
     argv = command("/m.json").finalize_argv(

@@ -125,6 +125,38 @@ class CoreCommand:
             *self._vars(),
         ]
 
+    def producer_argv(
+        self,
+        python: Sequence[str],
+        ctx: RunContext,
+        *,
+        select: Sequence[str],
+        exclude: Sequence[str],
+        workers: int | None,
+    ) -> list[str]:
+        """The WATCHER producer: one run of the whole rendered selection."""
+        return [
+            *python,
+            "-m",
+            "pipeloom",
+            "run",
+            "--log-format",
+            "json",
+            *self._base(),
+            *self._plan(),
+            *[a for s in select for a in ("--select", s)],
+            *[a for s in exclude for a in ("--exclude", s)],
+            "--run-id",
+            ctx.run_id,
+            "--run-started-at",
+            ctx.run_started_at.isoformat(),
+            "--full-refresh",
+            "true" if ctx.full_refresh else "false",
+            *_ids(ctx),
+            *self._vars(),
+            *(["--workers", str(workers)] if workers is not None else []),
+        ]
+
     def finalize_argv(
         self,
         python: Sequence[str],
