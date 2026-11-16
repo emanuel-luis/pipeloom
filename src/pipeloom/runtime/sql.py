@@ -53,7 +53,7 @@ class ViewInput:
     def __format__(self, spec: str) -> NoReturn:
         self._refuse("f-string")
 
-    def __str__(self) -> NoReturn:
+    def __str__(self) -> NoReturn:  # noqa: PLE0307 - it always raises
         self._refuse("str()")
 
     def __repr__(self) -> str:
