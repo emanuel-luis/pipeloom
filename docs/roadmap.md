@@ -3,7 +3,7 @@
 Status: plan as of 2026-11-06, written against 0.7.0, and updated on 2026-11-15 for Python-first authoring. This
 page replaces the planned versions that section 16 of [architecture.md](architecture.md#16-roadmap) used to list;
 section 16 keeps the record of what each delivered version contains. Items that change a decision name the ADR they
-need: ADRs up to 0044, 0047 and 0050 exist, and 0045, 0046, 0048 and 0049 are proposed.
+need: ADRs up to 0050 exist and are accepted.
 
 Terms such as unit, run, boundary and artifacts root are defined in the
 [glossary](architecture.md#2-glossary). In short, a unit is one schedulable node of the plan (a persisted model
@@ -245,6 +245,9 @@ Delivered in 0.8.0. The docs site lays its graph out in Python instead of a vend
 
 ### 0.9: test it, see it, run it faster
 
+Delivered in 0.9.0. YAML model declarations were removed in the same release, without a deprecation
+release ([migration guide](guide/migrate-0.9.md)); WATCHER mode was checked live on the Astro example.
+
 Python-first authoring comes first; contracts and the test and build work are then written against the decorator.
 
 | Item | ADR | Acceptance |
@@ -257,7 +260,7 @@ Python-first authoring comes first; contracts and the test and build work are th
 | SCD2 write strategy | [ADR-0008 amendment](adr/0008-incremental-and-state.md#amendment-09-scd2) | the SCD2 cells of the engine contract suite pass on polars and Spark |
 | `pipeloom-openlineage` sink and Airflow facets | ADR-0046 | a TPC-H run in Marquez shows the full graph, the schemas and the quality assertions |
 | Run history (`list_runs`, `pipeloom runs`) and the `webhook` sink | [ADR-0047](adr/0047-run-history-and-webhook.md), plugin API (0, 5) | `pipeloom runs ls` lists the last N runs on the sqlite, json and table stores, and a failed run posts once |
-| Airflow WATCHER mode | [ADR-0048](adr/0048-airflow-watcher-mode.md) (proposed) | the examples' Astro project runs in WATCHER mode with one producer, a sensor and an asset per model, and clearing a failed sensor reruns one unit |
+| Airflow WATCHER mode | [ADR-0048](adr/0048-airflow-watcher-mode.md) | the examples' Astro project runs in WATCHER mode with one producer, a sensor and an asset per model, and clearing a failed sensor reruns one unit |
 
 ### 1.0: stable contracts
 

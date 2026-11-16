@@ -24,31 +24,23 @@ and `tpch_spark` run inside the Airflow containers, `tpch_databricks` runs a Dat
    $ uv run pipeloom compile --project-dir examples/tpch_polars --target dev --stable
    ```
 
-3. `tpch_polars_watcher` needs the development wheels until a release with the WATCHER mode is on
-   PyPI, because `requirements.txt` pins an older release. Build them before you start Airflow (the
-   Dockerfile installs them, see [Development wheels](#development-wheels)):
-
-   ```console
-   $ uv build --all-packages --out-dir examples/airflow/include/wheels
-   ```
-
-4. For the Databricks DAG, write `examples/airflow/.env` from `.env.example` with your workspace URL
+3. For the Databricks DAG, write `examples/airflow/.env` from `.env.example` with your workspace URL
    and token. The file is git-ignored; never commit it.
 
-5. Deploy the Databricks job first. The DAG does not deploy at run time:
+4. Deploy the Databricks job first. The DAG does not deploy at run time:
 
    ```console
    $ pipeloom databricks --profile <your-profile> deploy --target dev --project-dir examples/tpch_databricks
    ```
 
-6. Start Airflow from this folder:
+5. Start Airflow from this folder:
 
    ```console
    $ cd examples/airflow
    $ astro dev start
    ```
 
-7. Open http://localhost:8085, unpause a DAG and trigger it. DAGs have no schedule.
+6. Open http://localhost:8085, unpause a DAG and trigger it. DAGs have no schedule.
 
 Stop with `astro dev stop`, or remove the containers and volumes with `astro dev kill`.
 
