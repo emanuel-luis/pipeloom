@@ -44,6 +44,7 @@ nav:
       - JSON Schema: reference/schema.md
       - Run artifacts: reference/artifacts.md
       - Error codes: reference/errors.md
+      - Stability and deprecations: reference/stability.md
   - Architecture: architecture.md
   - Roadmap: roadmap.md
   - Decisions: adr/README.md

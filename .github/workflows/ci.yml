@@ -45,7 +45,7 @@ jobs:
       # checked against the real types
       # and so does Airflow, for the Airflow plugin
       - run: uv sync --locked --all-packages --group spark --group airflow
-      - run: uv run mypy --strict src plugins/pipeloom-polars/src plugins/pipeloom-pandas/src plugins/pipeloom-spark/src plugins/pipeloom-databricks/src plugins/pipeloom-airflow/src plugins/pipeloom-openlineage/src
+      - run: uv run mypy --strict src plugins/pipeloom-polars/src plugins/pipeloom-pandas/src plugins/pipeloom-spark/src plugins/pipeloom-databricks/src plugins/pipeloom-airflow/src plugins/pipeloom-openlineage/src tests/typing/authoring_sample.py
 
   test:
     needs: [lint]
