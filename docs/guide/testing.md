@@ -182,17 +182,24 @@ relationship edges.
 check, so helpers such as `not_null()` from `pipeloom` do not apply there:
 
 ```python
-from pipeloom import DataTest, model
+from pipeloom import DataTest, model, ref
 
 
 @model(
     data_tests=[
         DataTest(name="id_unique", check={"unique": ["id"]}, on_violation="warn"),
+        DataTest(
+            name="customer_exists",
+            check={"relationships": {"column": "customer_id", "to": ref("customers"), "field": "id"}},
+        ),
     ],
 )
 def orders(raw_orders):
     ...
 ```
+
+In a relationships check, `to` takes `ref("name")` or `source("group", "table")` as well as the
+mapping `{"ref": "name"}` or `{"source": "group.table"}`; they resolve to the same config.
 
 A model that sets `data_tests` in both places keeps the decorator's list, which replaces the
 properties list whole. `unit_tests` live only in properties.

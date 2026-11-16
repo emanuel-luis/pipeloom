@@ -258,6 +258,56 @@ def test_decorator_data_tests_win_over_properties(project_factory: Factory) -> N
     ]
 
 
+def _rel_models(to: str, style: str) -> str:
+    """A model `c` whose relationships test points `to`, in a static, dynamic or mapping file."""
+    test = f'DataTest(name="t", check={{"relationships": {{"column": "id", "to": {to}, "field": "id"}}}})'
+    if style == "dynamic":  # a module-level name is not a literal: the file must be imported
+        head, arg = f"TESTS = [{test}]\n\n\n", "TESTS"
+    else:
+        head, arg = "", f"[{test}]"
+    return (
+        "from pipeloom import DataTest, model, ref, source\n\n\n"
+        f"{head}@model(data_tests={arg})\ndef c():\n    return [{{'id': 1}}]\n"
+    )
+
+
+@pytest.mark.parametrize(
+    "typed, mapping",
+    [('ref("p")', '{"ref": "p"}'), ('source("g", "t")', '{"source": "g.t"}')],
+)
+def test_relationships_to_takes_ref_and_source(
+    project_factory: Factory, typed: str, mapping: str
+) -> None:
+    """ref() and source() in `to` resolve, statically and by import, like the mapping form."""
+    dumps = []
+    for style, to in (("static", typed), ("dynamic", typed), ("mapping", mapping)):
+        files = {
+            "pipeloom.yml": BASE
+            + "python_paths: [models]\n"
+            + "sources:\n  g:\n    format: parquet\n    location: data/\n    tables:\n      t: {}\n",
+            "models/m.py": _rel_models(to, style)
+            + "\n\n@model\ndef p():\n    return [{'id': 1}]\n",
+        }
+        p = resolve(project_factory, files)
+        tests = p.models["model.shop.c"].entry.data_tests or []
+        dumps.append([t.model_dump(mode="json") for t in tests])
+    assert dumps[0] == dumps[1] == dumps[2]
+    assert dumps[0][0]["check"]["relationships"]["to"] in (
+        {"ref": "p", "source": None},
+        {"ref": None, "source": "g.t"},
+    )
+
+
+def test_relationships_to_with_a_wrong_type_is_a_located_error(project_factory: Factory) -> None:
+    files = {
+        "pipeloom.yml": BASE + "python_paths: [models]\n",
+        "models/m.py": _rel_models("5", "static"),
+    }
+    outcome = Project(ProjectOptions(project_dir=project_factory(files), env={})).resolve()
+    assert outcome.diagnostics and all(d.code.startswith("PLS") for d in outcome.diagnostics)
+    assert "to" in outcome.diagnostics[0].message
+
+
 def test_properties_cannot_set_inputs(project_factory: Factory) -> None:
     root = project_factory(
         {
