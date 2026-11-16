@@ -1,0 +1,1310 @@
+{
+  "$defs": {
+    "AcceptedValuesCheck": {
+      "properties": {
+        "column": {
+          "title": "Column",
+          "type": "string"
+        },
+        "values": {
+          "items": {},
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "column",
+        "values"
+      ],
+      "title": "AcceptedValuesCheck",
+      "type": "object"
+    },
+    "CheckConfig": {
+      "properties": {
+        "accepted_values": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AcceptedValuesCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "freshness": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FreshnessCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "not_null": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Not Null"
+        },
+        "range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RangeCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "regex": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RegexCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "row_count": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RowCountCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unique": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unique"
+        }
+      },
+      "title": "CheckConfig",
+      "type": "object"
+    },
+    "ColumnConfig": {
+      "description": "One column of a model contract.",
+      "properties": {
+        "dtype": {
+          "description": "Logical type, for example int64, string, decimal(18,2) or timestamp[us, UTC].",
+          "pattern": "^(?:u?int(?:8|16|32|64|128)|float(?:32|64)|string|boolean|binary|date|time|null|decimal\\(\\d+,\\d+\\)|timestamp\\[(?:ms|us|ns)(?:, [^\\]]+)?\\]|duration\\[(?:ms|us|ns)\\]|(?:list|struct)<.+>)$",
+          "title": "Dtype",
+          "type": "string"
+        },
+        "name": {
+          "description": "Column name, case-sensitive.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "nullable": {
+          "default": true,
+          "description": "False makes a null in the column a contract violation.",
+          "title": "Nullable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "dtype"
+      ],
+      "title": "ColumnConfig",
+      "type": "object"
+    },
+    "DataCheckConfig": {
+      "properties": {
+        "not_null": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Not Null"
+        },
+        "relationships": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationshipsCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unique": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unique"
+        }
+      },
+      "title": "DataCheckConfig",
+      "type": "object"
+    },
+    "DataTestConfig": {
+      "description": "A check run against the whole written table after the write (ADR-0045).",
+      "properties": {
+        "check": {
+          "$ref": "#/$defs/DataCheckConfig",
+          "description": "The check."
+        },
+        "name": {
+          "description": "Name shown in results.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "on_violation": {
+          "default": "fail",
+          "description": "warn records the count; fail fails the unit with PLQ303 (the data stays written).",
+          "enum": [
+            "warn",
+            "fail"
+          ],
+          "title": "On Violation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "check"
+      ],
+      "title": "DataTestConfig",
+      "type": "object"
+    },
+    "DeletesConfig": {
+      "properties": {
+        "column": {
+          "description": "Column that marks a deleted row.",
+          "title": "Column",
+          "type": "string"
+        },
+        "mode": {
+          "default": "hard",
+          "description": "Remove the row, or keep it flagged.",
+          "enum": [
+            "hard",
+            "soft"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "value": {
+          "default": true,
+          "description": "Value of the column that means deleted.",
+          "title": "Value"
+        }
+      },
+      "required": [
+        "column"
+      ],
+      "title": "DeletesConfig",
+      "type": "object"
+    },
+    "EnvVar": {
+      "properties": {
+        "default_used": {
+          "title": "Default Used",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "default_used"
+      ],
+      "title": "EnvVar",
+      "type": "object"
+    },
+    "ExpectationConfig": {
+      "properties": {
+        "check": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CheckConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A portable check."
+        },
+        "expr": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An engine-dialect predicate.",
+          "title": "Expr"
+        },
+        "name": {
+          "description": "Name shown in results.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "on_violation": {
+          "default": "fail",
+          "description": "What happens to rows or runs that violate it.",
+          "enum": [
+            "warn",
+            "drop",
+            "fail"
+          ],
+          "title": "On Violation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ExpectationConfig",
+      "type": "object"
+    },
+    "FreshnessCheck": {
+      "properties": {
+        "column": {
+          "title": "Column",
+          "type": "string"
+        },
+        "max_age": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            }
+          ],
+          "title": "Max Age"
+        }
+      },
+      "required": [
+        "column",
+        "max_age"
+      ],
+      "title": "FreshnessCheck",
+      "type": "object"
+    },
+    "IncrementalConfig": {
+      "properties": {
+        "column": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Column compared with the watermark.",
+          "title": "Column"
+        },
+        "input": {
+          "description": "Alias of the input that is filtered.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Input",
+          "type": "string"
+        },
+        "lookback": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            }
+          ],
+          "default": 0,
+          "description": "Reprocess this much before the watermark.",
+          "title": "Lookback"
+        },
+        "watermark_source": {
+          "default": "state",
+          "description": "Where the watermark is read from.",
+          "enum": [
+            "state",
+            "target"
+          ],
+          "title": "Watermark Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "input"
+      ],
+      "title": "IncrementalConfig",
+      "type": "object"
+    },
+    "InputConfig": {
+      "properties": {
+        "ref": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of another model.",
+          "title": "Ref"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of a declared source, or `group.table` for a table of a source group.",
+          "title": "Source"
+        }
+      },
+      "title": "InputConfig",
+      "type": "object"
+    },
+    "PlanMetadata": {
+      "properties": {
+        "boundary": {
+          "enum": [
+            "process",
+            "task"
+          ],
+          "title": "Boundary",
+          "type": "string"
+        },
+        "config_version": {
+          "title": "Config Version",
+          "type": "integer"
+        },
+        "deploy": {
+          "description": "Absent when the target has no deploy block.",
+          "type": "object"
+        },
+        "env_vars": {
+          "items": {
+            "$ref": "#/$defs/EnvVar"
+          },
+          "title": "Env Vars",
+          "type": "array"
+        },
+        "generated_at": {
+          "description": "An empty string in `compile --stable` output.",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "invocation_id": {
+          "description": "An empty string in `compile --stable` output.",
+          "title": "Invocation Id",
+          "type": "string"
+        },
+        "pipeloom_version": {
+          "title": "Pipeloom Version",
+          "type": "string"
+        },
+        "plan_hash": {
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "plugins": {
+          "additionalProperties": {
+            "$ref": "#/$defs/PluginInfo"
+          },
+          "title": "Plugins",
+          "type": "object"
+        },
+        "project": {
+          "title": "Project",
+          "type": "string"
+        },
+        "python_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Python Paths",
+          "type": "array"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "vars": {
+          "additionalProperties": true,
+          "title": "Vars",
+          "type": "object"
+        }
+      },
+      "required": [
+        "pipeloom_version",
+        "plugins",
+        "config_version",
+        "plan_hash",
+        "project",
+        "target",
+        "boundary",
+        "python_paths",
+        "vars",
+        "env_vars",
+        "generated_at",
+        "invocation_id"
+      ],
+      "title": "PlanMetadata",
+      "type": "object"
+    },
+    "PlanNode": {
+      "properties": {
+        "body": {
+          "$ref": "#/$defs/PythonBody"
+        },
+        "checksum": {
+          "title": "Checksum",
+          "type": "string"
+        },
+        "columns": {
+          "items": {
+            "$ref": "#/$defs/ColumnConfig"
+          },
+          "type": "array"
+        },
+        "config": {
+          "$ref": "#/$defs/ResolvedModelConfig"
+        },
+        "data_tests": {
+          "items": {
+            "$ref": "#/$defs/DataTestConfig"
+          },
+          "type": "array"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Inputs",
+          "type": "object"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Line"
+        },
+        "materialized": {
+          "enum": [
+            "table",
+            "incremental",
+            "view",
+            "ephemeral",
+            "intermediate"
+          ]
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "relation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TargetRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "unique_id": {
+          "title": "Unique Id",
+          "type": "string"
+        },
+        "unit_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unit Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "unique_id",
+        "name",
+        "file",
+        "line",
+        "materialized",
+        "body",
+        "inputs",
+        "relation",
+        "unit_ids",
+        "config",
+        "tags",
+        "checksum"
+      ],
+      "title": "PlanNode",
+      "type": "object"
+    },
+    "PlanSelection": {
+      "properties": {
+        "exclude": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Exclude",
+          "type": "array"
+        },
+        "select": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Select",
+          "type": "array"
+        },
+        "selected": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Selected",
+          "type": "array"
+        }
+      },
+      "required": [
+        "select",
+        "exclude",
+        "selected"
+      ],
+      "title": "PlanSelection",
+      "type": "object"
+    },
+    "PlanSource": {
+      "properties": {
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Format"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Location"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "options": {
+          "additionalProperties": true,
+          "title": "Options",
+          "type": "object"
+        },
+        "table": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Table"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "unique_id": {
+          "title": "Unique Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "unique_id",
+        "name",
+        "file",
+        "format",
+        "location",
+        "table",
+        "options",
+        "tags"
+      ],
+      "title": "PlanSource",
+      "type": "object"
+    },
+    "PluginInfo": {
+      "properties": {
+        "distribution": {
+          "title": "Distribution",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "distribution",
+        "version"
+      ],
+      "title": "PluginInfo",
+      "type": "object"
+    },
+    "PythonBody": {
+      "description": "A model body. Manifests from before 0.9 may hold `kind: sql`, which no longer loads\n(PLX107).",
+      "properties": {
+        "callable": {
+          "title": "Callable",
+          "type": "string"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "kind": {
+          "const": "python",
+          "default": "python",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "callable",
+        "file"
+      ],
+      "title": "PythonBody",
+      "type": "object"
+    },
+    "QualityConfig": {
+      "properties": {
+        "max_drop_ratio": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Fail the unit when more than this share of rows is dropped.",
+          "title": "Max Drop Ratio"
+        },
+        "quarantine": {
+          "default": false,
+          "description": "Write dropped rows to a quarantine table.",
+          "title": "Quarantine",
+          "type": "boolean"
+        }
+      },
+      "title": "QualityConfig",
+      "type": "object"
+    },
+    "RangeCheck": {
+      "properties": {
+        "column": {
+          "title": "Column",
+          "type": "string"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min"
+        }
+      },
+      "required": [
+        "column"
+      ],
+      "title": "RangeCheck",
+      "type": "object"
+    },
+    "RegexCheck": {
+      "properties": {
+        "column": {
+          "title": "Column",
+          "type": "string"
+        },
+        "pattern": {
+          "title": "Pattern",
+          "type": "string"
+        }
+      },
+      "required": [
+        "column",
+        "pattern"
+      ],
+      "title": "RegexCheck",
+      "type": "object"
+    },
+    "RelationshipsCheck": {
+      "description": "Every non-null `column` value of the model must exist in `field` of `to`.",
+      "properties": {
+        "column": {
+          "description": "Column of the model that holds the key.",
+          "title": "Column",
+          "type": "string"
+        },
+        "field": {
+          "description": "Column of the parent the key must match.",
+          "title": "Field",
+          "type": "string"
+        },
+        "to": {
+          "$ref": "#/$defs/InputConfig",
+          "description": "The parent: another model (ref) or a source."
+        }
+      },
+      "required": [
+        "column",
+        "to",
+        "field"
+      ],
+      "title": "RelationshipsCheck",
+      "type": "object"
+    },
+    "ResolvedModelConfig": {
+      "description": "ModelSettings with concrete defaults, after defaults cascade.",
+      "properties": {
+        "catalog": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Catalog of the target relation; wins over the naming strategy's catalog.",
+          "title": "Catalog"
+        },
+        "cluster_by": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Cluster By",
+          "type": "array"
+        },
+        "expectations": {
+          "items": {
+            "$ref": "#/$defs/ExpectationConfig"
+          },
+          "title": "Expectations",
+          "type": "array"
+        },
+        "frame_api": {
+          "default": "native",
+          "enum": [
+            "native",
+            "narwhals"
+          ],
+          "title": "Frame Api",
+          "type": "string"
+        },
+        "incremental": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IncrementalConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "materialized": {
+          "default": "table",
+          "enum": [
+            "table",
+            "incremental",
+            "view",
+            "ephemeral",
+            "intermediate"
+          ],
+          "title": "Materialized",
+          "type": "string"
+        },
+        "meta": {
+          "additionalProperties": true,
+          "title": "Meta",
+          "type": "object"
+        },
+        "partition_by": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Partition By",
+          "type": "array"
+        },
+        "quality": {
+          "$ref": "#/$defs/QualityConfig"
+        },
+        "retries": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Retries",
+          "type": "integer"
+        },
+        "retry_delay": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            }
+          ],
+          "default": 1,
+          "title": "Retry Delay"
+        },
+        "retry_on": {
+          "default": "transient",
+          "enum": [
+            "transient",
+            "any"
+          ],
+          "title": "Retry On",
+          "type": "string"
+        },
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema"
+        },
+        "sql_dialect": {
+          "description": "Absent while unset.",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "write": {
+          "$ref": "#/$defs/WriteConfig"
+        }
+      },
+      "required": [
+        "materialized",
+        "write",
+        "incremental",
+        "partition_by",
+        "cluster_by",
+        "expectations",
+        "quality",
+        "tags",
+        "retries",
+        "retry_delay",
+        "retry_on",
+        "timeout",
+        "frame_api",
+        "schema",
+        "catalog",
+        "meta"
+      ],
+      "title": "ResolvedModelConfig",
+      "type": "object"
+    },
+    "RowCountCheck": {
+      "properties": {
+        "max": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min"
+        }
+      },
+      "title": "RowCountCheck",
+      "type": "object"
+    },
+    "TargetRef": {
+      "description": "A physical relation: where a model is written.",
+      "properties": {
+        "catalog": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Catalog"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "schema": {
+          "title": "Schema",
+          "type": "string"
+        }
+      },
+      "required": [
+        "catalog",
+        "schema",
+        "name"
+      ],
+      "title": "TargetRef",
+      "type": "object"
+    },
+    "WriteConfig": {
+      "properties": {
+        "deletes": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeletesConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How deleted rows are recognised and applied."
+        },
+        "on_schema_change": {
+          "default": "fail",
+          "description": "Policy when the output schema differs from the target.",
+          "enum": [
+            "fail",
+            "ignore",
+            "append_new_columns",
+            "sync_all_columns"
+          ],
+          "title": "On Schema Change",
+          "type": "string"
+        },
+        "options": {
+          "additionalProperties": true,
+          "description": "Engine-specific write options.",
+          "title": "Options",
+          "type": "object"
+        },
+        "strategy": {
+          "anyOf": [
+            {
+              "enum": [
+                "append",
+                "overwrite",
+                "replace_partitions",
+                "merge",
+                "scd2"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How rows reach the target.",
+          "title": "Strategy"
+        },
+        "table_properties": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Properties set on the target table.",
+          "title": "Table Properties",
+          "type": "object"
+        },
+        "tracked_columns": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Columns whose change opens a new scd2 row; default all.",
+          "title": "Tracked Columns"
+        },
+        "unique_key": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Columns that identify a row (merge and scd2).",
+          "title": "Unique Key"
+        },
+        "update_condition": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Extra condition for updating a matched row (merge).",
+          "title": "Update Condition"
+        }
+      },
+      "title": "WriteConfig",
+      "type": "object"
+    }
+  },
+  "$id": "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/manifest.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The compiled plan: nodes, sources, execution units and edges.",
+  "properties": {
+    "child_map": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description": "Unique id to its children's unique ids.",
+      "type": "object"
+    },
+    "metadata": {
+      "$ref": "#/$defs/PlanMetadata"
+    },
+    "nodes": {
+      "additionalProperties": {
+        "$ref": "#/$defs/PlanNode"
+      },
+      "type": "object"
+    },
+    "parent_map": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description": "Unique id to its parents' unique ids.",
+      "type": "object"
+    },
+    "schema": {
+      "const": "pipeloom.manifest/1",
+      "description": "Schema name and version."
+    },
+    "selectors": {
+      "$ref": "#/$defs/PlanSelection",
+      "description": "Empty lists in `compile --stable` output."
+    },
+    "sources": {
+      "additionalProperties": {
+        "$ref": "#/$defs/PlanSource"
+      },
+      "type": "object"
+    },
+    "unit_parent_map": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description": "Unit id to the unit ids it reads from.",
+      "type": "object"
+    },
+    "units": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description": "Unit id to its node ids, in run order.",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema",
+    "metadata",
+    "nodes",
+    "sources",
+    "units",
+    "unit_parent_map",
+    "parent_map",
+    "child_map",
+    "selectors"
+  ],
+  "title": "pipeloom manifest",
+  "type": "object"
+}
