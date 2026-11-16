@@ -1,0 +1,67 @@
+{
+  "$id": "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_states.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Unit states known to the orchestrator, keyed by unit id.",
+  "properties": {
+    "schema": {
+      "const": "pipeloom.unit_states/1",
+      "description": "Schema name and version."
+    },
+    "units": {
+      "additionalProperties": {
+        "properties": {
+          "code": {
+            "description": "For failed; null is PLX106.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "orchestrator_ids": {
+            "additionalProperties": {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            "propertyNames": {
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            },
+            "type": "object"
+          },
+          "reason": {
+            "description": "For skipped; null is upstream_failed.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "skipped",
+              "cancelled",
+              "failed",
+              "excluded"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema",
+    "units"
+  ],
+  "title": "pipeloom unit states",
+  "type": "object"
+}

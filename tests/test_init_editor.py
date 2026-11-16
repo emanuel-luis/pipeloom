@@ -87,7 +87,9 @@ def test_vscode_settings_map_the_published_schemas(engine: str) -> None:
     }
     files = render(engine, values)
     mapping = json.loads(files[".vscode/settings.json"])["yaml.schemas"]
-    assert set(mapping) == {SCHEMA_BASE_URL + name for name in installed_schemas()}
+    # init maps properties.json once it writes properties files (ADR-0050 point 16).
+    published = set(installed_schemas()) - {"properties.json"}
+    assert set(mapping) == {SCHEMA_BASE_URL + name for name in published}
     for rel in (p for p in files if p.endswith(".yml")):
         assert schemas_for(rel, mapping) == {SCHEMA_BASE_URL + expected_schema(rel)}, rel
     assert schemas_for("models/x/new.yaml", mapping) == {SCHEMA_BASE_URL + "models.json"}

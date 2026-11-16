@@ -83,8 +83,27 @@ and `warnings` carries `watermark_seeded: target` when the state store had no wa
 Fields that later versions fill stay null or empty: `rows_dropped`, `rows_quarantined`,
 `bytes_read`, `schema_changes` and `expectations`. `orchestrator_ids` holds the ids from `--orchestrator-id`.
 
-There is no published JSON Schema for this file yet. It is described here and covered by golden
-tests; a schema under `schema/v1/` will follow once the field set stops moving.
+## JSON Schemas
+
+Each document names its schema in a `schema` property, and each schema is published next to the
+config schemas ([ADR-0049](../adr/0049-artifact-schemas-and-orchestrator-protocol.md)):
+
+| Document | Schema |
+|---|---|
+| `run_results.json` (`pipeloom.run_results/1`) | [run_results.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/run_results.json) |
+| an attempt file | `#/$defs/result` of run_results.json |
+| one event (`pipeloom.event/1`) | [event.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/event.json) |
+| `--unit-states` (`pipeloom.unit_states/1`) | [unit_states.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_states.json) |
+
+Compatibility within a version: consumers must ignore fields they do not know, since the schemas
+leave objects open. A 1.x release may add optional fields, new event types and new skip reasons
+and stays on `/1`: skip reasons are open strings both in the row `skip_reason` and in the
+`unit.skipped` event. Every other enumerated value is closed: `status` of a row, of the run, of
+`run.completed` and of a unit state, the event `level`, the error `category` (`transient` or
+`permanent`), `unit.cancelled` `reason`, `model.input_read` `kind`, `model.schema_changed`
+`action`, `run.started` `boundary`, `state.watermark_committed` `source` and `model.log`
+`level`. A new value of one of them, or any change a consumer must understand, moves the
+document to `/2`.
 
 ## Events
 

@@ -27,6 +27,7 @@ from pipeloom.artifacts.results import (
     git_sha,
     result_row,
 )
+from pipeloom.artifacts.schema import UNIT_STATES_SCHEMA
 from pipeloom.diagnostics import Diagnostic, JsonValue, Report
 from pipeloom.events.bus import EventBus
 from pipeloom.events.model import ArtifactWritten, RunCompleted
@@ -53,7 +54,6 @@ from pipeloom.state.types import LockHeld, RunRecord
 if TYPE_CHECKING:
     from pipeloom.api import Project
 
-UNIT_STATES_SCHEMA: Final = "pipeloom.unit_states/1"
 _STATUSES: Final = ("skipped", "cancelled", "failed", "excluded")
 _DEFAULT_CODE: Final = "PLX106"
 
