@@ -31,6 +31,7 @@ nav:
       - Docs site: guide/docs-site.md
       - Run history: guide/run-history.md
       - Alerts with the webhook sink: guide/alerts.md
+      - Migrating from 0.8: guide/migrate-0.9.md
   - Plugins:
       - Polars: plugins/polars.md
       - pandas: plugins/pandas.md

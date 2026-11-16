@@ -5,7 +5,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from pipeloom.config.errors import from_validation_error
-from pipeloom.config.models import ModelFile, ProjectConfig
+from pipeloom.config.models import ProjectConfig, PropertiesFile
 from pipeloom.config.yaml import parse_yaml
 from pipeloom.diagnostics import Diagnostic, Report
 
@@ -22,14 +22,14 @@ def check(model: Any, text: str, base: str = "") -> list[Diagnostic]:
 
 
 def test_unknown_field_nested_uses_key_mark_and_model_suggestion() -> None:
-    text = "models:\n  - name: m\n    sql: x\n    materialised: table\n"
-    (d,) = check(ModelFile, text)
+    text = "models:\n  - name: m\n    config:\n      materialised: table\n"
+    (d,) = check(PropertiesFile, text)
     assert d.code == "PLS101" and d.hint == "did you mean 'materialized'?"
     assert d.location is not None
     assert (d.location.line, d.location.col, d.location.json_pointer) == (
         4,
-        5,
-        "/models/0/materialised",
+        7,
+        "/models/0/config/materialised",
     )
 
 
@@ -40,21 +40,24 @@ def test_unknown_field_inside_dict_of_models() -> None:
 
 
 def test_missing_uses_parent_mapping() -> None:
-    (d,) = check(ModelFile, "sources:\n  - format: x\n    table: t\n")
-    assert d.code == "PLS105" and d.location is not None and d.location.json_pointer == "/sources/0"
+    (d,) = check(PropertiesFile, "models:\n  - description: x\n")
+    assert d.code == "PLS105" and d.location is not None and d.location.json_pointer == "/models/0"
     assert "'name'" in d.message
 
 
 def test_exclusive_and_other_errors() -> None:
-    both = "models:\n  - name: m\n    sql: a\n    python: x:y\n"
-    assert [d.code for d in check(ModelFile, both)] == ["PLS108"]
-    bad = "models:\n  - name: m\n    sql: a\n    retries: lots\n"
-    assert [d.code for d in check(ModelFile, bad)] == ["PLS102"]
+    both = (
+        "config_version: 1\nname: p\ntargets:\n  dev: {}\n"
+        "sources:\n  g:\n    tables:\n      t:\n        location: a\n        table: b\n"
+    )
+    assert [d.code for d in check(ProjectConfig, both)] == ["PLS108"]
+    bad = "models:\n  - name: m\n    config:\n      retries: lots\n"
+    assert [d.code for d in check(PropertiesFile, bad)] == ["PLS102"]
 
 
 def test_base_pointer() -> None:
     text = "wrapper:\n  models:\n    - name: m\n      sqll: x\n"
-    (d,) = check(ModelFile, text, base="/wrapper")
+    (d,) = check(PropertiesFile, text, base="/wrapper")
     assert d.code == "PLS101"
     assert d.location is not None
     assert d.location.json_pointer == "/wrapper/models/0/sqll"
