@@ -22,7 +22,7 @@ from pipeloom.artifacts.schema import (
 from pipeloom.cli import main
 from pipeloom.config.schema import DIALECT, dump_schema
 from pipeloom.runtime.finalize_run import parse_unit_states
-from tests.conftest import GOLDENS, make_project
+from tests.conftest import FIXTURES, GOLDENS, make_project
 from tests.runtime.test_runner import shop
 from tests.test_cli_run import ENV, MODELS, YML
 
@@ -102,7 +102,7 @@ def test_close_closes_objects_but_not_conditionals() -> None:
 
 def test_the_goldens_include_run_results_and_events() -> None:
     tags = {doc["schema"] for doc in GOLDEN_DOCS.values()}
-    assert {"pipeloom.run_results/1", "pipeloom.event/1"} <= tags
+    assert {"pipeloom.run_results/1", "pipeloom.event/1", "pipeloom.manifest/1"} <= tags
 
 
 @pytest.mark.parametrize("key", sorted(GOLDEN_DOCS))
@@ -160,6 +160,42 @@ def test_a_real_run_writes_only_valid_artifacts(tmp_path: Path, project: str) ->
         rows.validate(json.loads(attempt.read_bytes().decode("utf-8")))
     if project == "failing":
         assert "unit.failed" in {e["type"] for e in events}
+
+
+EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
+COMPILED = {
+    "shop": ["--project-dir", str(FIXTURES / "shop"), "--target", "ci"],
+    **{
+        p: ["--project-dir", str(EXAMPLES / p), "--target", "dev"]
+        for p in ("tpch_polars", "tpch_pandas")
+    },
+}
+
+
+@pytest.mark.parametrize("stable", [True, False], ids=["stable", "full"])
+@pytest.mark.parametrize("project", sorted(COMPILED))
+def test_a_real_compile_writes_a_valid_manifest(tmp_path: Path, project: str, stable: bool) -> None:
+    if project != "shop" and not EXAMPLES.is_dir():  # the sdist ships tests/ without examples/
+        pytest.skip("examples/ is not in this source tree")
+    out = tmp_path / "manifest.json"
+    argv = ["compile", *COMPILED[project], *(["--stable"] if stable else []), "--out", str(out)]
+    done = CliRunner().invoke(main, argv, env={})
+    assert done.exit_code == 0, done.stderr
+    doc = json.loads(out.read_bytes().decode("utf-8"))
+    STRICT["manifest.json"].validate(doc)
+    assert (doc["metadata"]["generated_at"] == "") is stable
+
+
+def test_the_manifest_schema_catches_extra_fields_and_unknown_materializations() -> None:
+    doc = GOLDEN_DOCS["manifest/shop-ci.json[0]"]
+    uid, node = next(iter(doc["nodes"].items()))
+    extra = {**doc, "nodes": {**doc["nodes"], uid: {**node, "unexpected": 1}}}
+    Draft202012Validator(SCHEMAS["manifest.json"]).validate(extra)  # consumers ignore it
+    with pytest.raises(ValidationError, match="'unexpected' was unexpected"):
+        STRICT["manifest.json"].validate(extra)
+    bogus = {**doc, "nodes": {**doc["nodes"], uid: {**node, "materialized": "bogus"}}}
+    with pytest.raises(ValidationError, match="'bogus' is not one of"):
+        Draft202012Validator(SCHEMAS["manifest.json"]).validate(bogus)
 
 
 def test_an_unknown_event_type_keeps_an_open_data_object() -> None:
