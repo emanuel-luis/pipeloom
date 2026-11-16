@@ -61,13 +61,12 @@ def _default_kind(loaded: LoadedProject) -> str:
 
 
 def _model_names(loaded: LoadedProject) -> set[str]:
-    """Models declared in YAML and decorated functions, by name."""
+    """Decorated functions, by name."""
     config = loaded.config
-    names = {m.name for f in loaded.model_files for m in f.config.models}
     found = discover(
         loaded.project_dir, config.model_paths, config.model_packages, config.python_paths
     )
-    return names | {m.name for m in found.models}
+    return {m.name for m in found.models}
 
 
 @click.group()
@@ -139,8 +138,20 @@ def model(
     ):
         raise click.UsageError(f"--folder '{folder}' must stay inside {config.model_paths[0]}")
     rel = py.relative_to(project_dir).as_posix()
+    # The module name comes from a python_paths root: outside all of them the model cannot load.
+    if not any(
+        py.resolve().is_relative_to((project_dir / p).resolve()) for p in config.python_paths
+    ):
+        raise click.UsageError(
+            f"{rel} is outside every python_paths root ({', '.join(config.python_paths)}): "
+            "add its folder to python_paths or pick another --folder"
+        )
     if py.exists():
         raise click.UsageError(f"{rel} already exists")
+    if py.with_suffix("").is_dir():
+        # A module next to a package of the same name: one of them would shadow the other.
+        where = py.parent.relative_to(project_dir).as_posix()
+        raise click.UsageError(f"'{name}' is already a folder in {where}: pick another name")
     if name in _model_names(loaded):
         raise click.UsageError(f"a model named '{name}' already exists")
     kind = "python" if python_ else "sql" if sql_ else _default_kind(loaded)
