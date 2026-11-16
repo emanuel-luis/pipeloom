@@ -72,7 +72,6 @@ class Discovery:
         models: list[DiscoveredModel] = []
         dynamic: list[SourceFile] = []
         sites: dict[str, dict[str, Site]] = {}
-        dirty = set(previous) != {sf.path for sf in files}
         for sf in files:
             try:
                 st = sf.abs.stat()
@@ -81,7 +80,6 @@ class Discovery:
                     parsed = old.parsed
                 else:
                     parsed = parse_file(sf.abs.read_bytes(), sf.path)
-                    dirty = True
             except OSError:
                 continue  # removed while scanning
             entries[sf.path] = cache.Entry(st.st_mtime_ns, st.st_size, parsed)
@@ -97,7 +95,10 @@ class Discovery:
                 dynamic.append(sf)
                 sites[sf.path] = parsed.sites
         self._entries = entries
-        if self.use_cache and dirty:
+        # A file with parse failures is never stored, so it must not make the cache look stale.
+        if self.use_cache and {p: e for p, e in entries.items() if not e.parsed.failures} != {
+            p: e for p, e in previous.items() if not e.parsed.failures
+        }:
             cache.save(self.project_dir, entries)
 
         if dynamic:

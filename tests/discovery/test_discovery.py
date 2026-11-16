@@ -310,6 +310,19 @@ def test_cache_invalidation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     assert calls == ["models/s.py"]
 
 
+def test_warm_runs_with_a_failing_file_do_not_rewrite_the_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write(tmp_path, {"models/s.py": STATIC, "models/bad.py": "import pipeloom\ndef a(:\n"})
+    discover(tmp_path, ["models"])
+    saves: list[object] = []
+    real = cache_mod.save
+    monkeypatch.setattr(disc.cache, "save", lambda *a: (saves.append(a), real(*a)))
+    discover(tmp_path, ["models"])
+    discover(tmp_path, ["models"])
+    assert saves == []
+
+
 @pytest.mark.parametrize("garbage", ["", "{", "[]", '{"header": 1}', "null"])
 def test_corrupt_cache_means_a_cold_run(tmp_path: Path, garbage: str) -> None:
     write(tmp_path, {"models/s.py": STATIC})
