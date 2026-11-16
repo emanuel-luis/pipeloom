@@ -36,9 +36,20 @@ A stop request (`RunControl.request_stop`) cancels pending, queued and retrying 
 - Timeouts and delays are whole seconds in the config (`Duration`); the scheduler accepts fractions, so tests and API users can use shorter ones.
 - `Executor` changes shape: `wait_any(timeout)`, `cancel(handle, reason)`, `wake()` and `has_terminal_event(handle)`. `UnitHandle` gains `seq` and `attempt`.
 
+## Amendment (1.0): Windows job objects
+
+The process executor closes the Windows gap above: a grandchild of a child that exits on its own no longer survives.
+
+- Each child runs in its own job object, created with `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` (`SetInformationJobObject` with the extended limit information). The helper is stdlib only (`ctypes`); the child is assigned after `Popen` through a handle from `OpenProcess`, not the private `Popen._handle`.
+- A kill terminates the job first. The job handle is not a pid, so this is safe after the child was reaped. `taskkill /T /F` and `Popen.kill` stay as the fallback, used alone when Windows refuses the job.
+- After the child exits, the executor terminates its job before joining the reader threads, the Windows twin of the POSIX `killpg` sweep, then closes it. `shutdown(wait=False)` and the cancel grace timer reach the job too; terminating a closed job does nothing.
+- `CREATE_NEW_PROCESS_GROUP` stays, so `CTRL_BREAK_EVENT` still gives a graceful stop.
+- If the parent dies, Windows closes the job handle and ends the whole tree.
+- A grandchild started between `Popen` and the assignment escapes the job. The child is `python -m pipeloom run`, which imports for hundreds of milliseconds before user code runs, so the window stays open only in theory. `CREATE_SUSPENDED` would close it but needs the main thread handle, which `Popen` does not expose.
+
 ## Status
 
-Accepted
+Accepted. Amended in 1.0 (Windows job objects).
 
 ## Date
 
