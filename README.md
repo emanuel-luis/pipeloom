@@ -6,12 +6,13 @@ Models are Python functions marked with `@model`; YAML holds the project and the
 polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG.
 Every run produces a single event stream and artifacts you can query.
 
-**Status: 0.7, alpha.** pipeloom reads a YAML project, validates it in layers (YAML, schema,
-references, graph, plan semantics, engine capabilities, Python callables), builds the dependency
-graph, compiles the execution plan into a manifest and runs it on polars, pandas or Spark. It
-writes incremental models with a watermark, merge and replace_partitions, applies schema-change
-policies and expectations with quarantine, and retries, times out and cancels units. Every run
-writes `run_results.json`. The `pipeloom-databricks` and `pipeloom-airflow` plugins deploy a
+**Status: 0.9, alpha.** pipeloom discovers the `@model` functions of a project, validates it in
+layers (YAML, schema, references, graph, plan semantics, engine capabilities, Python callables),
+builds the dependency graph, compiles the execution plan into a manifest and runs it on polars,
+pandas or Spark. It writes incremental models with a watermark, merge, replace_partitions and
+scd2, checks contracts, applies schema-change policies and expectations with quarantine, runs
+unit and data tests (`pipeloom test`, `pipeloom build`), and retries, times out and cancels
+units. Every run writes `run_results.json`. The `pipeloom-databricks` and `pipeloom-airflow` plugins deploy a
 project as a Databricks job or an Airflow DAG with one task per model. What comes next is in the
 [roadmap](docs/roadmap.md).
 
