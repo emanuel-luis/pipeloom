@@ -989,6 +989,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#unit-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit graph
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#events" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1223,6 +1234,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#unit-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit graph
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#events" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1422,6 +1444,10 @@ config schemas (<a href="../../adr/0049-artifact-schemas-and-orchestrator-protoc
 <td><code>--unit-states</code> (<code>pipeloom.unit_states/1</code>)</td>
 <td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_states.json">unit_states.json</a></td>
 </tr>
+<tr>
+<td><code>graph --units --output json</code> (<code>pipeloom.unit_graph/1</code>)</td>
+<td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_graph.json">unit_graph.json</a></td>
+</tr>
 </tbody>
 </table>
 <p>Compatibility within a version: consumers must ignore fields they do not know, since the schemas
@@ -1433,6 +1459,50 @@ and stays on <code>/1</code>: skip reasons are open strings both in the row <cod
 <code>action</code>, <code>run.started</code> <code>boundary</code>, <code>state.watermark_committed</code> <code>source</code> and <code>model.log</code>
 <code>level</code>. A new value of one of them, or any change a consumer must understand, moves the
 document to <code>/2</code>.</p>
+<h2 id="unit-graph">Unit graph<a class="headerlink" href="#unit-graph" title="Permanent link">&para;</a></h2>
+<p><code>pipeloom graph --units --output json</code> prints the execution units an orchestrator runs one by
+one, tagged <code>pipeloom.unit_graph/1</code>. With <code>--manifest PATH</code> it reads the plan from that manifest,
+so <code>plan_hash</code> is the manifest's; without it the command compiles the project. A unit is in scope
+when its persisted model is selected; <code>parents</code> and <code>edges</code> only name units in scope.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>project</code>, <code>target</code>, <code>plan_hash</code></td>
+<td>From the plan.</td>
+</tr>
+<tr>
+<td><code>selectors</code></td>
+<td><code>select</code> and <code>exclude</code> as given; the finalize command repeats them. <code>finalize</code> has no <code>--state</code>, so when a selector uses <code>state:</code> or <code>result:</code> it gets <code>--select unit:&lt;id&gt;</code> for each unit instead.</td>
+</tr>
+<tr>
+<td><code>placeholders</code></td>
+<td><code>project_dir</code>, <code>manifest</code> and <code>run_id</code>: written as <code>{name}</code> in every <code>argv</code>.</td>
+</tr>
+<tr>
+<td><code>units</code></td>
+<td>Topological order, ties broken by unit id. Each has <code>unit_id</code>, <code>unique_id</code>, <code>nodes</code>, <code>materialized</code>, <code>relation</code> (<code>catalog</code>, <code>schema</code>, <code>name</code>) and <code>relation_name</code> (null without a relation), <code>assets</code>, <code>parents</code>, <code>tags</code>, <code>retries</code>, <code>retry_delay_s</code>, <code>retry_on</code>, <code>timeout_s</code> and <code>argv</code>.</td>
+</tr>
+<tr>
+<td><code>edges</code></td>
+<td><code>{"from": parent, "to": child}</code>.</td>
+</tr>
+<tr>
+<td><code>finalize.argv</code></td>
+<td>The command line that closes the run.</td>
+</tr>
+</tbody>
+</table>
+<p>An <code>argv</code> starts with <code>pipeloom</code>; the unit id, target and plan hash are literal, and every
+<code>--plugin</code> given to <code>graph</code> is repeated at the end, so each process can load the same kinds. Assets are
+<code>pipeloom://{project}/{target}/{relation_name}</code> with each part percent-encoded; intermediates and
+models without a relation have none. The schema is
+<a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_graph.json">unit_graph.json</a>.</p>
 <h2 id="events">Events<a class="headerlink" href="#events" title="Permanent link">&para;</a></h2>
 <p><code>events/&lt;invocation_id&gt;.jsonl</code> holds the events of one invocation, one JSON object per line. An
 invocation that runs a single unit writes only its own file; the owning invocation forwards the

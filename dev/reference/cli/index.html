@@ -1962,6 +1962,8 @@ the run. A unit marked excluded gets no row. Exit codes: 0 ok, 1 a unit failed, 
 </code></pre>
 <h4 id="pipeloom-graph">pipeloom graph<a class="headerlink" href="#pipeloom-graph" title="Permanent link">&para;</a></h4>
 <p>Print the graph of the selected models, in dependency order.</p>
+<p>With --units --output json, print the selected execution units instead, for an orchestrator
+that runs them one by one.</p>
 <p><strong>Usage:</strong></p>
 <pre><code class="language-text">pipeloom graph [OPTIONS]
 </code></pre>
@@ -1991,8 +1993,16 @@ the run. A unit marked excluded gets no row. Exit codes: 0 ok, 1 a unit failed, 
                                   text]
   --output [text|dot|mermaid|json]
                                   Format of the graph: text (name &lt;- parents),
-                                  Graphviz dot, Mermaid or JSON.  [default:
-                                  text]
+                                  Graphviz dot, Mermaid or JSON. --units needs
+                                  json.  [default: text]
+  --units                         Print the execution units of the plan
+                                  instead of the models, with the command line
+                                  that runs each and the one that finalizes
+                                  the run (schema pipeloom.unit_graph/1).
+                                  Needs --output json.
+  --manifest FILE                 With --units: read the plan from this
+                                  manifest instead of compiling the project,
+                                  so plan_hash is the manifest's.
   --help                          Show this message and exit.
 </code></pre>
 <h4 id="pipeloom-init">pipeloom init<a class="headerlink" href="#pipeloom-init" title="Permanent link">&para;</a></h4>
