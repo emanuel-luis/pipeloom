@@ -472,13 +472,14 @@ def resolve_project(
         if columns is not None:
             origins["columns"] = columns
         # data_tests is a model key: the decorator's list replaces the properties one.
-        data_tests, tests_at = p.data_tests, None
+        data_tests = p.data_tests
+        props_at: tuple[str, str] | None = None
         if data_tests is not None:
             origins["data_tests"] = Origin("decorator", p.site.locate("/data_tests"))
         elif p.name in props and props[p.name][2].data_tests is not None:
             pfile, ppointer, pe = props[p.name]
-            data_tests, tests_at = pe.data_tests, (pfile, f"{ppointer}/data_tests")
-            origins["data_tests"] = Origin("properties", locate(*tests_at))
+            data_tests, props_at = pe.data_tests, (pfile, f"{ppointer}/data_tests")
+            origins["data_tests"] = Origin("properties", locate(*props_at))
         inputs = _bind(p, project, known, tables, binding)
         m = ResolvedModel(
             unique_id=model_id(project, p.name),
@@ -502,7 +503,7 @@ def resolve_project(
             inputs=inputs,
             own_fields=p.own_fields,
             origins=origins,
-            data_tests_at=tests_at,
+            data_tests_at=props_at,
             site=p.site,
         )
         if p.name in props and m.unique_id not in models:
