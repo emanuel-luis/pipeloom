@@ -44,7 +44,9 @@ def _skipped(path: Path, base: Path) -> bool:
 
 def module_name(file: Path, roots: Sequence[Path]) -> str | None:
     """The dotted name of `file` under the longest root that contains it."""
-    best = max((r for r in roots if file.is_relative_to(r)), key=lambda r: len(r.parts), default=None)
+    best = max(
+        (r for r in roots if file.is_relative_to(r)), key=lambda r: len(r.parts), default=None
+    )
     if best is None:
         return None
     parts = list(file.relative_to(best).with_suffix("").parts)
