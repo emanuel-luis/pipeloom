@@ -20,6 +20,11 @@ from pipeloom.testing.recording import RecordingSink
 from tests.conftest import FIXTURES, make_project
 
 Rows = list[dict[str, Any]]
+# The source `raw` (table `raw.raw`) read from the memory table at raw/orders.
+SOURCES = (
+    "sources:\n  raw:\n    format: memory\n    tables:\n      raw:\n        location: raw/orders\n"
+)
+ONE = "from pipeloom import model\n\n\n@model\ndef m(ctx):\n    return ctx.sql('select 1 as x')\n"
 
 
 def tables_for(root: Path) -> dict[str, Rows]:
@@ -147,24 +152,22 @@ def test_ephemeral_is_computed_once_and_released(tmp_path: Path) -> None:
         tmp_path,
         {
             "pipeloom.yml": (
-                "config_version: 1\nname: p\npython_paths: [src]\n"
+                "config_version: 1\nname: p\n"
                 f"vars: {{counter: {json.dumps(counter.as_posix())}}}\n"
-                "targets:\n  ci:\n    " + engine_block(tmp_path, tables_for(tmp_path)) + "\n"
-                "    catalog: {kind: memory}\n"
+                + SOURCES
+                + "targets:\n  ci:\n    "
+                + engine_block(tmp_path, tables_for(tmp_path))
+                + "\n    catalog: {kind: memory}\n"
             ),
-            "models/m.yml": (
-                "sources:\n  - {name: raw, format: memory, location: raw/orders}\n"
-                "models:\n"
-                "  - {name: eph, materialized: ephemeral, python: 'm:eph', inputs: {raw: {source: raw}}}\n"
-                "  - {name: a, python: 'm:same', inputs: {eph: {ref: eph}}}\n"
-                "  - {name: b, python: 'm:same', inputs: {eph: {ref: eph}}}\n"
-            ),
-            "src/m.py": (
+            "models/m.py": (
+                "from pipeloom import model\n\n\n"
+                "@model(materialized='ephemeral')\n"
                 "def eph(ctx, raw):\n"
                 "    with open(ctx.vars['counter'], 'a') as fh:\n"
                 "        fh.write('x')\n"
-                "    return raw\n\n"
-                "def same(ctx, eph):\n    return eph\n"
+                "    return raw\n\n\n"
+                "@model\ndef a(ctx, eph):\n    return eph\n\n\n"
+                "@model\ndef b(ctx, eph):\n    return eph\n"
             ),
         },
     )
@@ -179,15 +182,15 @@ def test_failure_skips_downstream_and_reports_the_error(tmp_path: Path) -> None:
         tmp_path,
         {
             "pipeloom.yml": (
-                "config_version: 1\nname: p\npython_paths: [src]\ntargets:\n  ci:\n"
+                "config_version: 1\nname: p\ntargets:\n  ci:\n"
                 "    engine: {kind: memory}\n    catalog: {kind: memory}\n"
             ),
-            "models/m.yml": (
-                "models:\n  - {name: bad, python: 'm:bad'}\n"
-                "  - {name: child, sql: select * from bad, inputs: {bad: {ref: bad}}}\n"
-                "  - {name: other, sql: select 1 as x}\n"
+            "models/m.py": (
+                "from pipeloom import model\n\n\n"
+                "@model\ndef bad(ctx):\n    raise ValueError('nope')\n\n\n"
+                "@model\ndef child(ctx, bad):\n    return ctx.sql('select * from bad')\n\n\n"
+                "@model\ndef other(ctx):\n    return ctx.sql('select 1 as x')\n"
             ),
-            "src/m.py": "def bad(ctx):\n    raise ValueError('nope')\n",
         },
     )
     outcome, sink = run_project(tmp_path)
@@ -205,16 +208,17 @@ def test_failure_skips_downstream_and_reports_the_error(tmp_path: Path) -> None:
     assert done.data["status"] == "failed" and len(done.data["failures"]) == 1  # type: ignore[arg-type]
 
 
-def single(tmp_path: Path, src: str, *, extra: str = "") -> Path:
+def single(tmp_path: Path, src: str) -> Path:
+    """One model `m` from `src`, which starts with `def m(` or `async def m(`."""
     make_project(
         tmp_path,
         {
             "pipeloom.yml": (
-                "config_version: 1\nname: p\npython_paths: [src]\ntargets:\n  ci:\n"
+                "config_version: 1\nname: p\nmodel_paths: [src]\npython_paths: [src]\n"
+                "targets:\n  ci:\n"
                 "    " + engine_block(tmp_path, {}) + "\n    catalog: {kind: memory}\n"
             ),
-            "models/m.yml": "models:\n  - {name: m, python: 'm:m'" + extra + "}\n",
-            "src/m.py": src,
+            "src/m.py": "from pipeloom import model\n\n\n@model\n" + src,
         },
     )
     return tmp_path
@@ -273,14 +277,16 @@ def test_a_view_is_created_and_reads_through(tmp_path: Path) -> None:
         tmp_path,
         {
             "pipeloom.yml": (
-                "config_version: 1\nname: p\ntargets:\n  ci:\n    "
+                "config_version: 1\nname: p\n"
+                + SOURCES
+                + "targets:\n  ci:\n    "
                 + engine_block(tmp_path, tables_for(tmp_path))
                 + "\n    catalog: {kind: memory}\n"
             ),
-            "models/m.yml": (
-                "sources:\n  - {name: raw, format: memory, location: raw/orders}\n"
-                "models:\n"
-                "  - {name: v, materialized: view, sql: select id from raw, inputs: {raw: {source: raw}}}\n"
+            "models/m.py": (
+                "from pipeloom import model\n\n\n"
+                "@model(materialized='view')\n"
+                "def v(ctx, raw):\n    return ctx.sql('select id from raw')\n"
             ),
         },
     )
@@ -305,7 +311,7 @@ def test_a_project_without_a_catalog_is_reported(tmp_path: Path) -> None:
             "pipeloom.yml": (
                 "config_version: 1\nname: p\ntargets:\n  ci:\n    engine: {kind: memory}\n"
             ),
-            "models/m.yml": "models:\n  - {name: m, sql: select 1 as x}\n",
+            "models/m.py": ONE,
         },
     )
     outcome, _ = run_project(tmp_path)
@@ -320,7 +326,7 @@ def test_a_failing_write_is_transient(tmp_path: Path) -> None:
                 "config_version: 1\nname: p\ntargets:\n  ci:\n"
                 "    engine: {kind: memory}\n    catalog: {kind: failing}\n"
             ),
-            "models/m.yml": "models:\n  - {name: m, sql: select 1 as x}\n",
+            "models/m.py": ONE,
         },
     )
     project = Project(
