@@ -37,8 +37,12 @@ A model chooses its schema, but the catalog of its relation comes only from the 
 
 ## Status
 
-Accepted.
+Accepted. Amended in 0.9 by [ADR-0050](0050-python-first-authoring.md).
 
 ## Date
 
 2026-11-05
+
+## Amendment 0.9 (ADR-0050)
+
+`catalog` keeps its meaning and cascades through the layers of [ADR-0050](0050-python-first-authoring.md): the `@model` decorator, then the `config` of a properties entry, then the `models:` tree of `pipeloom.yml` (`+catalog`) from the folder nearest the model up to the root, then the project root `+catalog`, then the built-in default. `_defaults.yml` and `defaults.models` are removed with the legacy YAML path before 0.9.0; until then they map onto the folder and project layers. The rest of this decision (the catalog replaces the naming strategy's, path catalogs lay tables out under it) does not change.
