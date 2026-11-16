@@ -356,6 +356,18 @@ class RelationshipsCheck(_Model):
     field: str
     """Column of the parent the key must match."""
 
+    @field_validator("to", mode="before")
+    @classmethod
+    def _typed_to(cls, value: Any) -> Any:
+        # `ref()` and `source()` return authoring's Ref and SourceRef, which import this module,
+        # so they are matched by type name here instead of imported.
+        kind = type(value).__name__
+        if kind == "Ref" and isinstance(getattr(value, "name", None), str):
+            return {"ref": value.name}
+        if kind == "SourceRef" and hasattr(value, "group") and hasattr(value, "table"):
+            return {"source": f"{value.group}.{value.table}"}
+        return value
+
 
 class DataCheckConfig(_Model):
     not_null: list[str] | None = None

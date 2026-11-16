@@ -422,6 +422,12 @@ class EngineContract:
                 rel = s.reader(fmt).read(ReadSpec(fmt, location=path.as_posix()))
                 assert _key(h.to_rows(rel.native)) == _key([dict(r) for r in ROWS]), fmt
 
+    def test_a_missing_source_fails_at_read(self, h: EngineHarness, tmp_path: Path) -> None:
+        # The runner maps a read error to PLM204, so a lazy engine must not defer it to compute.
+        for fmt in sorted(h.engine.capabilities.formats):
+            with self.session(h, tmp_path) as s, pytest.raises(Exception):  # noqa: B017
+                s.reader(fmt).read(ReadSpec(fmt, location=(tmp_path / f"no_{fmt}").as_posix()))
+
     def test_reads_a_hand_written_csv(self, h: EngineHarness, tmp_path: Path) -> None:
         # The same bytes on every engine, as committed sample data: a header, inferred types and
         # an empty field read as null, with the reader's default options.
