@@ -19,6 +19,7 @@ CAPABILITIES = EngineCapabilities(
     bytes_metrics=True,
     portable=True,
     quality=True,
+    sql_dialect=None,  # no SQL: ctx.sql raises SqlUnsupportedError
 )
 
 
