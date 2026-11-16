@@ -177,6 +177,23 @@ def test_an_unknown_event_type_keeps_an_open_data_object() -> None:
         STRICT["event.json"].validate({**event, "level": "fatal"})
 
 
+def test_an_unknown_skip_reason_is_valid() -> None:
+    """Skip reasons are open strings in events, as in the run_results rows."""
+    event = {
+        **FILLED,
+        "schema": "pipeloom.event/1",
+        "run_id": "r1",
+        "seq": 1,
+        "type": "unit.skipped",
+        "level": "info",
+        "data": {"reason": "paused_by_operator", "upstream": None},
+    }
+    Draft202012Validator(SCHEMAS["event.json"]).validate(event)
+    STRICT["event.json"].validate(event)
+    with pytest.raises(ValidationError, match="is not of type 'string'"):
+        STRICT["event.json"].validate({**event, "data": {"reason": 1, "upstream": None}})
+
+
 UNIT_STATES = [
     {
         "schema": "pipeloom.unit_states/1",
