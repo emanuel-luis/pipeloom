@@ -11,7 +11,7 @@ import pytest
 from pipeloom.diagnostics import Location
 from pipeloom.engine.types import Relation
 from pipeloom.runtime.errors import build_error, classify, to_diagnostic
-from pipeloom.runtime.loader import CallableLoader
+from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.runtime.memo import EphemeralMemo
 
 REL = Relation((), "memory")
@@ -21,7 +21,7 @@ def test_loader_prepends_and_removes_only_its_paths(tmp_path: Path) -> None:
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "loader_mod.py").write_text("def f():\n    return 1\n", encoding="utf-8")
     before = list(sys.path)
-    with CallableLoader(tmp_path, ["src"]) as loader:
+    with ModuleLoader(tmp_path, ["src"]) as loader:
         assert sys.path[0] == str((tmp_path / "src").resolve())
         assert loader.load("loader_mod:f")() == 1
         assert loader.load("loader_mod:f") is loader.load("loader_mod:f")

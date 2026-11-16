@@ -125,6 +125,12 @@ def test_ctx_is_passed_only_when_it_is_a_parameter() -> None:
     runner._loader = Loader(with_ctx)  # type: ignore[assignment]
     assert runner._call(body, ctx, {"src": 1}) == ("ctx", 1)
 
+    def keyword_ctx(*, ctx: str, src: int) -> tuple[str, int]:
+        return ctx, src
+
+    runner._loader = Loader(keyword_ctx)  # type: ignore[assignment]
+    assert runner._call(body, ctx, {"src": 1}) == ("ctx", 1)
+
 
 def test_ctx_goes_first_and_positional_when_it_is_the_first_parameter() -> None:
     class Loader:

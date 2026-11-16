@@ -1,8 +1,7 @@
 """Import model modules with `python_paths` on `sys.path`, and forget them afterwards
 (ADR-0050 point 2, import fallback and load summary).
 
-Grown from `pipeloom.runtime.loader.CallableLoader`; the runtime switches to `ModuleLoader.load`
-when discovery is wired in.
+The runtime loads every model body through `ModuleLoader.load("module:attr")`.
 """
 
 from __future__ import annotations

@@ -43,7 +43,7 @@ from pipeloom.runtime.errors import ErrorInfo, to_diagnostic
 from pipeloom.runtime.executors import Executor
 from pipeloom.runtime.executors.process import ChildCommand, ProcessExecutor
 from pipeloom.runtime.executors.thread import ThreadExecutor
-from pipeloom.runtime.loader import CallableLoader
+from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.retry import UnitPolicy
 from pipeloom.runtime.runner import ModelRunner
@@ -500,7 +500,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                 )
                 loader_cm = nullcontext()
             else:
-                loader_cm = CallableLoader(project_dir, plan.metadata.python_paths)
+                loader_cm = ModuleLoader(project_dir, plan.metadata.python_paths)
             with loader_cm as loader:
                 if not task:
                     assert session is not None and loader is not None

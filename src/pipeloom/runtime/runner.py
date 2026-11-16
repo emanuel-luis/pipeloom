@@ -60,7 +60,7 @@ from pipeloom.runtime.control import CancelToken, Reason, UnitInterrupted, inter
 from pipeloom.runtime.errors import ErrorInfo, Phase, build_error, full_traceback
 from pipeloom.runtime.executors import UnitCompletion, UnitHandle
 from pipeloom.runtime.incremental import IncrementalError, IncrementalState, WatermarkConflict
-from pipeloom.runtime.loader import CallableLoader
+from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.retry import NO_POLICY, UnitPolicy
 from pipeloom.runtime.schema_policy import (
@@ -188,7 +188,7 @@ class ModelRunner:
         bus: EventBus,
         paths: RunPaths,
         rt: RuntimeContext,
-        loader: CallableLoader,
+        loader: ModuleLoader,
         memo: EphemeralMemo | None,
         executor_name: str,
         policies: Mapping[str, UnitPolicy] | None = None,
@@ -780,14 +780,20 @@ class ModelRunner:
 
     def _call(self, body: PythonBody, ctx: ModelContext, args: Mapping[str, Any]) -> Any:
         """Call the body with the input aliases by keyword. `ctx` goes first and positional when
-        it is the first parameter or the function takes `*args` (legacy models always got it first),
-        by name when it is
-        elsewhere, and is left out when the function has no such parameter."""
+        it is the first parameter and may be passed by position, or the function takes `*args`
+        (legacy models always got it first); by name when it is keyword-only or elsewhere; and
+        it is left out when the function has no such parameter."""
         fn = self._loader.load(body.callable)
         params = inspect.signature(fn).parameters
         names = list(params)
-        var_positional = any(p.kind is inspect.Parameter.VAR_POSITIONAL for p in params.values())
-        if names[:1] == ["ctx"] or var_positional:
+        kinds = inspect.Parameter
+        first = next(iter(params.values()), None)
+        positional = (
+            first is not None
+            and first.name == "ctx"
+            and first.kind in (kinds.POSITIONAL_ONLY, kinds.POSITIONAL_OR_KEYWORD)
+        )
+        if positional or any(p.kind is kinds.VAR_POSITIONAL for p in params.values()):
             out = fn(ctx, **args)
         elif "ctx" in names:
             out = fn(**{"ctx": ctx, **args})
