@@ -1,6 +1,6 @@
 """Decide a table's final schema when a batch differs from the existing target (`on_schema_change`).
 
-Only strategies that keep existing rows (append, merge, replace_partitions) on an existing target,
+Only strategies that keep existing rows (append, merge, replace_partitions, scd2) on an existing target,
 outside a full refresh, are subject to the policy. Everything else replaces the schema and only
 reports the difference.
 """
@@ -14,6 +14,7 @@ from pipeloom.diagnostics import JsonValue
 from pipeloom.engine.errors import WriteKeyError
 from pipeloom.engine.protocols import EngineSession
 from pipeloom.engine.types import (
+    SCD2_COLUMNS,
     Column,
     ColumnChange,
     ExpectationSpec,
@@ -26,7 +27,7 @@ from pipeloom.engine.types import (
 
 SchemaAction = Literal["applied", "ignored", "rejected", "replaced", "none"]
 
-KEEPS_ROWS: Final = frozenset({"append", "merge", "replace_partitions"})
+KEEPS_ROWS: Final = frozenset({"append", "merge", "replace_partitions", "scd2"})
 POLICIES: Final = ("fail", "ignore", "append_new_columns", "sync_all_columns")
 
 
@@ -81,6 +82,14 @@ def check_contract(session: EngineSession, rel: Relation, declared: Schema) -> R
             "; ".join(f"column '{n}' is declared nullable: false and holds nulls" for n in nulls)
         )
     return rel
+
+
+_SCD2_NAMES: Final = frozenset(c.name for c in SCD2_COLUMNS)
+
+
+def strip_scd2(schema: Schema) -> Schema:
+    """The business columns of an scd2 table: the policy never sees the system columns."""
+    return tuple(c for c in schema if c.name not in _SCD2_NAMES)
 
 
 def describe(diff: SchemaDiff) -> str:

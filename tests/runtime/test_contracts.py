@@ -94,6 +94,17 @@ def test_columns_enter_the_manifest_checksum_and_plan_hash_only_when_declared(
     assert plain["metadata"]["plan_hash"] != with_contract["metadata"]["plan_hash"]
 
 
+def test_a_column_description_changes_no_checksum_hash_or_manifest(tmp_path: Path) -> None:
+    described = CONTRACT.replace(
+        "        dtype: string\n", "        dtype: string\n        description: The label.\n"
+    )
+    assert described != CONTRACT
+    plain = _compile(_project(tmp_path / "plain", CONTRACT))
+    other = _compile(_project(tmp_path / "described", described))
+    assert other["nodes"] == plain["nodes"]
+    assert other["metadata"]["plan_hash"] == plain["metadata"]["plan_hash"]
+
+
 def test_the_docs_site_shows_the_columns(tmp_path: Path) -> None:
     outcome = Project(_options(_project(tmp_path, CONTRACT))).compile()
     assert outcome.value is not None

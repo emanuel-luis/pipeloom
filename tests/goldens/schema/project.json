@@ -506,6 +506,265 @@
       "title": "ExpectationConfig",
       "type": "object"
     },
+    "FolderSettings": {
+      "additionalProperties": {
+        "$ref": "#/$defs/FolderSettings"
+      },
+      "description": "One folder of the `models:` tree in pipeloom.yml: settings written as `+key`, and\nsub-folders written as plain keys.",
+      "properties": {
+        "+catalog": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Catalog of the target relation; wins over the naming strategy's catalog.",
+          "title": "+Catalog"
+        },
+        "+cluster_by": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Clustering columns.",
+          "title": "+Cluster By"
+        },
+        "+expectations": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ExpectationConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Data quality expectations.",
+          "title": "+Expectations"
+        },
+        "+frame_api": {
+          "anyOf": [
+            {
+              "enum": [
+                "native",
+                "narwhals"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Frame type passed to Python bodies.",
+          "title": "+Frame Api"
+        },
+        "+incremental": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IncrementalConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Incremental processing."
+        },
+        "+materialized": {
+          "anyOf": [
+            {
+              "enum": [
+                "table",
+                "incremental",
+                "view",
+                "ephemeral",
+                "intermediate"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How the model is stored.",
+          "title": "+Materialized"
+        },
+        "+meta": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free-form metadata.",
+          "title": "+Meta"
+        },
+        "+partition_by": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Partition columns.",
+          "title": "+Partition By"
+        },
+        "+quality": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QualityConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Quarantine settings."
+        },
+        "+retries": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Retries after a failure.",
+          "title": "+Retries"
+        },
+        "+retry_delay": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Base delay between retries.",
+          "title": "+Retry Delay"
+        },
+        "+retry_on": {
+          "anyOf": [
+            {
+              "enum": [
+                "transient",
+                "any"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Which failures are retried.",
+          "title": "+Retry On"
+        },
+        "+schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Schema (namespace) of the target relation.",
+          "title": "+Schema"
+        },
+        "+tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tags used by selectors.",
+          "title": "+Tags"
+        },
+        "+timeout": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time limit per attempt.",
+          "title": "+Timeout"
+        },
+        "+write": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WriteConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Write behaviour."
+        }
+      },
+      "title": "FolderSettings",
+      "type": "object"
+    },
     "FreshnessCheck": {
       "additionalProperties": false,
       "properties": {
@@ -1074,6 +1333,220 @@
       "title": "SinkBlock",
       "type": "object"
     },
+    "SourceGroupConfig": {
+      "additionalProperties": false,
+      "description": "A group of source tables that share a format, a location or a schema.",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the group holds.",
+          "title": "Description"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "File or table format of its tables.",
+          "title": "Format"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Base path or URI that table locations are joined to.",
+          "title": "Location"
+        },
+        "meta": {
+          "additionalProperties": true,
+          "description": "Free-form metadata.",
+          "title": "Meta",
+          "type": "object"
+        },
+        "options": {
+          "additionalProperties": true,
+          "description": "Reader options.",
+          "title": "Options",
+          "type": "object"
+        },
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Schema that qualifies table names.",
+          "title": "Schema"
+        },
+        "tables": {
+          "description": "Tables by name. An empty entry reads the table named by its key.",
+          "patternProperties": {
+            "^[A-Za-z_][A-Za-z0-9_]*$": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/SourceTableConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "title": "Tables",
+          "type": "object"
+        },
+        "tags": {
+          "description": "Tags used by selectors.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        }
+      },
+      "title": "SourceGroupConfig",
+      "type": "object"
+    },
+    "SourceTableConfig": {
+      "additionalProperties": false,
+      "description": "One table of a source group. Keys it leaves out come from the group.",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the table holds.",
+          "title": "Description"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "File or table format; replaces the group format.",
+          "title": "Format"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Path joined to the group location.",
+          "title": "Location"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free-form metadata, merged over the group meta.",
+          "title": "Meta"
+        },
+        "options": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Reader options, merged over the group options.",
+          "title": "Options"
+        },
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Schema that qualifies the table name; replaces the group schema.",
+          "title": "Schema"
+        },
+        "table": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Table name, qualified by the group schema. Without location or table, the key is used.",
+          "title": "Table"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tags added to the group tags.",
+          "title": "Tags"
+        }
+      },
+      "title": "SourceTableConfig",
+      "type": "object"
+    },
     "TargetConfig": {
       "additionalProperties": false,
       "description": "One deployment target.",
@@ -1362,6 +1835,25 @@
               "type": "null"
             }
           ]
+        },
+        "sources": {
+          "anyOf": [
+            {
+              "patternProperties": {
+                "^[A-Za-z_][A-Za-z0-9_]*$": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Source group overrides, deep-merged over the groups; an explicit null removes a key.",
+          "title": "Sources"
         },
         "state": {
           "description": "State store plugin.",
@@ -1771,6 +2263,10 @@
       "title": "Model Paths",
       "type": "array"
     },
+    "models": {
+      "$ref": "#/$defs/FolderSettings",
+      "description": "Model settings by folder: `+key` settings apply to every model below that folder, and\nplain keys name sub-folders of model_paths. Root `+key` settings are project defaults."
+    },
     "name": {
       "description": "Project name.",
       "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
@@ -1897,6 +2393,16 @@
       },
       "title": "Python Paths",
       "type": "array"
+    },
+    "sources": {
+      "description": "Source groups by name.",
+      "patternProperties": {
+        "^[A-Za-z_][A-Za-z0-9_]*$": {
+          "$ref": "#/$defs/SourceGroupConfig"
+        }
+      },
+      "title": "Sources",
+      "type": "object"
     },
     "state": {
       "description": "State store plugin.",

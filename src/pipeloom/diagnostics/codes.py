@@ -749,6 +749,18 @@ _ACTIVE_09: Final = (
         "Data test failed",
         "A data test with on_violation: fail found violations in the written table: nulls, duplicate keys, or child keys with no parent row. Data tests run after the write and the watermark commit, so the data stays written; the unit fails, its descendants are skipped and the run exits 1. Permanent: only retry_on: any retries it.",
     ),
+    (
+        "PLP416",
+        E,
+        "scd2 options conflict",
+        "A model writing with scd2 sets an option the strategy cannot apply: an empty tracked_columns, a tracked column that is part of unique_key, deletes with mode: soft, or a unique_key, tracked_columns, partition_by, cluster_by, deletes.column or contract column named valid_from, valid_to or is_current (scd2 adds those columns itself).",
+    ),
+    (
+        "PLR209",
+        E,
+        "Properties entry names no model, or describes one twice",
+        "An entry of a properties file (a models entry without sql or python) names a model that does not exist, or a model that another properties entry already describes. Each model has at most one properties entry. The hint suggests the closest model name, or points at the first entry.",
+    ),
 )
 
 

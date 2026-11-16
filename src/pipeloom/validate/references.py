@@ -25,8 +25,27 @@ def _plr208(
     )
 
 
-def check_references(project: ResolvedProject, report: Report) -> None:
-    """Report PLR201, PLR202, PLR203 and PLR205. The caller stops before the graph on errors."""
+def check_references(
+    project: ResolvedProject, report: Report, *, models_incomplete: bool = False
+) -> None:
+    """Report PLR201, PLR202, PLR203, PLR205 and PLR209. The caller stops before the graph on
+    errors. `models_incomplete` (some model modules could not be loaded) suppresses PLR209,
+    whose entries may describe the models that are missing."""
+    model_names = [m.name for m in project.models.values()]
+    for p in () if models_incomplete else project.properties_problems:
+        if p.first is None:
+            message = f"properties entry names no model '{p.name}'"
+            hint = suggest(p.name, model_names)
+        else:
+            message = f"model '{p.name}' is already described by another properties entry"
+            hint = f"first described in {p.first.file}:{p.first.line}"
+        report.add(
+            "PLR209",
+            message,
+            location=project.locate(p.file, f"{p.pointer}/name"),
+            hint=hint,
+            context={"model": p.name},
+        )
     for kind, code, first_of, shadowed in (
         ("model", "PLR202", project.models, project.shadowed_models),
         ("source", "PLR205", project.sources, project.shadowed_sources),
@@ -41,7 +60,6 @@ def check_references(project: ResolvedProject, report: Report) -> None:
                 hint=f"first defined in {there.file}:{there.line}",
                 context={"name": dup.name, "first": first.file},
             )
-    model_names = [m.name for m in project.models.values()]
     source_names = [s.name for s in project.sources.values()]
     for m in project.models.values():
         for alias, binding in m.inputs.items():

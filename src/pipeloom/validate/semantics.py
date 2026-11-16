@@ -5,12 +5,14 @@ from __future__ import annotations
 from pipeloom.config.models import DataTestConfig, ResolvedModelConfig
 from pipeloom.config.resolve import ResolvedModel, ResolvedProject
 from pipeloom.diagnostics import JsonValue, Location, Report
+from pipeloom.engine.types import SCD2_COLUMNS
 from pipeloom.graph.dag import Graph, ProjectGraph, inlined_ancestors
 
 PERSISTED = ("table", "incremental", "intermediate")
 _KEYED = ("merge", "scd2")
 _NO_ROWS = ("view", "ephemeral")
 _AGGREGATE_CHECKS = ("unique", "row_count", "freshness")
+_SCD2 = tuple(c.name for c in SCD2_COLUMNS)
 
 
 def effective_strategy(config: ResolvedModelConfig) -> str | None:
@@ -32,8 +34,36 @@ def _lookback_append(m: ResolvedModel) -> bool:
     )
 
 
+def _scd2_problems(m: ResolvedModel) -> list[str]:
+    """PLP416: what an scd2 model sets that conflicts with the strategy (ADR-0008 amendment)."""
+    c, w = m.config, m.config.write
+    out: list[str] = []
+    named = {
+        "unique_key": w.unique_key or [],
+        "tracked_columns": w.tracked_columns or [],
+        "partition_by": c.partition_by,
+        "cluster_by": c.cluster_by,
+        "deletes.column": [w.deletes.column] if w.deletes else [],
+        "columns": [col.name for col in m.entry.columns or []],
+    }
+    out += [
+        f"{opt} names system column '{n}'" for opt, ns in named.items() for n in ns if n in _SCD2
+    ]
+    if w.tracked_columns is not None and not w.tracked_columns:
+        out.append("tracked_columns is empty")
+    overlap = [n for n in w.tracked_columns or [] if n in (w.unique_key or [])]
+    out += [f"tracked column '{n}' is part of unique_key" for n in overlap]
+    if w.deletes is not None and w.deletes.mode != "hard":
+        out.append("deletes.mode is soft")
+    return out
+
+
 def where(project: ResolvedProject, m: ResolvedModel, field: str, sub: str = "") -> Location:
-    """The model's own `field` (and `sub` pointer below it) when it sets one, else its name."""
+    """Where the winning layer sets `field` (and `sub` below it), else the model's name."""
+    origin = m.origins.get(field)
+    if origin is not None:
+        loc = origin.location
+        return project.locate(loc.file or m.file, f"{loc.json_pointer or ''}{sub}")
     if field in m.own_fields:
         return project.locate(m.file, f"{m.pointer}/{field}{sub}")
     return project.locate_model(m)
@@ -125,6 +155,16 @@ def _check_model(project: ResolvedProject, m: ResolvedModel, report: Report) -> 
             "partition_by",
             "set partition_by to the partition columns",
         )
+    if strategy == "scd2":
+        problems = _scd2_problems(m)
+        if problems:
+            err(
+                "PLP416",
+                f"scd2 options of model '{m.name}' conflict: {'; '.join(problems)}",
+                "write",
+                f"the columns {', '.join(_SCD2)} are added by scd2; tracked_columns must be "
+                "non-empty and outside unique_key, and deletes must use mode: hard",
+            )
     # Only what the entry itself declares can be a mistake: defaults reach every model.
     declared = m.entry.write.model_fields_set if m.entry.write is not None else frozenset[str]()
     unused: list[tuple[str, str]] = []  # (option, pointer below the model)

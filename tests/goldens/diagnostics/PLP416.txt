@@ -1,0 +1,4 @@
+error PLP416 models/m.yml:6:7 scd2 options of model 'a' conflict: deletes.column names system column 'is_current'; tracked_columns is empty; deletes.mode is soft
+      hint: the columns valid_from, valid_to, is_current are added by scd2; tracked_columns must be non-empty and outside unique_key, and deletes must use mode: hard
+error PLC501 models/m.yml:6:17 engine 'memory' does not support strategy 'scd2' (model 'a')
+      hint: supported: append, merge, overwrite, replace_partitions

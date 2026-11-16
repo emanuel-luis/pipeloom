@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Any, Literal
 
-from pipeloom import __version__
+from pipeloom._version import __version__
 from pipeloom.config.models import ResolvedModelConfig
 from pipeloom.config.resolve import ResolvedModel
 from pipeloom.diagnostics import Report

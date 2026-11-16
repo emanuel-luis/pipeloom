@@ -40,4 +40,8 @@ A developer who changes one model wants to build that model and what depends on 
 
 ## Status
 
-Accepted.
+Accepted. Amended in 0.9 by [ADR-0050](0050-python-first-authoring.md).
+
+## Amendment 0.9 (ADR-0050)
+
+With Python-first authoring ([ADR-0050](0050-python-first-authoring.md)) the checksum formula keeps its shape: the resolved config, the `callable`, a NUL byte and the bytes of the model's module file, plus `columns` without their `description`. The resolved config now includes what properties files and the `models:` tree of `pipeloom.yml` set, so a change in either marks the node modified. The body is always a module file, and editing any function in it marks every model of that file modified; this is conservative and accepted. Checksums and plan hashes change once for every project.

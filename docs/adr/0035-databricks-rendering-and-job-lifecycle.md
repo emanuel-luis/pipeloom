@@ -44,8 +44,12 @@ The job is a plain JSON document that a person can read, diff and send to the Jo
 
 ## Status
 
-Accepted (first half: rendering, wrapper and bundle command; second half: run, repair and finalize states).
+Accepted (first half: rendering, wrapper and bundle command; second half: run, repair and finalize states). Amended in 0.9 by [ADR-0050](0050-python-first-authoring.md).
 
 ## Date
 
 2026-11-05
+
+## Amendment 0.9 (ADR-0050)
+
+With Python-first authoring ([ADR-0050](0050-python-first-authoring.md)) the upload set of `deploy` and `run --ephemeral` is `pipeloom.yml`, the `.py` file of every node, every `*.py` under `python_paths`, the properties YAML files under `model_paths` (not read at run time, uploaded so the folder mirrors the project) and the stable manifest. A task never runs discovery: it imports the one module named by the node's `callable`. Modules found through `model_packages` are not uploaded; they must be installed in the job environment (for example through the compute's `dependencies`), and the plugin guide says so.

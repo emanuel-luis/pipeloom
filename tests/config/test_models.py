@@ -118,7 +118,8 @@ def test_expectation_needs_check_or_expr() -> None:
 
 
 def test_resolved_fields_match_settings() -> None:
-    assert list(ResolvedModelConfig.model_fields) == list(ModelSettings.model_fields)
+    resolved_fields = list(ResolvedModelConfig.model_fields)
+    assert resolved_fields == [*ModelSettings.model_fields, "description"]
     resolved = ResolvedModelConfig()
     assert (resolved.materialized, resolved.retries, resolved.frame_api) == ("table", 0, "native")
     assert resolved.write.on_schema_change == "fail"

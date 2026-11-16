@@ -2,14 +2,15 @@
 
 > **Status:** 0.7 implements the versions listed in section 16: the scheduler, the polars, pandas and Spark engines, incremental models, merge and replace_partitions, expectations and quarantine, retries, timeouts and cancellation, the Databricks and Airflow integrations, and per-model catalogs. Planned work lives in the [roadmap](roadmap.md).
 > Decisions are recorded as ADRs in [adr/](adr/README.md). Diagrams are D2 sources in [diagrams/](diagrams/) with committed SVGs.
+> Model authoring changes in 0.9 ([ADR-0050](adr/0050-python-first-authoring.md)): models become decorated Python functions, and YAML keeps the project and properties files. Text marked "from 0.9" describes that planned design; through 0.8 every model is declared in a YAML model file ([ADR-0003](adr/0003-model-authoring.md), superseded), and that legacy path keeps working on main until it is removed before 0.9.0.
 
 ## 1. Vision, goals, non-goals, principles
 
-**Vision.** A small, typed framework. Pipelines are declared in YAML and compiled into an immutable plan. That plan runs the same way on pandas, polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG. Every run produces a single event stream and artifacts you can query.
+**Vision.** A small, typed framework. Models are written in Python and the project and properties in YAML (from 0.9; through 0.8 pipelines are declared in YAML), then compiled into an immutable plan. That plan runs the same way on pandas, polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG. Every run produces a single event stream and artifacts you can query.
 
-**Goals:** declarative YAML with layered validation and editor completion; an engine-agnostic core with one plugin per tool; end-to-end events and styled logs; persisted metadata for each run and each model; a Databricks one-job renderer; a cosmos-style Airflow integration; open-source hygiene.
+**Goals:** Python models with a typed decorator, and YAML project and properties files with layered validation and editor completion; an engine-agnostic core with one plugin per tool; end-to-end events and styled logs; persisted metadata for each run and each model; a Databricks one-job renderer; a cosmos-style Airflow integration; open-source hygiene.
 
-**Non-goals (through 1.0):** streaming; a scheduler service, or any UI that starts, schedules or changes runs ([ADR-0043](adr/0043-docs-site.md)); a portable SQL dialect; Jinja templating; running user code at compile time; Airflow 2 support.
+**Non-goals (through 1.0):** streaming; a scheduler service, or any UI that starts, schedules or changes runs ([ADR-0043](adr/0043-docs-site.md)); a portable SQL dialect; Jinja templating; running user code at compile time (from 0.9: user code runs at compile time only for modules with dynamic decorator arguments, [ADR-0050](adr/0050-python-first-authoring.md)); Airflow 2 support.
 
 **Principles. Each answers a lesson (L) from the concept spec.**
 1. One event stream. Logs, metrics, artifacts and lineage subscribe to it (L1).
@@ -24,13 +25,15 @@
 10. Platform behavior is injected: clock, identity, catalog, secrets (L11).
 11. Incremental logic is a declared key plus a lookback, with a watermark store (L12).
 12. Retries, timeouts, data quality, persisted metadata, selectors, schema-change policy, SCD2 and deletes are all first-class (L13).
-13. YAML first, with JSON Schema (L14).
+13. Python-first models, YAML with JSON Schema for the project and properties (L14; from 0.9, [ADR-0050](adr/0050-python-first-authoring.md); through 0.8 YAML first).
 
 ## 2. Glossary
 
-- **Project:** a directory with `pipeloom.yml` and model files.
-- **Model:** a named dataset built from declared inputs by a Python callable or a SQL body.
-- **Source:** an external dataset declared in YAML.
+- **Project:** a directory with `pipeloom.yml` and model files (from 0.9: Python model modules and properties YAML files).
+- **Model:** a named dataset built from declared inputs. From 0.9 it is a Python function marked with `@model`, whose parameters are its inputs; through 0.8 it is a YAML entry with a Python callable or a SQL body.
+- **Source:** an external dataset declared in YAML. From 0.9 sources are tables in named groups under `sources:` in `pipeloom.yml`, with the unique id `source.<project>.<group>.<table>`.
+- **Properties file:** (from 0.9) any `*.yml` or `*.yaml` under `model_paths` other than `pipeloom.yml`; it describes and configures models by name and never declares one.
+- **Folder config:** (from 0.9) the `models:` tree of `pipeloom.yml`, whose `+key` settings apply to the models of a folder and its subfolders.
 - **Target:** a named runtime environment (engine, catalog, naming, state store).
 - **Materialization:** `table`, `incremental`, `view`, `ephemeral` or `intermediate`.
 - **Write strategy:** `append`, `overwrite`, `replace_partitions`, `merge` or `scd2`.
@@ -60,6 +63,8 @@ Source: [01-context.d2](diagrams/01-context.d2).
 CLI / Python API (pipeloom.api.Project)
   ├─ diagnostics  Diagnostic, Report, Outcome and the error-code catalog (`pipeloom.diagnostics.codes`); a leaf package
   ├─ platform   Clock and Identity seams
+  ├─ authoring  `@model`, `ModelSpec`, `ref`, `source`, `var` and the check helpers (from 0.9)
+  ├─ discovery  AST resolver, discovery cache, ModuleLoader, load summary (from 0.9)
   ├─ config     YAML loader with line marks, pydantic models, defaults resolution, target binding, schema export
   ├─ validate   L2 references, L4 plan semantics, L5 capabilities, L6 static code (L0-L1 live in config, L3 in graph)
   ├─ graph      DAG, selectors, topological order, cycle paths
@@ -84,21 +89,23 @@ Source: [02-packages.d2](diagrams/02-packages.d2).
 
 **Lifecycle.** Each stage is a pure function from the previous stage's output. Every stage emits events.
 
-1. **Load:** discover YAML files, then parse them while recording file, line and column for every node.
-2. **Validate schema:** pydantic models (L0-L1).
-3. **Resolve graph:** bind refs and sources, apply defaults and precedence, apply naming strategies to get physical names, apply selectors (L2-L3). A model's `schema` goes to the naming strategy; a model's `catalog` (model file, folder `_defaults.yml` or `defaults.models`, same cascade as `schema`) replaces the catalog of the relation the strategy returns, so naming strategies keep transforming only the schema ([ADR-0040](adr/0040-per-model-catalog.md)). Path catalogs (`filesystem`, `delta_path`) lay a table out at `<root>/<catalog>/<schema>/<name>/` when the relation has a catalog; catalogs with a catalog level (`spark_catalog`, `unity`) never create the catalog, only the schema.
+1. **Load:** discover YAML files, then parse them while recording file, line and column for every node. From 0.9 the same scan also finds Python model files: an AST pass resolves static `@model` decorators without importing, the discovery cache skips unchanged files, and an import pass loads only the modules with dynamic decorator arguments (section 4).
+2. **Validate schema:** pydantic models (L0-L1), over YAML and, from 0.9, over decorator arguments.
+3. **Resolve graph:** bind refs and sources (from 0.9, function parameters), apply defaults and precedence, apply naming strategies to get physical names, apply selectors (L2-L3). A model's `schema` goes to the naming strategy; a model's `catalog` (same cascade as `schema`: through 0.8 the model file, folder `_defaults.yml` or `defaults.models`; from 0.9 the decorator, properties and the `models:` tree) replaces the catalog of the relation the strategy returns, so naming strategies keep transforming only the schema ([ADR-0040](adr/0040-per-model-catalog.md)). Path catalogs (`filesystem`, `delta_path`) lay a table out at `<root>/<catalog>/<schema>/<name>/` when the relation has a catalog; catalogs with a catalog level (`spark_catalog`, `unity`) never create the catalog, only the schema.
 4. **Validate plan:** semantics, plugin capabilities and static code checks (L4-L6).
 5. **Compile:** fuse ephemeral models into units for the chosen boundary, then freeze. Output is `Plan` plus `manifest.json` with a `plan_hash` (sha256 of the canonical JSON of nodes, sources, units, edges and the project, target, boundary and config version; selection, versions, timestamps and ids are excluded).
 6. **Execute:** the scheduler runs units through an executor. Orchestrated tasks run `pipeloom run --manifest ... --select unit:<id> --expect-plan-hash <h>`.
 7. **Finalize:** merge per-invocation results, write `run_results.json`, commit run state, flush and close sinks.
 
-**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `new model` (add a model file and, for Python, its stub; ADR-0041 amendment), `validate`, `compile`, `ls`, `graph`, `run`, `retry` (run again what a finished run did not finish, ADR-0013 amendment), `finalize`, `docs generate|serve` (a read-only one-file site, [ADR-0043](adr/0043-docs-site.md)), `schema export`, `explain` (print a diagnostic code's catalog entry and docs link) and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
+**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `new model` (add a model file and, for Python, its stub; from 0.9 one decorated `.py` file; ADR-0041 amendments), `validate`, `compile`, `ls`, `graph`, `run`, `retry` (run again what a finished run did not finish, ADR-0013 amendment), `finalize`, `docs generate|serve` (a read-only one-file site, [ADR-0043](adr/0043-docs-site.md)), `schema export`, `explain` (print a diagnostic code's catalog entry and docs link) and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
 
 ![The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize.](diagrams/03-lifecycle.svg)
 
 Source: [03-lifecycle.d2](diagrams/03-lifecycle.d2).
 
 ## 4. Configuration
+
+From 0.9 ([ADR-0050](adr/0050-python-first-authoring.md)) a project is one `pipeloom.yml`, Python model modules and optional properties files. This section describes that planned design; the YAML model files of 0.8 are summarized under "Legacy model files" below.
 
 **Project file.**
 
@@ -107,14 +114,24 @@ Source: [03-lifecycle.d2](diagrams/03-lifecycle.d2).
 config_version: 1
 name: shop
 model_paths: [models]
-python_paths: [src]            # added to sys.path at execution only
+python_paths: ["."]            # default; model modules are imported relative to these roots
 vars:
   country: BR
-defaults:
-  models:
-    materialized: table
-    retries: 1
-    timeout: 30m
+models:                        # folder config, from 0.9
+  +materialized: table         # root +keys are project defaults
+  +retries: 1
+  +timeout: 30m
+  marts:
+    +tags: [daily]
+sources:                       # source groups, from 0.9
+  raw:
+    format: parquet
+    location: data/raw
+    tables:
+      orders:
+        location: orders/
+      customers:
+        location: customers/
 targets:
   dev:
     engine:
@@ -161,7 +178,55 @@ events:
       failure_budget: 5
 ```
 
-**Model files.** Any `*.yml` under `model_paths`.
+**Sources (from 0.9).** `sources` maps a group name to `format`, `location`, `schema`, `options`, `tags`, `meta` and `tables`. A table may set the same keys plus `location` or `table`: a table `location` is joined to the group `location`, a table `table` is qualified by the group `schema`. A table entry whose merged result has no `location` and no `table` uses its key as `table`, qualified by the group `schema`; one with both is PLS108. `targets.<t>.sources.<group>` deep-merges over the group, and an explicit `null` removes a key, so a prod target can read the same tables from a catalog. Sources in properties files are rejected for now.
+
+**Models (from 0.9).** A model is a function marked with `@model` in any `*.py` file under `model_paths` (a directory scanned recursively, or a glob) or inside a package named in `model_packages`. Every model file must lie under a `python_paths` root.
+
+```python
+from pipeloom import ModelContext, Write, model
+
+@model(materialized="incremental",
+       incremental={"input": "orders", "column": "updated_at", "lookback": "2d"},
+       write=Write(strategy="merge", unique_key=["order_id"]))
+def fct_orders(ctx: ModelContext, orders, stg_customers):
+    return ctx.sql("select o.*, c.name from orders o join stg_customers c using (customer_id)")
+```
+
+- Parameters are the inputs. Each binds in this order: (1) an `inputs=` entry (`ref(...)`, `source(...)` or a bare name, which resolves by steps 3 and 4); (2) a parameter with a default is never an input unless `inputs=` lists it; (3) a model of that name other than the model itself; (4) a source table of that name when exactly one group has it; (5) anything else is PLR201. A table name in two groups is PLR210. `ctx` is optional and reserved.
+- The default name is the function name, and a file may hold several models. Decorator arguments use the YAML keys, as plain dicts or as the re-exported config models (`Write`, `Incremental`, `Column`, `Expectation`, `Quality`, `Deletes`), plus the helpers `ref`, `source`, `var` and the check helpers (`not_null`, `unique`, `accepted_values`, `between`, `regex`, `row_count`, `freshness`).
+- SQL runs through `ctx.sql(query, *, dialect=None, inputs=None)` against the inputs by alias (section 5). There are no SQL model files.
+
+**Properties files (from 0.9).** Any `*.yml` or `*.yaml` under `model_paths` except `pipeloom.yml`. They describe and configure models; they never create one or set `inputs`.
+
+```yaml
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+models:
+  - name: fct_orders
+    description: One row per order.
+    config:
+      partition_by: [order_date]
+      tags: [finance]
+    columns:
+      - name: order_id
+        dtype: int64
+        nullable: false
+    data_tests:
+      - name: order_id_unique
+        check:
+          unique: [order_id]
+        on_violation: fail
+```
+
+An entry that names no model, or a model another entry already describes, is PLR209 (suppressed while any PLY005 exists). `unit_tests` also live here (ADR-0045).
+
+**Discovery (from 0.9).** One scan of `model_paths` and `model_packages` finds model modules and properties files.
+- An AST pass parses every `.py` file that imports pipeloom. A `@model` on a top-level `def` whose arguments are all static (literals, containers of static values, or calls to known helpers and re-exported config classes on static values) is resolved without importing the module. Any other use makes the module dynamic. Unknown keywords are PLS101 from the AST in both cases.
+- Dynamic modules, and only those, are imported through `pipeloom.discovery.loader.ModuleLoader`, which puts the `python_paths` roots on `sys.path` under a process-wide lock and purges the project's modules on exit. Each module that cannot be loaded is one PLY005; loading never stops at the first.
+- `<project>/.pipeloom/cache/discovery.json` caches static results per file, keyed by path, `mtime_ns`, size and the pipeloom and Python versions. Dynamic modules are always imported again. The cache is never part of the manifest or the plan hash, and a failed write is ignored.
+- `Discovery.refresh()` re-reads changed files and re-imports dynamic modules for long-lived processes such as `docs serve`.
+- An executor running a unit from a manifest never runs discovery: it imports the one module named by its node's `callable`. Any invocation that compiles runs discovery, including `pipeloom run` without `--manifest` and every unit task in Airflow PROJECT mode, so dynamic modules are imported there too.
+
+**Legacy model files (through 0.8, removed before 0.9.0).** Any `*.yml` under `model_paths` with `sources:` and `models:` lists, each model with a SQL body or a `python: module:function` pointer and an `inputs` map. Both paths coexist on main, with no warning, until the removal; one project may mix them.
 
 ```yaml
 sources:
@@ -204,27 +269,24 @@ models:
 
 Model-only keys (0.9, [ADR-0045](adr/0045-unit-and-data-tests.md)), which defaults cannot set: `unit_tests` (cases `{name, given, expect}`, also allowed as a top-level `unit_tests` list whose entries name a `model`) and `data_tests` (`{name, check: {not_null | unique | relationships: {column, to: {ref | source}, field}}, on_violation: warn | fail}`). Unit tests stay out of the manifest; `data_tests` appears as `nodes[].data_tests` and enters the node checksum only when declared.
 
-`_defaults.yml` files set folder-level defaults. They cascade from the model's own folder up to its `model_paths` root, nearest first; mappings merge deeply, lists replace and `tags` is an ordered union without duplicates.
+Legacy `_defaults.yml` files set folder-level defaults. They cascade from the model's own folder up to its `model_paths` root, nearest first; mappings merge deeply, lists replace and `tags` is an ordered union without duplicates. From 0.9 they and `defaults.models` map onto the folder and project layers of the `models:` tree until they are removed.
 
-**ADR-0003: Model authoring.**
-- Context: L2 and L14 require declared dependencies and YAML validation. Users still need a real transformation language.
-- Options: YAML-only (too weak for transformations), YAML plus Python, YAML plus SQL, or YAML plus both.
-- Choice: YAML declares every model. The body is either a Python callable or a SQL body. The `inputs` map binds local aliases to `ref` or `source`.
-  - A Python callable is called as `build(ctx, **inputs)`. Each alias becomes a keyword argument holding a relation.
-  - SQL refers to aliases as table names. The engine registers them as named relations for that query only.
-  - At compile time pipeloom imports nothing from the project. L6 parses the callable's file with `ast` to check that the function exists and that its parameters equal `ctx` plus the input aliases.
-  - Opt-in SQL table-reference checking via the sqlglot extra warns on mismatch.
-- Consequences: graphs are cheap to build, so Airflow can parse DAG files safely. No Jinja. Reads of undeclared tables through `ctx.engine.native` are a documented escape hatch outside lineage.
+**ADR-0050: Python-first model authoring** (supersedes ADR-0003, which made YAML declare every model).
+- Context: a YAML-declared Python model was written twice, once in YAML and once as a function whose parameters had to match (PLK602). A benchmark of 1,000 models measured about 11 s to import every module and 1.4 s to parse them with `ast`.
+- Options: keep YAML-first; Python-first with static discovery only (no computed config); Python-first importing every module (slow, runs user code on every compile); Python-first with hybrid discovery.
+- Choice: hybrid. Every model is a decorated Python function; YAML holds the project, folder config, sources, targets and properties. The compiler resolves static decorators from the AST and imports only dynamic modules, with a per-file cache. SQL runs through `ctx.sql`. Dependencies stay declared through parameters and `inputs=`, never traced.
+- Consequences: a model is written once, with typed completion. Most compiles run no user code; a dynamic module runs its code at compile time. Every project is rewritten once, with no deprecation release, and plan hashes change once.
 
-**JSON Schema.** `pipeloom schema export --out schemas/` writes `project.json`, `models.json` and `defaults.json` (draft 2020-12) from the pydantic models.
+**JSON Schema.** `pipeloom schema export --out schemas/` writes `project.json`, `models.json` and `defaults.json` (draft 2020-12) from the pydantic models. From 0.9 it writes `project.json` and `properties.json`; `models.json` and `defaults.json` stop being published under `latest/` with the removal of the legacy path (older version folders keep them).
 - Plugin option models (engine, catalog, sink, state) are composed as `oneOf` branches on `kind`, using the plugins that are installed (`--plugins builtin` limits it to the built-ins).
 - The docs site publishes the schemas of the built-in plugins under `latest/schema/v1/` (and under each version folder).
 - The modeline above enables completion in editors that use yaml-language-server.
 
 **Precedence.**
 - Runtime settings (highest first): CLI flags; `PIPELOOM_*` environment variables (for example `PIPELOOM_TARGET`, `PIPELOOM_WORKERS`); an optional git-ignored user file `~/.pipeloom/profiles.yml` with per-target overrides; the `targets.<t>` block; then top-level project keys.
-- Model config: the model entry; `_defaults.yml` files from the nearest folder up to the `model_paths` root; then `defaults.models`; then built-in defaults.
-- Targets may change runtime keys only (engine options, catalog, naming, state, workers, artifacts, deploy). `deploy` is a runtime key like the others: the target block wins over the top-level one. The core validates its options with the `config_model` of the `renderers` plugin it names (the factory is never called), records them in the manifest as `metadata.deploy` (not part of the plan hash) and resolves nothing in them at runtime except `${secret:...}` references in plugin options. They may not change model semantics, so plans differ across targets only in physical names and runtime settings.
+- Model config, from 0.9: the `@model` decorator; then the `config` of the model's properties entry; then the `models:` tree from the folder nearest the model up to the root; then the root `+keys`; then built-in defaults. Mappings deep-merge, lists replace, `tags` is an ordered union and an explicit `null` removes a key (YAML only). `columns` is a model key that the folder tree cannot set, and decorator columns replace properties columns whole. `ResolvedModel.origins` records the layer and location of each top-level key, so a diagnostic points at the layer that set the value; origins are not in the manifest.
+- Model config, through 0.8: the model entry; `_defaults.yml` files from the nearest folder up to the `model_paths` root; then `defaults.models`; then built-in defaults.
+- Targets may change runtime keys (engine options, catalog, naming, state, workers, artifacts, deploy) and, from 0.9, override source groups (`targets.<t>.sources`: format, location, schema, options, tables). `deploy` is a runtime key like the others: the target block wins over the top-level one. The core validates its options with the `config_model` of the `renderers` plugin it names (the factory is never called), records them in the manifest as `metadata.deploy` (not part of the plan hash) and resolves nothing in them at runtime except `${secret:...}` references in plugin options. They may not change model semantics, so plans differ across targets only in physical names, source relations and runtime settings.
 - Interpolation: `${env:NAME}`, `${env:NAME:-default}` and `${var:name}` resolve at compile time and are recorded in the manifest. `${secret:provider/path}` resolves only at runtime (section 14).
 
 ## 5. Core protocols
@@ -251,6 +313,7 @@ class EngineCapabilities:
     cancel: bool; bytes_metrics: bool; portable: bool   # Narwhals-compatible frames
     quality: bool                                       # evaluate and apply_drops (0.3)
     materializations: frozenset[str]                    # table, view, ephemeral (0.2)
+    sql_dialect: str | None = None                      # sqlglot dialect for ctx.sql (0.9, ADR-0050)
 
 @dataclass(frozen=True)
 class StateStoreCapabilities: shared: bool              # visible to every process and task of a run
@@ -367,6 +430,9 @@ The engine protocols above omit `Writer`, `Catalog.apply_grants` and `Catalog.ma
 **0.9 contract additions (plugin API (0, 5), [ADR-0047](adr/0047-run-history-and-webhook.md)).**
 - `StateStore.list_runs(project, target, limit, before=None)` returns the runs of one project and target, newest first by `(started_at, run_id)`, at most `limit`; `before` is a run id to page from, and an unknown one raises `UnknownRun`. `pipeloom.state.types.page_runs` does the ordering and paging for any store. The core calls it through `pipeloom.state.types.list_runs`, which raises `ListRunsUnsupported` (PLX117) for a store that lacks the method.
 - `EngineSession.from_rows(rows, schema) -> Relation`, `to_rows(rel) -> list[dict]` (plain Python values) and `orphans(rel, column, parent, field) -> int` (child rows whose non-null key has no parent row; NaN is null, parent nulls never match) serve unit tests and relationships data tests ([ADR-0045](adr/0045-unit-and-data-tests.md)). `pipeloom.engine.portable` has `to_rows` and an anti-join `orphans` for narwhals engines; Spark counts orphans with a `left_anti` join. An engine without them fails only when a test uses them (PLX115).
+- `EngineCapabilities.sql_dialect` (planned for 0.9, [ADR-0050](adr/0050-python-first-authoring.md)) names the engine's sqlglot dialect, or `None`. It is part of (0, 5), which is unreleased, so the version does not change.
+
+**`ModelContext.sql` (planned for 0.9, [ADR-0050](adr/0050-python-first-authoring.md)).** `ModelContext` keeps its fields and gains `sql(query, *, dialect=None, inputs=None)`, backed by a private callable the runner sets. The query sees the model's inputs by alias as read (after the incremental filter); `inputs=` adds or replaces frames by name. It returns the native frame, or a Narwhals frame under `frame_api: narwhals`. The dialect is the `dialect` argument, then the inheritable model setting `sql_dialect`, then the engine's own. Only when the chosen dialect differs from the engine's does `pipeloom.runtime.sql` translate the query with sqlglot `transpile`, imported lazily; without the sqlglot extra that is PLC513. pandas has no SQL and raises `SqlUnsupportedError` (PLX101 with a hint); L6 warns with PLK606 beforehand. In a `view` model the runner calls the function in view mode and `ctx.sql` returns a `ViewQuery` for `create_view`; any other return value is PLX120. The function is called by keyword: the input aliases, plus `ctx` when it is a parameter.
 
 **ADR-0002: Engine abstraction.**
 - Context: the spec (section 4) lists coupling in the return type, reads, schema, temporary views, writes, merge, metrics and catalog SQL.
@@ -418,16 +484,18 @@ Each finding is a `Diagnostic(code, severity, message, hint, location{file,line,
 
 | Layer | Prefix | Examples |
 |---|---|---|
-| L0 parse | PLY | PLY001 YAML syntax, several documents or an alias bomb; PLY002 duplicate key; PLY003 not valid UTF-8; PLY004 project or model file missing or unreadable |
+| L0 parse | PLY | PLY001 YAML syntax, several documents or an alias bomb; PLY002 duplicate key; PLY003 not valid UTF-8; PLY004 project or model file missing or unreadable; PLY005 model module cannot be loaded: syntax error, exception on import, file outside every `python_paths` root, or a module name that resolves to another file (0.9) |
 | L1 schema | PLS | PLS101 unknown field (with "did you mean"); PLS102 type mismatch; PLS103 unsupported `config_version`; PLS104 literal value in a secret-like field; PLS105 required field missing; PLS106 `${env:X}` unset or unknown `${var:x}`; PLS107 malformed interpolation; PLS108 exactly one of a set of fields required |
-| L2 references | PLR | PLR201 unknown ref (fuzzy suggestion); PLR202 duplicate model name; PLR203 unknown source; PLR204 unknown target or plugin kind; PLR205 duplicate source; PLR206 a `model_paths` entry does not exist (warning); PLR207 no target selected; PLR208 a unit test names an unknown model, a wrong set of inputs or a duplicate case name (0.9); a relationships data test's `to` reuses PLR201 and PLR203 (0.9) |
+| L2 references | PLR | PLR201 unknown ref (fuzzy suggestion); PLR202 duplicate model name; PLR203 unknown source; PLR204 unknown target or plugin kind; PLR205 duplicate source; PLR206 a `model_paths` entry does not exist (warning); PLR207 no target selected; PLR208 a unit test names an unknown model, a wrong set of inputs or a duplicate case name (0.9); a relationships data test's `to` reuses PLR201 and PLR203 (0.9); PLR209 properties entry names no model, or describes one twice (0.9); PLR210 input name matches a table in several source groups (0.9). From 0.9 PLR201, PLR202 and PLR203 are also located on a decorator or parameter in Python |
 | L3 graph | PLG | PLG301 cycle (prints the path); PLG302 self-reference; PLG303 selector matched nothing; PLG304 unknown selector method; PLG305 malformed selector; PLG306 `unit:` selector names an unknown unit (0.2); PLG307 `state:` or `result:` selector without `--state` (0.8); PLG308 `result:` selector and the `--state` folder has no run results (0.8) |
-| L4 plan semantics | PLP | PLP401 merge or scd2 without `unique_key`; PLP402 incremental without `column`; PLP403 aggregate expectation with `drop`; PLP404 `incremental.input` not in `inputs`; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 `replace_partitions` without `partition_by`; PLP408 ephemeral model with no consumer (warning); PLP409 a view needs a SQL model with no inlined ephemerals (0.2); PLP410 append with a lookback above zero reloads rows (warning, 0.3); PLP411 expectations on a view or ephemeral model (0.3); PLP412 `<model>__quarantine` is also a model in the same catalog and schema (0.3); PLP413 an `intermediate` model with `incremental`, a strategy other than overwrite, or `partition_by` (0.4); PLP414 `columns` (a contract) on a view or ephemeral model (0.9); PLP415 `data_tests` on an ephemeral model, or a relationships parent that is the model itself, a descendant, an ephemeral model or closes a cycle of relationship edges (0.9) |
-| L5 capability | PLC | PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL; PLC503 `boundary: task` with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries > 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 `frame_api: narwhals` without a portable engine; PLC509 materialization unsupported by the engine (0.3: the memory, polars and pandas engines accept `incremental`; 0.4: they and the Spark engine accept `intermediate`); PLC510 expectations, data tests (0.9) or non-nullable contract columns on an engine without the `quality` capability (0.3) |
-| L6 static code | PLK | PLK601 callable file or function not found; PLK602 parameters do not match inputs; PLK603 SQL references undeclared table (warning, active when the `sqlglot` extra is installed, 0.2); PLK604 callable name bound by something other than a def (warning); PLK605 SQL not parseable for that check (warning, 0.2) |
+| L4 plan semantics | PLP | PLP401 merge or scd2 without `unique_key`; PLP402 incremental without `column`; PLP403 aggregate expectation with `drop`; PLP404 `incremental.input` not in `inputs`; PLP405 write option not applied by this strategy (L9); PLP406 ephemeral fan-out above threshold (warning); PLP407 `replace_partitions` without `partition_by`; PLP408 ephemeral model with no consumer (warning); PLP409 a view needs a SQL model with no inlined ephemerals (0.2; narrowed in 0.9 to "a view cannot inline an ephemeral model"); PLP410 append with a lookback above zero reloads rows (warning, 0.3); PLP411 expectations on a view or ephemeral model (0.3); PLP412 `<model>__quarantine` is also a model in the same catalog and schema (0.3); PLP413 an `intermediate` model with `incremental`, a strategy other than overwrite, or `partition_by` (0.4); PLP414 `columns` (a contract) on a view or ephemeral model (0.9); PLP415 `data_tests` on an ephemeral model, or a relationships parent that is the model itself, a descendant, an ephemeral model or closes a cycle of relationship edges (0.9) |
+| L5 capability | PLC | PLC501 strategy unsupported by engine; PLC502 SQL model on an engine without SQL (retired in 0.9); PLC503 `boundary: task` with a non-shared state store (0.2); PLC504 catalog incompatible with engine; PLC505 non-idempotent append with retries > 0; PLC506 source format unsupported; PLC507 view without catalog views; PLC508 `frame_api: narwhals` without a portable engine; PLC509 materialization unsupported by the engine (0.3: the memory, polars and pandas engines accept `incremental`; 0.4: they and the Spark engine accept `intermediate`); PLC510 expectations, data tests (0.9) or non-nullable contract columns on an engine without the `quality` capability (0.3); PLC513 `ctx.sql` needs translation and the sqlglot extra is missing (0.9) |
+| L6 static code | PLK | PLK601 callable file or function not found (retired in 0.9); PLK602 parameters do not match inputs (from 0.9: `*args`, positional-only parameters, or an `inputs=` key that is not a parameter, emitted while binding); PLK603 SQL references undeclared table (warning, active when the `sqlglot` extra is installed, 0.2; from 0.9 on literal `ctx.sql` queries); PLK604 callable name bound by something other than a def (warning; retired in 0.9); PLK605 SQL not parseable for that check (warning, 0.2; from 0.9 on literal `ctx.sql` queries); PLK606 `ctx.sql` on an engine without SQL (warning, 0.9) |
 | L7 preflight (opt-in, connects) | PLF | PLF701 engine unreachable; PLF702 source missing; PLF703 target schema drift detected |
-| Runtime | PLX, PLM, PLQ, PLE, PLU | PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict (data already written; permanent); PLM205 watermark unusable (missing column, family mismatch or a lookback on a non-temporal column, 0.3); PLM206 write key invalid (missing key column or duplicate merge key, 0.3); PLM207 write refused by the idempotency guard: the engine skipped it because the model already has a later transaction version, nothing was written, permanent (0.4); PLM208 model contract violated: a missing or extra column, a type other than the declared `dtype`, or a null in a `nullable: false` column; nothing is written, permanent (0.9, [ADR-0044](adr/0044-model-contracts.md)); PLQ301 expectation failed or `max_drop_ratio` exceeded; PLQ302 expectation names an unknown column or an `expr` the engine rejects (0.3); PLQ303 data test failed after the write: the data stays written, permanent (0.9, [ADR-0045](adr/0045-unit-and-data-tests.md)); PLX114 unit test rows differ and PLX115 unit test cannot run (0.9); PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX105 run lock held (0.2); PLX106 unit process exited without a result (0.2); PLX107 manifest invalid (0.2); PLM204 input read failed (0.2); PLX109 a `${secret:provider/path}` reference could not be resolved (0.5); PLX110 the `--state` folder is unusable as a reference (0.8); PLX111 `--defer` refused: unit invocation, `boundary: task` or another catalog kind (0.8); PLX112 an unselected parent is read from this target instead of the reference (warning, 0.8) |
+| Runtime | PLX, PLM, PLQ, PLE, PLU | PLX101 model raised; PLX102 timeout; PLX103 plan-hash mismatch; PLX104 cancelled; PLM201 write failed; PLM202 schema change rejected; PLM203 watermark CAS conflict (data already written; permanent); PLM205 watermark unusable (missing column, family mismatch or a lookback on a non-temporal column, 0.3); PLM206 write key invalid (missing key column or duplicate merge key, 0.3); PLM207 write refused by the idempotency guard: the engine skipped it because the model already has a later transaction version, nothing was written, permanent (0.4); PLM208 model contract violated: a missing or extra column, a type other than the declared `dtype`, or a null in a `nullable: false` column; nothing is written, permanent (0.9, [ADR-0044](adr/0044-model-contracts.md)); PLQ301 expectation failed or `max_drop_ratio` exceeded; PLQ302 expectation names an unknown column or an `expr` the engine rejects (0.3); PLQ303 data test failed after the write: the data stays written, permanent (0.9, [ADR-0045](adr/0045-unit-and-data-tests.md)); PLX114 unit test rows differ and PLX115 unit test cannot run (0.9); PLE401 sink disabled; PLU001 plugin API mismatch; PLU002 duplicate plugin kind; PLU003 plugin failed to load; PLX105 run lock held (0.2); PLX106 unit process exited without a result (0.2); PLX107 manifest invalid (0.2); PLM204 input read failed (0.2); PLX109 a `${secret:provider/path}` reference could not be resolved (0.5); PLX110 the `--state` folder is unusable as a reference (0.8); PLX111 `--defer` refused: unit invocation, `boundary: task` or another catalog kind (0.8); PLX112 an unselected parent is read from this target instead of the reference (warning, 0.8); PLX120 a view model did not return `ctx.sql(...)` (0.9) |
 | Renderers | PLD, PLA | PLD001 job above 1,000 tasks including finalize; PLD002 reserved, never emitted (`runs/submit` shares the 1,000-task limit); PLD003 task groups form a cycle; PLD004 invalid deploy options; PLD005 compute rule matches no model (warning); PLD006 two jobs carry one `pipeloom_job` tag; PLD007 job or run not found; PLD008 deployed job out of date; PLD009 Databricks API request failed; PLD010 no connection configured; PLD011 task ended without a unit result; PLD012 project file cannot be uploaded; PLD013 dynamic value reference not resolved; PLD014 run still active; PLD015 partly selected task group runs whole (warning); PLA001 unsupported execution mode, or its extra is missing (0.6); PLA002 invalid Airflow plugin configuration (0.6); PLA003 selection renders no unit (warning, 0.6); PLA004 unit task ended without a visible unit result (0.6); PLA005 unsupported Airflow version (0.6); PLA006 PROJECT compile cache unusable (warning, 0.6); PLA007 target boundary is not `task` (warning, 0.6) |
+
+**Locations in Python (from 0.9, [ADR-0050](adr/0050-python-first-authoring.md)).** A finding on a model carries the `.py` file, the decorator's line and column and, for a keyword argument, that argument's own line and column from the AST, whether the model was resolved statically or imported. The JSON pointer reads `/@model/write/unique_key`. Pydantic errors map through `DecoratorSite.locate(pointer)`, which has the interface of `LoadedDocument.locate`. A retired code keeps its catalog entry with `status: retired` and the version, the docs page says "Retired in 0.9: no longer emitted", and it has no case file.
 
 **Commands:**
 - `pipeloom validate` runs L0-L6.
@@ -520,9 +588,9 @@ The watermark is committed after the write, and a retry with the same token repl
 | overwrite | replace data and schema | same |
 | replace_partitions | replace partitions present in the batch (`partition_by` required) | overwrite |
 | merge | `unique_key` equality; optional `update_condition`; an optional `deletes` block with `column`, `value` and `mode` (`hard` or `soft`); a missing key column or a duplicate key in the batch is PLM206; rows with a null key never match | overwrite |
-| scd2 | `unique_key`, `tracked_columns` (default all), columns `valid_from`, `valid_to`, `is_current`, row hash; deletes close the current row | rebuild |
+| scd2 | `unique_key`, `tracked_columns` (default all but the key and the delete column), columns `valid_from`, `valid_to`, `is_current`; tracked columns compared null-safely; hard deletes close the current row ([ADR-0008](adr/0008-incremental-and-state.md#amendment-09-scd2)) | rebuild |
 
-A full refresh writes append, merge and replace_partitions as overwrite. A first build (the target does not exist) keeps its strategy, because into an absent table every strategy writes the same rows and merge still checks its key. On filesystem tables (ADR-0025) every strategy writes one part file per partition when `partition_by` is set; replace_partitions swaps whole files without reading the others, and a merge rewrites the whole table in 0.3 as read-modify-write under a commit lock and an expected version. SCD2 is planned (section 16).
+A full refresh writes append, merge and replace_partitions as overwrite. A first build (the target does not exist) keeps its strategy, because into an absent table every strategy writes the same rows and merge still checks its key. On filesystem tables (ADR-0025) every strategy writes one part file per partition when `partition_by` is set; replace_partitions swaps whole files without reading the others, and a merge rewrites the whole table in 0.3 as read-modify-write under a commit lock and an expected version. An scd2 write rewrites the whole table the same way.
 
 **Idempotency:** each write receives `token = "<run_id>:<model>"`. Engines with transactional idempotency use it. Engines without it declare `idempotent_writes=False`.
 
@@ -537,8 +605,9 @@ A full refresh writes append, merge and replace_partitions as overwrite. A first
 | overwrite | `mode("overwrite")` with `overwriteSchema`, so any schema policy result is accepted |
 | replace_partitions | `replaceWhere` over the distinct partition tuples of the persisted batch (more than 10,000 tuples fails and recommends merge); works on physically partitioned and unpartitioned tables; an empty batch writes only the token commit |
 | merge | the claim commit, SQL `MERGE INTO`, then the token commit; null keys never match and insert; soft deletes are counted and moved from updated to deleted; a merge into a missing table is the first load, an append |
+| scd2 | a missing table is the first load: an append of the batch minus its delete rows, with `valid_from` set to the run start, `valid_to` null and `is_current` true; a full refresh writes the same rows as an overwrite. Otherwise the claim commit, then one SQL `MERGE INTO` whose source stages the batch twice: every row with its key copied to match keys (`__pipeloom_mk_<k>`) and a delete flag, and again with null match keys each row that changes a current row. A matched current row that is deleted or differs in a tracked column (`<=>`, NaN as null) closes at the run start; unmatched rows that are not deletes insert as current. The counts come from one query over the rows opened or closed at the run start, so a re-run MERGE reports the same, then the token commit |
 
-The schema policy (above) is applied by the core; the engine maps its result. Added columns go in the write itself (`mergeSchema`); a merge first makes an empty `mergeSchema` append instead. Removed or widened columns first run one migration commit: the table is read, aligned to the final columns and overwritten with `overwriteSchema`, keeping its partitioning. A migration commit carries no `txn` options and no token, so it never counts in the metrics; with the guard on, the claim commit before it takes the write version.
+The schema policy (above) is applied by the core; the engine maps its result. Added columns go in the write itself (`mergeSchema`); a merge or scd2 write first makes an empty `mergeSchema` append instead. Removed or widened columns first run one migration commit: the table is read, aligned to the final columns and overwritten with `overwriteSchema`, keeping its partitioning. A migration commit carries no `txn` options and no token, so it never counts in the metrics; with the guard on, the claim commit before it takes the write version.
 
 **Schema-change policy (`on_schema_change`):**
 - `fail` (default): any column added, removed or changed in type raises PLM202.
@@ -673,6 +742,7 @@ Long engine (JVM) traces are trimmed to the first user frame and the root cause.
 - `manifest.json` (`pipeloom.manifest/1`): `metadata{pipeloom_version, plugins, config_version, plan_hash, project, target, boundary, python_paths, vars, env_vars, generated_at, invocation_id}`, `nodes{unique_id: resolved config, body, inputs, relation, unit_ids, checksum}`, `sources`, `units{unit_id: [unique_ids]}`, `unit_parent_map{unit_id: [unit_ids]}`, `parent_map`, `child_map`, `selectors{select, exclude, selected}`.
   - `plan_hash` is the sha256 of the canonical JSON (sorted keys, no spaces) of `nodes`, `sources`, `units`, `unit_parent_map`, `parent_map`, `child_map` and `metadata` reduced to `project`, `target`, `boundary` and `config_version`. Selection, versions, timestamps and ids do not change it. A `per_user` naming strategy puts the user into the relations, so use `none` where the hash must match across machines.
   - A node `checksum` is the sha256 of its canonical config plus its body (the SQL text, or the callable and its file bytes), with CRLF read as LF.
+  - From 0.9 ([ADR-0050](adr/0050-python-first-authoring.md)) the schema stays `pipeloom.manifest/1` with a breaking change before 1.0. Every node body is `{kind: "python", callable: "module:attr", file}`; `nodes[].file` is the `.py` file and `nodes[].line` the decorator line. The SQL body goes away with the legacy path, after which a manifest with `kind: sql` is PLX107. The checksum keeps its formula (resolved config, `callable`, NUL, module file bytes, plus `columns` without `description`), so editing any function in a module marks every model of that module modified. Dynamic decorator config must be deterministic, or the plan hash differs between compiles (PLX103).
 - `run_results.json` (`pipeloom.run_results/1`): `metadata`, `args`, `run`, `results[]`.
 - Finalize merges unit files and picks the latest attempt per unit. Run records also go to the state store for history.
 - `pipeloom finalize --run-id ID` (0.5, ADR-0034) closes a run that an orchestrator drove unit by unit. A unit takes its attempt file, else the state given with `--unit-states` (`pipeloom.unit_states/1`: `skipped`, `cancelled`, `failed` or `excluded`), else it is `skipped` with the reason `not_run`, which does not fail the run; `excluded` drops the unit. `orchestrator_ids` come from `--orchestrator-id KEY=VALUE`. It exits 0, 1 or 130 and rewrites the same results when repeated.
@@ -720,7 +790,7 @@ Source: [06-databricks.d2](diagrams/06-databricks.d2).
 
 **Bundles and direct deploy.**
 - `pipeloom databricks bundle --target prod --out resources/` writes, per pipeline, `pipeloom_<project>_<pipeline>_<target>.job.yml` and a stable manifest next to it. The output must lie inside the bundle; paths use `${workspace.file_path}`; `--check` lists stale files. `databricks bundle deploy` remains the user's step.
-- `pipeloom databricks deploy` renders the same settings, uploads the project (content addressed, only `pipeloom.yml`, model files, `*.py` below `python_paths` and the stable manifest) to `<workspace_root>/<project>/<pipeline>/<target>/<hash>`, then creates or resets the job. A folder with the marker `_pipeloom/complete` is never uploaded again; the current folder and the two newest others are kept.
+- `pipeloom databricks deploy` renders the same settings, uploads the project (content addressed, only `pipeloom.yml`, model files, `*.py` below `python_paths` and the stable manifest; from 0.9 `pipeloom.yml`, the nodes' `.py` files, every `*.py` below `python_paths`, the properties YAML files and the stable manifest, while `model_packages` modules must be installed in the job environment, [ADR-0035](adr/0035-databricks-rendering-and-job-lifecycle.md) amendment) to `<workspace_root>/<project>/<pipeline>/<target>/<hash>`, then creates or resets the job. A folder with the marker `_pipeloom/complete` is never uploaded again; the current folder and the two newest others are kept.
 - A `load_resources` hook for Python bundle resources is on the roadmap.
 
 **Run identity and metadata.**
@@ -763,8 +833,8 @@ shop_daily = PipeloomDag(
 
 **Load methods (parse time):**
 - `MANIFEST` (recommended): reads a precompiled `manifest.json`.
-- `PROJECT`: compiles YAML. This is safe because no user code runs (ADR-0003), and it is cached by a hash of the inputs.
-- Neither imports engines or connects to anything.
+- `PROJECT`: compiles the project, cached by a hash of the inputs. Through 0.8 no user code runs (ADR-0003). From 0.9 static model modules are still read without importing, but the dynamic ones are imported inside the DAG processor and in every unit task, which compiles, and the cache key adds the `model_packages` directories ([ADR-0037](adr/0037-airflow-packaging-and-rendering.md) amendment, [ADR-0050](adr/0050-python-first-authoring.md)).
+- Neither imports engines or connects to anything. `MANIFEST` imports no user code.
 
 **Execution modes:**
 - `LOCAL`: `PipeloomRunOperator` per unit runs `pipeloom run --select unit:<id> --run-id <rid>` (with `--manifest` in MANIFEST mode, and always `--expect-plan-hash`) in a child process group.
@@ -826,6 +896,7 @@ Source: [07-airflow-modes.d2](diagrams/07-airflow-modes.d2).
 - Unit tests per package.
 - Property tests (hypothesis) for the scheduler: random DAGs, injected failures and timeouts. Invariants: a unit starts only after all parents succeed; every unit reaches exactly one terminal state; no level barrier, checked with timed fakes.
 - Golden tests for the manifest and diagnostics.
+- The case harness: one `tests/cases/<CODE>.yml` per diagnostic code, each an inline project compiled in the same process. From 0.9 its projects use Python models; `ModuleLoader` purges each project's modules on exit, so about a hundred projects load in one process without seeing each other, and every code located in Python has a case for a static and for an imported model. A retired code has no case.
 - CLI tests for every flag via `click.testing.CliRunner` (L4).
 - A synthetic, deterministic "shop" dataset (customers, orders, payments) generated in `pipeloom.testing.data`.
 
@@ -889,7 +960,7 @@ Each ADR is Context, Options, Choice, Consequences, as written in the sections a
 |---|---|---|
 | 0001 | Record architecture decisions | `docs/adr/` |
 | 0002 | Engine abstraction: protocols plus Narwhals helpers | §5 |
-| 0003 | Model authoring: YAML plus Python or SQL, declared inputs | §4 |
+| 0003 | Model authoring: YAML plus Python or SQL, declared inputs (superseded by 0050) | §4 |
 | 0004 | Plugin discovery via entry points; eight groups, a ninth (`pipeloom.commands`) in 0.5 | §6 |
 | 0005 | Packaging (see below) | §17 |
 | 0006 | Ready-queue scheduler | §8 |
@@ -906,6 +977,7 @@ Each ADR is Context, Options, Choice, Consequences, as written in the sections a
 | 0034 | Core orchestration hooks (amends 0004, 0010, 0013, 0014) | §4, §6, §11 |
 | 0035 | Databricks rendering and job lifecycle (amends 0011, 0012) | §12 |
 | 0036 | Databricks client and connection | §12, §15 |
+| 0050 | Python-first model authoring (supersedes 0003; amends 0035, 0037, 0040, 0041, 0042, 0044, 0047) | §1-§5, §7, §11-§13, §15 |
 
 **ADR-0005: Packaging.**
 - Options:

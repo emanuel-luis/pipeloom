@@ -1,9 +1,9 @@
-# Merge, replace_partitions and schema changes
+# Merge, replace_partitions, scd2 and schema changes
 
 `write.strategy` decides how a batch meets the rows already in the target table. 0.3 adds
 `merge` and `replace_partitions` next to `append` and `overwrite`, and a policy for batches whose
 columns differ from the table. The polars and pandas engines support all of it on filesystem
-tables.
+tables. 0.9 adds `scd2` on polars, pandas and Spark.
 
 ## merge
 
@@ -71,6 +71,55 @@ without reading the other files. `rows_deleted` reports how many old rows went a
 written by 0.2 has no partition values in its files, so the first replace reads and rewrites
 those files once. An empty batch changes no files. A null is a partition value like any other.
 
+## scd2
+
+`scd2` keeps the history of each key as a type 2 slowly changing dimension. The table holds the
+model's columns followed by three system columns: `valid_from` and `valid_to`
+(`timestamp[us, UTC]`) and `is_current` (`boolean`).
+
+```yaml
+models:
+  - name: customers_history
+    sql: select id, name, tier, status from raw_customers
+    inputs:
+      raw_customers:
+        source: raw_customers
+    write:
+      strategy: scd2
+      unique_key:
+        - id
+      tracked_columns:
+        - name
+        - tier
+      deletes:
+        column: status
+        value: closed
+        mode: hard
+```
+
+- The first load, and every `--full-refresh`, writes each batch row as the current version and
+  drops any earlier history.
+- On later runs a batch row for a new key opens a version. A row whose tracked columns differ
+  from the key's current version closes that version and opens a new one. Tracked columns are
+  compared null-safely, and NaN counts as null. A change in any other column is ignored.
+- `tracked_columns` defaults to every column except `unique_key` and the delete column. An empty
+  list or a key column in the list is PLP416, and so is a system column named in `unique_key`,
+  `tracked_columns`, `partition_by`, `cluster_by`, `deletes.column` or the model's `columns`.
+- Versions open and close at the run's start time, the same on every retry of the run, so a
+  rerun with an unchanged batch adds no version.
+- `deletes` supports `mode: hard` only (`soft` is PLP416). A delete row closes the key's current
+  version without opening a new one; a delete for an unknown key is ignored, and a key that
+  comes back later opens a new version. Keys missing from the batch stay current.
+- A null or repeated key in the batch, or a batch column named like a system column, fails with
+  PLM206 before anything is written.
+- `run_results.json` reports `rows_inserted` (versions opened), `rows_updated` (versions closed by
+  a change) and `rows_deleted` (versions closed by a delete); `rows_written` is their sum.
+
+The schema policy applies to the model's columns only; old versions read a new column as null.
+A target without the system columns fails with PLM206 until you run with `--full-refresh`. On
+filesystem tables an scd2 write rewrites the whole table like a merge; on Spark it is one Delta
+`MERGE INTO`. The memory engine does not support `scd2` (PLC501).
+
 ## Schema changes
 
 `write.on_schema_change` says what happens when the batch's columns differ from the target's.
@@ -88,7 +137,7 @@ every digit, a finer timestamp unit in the same zone, or a null column to any ty
 differs from the table only by such a widening of the table's type is cast to the table's type
 under every policy.
 
-The policy applies to `append`, `merge` and `replace_partitions` on an existing table. `overwrite`,
+The policy applies to `append`, `merge`, `replace_partitions` and `scd2` on an existing table. `overwrite`,
 `--full-refresh` and the first build use the batch's schema, and report the difference with the
 action `replaced`.
 

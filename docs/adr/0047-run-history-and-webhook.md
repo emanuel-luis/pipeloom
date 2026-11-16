@@ -54,8 +54,12 @@ Run history works on every built-in store and on the Spark table store, and on a
 
 ## Status
 
-Accepted.
+Accepted. Amended in 0.9 by [ADR-0050](0050-python-first-authoring.md).
 
 ## Date
 
 2026-11-06
+
+## Amendment 0.9 (ADR-0050)
+
+Plugin API (0, 5) also carries `EngineCapabilities.sql_dialect: str | None = None`, the engine's sqlglot dialect for `ctx.sql` ([ADR-0050](0050-python-first-authoring.md)). (0, 5) is not released yet, so the version does not change.

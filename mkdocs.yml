@@ -25,7 +25,7 @@ nav:
   - Guide:
       - Running a pipeline: guide/running.md
       - Incremental models: guide/incremental.md
-      - Merge, replace_partitions and schema changes: guide/write-strategies.md
+      - Merge, replace_partitions, scd2 and schema changes: guide/write-strategies.md
       - Data quality: guide/quality.md
       - Testing models: guide/testing.md
       - Retries, timeouts and cancellation: guide/retries-and-cancellation.md
@@ -44,6 +44,7 @@ nav:
       - JSON Schema: reference/schema.md
       - Run artifacts: reference/artifacts.md
       - Error codes: reference/errors.md
+      - Stability and deprecations: reference/stability.md
   - Architecture: architecture.md
   - Roadmap: roadmap.md
   - Decisions: adr/README.md
