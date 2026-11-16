@@ -21,8 +21,8 @@ serving target/docs at http://127.0.0.1:8000/
 - A table of models: name, path, materialization, write strategy, relation, tags, last status, rows written and
   duration. The filter box above it narrows the rows as you type.
 - One section per model: relation, materialization, strategy, tags, inputs (each linked to the model or source it
-  reads), parents and children, expectations, the resolved config as JSON, and the body (the SQL text, or the Python
-  callable and its file). With results it adds status, rows, bytes, duration, attempt and, for a failure, the error
+  reads), parents and children, expectations, the contract columns when declared, the resolved config as JSON,
+  and the body (the SQL text, or the Python callable and its file). With results it adds status, rows, bytes, duration, attempt and, for a failure, the error
   code and message with the `pipeloom explain CODE` command that describes it.
 - One section per source.
 
@@ -71,5 +71,4 @@ Ctrl+C to stop it; it exits 0.
 ## Limits
 
 The graph is a static drawing, not an interactive one. Pan and zoom are the scroll area and the buttons. An
-interactive viewer over the artifacts root is planned as `pipeloom ui`, in its own distribution. Model contracts
-(`columns`) are not shown yet.
+interactive viewer over the artifacts root is planned as `pipeloom ui`, in its own distribution.

@@ -68,7 +68,7 @@ fails and tells you to use mode `active`. Classic and Connect cannot share one P
   metastore, and it works across processes. `root` may be a URI such as `s3://` or `abfss://`. It
   cannot hold views.
 - `spark_catalog`: tables and views by name through the session catalog (`catalog` option, else
-  the current catalog). It is the base the Unity Catalog support of a later release reuses. A view
+  the current catalog). The `unity` catalog of [pipeloom-databricks](databricks.md) builds on it. A view
   is created with `CREATE OR REPLACE VIEW` over a table, `delta` or `parquet` input. A model's
   `catalog` setting wins over the `catalog` option. pipeloom creates schemas, never catalogs: the
   catalog must exist, and on a local session it must be registered in the Spark conf
