@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import importlib.util
+
 from pipeloom.config.bind import BoundPlugin, BoundProject
 from pipeloom.config.resolve import ResolvedModel, ResolvedProject
 from pipeloom.diagnostics import JsonValue, Report
 from pipeloom.engine.types import CatalogCapabilities, EngineCapabilities, StateStoreCapabilities
 from pipeloom.graph.dag import ProjectGraph
 from pipeloom.validate.semantics import effective_strategy, where
+
+
+def sqlglot_installed() -> bool:
+    """Whether `ctx.sql` can translate; the PLC513 case patches it to simulate a missing extra."""
+    return importlib.util.find_spec("sqlglot") is not None
 
 
 def _check_model(
@@ -89,6 +96,22 @@ def _check_model(
             f"engine '{engine.kind}' cannot evaluate {what} (model '{m.name}')",
             checked,
             f"remove the {what} or use an engine with the quality capability",
+        )
+    # Only Python models translate: a SQL body is stored and run as written.
+    if (
+        m.entry.python is not None
+        and c.sql_dialect is not None
+        and caps.sql_dialect is not None
+        and c.sql_dialect != caps.sql_dialect
+        and not sqlglot_installed()
+    ):
+        err(
+            "PLC513",
+            f"model '{m.name}' declares sql_dialect '{c.sql_dialect}', which engine "
+            f"'{engine.kind}' runs as '{caps.sql_dialect}', and sqlglot is not installed",
+            "sql_dialect",
+            "install pipeloom[sqlglot], or remove sql_dialect and write the queries in "
+            f"'{caps.sql_dialect}'",
         )
     if m.entry.python is not None and c.frame_api == "narwhals" and not caps.portable:
         err(

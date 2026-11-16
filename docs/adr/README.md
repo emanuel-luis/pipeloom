@@ -13,7 +13,7 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0007 | [Data handoff: execution units, inlining, intermediates](0007-data-handoff.md) | Accepted | 2026-10-29 |
 | 0008 | [Incremental key, watermark state, strategies](0008-incremental-and-state.md) | Accepted. Amended in 0.9 (scd2). | 2026-10-29 |
 | 0009 | [Expectations and quarantine](0009-expectations-and-quarantine.md) | Accepted | 2026-10-29 |
-| 0010 | [Events, sinks, artifacts; rich for the console](0010-events-sinks-artifacts.md) | Accepted | 2026-10-29 |
+| 0010 | [Events, sinks, artifacts; rich for the console](0010-events-sinks-artifacts.md) | Accepted. Amended by ADR-0049 (artifact schemas). | 2026-10-29 |
 | 0011 | [Databricks job rendering](0011-databricks-job-rendering.md) | Accepted | 2026-10-29 |
 | 0012 | [Airflow rendering and modes](0012-airflow-rendering-and-modes.md) | Accepted | 2026-10-29 |
 | 0013 | [Run identity, idempotency, reruns](0013-run-identity-and-reruns.md) | Accepted. Amended in 0.8 (`pipeloom retry`). | 2026-10-29 |
@@ -32,12 +32,12 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0026 | [Schema-change policy](0026-schema-change-policy.md) | Accepted | 2026-11-04 |
 | 0027 | [Incremental models](0027-incremental-models.md) | Accepted | 2026-11-04 |
 | 0028 | [Expectation evaluation](0028-expectation-evaluation.md) | Accepted | 2026-11-04 |
-| 0029 | [Retries, timeouts and cancellation](0029-retries-timeouts-cancellation.md) | Accepted | 2026-11-04 |
+| 0029 | [Retries, timeouts and cancellation](0029-retries-timeouts-cancellation.md) | Accepted. Amended in 1.0 (Windows job objects). | 2026-11-04 |
 | 0030 | [Plugin API (0, 4) and intermediates](0030-plugin-api-0-4-and-intermediates.md) | Accepted | 2026-11-04 |
 | 0031 | [Spark engine](0031-spark-engine.md) | Accepted | 2026-11-04 |
 | 0032 | [Delta writes and idempotency](0032-delta-writes-and-idempotency.md) | Accepted | 2026-11-04 |
 | 0033 | [Delta table state store](0033-delta-table-state-store.md) | Accepted | 2026-11-04 |
-| 0034 | [Core orchestration hooks](0034-core-orchestration-hooks.md) | Accepted | 2026-11-04 |
+| 0034 | [Core orchestration hooks](0034-core-orchestration-hooks.md) | Accepted. Amended by ADR-0049 (orchestrator protocol). | 2026-11-04 |
 | 0035 | [Databricks rendering and job lifecycle](0035-databricks-rendering-and-job-lifecycle.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-05 |
 | 0036 | [Databricks client and connection](0036-databricks-client-and-connection.md) | Accepted | 2026-11-05 |
 | 0037 | [Airflow packaging and rendering](0037-airflow-packaging-and-rendering.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-05 |
@@ -50,4 +50,5 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0044 | [Model contracts](0044-model-contracts.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-06 |
 | 0045 | [Unit tests, post-write data tests and pipeloom build](0045-unit-and-data-tests.md) | Accepted | 2026-11-16 |
 | 0047 | [Run history and the webhook sink](0047-run-history-and-webhook.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-06 |
+| 0049 | [Artifact schemas, the unit graph and the orchestrator protocol](0049-artifact-schemas-and-orchestrator-protocol.md) | Accepted | 2026-11-15 |
 | 0050 | [Python-first model authoring](0050-python-first-authoring.md) | Accepted. Supersedes 0003. | 2026-11-15 |

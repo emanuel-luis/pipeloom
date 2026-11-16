@@ -2,7 +2,7 @@
 
 From 1.0.0 pipeloom follows [Semantic Versioning](https://semver.org/). The decision is in
 [ADR-0016](../adr/0016-versioning-and-plugin-api.md) (amendment 1.0); the artifact schemas are
-defined in ADR-0049.
+defined in [ADR-0049](../adr/0049-artifact-schemas-and-orchestrator-protocol.md).
 
 ## What you can rely on
 

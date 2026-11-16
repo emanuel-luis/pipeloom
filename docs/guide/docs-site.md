@@ -58,12 +58,15 @@ bytes.
 | Flag | Meaning |
 |---|---|
 | `--project-dir DIR` | Directory that holds `pipeloom.yml`. |
+| `--target`, `--vars`, `--plugin` | As in `docs generate`; the rebuild compiles with them. |
 | `--dir DIR` | Folder to serve, relative to the project dir unless absolute. Default `target/docs`. |
 | `--host HOST` | Address to listen on. Default `127.0.0.1`. |
 | `--port N` | Port. Default 8000; 0 picks a free one. |
 
-If `index.html` is missing, the command exits 2 and asks you to run `pipeloom docs generate` first. Press Ctrl+C to
-stop it; it exits 0.
+When a model file changes, the next request for the page compiles the project again and rewrites `index.html`.
+If the project does not resolve when the command starts, it prints one line on stderr and serves the page as it
+is. If `index.html` is missing, the command exits 2 and asks you to run `pipeloom docs generate` first. Press
+Ctrl+C to stop it; it exits 0.
 
 ## Limits
 

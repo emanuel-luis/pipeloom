@@ -16,6 +16,7 @@ from pipeloom.artifacts.layout import RunPaths
 from pipeloom.artifacts.results import result_row, schema_hash
 from pipeloom.config.resolve import model_id, source_id
 from pipeloom.diagnostics import JsonValue, Location
+from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine import portable
 from pipeloom.engine.errors import WriteKeyError, WriteRefusedError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
@@ -63,7 +64,6 @@ from pipeloom.runtime.control import CancelToken, Reason, UnitInterrupted, inter
 from pipeloom.runtime.errors import ErrorInfo, Phase, build_error, full_traceback
 from pipeloom.runtime.executors import UnitCompletion, UnitHandle
 from pipeloom.runtime.incremental import IncrementalError, IncrementalState, WatermarkConflict
-from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.retry import NO_POLICY, UnitPolicy
 from pipeloom.runtime.schema_policy import (
@@ -73,6 +73,13 @@ from pipeloom.runtime.schema_policy import (
     check_contract,
     resolve_columns,
     strip_scd2,
+)
+from pipeloom.runtime.sql import (
+    SqlUnsupportedError,
+    ViewInput,
+    ViewModeError,
+    ViewQuery,
+    translate,
 )
 from pipeloom.secrets.redaction import Redactor
 from pipeloom.state.types import StateKey, StateStore, UnitRecord
@@ -167,6 +174,25 @@ async def _await(awaitable: Awaitable[Any]) -> Any:
     return await awaitable
 
 
+def call_model(fn: Callable[..., Any], ctx: ModelContext, args: Mapping[str, Any]) -> Any:
+    """Call a model function the way `pipeloom run` does (see `ModelRunner._call`)."""
+    params = inspect.signature(fn).parameters
+    kinds = inspect.Parameter
+    first = next(iter(params.values()), None)
+    positional = (
+        first is not None
+        and first.name == "ctx"
+        and first.kind in (kinds.POSITIONAL_ONLY, kinds.POSITIONAL_OR_KEYWORD)
+    )
+    if positional or any(p.kind is kinds.VAR_POSITIONAL for p in params.values()):
+        out = fn(ctx, **args)
+    elif "ctx" in params:
+        out = fn(**{"ctx": ctx, **args})
+    else:
+        out = fn(**args)
+    return asyncio.run(_await(out)) if inspect.isawaitable(out) else out
+
+
 class ModelRunner:
     """Runs units for the thread executor: `run_unit` is its `run_unit` callable.
 
@@ -184,7 +210,7 @@ class ModelRunner:
         bus: EventBus,
         paths: RunPaths,
         rt: RuntimeContext,
-        loader: CallableLoader,
+        loader: ModuleLoader,
         memo: EphemeralMemo | None,
         executor_name: str,
         policies: Mapping[str, UnitPolicy] | None = None,
@@ -530,8 +556,13 @@ class ModelRunner:
         self._check()
         target = node.relation
         if node.materialized == "view":
-            assert target is not None and isinstance(node.body, SqlBody)
-            result = self._create_view(node, target, node.body)
+            assert target is not None
+            view = (
+                ViewQuery(node.body.sql, self._view_inputs(node))
+                if isinstance(node.body, SqlBody)
+                else self._python_view(node, unit_id, attempt, started)
+            )
+            result = self._create_view(node, target, view)
         elif node.materialized == "intermediate":
             result = self._execute_intermediate(unit_id, node, attempt, started, row)
         elif node.materialized in ("table", "incremental") and strategy is not None:
@@ -689,14 +720,37 @@ class ModelRunner:
                 rows_read[alias] = (
                     None if inputs[alias].lazy else self._session.count(inputs[alias])
                 )
-        ctx = self._context(node, unit_id, attempt, started, None if inc is None else inc.state)
+        api = node.config.frame_api
+
+        def run_sql(query: str, dialect: str | None, extra: Mapping[str, Any] | None) -> Any:
+            text = translate(
+                query, dialect or node.config.sql_dialect, self._engine.capabilities.sql_dialect
+            )
+            frames = dict(inputs)
+            for name, frame in (extra or {}).items():
+                frames[name] = self._session.relation(portable.from_frame_api(frame))
+            return portable.to_frame_api(self._session.sql(text, frames).native, api)
+
+        ctx = self._context(
+            node, unit_id, attempt, started, None if inc is None else inc.state, run_sql
+        )
         failed = f"model '{node.name}' raised"
         try:
             if isinstance(node.body, SqlBody):
                 sql_out = self._session.sql(node.body.sql, inputs)
                 self._check()
                 return sql_out
-            out = self._call(node.body, node, ctx, inputs)
+            out = self._call(
+                node.body, ctx, {a: portable.to_frame_api(r.native, api) for a, r in inputs.items()}
+            )
+        except SqlUnsupportedError as exc:
+            self._fail(
+                "PLX101",
+                "body",
+                exc,
+                f"model '{node.name}' called ctx.sql, but engine '{self._engine.name}' has no SQL",
+                "write the model with frames, or choose an engine with SQL",
+            )
         except Exception as exc:  # noqa: BLE001 - the body is user code
             self._fail("PLX101", "body", exc, failed)
         self._check()
@@ -755,13 +809,47 @@ class ModelRunner:
     ) -> NoReturn:
         raise _Fail(code, phase, exc, message, hint) from exc
 
-    def _call(
-        self, body: PythonBody, node: PlanNode, ctx: ModelContext, inputs: Mapping[str, Relation]
-    ) -> Any:
-        fn = self._loader.load(body.callable)
-        api = node.config.frame_api
-        out = fn(ctx, **{a: portable.to_frame_api(r.native, api) for a, r in inputs.items()})
-        return asyncio.run(_await(out)) if inspect.isawaitable(out) else out
+    def _call(self, body: PythonBody, ctx: ModelContext, args: Mapping[str, Any]) -> Any:
+        """Call the body with the input aliases by keyword. `ctx` goes first and positional when
+        it is the first parameter and may be passed by position, or the function takes `*args`
+        (legacy models always got it first); by name when it is keyword-only or elsewhere; and
+        it is left out when the function has no such parameter."""
+        return call_model(self._loader.load(body.callable), ctx, args)
+
+    def _python_view(
+        self, node: PlanNode, unit_id: str, attempt: int, started: datetime
+    ) -> ViewQuery:
+        """Call a Python view model in view mode: its inputs are placeholders and `ctx.sql`
+        returns the query the catalog stores."""
+        assert isinstance(node.body, PythonBody)
+        specs = self._view_inputs(node)
+
+        def view_sql(query: str, dialect: str | None, extra: Mapping[str, Any] | None) -> Any:
+            if extra:
+                raise ViewModeError(
+                    "passed inputs= to ctx.sql; a stored view reads only its inputs"
+                )
+            engine = self._engine.capabilities.sql_dialect
+            return ViewQuery(translate(query, dialect or node.config.sql_dialect, engine), specs)
+
+        ctx = self._context(node, unit_id, attempt, started, run_sql=view_sql)
+        hint = "return ctx.sql(...) over the input aliases, or materialize the model as a table"
+        try:
+            out = self._call(node.body, ctx, {a: ViewInput(a) for a in node.inputs})
+        except ViewModeError as exc:
+            self._fail("PLX120", "body", exc, f"view model '{node.name}' {exc}", hint)
+        except Exception as exc:  # noqa: BLE001 - the body is user code
+            self._fail("PLX101", "body", exc, f"model '{node.name}' raised")
+        if not isinstance(out, ViewQuery):
+            what = type(out).__name__
+            self._fail(
+                "PLX120",
+                "body",
+                ViewModeError(f"returned {what}"),
+                f"view model '{node.name}' returned {what}, not the result of ctx.sql(...)",
+                hint,
+            )
+        return out
 
     def _context(
         self,
@@ -770,6 +858,7 @@ class ModelRunner:
         attempt: int,
         started: datetime,
         inc: IncrementalState | None = None,
+        run_sql: Callable[[str, str | None, Mapping[str, Any] | None], Any] | None = None,
     ) -> ModelContext:
         rt = self._rt
 
@@ -802,6 +891,7 @@ class ModelRunner:
             watermark=None if inc is None or not inc.is_incremental else inc.watermark,
             lower_bound=None if inc is None or not inc.is_incremental else inc.lower_bound,
             emit_log=emit_log,
+            _run_sql=run_sql,
         )
 
     def _input(
@@ -1317,17 +1407,21 @@ class ModelRunner:
             model=node.name,
         )
 
-    def _create_view(self, node: PlanNode, target: TargetRef, body: SqlBody) -> WriteResult:
+    def _view_inputs(self, node: PlanNode) -> dict[str, ReadSpec]:
+        """The relation each input alias of a view is bound to."""
         inputs: dict[str, ReadSpec] = {}
         for alias, uid in node.inputs.items():
             if uid in self._plan.sources:
                 inputs[alias] = self._source_spec(self._plan.sources[uid])
             else:
                 inputs[alias] = self._read_spec(self._plan.nodes[uid])
+        return inputs
+
+    def _create_view(self, node: PlanNode, target: TargetRef, view: ViewQuery) -> WriteResult:
         t0 = self._rt.clock.monotonic()
         try:
             self._catalog.ensure_namespace(target.namespace)
-            result = self._session.create_view(target, body.sql, inputs)
+            result = self._session.create_view(target, view.query, view.inputs)
         except Exception as exc:  # noqa: BLE001 - engines raise their own errors
             self._fail(
                 "PLM201",

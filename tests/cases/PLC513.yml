@@ -1,0 +1,18 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    targets:
+      dev:
+        engine:
+          kind: memory
+  models/m.yml: |
+    models:
+      - name: a
+        python: "m:a"
+        sql_dialect: spark
+  src/m.py: |
+    def a(ctx):
+        return ctx.sql("select 1 as id")
+python: "tests.validate.scenarios:plc513"

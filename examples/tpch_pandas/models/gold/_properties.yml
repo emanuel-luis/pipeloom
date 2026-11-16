@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+models:
+  - name: revenue_by_region_month
+    description: Orders and net revenue by region, nation and order month, rounded to 2 decimals.
+  - name: top_customers
+    description: The ten customers with the most net revenue, ties broken by customer key.

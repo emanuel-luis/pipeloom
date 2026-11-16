@@ -5,8 +5,6 @@ Nothing is written: no materializer, namespace, catalog or state-store call.
 
 from __future__ import annotations
 
-import asyncio
-import inspect
 import json
 import math
 from collections.abc import Callable, Mapping, Sequence
@@ -21,6 +19,7 @@ from pipeloom.engine.types import Column, Relation, Schema
 from pipeloom.plan.model import PlanNode, SqlBody
 from pipeloom.quality.rows import coerce, diff_rows, infer_dtype, read_csv_rows
 from pipeloom.runtime.context import ModelContext, RuntimeContext
+from pipeloom.runtime.runner import call_model
 
 MESSAGE_ROWS = 10
 EVENT_ROWS = 50
@@ -132,15 +131,9 @@ def _body(
         frame_api=api,
         started_at=rt.clock.now(),
     )
-    fn = load(node.body.callable)
-    out = fn(ctx, **{a: portable.to_frame_api(r.native, api) for a, r in inputs.items()})
-    if inspect.isawaitable(out):
-        out = asyncio.run(_await(out))
+    args = {a: portable.to_frame_api(r.native, api) for a, r in inputs.items()}
+    out = call_model(load(node.body.callable), ctx, args)
     return session.relation(portable.from_frame_api(out))
-
-
-async def _await(awaitable: Any) -> Any:
-    return await awaitable
 
 
 def run_unit_test(

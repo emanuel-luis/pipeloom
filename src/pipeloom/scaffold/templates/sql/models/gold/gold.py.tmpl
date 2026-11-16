@@ -1,0 +1,15 @@
+"""Gold: order count and revenue per customer."""
+
+from pipeloom import Expectation, ModelContext, model, row_count
+
+
+@model(expectations=[Expectation(name="not_empty", check=row_count(min=1), on_violation="fail")])
+def revenue_by_customer(ctx: ModelContext, orders_clean):
+    return ctx.sql("""
+        select
+          customer_id,
+          count(*) as orders,
+          round(sum(amount), 2) as revenue
+        from orders_clean
+        group by customer_id
+    """)

@@ -26,9 +26,11 @@ from dataclasses import dataclass, field
 from typing import Any, Literal, NamedTuple
 
 from pipeloom.config.bind import BoundProject
+from pipeloom.config.decorator import POINTER, DecoratorSite, PythonModel
 from pipeloom.config.discover import PROJECT_FILE
 from pipeloom.config.models import (
     DefaultsFile,
+    InputConfig,
     ModelConfig,
     ModelSettings,
     PropertiesEntry,
@@ -37,12 +39,14 @@ from pipeloom.config.models import (
     UnitTestConfig,
 )
 from pipeloom.config.yaml import LoadedDocument
-from pipeloom.diagnostics import Location
+from pipeloom.diagnostics import Location, suggest
 from pipeloom.secrets.interpolation import InterpolationRecord
 
 _SETTING_FIELDS = frozenset(ModelSettings.model_fields)
 
-Layer = Literal["model", "properties", "folder", "project", "defaults_file", "project_defaults"]
+Layer = Literal[
+    "model", "decorator", "properties", "folder", "project", "defaults_file", "project_defaults"
+]
 
 
 def model_id(project: str, name: str) -> str:
@@ -100,6 +104,19 @@ class ResolvedModel:
     """The winning layer of each setting, `description` and `columns` that some layer sets."""
     data_tests_at: tuple[str, str] | None = None
     """File and JSON pointer of the `data_tests` list in `entry` (the model's or its properties)."""
+    site: DecoratorSite | None = None
+    """The `@model` decorator of a Python-first model; None for a YAML model."""
+
+
+@dataclass(frozen=True)
+class Problem:
+    """A finding made while resolving, reported by L2 (PLR201, PLR210) or L6 (PLK602)."""
+
+    code: str
+    message: str
+    location: Location
+    hint: str | None = None
+    context: Mapping[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -139,6 +156,10 @@ class ResolvedProject:
     """Every unit test, in file order (ADR-0045)."""
     properties_problems: tuple[PropertiesProblem, ...] = ()
     """Properties entries that describe no model or a model twice (PLR209)."""
+    binding_problems: tuple[Problem, ...] = ()
+    """Parameters of Python-first models that bind to nothing, or ambiguously."""
+    broken_models: frozenset[str] = frozenset()
+    """Python-first models whose arguments are invalid; their names still resolve."""
 
     @property
     def name(self) -> str:
@@ -148,11 +169,20 @@ class ResolvedProject:
         doc = self.docs.get(file)
         return doc.locate(pointer, key=key) if doc else Location(file)
 
+    def at(self, model: ResolvedModel, sub: str = "") -> Location:
+        """A pointer below the model's entry, or below its `@model` decorator."""
+        if model.site is not None:
+            return model.site.locate(sub)
+        return self.locate(model.file, f"{model.pointer}{sub}")
+
     def locate_model(self, model: ResolvedModel, field: str | None = None) -> Location:
         """Where the winning layer sets `field`, else the entry's own `field`, else its name."""
         origin = model.origins.get(field) if field is not None else None
         if origin is not None:
             return origin.location
+        if model.site is not None:
+            own = field is not None and field in model.own_fields
+            return model.site.locate(f"/{field}" if own else "")
         leaf = field if field is not None and field in model.own_fields else "name"
         return self.locate(model.file, f"{model.pointer}/{leaf}")
 
@@ -212,13 +242,18 @@ def _inherited(
     roots: Sequence[str],
     defaults: Mapping[str, Sequence[tuple[str, DefaultsFile]]],
     base: _Layer,
+    module: str | None = None,
 ) -> list[_Layer]:
     """The layers a model file inherits, lowest first: `defaults.models`, the root `+keys`,
     then each folder from the model_paths root down to the file's own: its `_defaults.yml`,
-    then its `models:` tree entry."""
+    then its `models:` tree entry. A Python module outside every model_paths root (found
+    through `model_packages`) uses its dotted package path as folders."""
     tree = bound.loaded.config.models
     out = [base, _layer("project", PROJECT_FILE, "/models", _dump(tree), "+")]
     found = _folders(file, roots)
+    if found is None and module is not None:
+        found = ("", module.split(".")[:-1])
+        defaults = {}
     if found is None:
         return out
     folder, parts = found
@@ -268,7 +303,11 @@ def _properties(
     return first, later
 
 
-def resolve_project(bound: BoundProject) -> ResolvedProject:
+def resolve_project(
+    bound: BoundProject,
+    python: Sequence[PythonModel] = (),
+    broken: frozenset[str] = frozenset(),
+) -> ResolvedProject:
     """Apply settings to every model and assign unique ids. It reports nothing: L2 does."""
     loaded = bound.loaded
     project = loaded.config.name
@@ -289,6 +328,25 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
         return doc.locate(pointer) if doc else Location(file)
 
     props, later = _properties(bound)
+
+    def props_layer(name: str, layers: list[_Layer]) -> Origin | None:
+        """Append the model's properties layer; the origin of its `columns`, if it sets them."""
+        if name not in props:
+            return None
+        pfile, ppointer, pe = props[name]
+        prop = _layer("properties", pfile, f"{ppointer}/config", _dump(pe.config))
+        if pe.description is not None:
+            prop = _Layer(
+                prop.name,
+                pfile,
+                {**prop.settings, "description": pe.description},
+                {**prop.pointers, "description": f"{ppointer}/description"},
+            )
+        layers.append(prop)
+        if pe.columns is None:
+            return None
+        return Origin("properties", locate(pfile, f"{ppointer}/columns"))
+
     models: dict[str, ResolvedModel] = {}
     sources: dict[str, ResolvedSource] = {}
     shadowed_models: list[ResolvedModel] = []
@@ -307,20 +365,7 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
                 continue
             pointer = f"/models/{i}"
             layers = list(inherited)
-            columns: Origin | None = None
-            if entry.name in props:
-                pfile, ppointer, pe = props[entry.name]
-                prop = _layer("properties", pfile, f"{ppointer}/config", _dump(pe.config))
-                if pe.description is not None:
-                    prop = _Layer(
-                        prop.name,
-                        pfile,
-                        {**prop.settings, "description": pe.description},
-                        {**prop.pointers, "description": f"{ppointer}/description"},
-                    )
-                layers.append(prop)
-                if pe.columns is not None:
-                    columns = Origin("properties", locate(pfile, f"{ppointer}/columns"))
+            columns = props_layer(entry.name, layers)
             own = _dump(entry)
             if entry.description is not None:
                 own["description"] = entry.description
@@ -397,7 +442,63 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
             unit_tests.append(
                 ResolvedUnitTest(fcase.model, fcase.name, lf.path, f"/unit_tests/{j}", fcase)
             )
-    names = {m.name for m in models.values()}
+
+    known = {m.name for m in models.values()} | {p.name for p in python} | broken
+    tables: dict[str, list[str]] = {}
+    for s in sources.values():
+        tables.setdefault(s.name.rsplit(".", 1)[-1], []).append(s.name)
+    binding: list[Problem] = []
+    for p in sorted(python, key=lambda p: (p.site.file, p.site.line, p.site.col)):
+        layers = _inherited(bound, p.site.file, roots, defaults, base, p.module)
+        columns = props_layer(p.name, layers)
+        layers.append(_Layer("decorator", p.site.file, p.settings, {}))
+        entry_columns = p.columns
+        if p.columns is not None:
+            columns = Origin("decorator", p.site.locate("/columns"))
+        elif columns is not None:
+            entry_columns = props[p.name][2].columns
+        origins = {
+            key: Origin(
+                layer.name,
+                p.site.locate(f"/{key}")
+                if layer.name == "decorator"
+                else locate(layer.file, layer.pointers[key]),
+            )
+            for layer in layers
+            for key in layer.settings
+        }
+        if columns is not None:
+            origins["columns"] = columns
+        inputs = _bind(p, project, known, tables, binding)
+        m = ResolvedModel(
+            unique_id=model_id(project, p.name),
+            name=p.name,
+            file=p.site.file,
+            pointer=POINTER,
+            folder=posixpath.dirname(p.site.file),
+            entry=ModelConfig.model_construct(
+                name=p.name,
+                python=p.callable,
+                inputs={
+                    a: InputConfig.model_construct(ref=b.name)
+                    if b.kind == "model"
+                    else InputConfig.model_construct(source=b.name)
+                    for a, b in inputs.items()
+                },
+                columns=entry_columns,
+            ),
+            config=merge_settings([layer.settings for layer in layers]),
+            inputs=inputs,
+            own_fields=p.own_fields,
+            origins=origins,
+            site=p.site,
+        )
+        if m.unique_id in models:
+            shadowed_models.append(m)
+        else:
+            models[m.unique_id] = m
+
+    names = {m.name for m in models.values()} | broken
     problems = [
         PropertiesProblem(name, file, ptr, None)
         for name, (file, ptr, _) in props.items()
@@ -417,4 +518,93 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
         interpolations=loaded.interpolations,
         unit_tests=tuple(unit_tests),
         properties_problems=tuple(problems),
+        binding_problems=tuple(binding),
+        broken_models=broken,
     )
+
+
+def _bind(
+    p: PythonModel,
+    project: str,
+    models: set[str] | frozenset[str],
+    tables: Mapping[str, Sequence[str]],
+    problems: list[Problem],
+) -> dict[str, InputBinding]:
+    """Bind the parameters of a Python-first model to inputs (ADR-0050 point 3)."""
+    out: dict[str, InputBinding] = {}
+    ctx = {"model": p.name, "callable": p.callable}
+
+    def problem(code: str, message: str, sub: str, hint: str | None = None, **more: str) -> None:
+        problems.append(Problem(code, message, p.site.locate(sub), hint, {**ctx, **more}))
+
+    def by_name(param: str, name: str, sub: str) -> None:
+        if name != p.name and name in models:
+            out[param] = InputBinding("model", model_id(project, name))
+            return
+        found = tables.get(name, ())
+        if len(found) == 1:
+            out[param] = InputBinding("source", source_id(project, found[0]))
+        elif found:
+            problem(
+                "PLR210",
+                f"input '{param}' of model '{p.name}' matches several source tables: "
+                + ", ".join(sorted(found)),
+                sub,
+                hint=f"bind it with inputs={{'{param}': source(...)}}",
+                input=param,
+            )
+        else:
+            candidates = sorted({*models, *(n for v in tables.values() for n in v)} - {p.name})
+            problem(
+                "PLR201",
+                f"input '{param}' of model '{p.name}' names no model or source table '{name}'",
+                sub,
+                hint=suggest(name, candidates),
+                input=param,
+            )
+
+    params = {q.name: q for q in p.params}
+    kwargs = any(q.kind == "VAR_KEYWORD" for q in p.params)
+    for q in p.params:
+        if q.name == "ctx" or q.kind == "VAR_KEYWORD":
+            continue
+        if q.kind in ("VAR_POSITIONAL", "POSITIONAL_ONLY"):
+            kind = "*args" if q.kind == "VAR_POSITIONAL" else "a positional-only parameter"
+            problem(
+                "PLK602",
+                f"parameters of '{p.callable}' cannot take {kind} ('{q.name}')",
+                "",
+                hint="inputs are passed by keyword",
+                parameter=q.name,
+            )
+            continue
+        given = p.inputs.get(q.name)
+        if isinstance(given, InputConfig):
+            if given.ref is not None:
+                out[q.name] = InputBinding("model", model_id(project, given.ref))
+            else:
+                out[q.name] = InputBinding("source", source_id(project, given.source or ""))
+        elif isinstance(given, str):
+            by_name(q.name, given, f"/inputs/{q.name}")
+        elif not q.has_default:
+            by_name(q.name, q.name, "")
+    for alias, given in p.inputs.items():
+        if alias in params:
+            continue
+        if not kwargs:
+            problem(
+                "PLK602",
+                f"input '{alias}' of model '{p.name}' is not a parameter of '{p.callable}'",
+                f"/inputs/{alias}",
+                hint="add the parameter, or take **kwargs",
+                input=alias,
+            )
+        elif isinstance(given, InputConfig):
+            out[alias] = (
+                InputBinding("model", model_id(project, given.ref))
+                if given.ref is not None
+                else InputBinding("source", source_id(project, given.source or ""))
+            )
+        else:
+            by_name(alias, given, f"/inputs/{alias}")
+    return out

@@ -34,7 +34,7 @@ def node_checksum(
     """sha256 of the canonical config plus the body bytes, with CRLF read as LF, plus the
     contract columns and the data tests when the model declares them (so a model without them
     keeps its checksum)."""
-    digest = hashlib.sha256(canonical_json(config.model_dump(mode="json", by_alias=True)))
+    digest = hashlib.sha256(canonical_json(_config(config.model_dump(mode="json", by_alias=True))))
     digest.update(b"\0")
     digest.update(body.replace(b"\r\n", b"\n"))
     if columns is not None:
@@ -46,11 +46,19 @@ def node_checksum(
     return digest.hexdigest()
 
 
+def _config(dumped: dict[str, Any]) -> dict[str, Any]:
+    """Additive setting: `sql_dialect` is absent while unset, so plans without it keep their hash."""
+    if dumped.get("sql_dialect") is None:
+        dumped.pop("sql_dialect", None)
+    return dumped
+
+
 def _node(node: PlanNode) -> dict[str, Any]:
     out = node.model_dump(mode="json", by_alias=True)
     for key in ("columns", "data_tests"):  # additive fields: absent when not declared
         if out[key] is None:
             del out[key]
+    _config(out["config"])
     return out
 
 

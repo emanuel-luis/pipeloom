@@ -9,9 +9,14 @@ folder named after the project in the current directory.
   directory name), the engine (`polars`, `pandas`, `spark` or `databricks`, default `polars`)
   and, on databricks, the Unity Catalog catalog (default `main`). Otherwise, or with
   `--no-input`, it uses the flags and those defaults.
-- polars, spark and databricks get SQL models; pandas gets Python models under `src/`. polars,
-  pandas and spark read a small CSV in `data/`, so `pipeloom run` works right away on polars and
-  pandas. databricks reads `samples.tpch.orders` and comes with a state table, an artifacts
+- Each layer folder, `models/bronze`, `models/silver` and `models/gold`, gets one `.py` file with
+  a decorated model. polars, spark and databricks models return `ctx.sql(...)`; pandas models
+  are frame code, since pandas has no SQL. `pipeloom.yml` holds the source group `raw` and a
+  `models:` tree that sets each layer's schema and tags; `models/silver/_properties.yml` holds a
+  description. `.vscode/settings.json` maps `project.json` to `pipeloom.yml` and
+  `properties.json` to `models/**/*.yml`. polars, pandas and spark read a small CSV in `data/`,
+  so `pipeloom run` works right away on polars and pandas. databricks reads
+  `samples.tpch.orders` and comes with a state table, an artifacts
   volume and a serverless `deploy` block; the comments in `pipeloom.yml` say what to create
   before `pipeloom databricks deploy`.
 - A directory that is not empty needs `--force`. Existing files are never overwritten: they are
@@ -21,15 +26,17 @@ folder named after the project in the current directory.
 
 ## pipeloom new model
 
-`pipeloom new model NAME` adds one model file to a project and prints the paths it wrote.
+`pipeloom new model NAME` adds one model file to a project and prints its path.
 
-- The file is `models/<folder>/<NAME>.yml`: the schema modeline and one block-style entry. `--folder`
-  is relative to the first model path and cannot leave it.
-- `--sql` writes a `select 1 as id` body. `--python` writes `python: <project>_models.<NAME>:build`
-  and a stub `build(ctx, **inputs)` under the first `python_paths` entry, which must be set
-  explicitly in `pipeloom.yml`. Without a flag, pandas default targets get Python and the rest SQL.
-- Exit codes: 0 on success, 1 when the project does not load, 2 on a usage error (bad name, a name
-  or file that exists, `--sql` with `--python`, a folder outside the model path, no `python_paths`).
+- The file is `models/<folder>/<NAME>.py`, with one function `NAME` decorated with `@model`.
+  `--folder` is relative to the first model path and cannot leave it.
+- `--sql` writes a body that returns `ctx.sql("select 1 as id")`. `--python` writes a frame stub
+  that raises `NotImplementedError` until you write the body. Without a flag, pandas default
+  targets get `--python` and the rest `--sql`. Add one parameter per input, named like the model
+  or source table it reads.
+- Exit codes: 0 on success, 1 when the project does not load, 2 on a usage error (bad name, a
+  Python keyword or `ctx`, `model` or `ModelContext` as the name, a model or file that exists,
+  `--sql` with `--python`, a folder outside the model path).
 
 ## Reference
 

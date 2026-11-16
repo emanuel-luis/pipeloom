@@ -8,6 +8,7 @@ from typing import Any, Union
 
 from pydantic import BaseModel, ValidationError
 
+from pipeloom.config.decorator import DecoratorSite
 from pipeloom.config.yaml import LoadedDocument
 from pipeloom.diagnostics import Report, suggest
 
@@ -64,7 +65,7 @@ def _get(data: Any, pointer: str) -> Any:
 
 def from_validation_error(
     err: ValidationError,
-    doc: LoadedDocument,
+    doc: LoadedDocument | DecoratorSite,
     root_model: type[BaseModel],
     report: Report,
     *,

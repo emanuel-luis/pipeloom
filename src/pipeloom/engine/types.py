@@ -47,6 +47,9 @@ class EngineCapabilities:
     """Frames are Narwhals-compatible."""
     quality: bool = False
     """`evaluate` and `apply_drops` are implemented; L5 rejects expectations otherwise (PLC510)."""
+    sql_dialect: str | None = None
+    """The sqlglot dialect `sql` runs, or None when the engine has no SQL. `ctx.sql` translates a
+    query declared in another dialect to this one (plugin API 0.5)."""
 
 
 @dataclass(frozen=True)

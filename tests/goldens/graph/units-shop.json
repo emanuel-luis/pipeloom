@@ -1,0 +1,360 @@
+{
+  "schema": "pipeloom.unit_graph/1",
+  "pipeloom_version": "<version>",
+  "project": "shop",
+  "target": "ci",
+  "plan_hash": "<plan_hash>",
+  "selectors": {
+    "select": [],
+    "exclude": []
+  },
+  "placeholders": [
+    "project_dir",
+    "manifest",
+    "run_id"
+  ],
+  "units": [
+    {
+      "unit_id": "stg_customers",
+      "unique_id": "model.shop.stg_customers",
+      "nodes": [
+        "model.shop.stg_customers"
+      ],
+      "materialized": "table",
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "stg_customers"
+      },
+      "relation_name": "main.stg_customers",
+      "assets": [
+        "pipeloom://shop/ci/main.stg_customers"
+      ],
+      "parents": [],
+      "tags": [
+        "staging"
+      ],
+      "retries": 0,
+      "retry_delay_s": 1.0,
+      "retry_on": "transient",
+      "timeout_s": null,
+      "argv": [
+        "pipeloom",
+        "run",
+        "--project-dir",
+        "{project_dir}",
+        "--target",
+        "ci",
+        "--manifest",
+        "{manifest}",
+        "--select",
+        "unit:stg_customers",
+        "--run-id",
+        "{run_id}",
+        "--expect-plan-hash",
+        "<plan_hash>"
+      ]
+    },
+    {
+      "unit_id": "stg_orders",
+      "unique_id": "model.shop.stg_orders",
+      "nodes": [
+        "model.shop.stg_orders"
+      ],
+      "materialized": "table",
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "stg_orders"
+      },
+      "relation_name": "main.stg_orders",
+      "assets": [
+        "pipeloom://shop/ci/main.stg_orders"
+      ],
+      "parents": [],
+      "tags": [
+        "staging"
+      ],
+      "retries": 0,
+      "retry_delay_s": 1.0,
+      "retry_on": "transient",
+      "timeout_s": null,
+      "argv": [
+        "pipeloom",
+        "run",
+        "--project-dir",
+        "{project_dir}",
+        "--target",
+        "ci",
+        "--manifest",
+        "{manifest}",
+        "--select",
+        "unit:stg_orders",
+        "--run-id",
+        "{run_id}",
+        "--expect-plan-hash",
+        "<plan_hash>"
+      ]
+    },
+    {
+      "unit_id": "dim_customers",
+      "unique_id": "model.shop.dim_customers",
+      "nodes": [
+        "model.shop.orders_enriched",
+        "model.shop.dim_customers"
+      ],
+      "materialized": "table",
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "dim_customers"
+      },
+      "relation_name": "main.dim_customers",
+      "assets": [
+        "pipeloom://shop/ci/main.dim_customers"
+      ],
+      "parents": [
+        "stg_customers",
+        "stg_orders"
+      ],
+      "tags": [
+        "mart"
+      ],
+      "retries": 0,
+      "retry_delay_s": 1.0,
+      "retry_on": "transient",
+      "timeout_s": null,
+      "argv": [
+        "pipeloom",
+        "run",
+        "--project-dir",
+        "{project_dir}",
+        "--target",
+        "ci",
+        "--manifest",
+        "{manifest}",
+        "--select",
+        "unit:dim_customers",
+        "--run-id",
+        "{run_id}",
+        "--expect-plan-hash",
+        "<plan_hash>"
+      ]
+    },
+    {
+      "unit_id": "stg_payments",
+      "unique_id": "model.shop.stg_payments",
+      "nodes": [
+        "model.shop.stg_payments"
+      ],
+      "materialized": "table",
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "stg_payments"
+      },
+      "relation_name": "main.stg_payments",
+      "assets": [
+        "pipeloom://shop/ci/main.stg_payments"
+      ],
+      "parents": [],
+      "tags": [
+        "staging"
+      ],
+      "retries": 0,
+      "retry_delay_s": 1.0,
+      "retry_on": "transient",
+      "timeout_s": null,
+      "argv": [
+        "pipeloom",
+        "run",
+        "--project-dir",
+        "{project_dir}",
+        "--target",
+        "ci",
+        "--manifest",
+        "{manifest}",
+        "--select",
+        "unit:stg_payments",
+        "--run-id",
+        "{run_id}",
+        "--expect-plan-hash",
+        "<plan_hash>"
+      ]
+    },
+    {
+      "unit_id": "fct_orders",
+      "unique_id": "model.shop.fct_orders",
+      "nodes": [
+        "model.shop.orders_enriched",
+        "model.shop.fct_orders"
+      ],
+      "materialized": "table",
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "fct_orders"
+      },
+      "relation_name": "main.fct_orders",
+      "assets": [
+        "pipeloom://shop/ci/main.fct_orders"
+      ],
+      "parents": [
+        "stg_customers",
+        "stg_orders",
+        "stg_payments"
+      ],
+      "tags": [
+        "mart"
+      ],
+      "retries": 0,
+      "retry_delay_s": 1.0,
+      "retry_on": "transient",
+      "timeout_s": null,
+      "argv": [
+        "pipeloom",
+        "run",
+        "--project-dir",
+        "{project_dir}",
+        "--target",
+        "ci",
+        "--manifest",
+        "{manifest}",
+        "--select",
+        "unit:fct_orders",
+        "--run-id",
+        "{run_id}",
+        "--expect-plan-hash",
+        "<plan_hash>"
+      ]
+    },
+    {
+      "unit_id": "rpt_revenue",
+      "unique_id": "model.shop.rpt_revenue",
+      "nodes": [
+        "model.shop.rpt_revenue"
+      ],
+      "materialized": "table",
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "rpt_revenue"
+      },
+      "relation_name": "main.rpt_revenue",
+      "assets": [
+        "pipeloom://shop/ci/main.rpt_revenue"
+      ],
+      "parents": [
+        "fct_orders"
+      ],
+      "tags": [],
+      "retries": 0,
+      "retry_delay_s": 1.0,
+      "retry_on": "transient",
+      "timeout_s": null,
+      "argv": [
+        "pipeloom",
+        "run",
+        "--project-dir",
+        "{project_dir}",
+        "--target",
+        "ci",
+        "--manifest",
+        "{manifest}",
+        "--select",
+        "unit:rpt_revenue",
+        "--run-id",
+        "{run_id}",
+        "--expect-plan-hash",
+        "<plan_hash>"
+      ]
+    },
+    {
+      "unit_id": "top_customers",
+      "unique_id": "model.shop.top_customers",
+      "nodes": [
+        "model.shop.top_customers"
+      ],
+      "materialized": "table",
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "top_customers"
+      },
+      "relation_name": "main.top_customers",
+      "assets": [
+        "pipeloom://shop/ci/main.top_customers"
+      ],
+      "parents": [
+        "rpt_revenue"
+      ],
+      "tags": [],
+      "retries": 1,
+      "retry_delay_s": 1.0,
+      "retry_on": "transient",
+      "timeout_s": null,
+      "argv": [
+        "pipeloom",
+        "run",
+        "--project-dir",
+        "{project_dir}",
+        "--target",
+        "ci",
+        "--manifest",
+        "{manifest}",
+        "--select",
+        "unit:top_customers",
+        "--run-id",
+        "{run_id}",
+        "--expect-plan-hash",
+        "<plan_hash>"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "stg_customers",
+      "to": "dim_customers"
+    },
+    {
+      "from": "stg_orders",
+      "to": "dim_customers"
+    },
+    {
+      "from": "stg_customers",
+      "to": "fct_orders"
+    },
+    {
+      "from": "stg_orders",
+      "to": "fct_orders"
+    },
+    {
+      "from": "stg_payments",
+      "to": "fct_orders"
+    },
+    {
+      "from": "fct_orders",
+      "to": "rpt_revenue"
+    },
+    {
+      "from": "rpt_revenue",
+      "to": "top_customers"
+    }
+  ],
+  "finalize": {
+    "argv": [
+      "pipeloom",
+      "finalize",
+      "--project-dir",
+      "{project_dir}",
+      "--target",
+      "ci",
+      "--manifest",
+      "{manifest}",
+      "--run-id",
+      "{run_id}",
+      "--expect-plan-hash",
+      "<plan_hash>"
+    ]
+  }
+}

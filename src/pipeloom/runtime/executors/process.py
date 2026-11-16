@@ -5,8 +5,10 @@ The child writes its events as jsonl on stderr; a reader thread relays them to t
 with `EventBus.forward`, so they keep the child's invocation id and sequence numbers. The child's
 attempt file is the result. No attempt file means the child died before it could write one.
 
-Every child starts in its own process group, so a terminal Ctrl+C reaches only the owner. The
-child enforces a unit's timeout itself; the parent's own deadline is `timeout + cancel_grace`.
+Every child starts in its own process group, so a terminal Ctrl+C reaches only the owner. On
+Windows each child also runs in its own job object, so a kill or the sweep after the child exits
+ends its grandchildren too. The child enforces a unit's timeout itself; the parent's own deadline
+is `timeout + cancel_grace`.
 """
 
 from __future__ import annotations
@@ -34,7 +36,7 @@ from pipeloom.artifacts.results import result_row
 from pipeloom.events.bus import EventBus
 from pipeloom.events.model import ErrorInfo, Event, UnitFailed
 from pipeloom.runtime.control import Reason, interrupt_error
-from pipeloom.runtime.executors import UnitCompletion, UnitHandle
+from pipeloom.runtime.executors import UnitCompletion, UnitHandle, _winjob
 from pipeloom.runtime.runner import ModelResult
 
 PARENT_ENV = "PIPELOOM_PARENT_INVOCATION_ID"
@@ -100,8 +102,10 @@ class ChildCommand:
         return out
 
 
-def _kill(proc: subprocess.Popen[str]) -> None:
+def _kill(proc: subprocess.Popen[str], job: _winjob.Job | None = None) -> None:
     """Kill the child and everything it started: a grandchild would keep the pipes open."""
+    if job is not None:  # safe after the child was reaped: a job handle is not a pid
+        job.terminate()
     if proc.poll() is not None:
         return  # reaped: its pid, and so its group id, may belong to someone else now
     if sys.platform == "win32":
@@ -153,6 +157,8 @@ class ProcessExecutor:
         self._lock = threading.Lock()
         self._seq = 0
         self._procs: dict[UnitHandle, subprocess.Popen[str]] = {}
+        self._jobs: dict[UnitHandle, _winjob.Job | None] = {}
+        """The Windows job of each child; None off Windows or when Windows refused one."""
         self._threads: list[threading.Thread] = []
         self._stopped: dict[UnitHandle, Reason] = {}
         self._forwarded: set[tuple[str, int | None]] = set()
@@ -191,12 +197,12 @@ class ProcessExecutor:
         A timeout is already past its grace in the scheduler, so the child is killed at once.
         """
         with self._lock:
-            proc = self._procs.get(handle)
+            proc, job = self._procs.get(handle), self._jobs.get(handle)
             self._stopped.setdefault(handle, reason)
         if proc is None or proc.poll() is not None:
             return True
         if reason == "timeout" or final:
-            _kill(proc)
+            _kill(proc, job)
             return True
         try:
             if sys.platform == "win32":
@@ -204,25 +210,26 @@ class ProcessExecutor:
             else:
                 proc.send_signal(signal.SIGTERM)
         except OSError:
-            _kill(proc)
+            _kill(proc, job)
             return True
-        timer = threading.Timer(self._grace, _kill, args=(proc,))
+        timer = threading.Timer(self._grace, _kill, args=(proc, job))
         timer.daemon = True
         timer.start()
         return True
 
     def shutdown(self, *, wait: bool) -> None:
         with self._lock:
-            threads, procs = list(self._threads), list(self._procs.values())
+            threads = list(self._threads)
+            procs = [(proc, self._jobs.get(h)) for h, proc in self._procs.items()]
         if not wait:
-            for proc in procs:
-                _kill(proc)
+            for proc, job in procs:
+                _kill(proc, job)
         end = time.monotonic() + (JOIN_TIMEOUT if not wait else 4 * JOIN_TIMEOUT)
         for thread in threads:
             thread.join(max(0.0, end - time.monotonic()))
         if wait:  # whatever outlived the join is stuck: end it rather than hang the run
-            for proc in procs:
-                _kill(proc)
+            for proc, job in procs:
+                _kill(proc, job)
 
     # -- one child --------------------------------------------------------------------------
 
@@ -266,22 +273,34 @@ class ProcessExecutor:
                     errors="replace",
                     **group,
                 )
+                # A grandchild the child starts before this line escapes the job. The child
+                # imports pipeloom for hundreds of milliseconds before user code runs, so that
+                # window stays theoretical; CREATE_SUSPENDED would need the thread handle, which
+                # Popen does not expose.
+                job = self._jobs[handle] = _winjob.create(proc.pid)
                 self._procs[handle] = proc
                 self.popens.append(proc)
-            assert proc.stdout is not None and proc.stderr is not None
-            out_reader = threading.Thread(target=_pump, args=(proc.stdout, note), daemon=True)
-            out_reader.start()
-            err_reader = threading.Thread(
-                target=self._pump_events, args=(proc.stderr, note), daemon=True
-            )
-            err_reader.start()
-            code = proc.wait()
-            if sys.platform != "win32":  # sweep what the child left behind in its group
-                with contextlib.suppress(OSError):
-                    os.killpg(proc.pid, signal.SIGKILL)
-            # A grandchild may keep a pipe open after the child is gone: do not wait for it.
-            err_reader.join(JOIN_TIMEOUT)
-            out_reader.join(JOIN_TIMEOUT)
+            try:
+                assert proc.stdout is not None and proc.stderr is not None
+                out_reader = threading.Thread(target=_pump, args=(proc.stdout, note), daemon=True)
+                out_reader.start()
+                err_reader = threading.Thread(
+                    target=self._pump_events, args=(proc.stderr, note), daemon=True
+                )
+                err_reader.start()
+                code = proc.wait()
+                # sweep what the child left behind: its job on Windows, its group elsewhere
+                if job is not None:
+                    job.terminate()
+                if sys.platform != "win32":
+                    with contextlib.suppress(OSError):
+                        os.killpg(proc.pid, signal.SIGKILL)
+                # A grandchild may keep a pipe open after the child is gone: do not wait for it.
+                err_reader.join(JOIN_TIMEOUT)
+                out_reader.join(JOIN_TIMEOUT)
+            finally:
+                if job is not None:
+                    job.close()
         return self._completion(handle, code, list(tail), log_path)
 
     def _pump_events(self, stream: Any, note: Any) -> None:

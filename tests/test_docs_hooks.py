@@ -7,10 +7,22 @@ from types import ModuleType
 
 import pytest
 
+from pipeloom.artifacts.schema import artifact_schemas
 from pipeloom.config.schema import dump_schema
 from pipeloom.diagnostics.codes import CATALOG
 
 ROOT = Path(__file__).parent.parent
+PAGES = [
+    "reference/errors.md",
+    "schema/v1/defaults.json",
+    "schema/v1/event.json",
+    "schema/v1/models.json",
+    "schema/v1/project.json",
+    "schema/v1/properties.json",
+    "schema/v1/run_results.json",
+    "schema/v1/unit_graph.json",
+    "schema/v1/unit_states.json",
+]
 
 
 def load_hooks() -> ModuleType:
@@ -23,18 +35,14 @@ def load_hooks() -> ModuleType:
 
 def test_generated_pages() -> None:
     pages = load_hooks().generated_pages()
-    assert sorted(pages) == [
-        "reference/errors.md",
-        "schema/v1/defaults.json",
-        "schema/v1/models.json",
-        "schema/v1/project.json",
-        "schema/v1/properties.json",
-    ]
+    assert sorted(pages) == PAGES
     for code in CATALOG:
         assert f"### {code} {{#{code.lower()}}}" in pages["reference/errors.md"]
     project = json.loads(pages["schema/v1/project.json"])
     assert project["$id"].endswith("/latest/schema/v1/project.json")
     assert pages["schema/v1/project.json"] == dump_schema(project)
+    for name, doc in artifact_schemas().items():
+        assert pages[f"schema/v1/{name}"] == dump_schema(doc)
 
 
 def test_on_files_appends_generated_files() -> None:
@@ -48,10 +56,4 @@ def test_on_files_appends_generated_files() -> None:
     config.plugins._current_plugin = None  # normally set while a plugin event runs
     files = load_hooks().on_files(Files([]), config)
     paths = sorted(f.src_uri for f in files)
-    assert paths == [
-        "reference/errors.md",
-        "schema/v1/defaults.json",
-        "schema/v1/models.json",
-        "schema/v1/project.json",
-        "schema/v1/properties.json",
-    ]
+    assert paths == PAGES

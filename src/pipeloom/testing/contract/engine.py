@@ -40,6 +40,7 @@ from pipeloom.config.models import (
     ResolvedModelConfig,
     UnitTestConfig,
 )
+from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine.errors import WriteKeyError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
 from pipeloom.engine.types import (
@@ -71,7 +72,6 @@ from pipeloom.quality import quarantine_target
 from pipeloom.runtime.context import RuntimeContext
 from pipeloom.runtime.control import CancelToken
 from pipeloom.runtime.executors import UnitHandle
-from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.runner import ModelResult, ModelRunner
 from pipeloom.runtime.schema_policy import (
     SchemaRejected,
@@ -257,7 +257,31 @@ def _key(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(rows, key=lambda r: str(sorted(r.items(), key=str)))
 
 
-class _FnLoader(CallableLoader):
+def _node(
+    name: str,
+    materialized: str,
+    inputs: dict[str, str] | None = None,
+    relation: TargetRef | None = None,
+    config: ResolvedModelConfig | None = None,
+) -> PlanNode:
+    """A Python model node for `_run_one`."""
+    return PlanNode(
+        unique_id=f"model.contract.{name}",
+        name=name,
+        file="models/m.yml",
+        line=1,
+        materialized=materialized,
+        body=PythonBody(callable="m:build", file="src/m.py"),
+        inputs=inputs or {},
+        relation=relation,
+        unit_ids=(name,),
+        config=config or ResolvedModelConfig(),
+        tags=(),
+        checksum="",
+    )
+
+
+class _FnLoader(ModuleLoader):
     """Every `module:function` is the one function given."""
 
     def __init__(self, fn: Callable[..., Any]) -> None:
@@ -274,12 +298,14 @@ def _run_one(
     tmp_path: Path,
     node: PlanNode,
     fn: Callable[..., Any],
+    upstream: tuple[PlanNode, ...] = (),
     *,
     sources: Mapping[str, PlanSource] | None = None,
     data_tests: bool = False,
 ) -> ModelResult | None:
     """Run one unit made of `node` through the real `ModelRunner`, as `pipeloom run` would.
-    `sources` are what data tests may name as their parent."""
+    `upstream` are nodes already written, which `node.inputs` may name; `sources` are what
+    data tests may name as their parent."""
     clock = FakeClock()
     unit = node.name
     plan = Plan(
@@ -297,7 +323,7 @@ def _run_one(
             generated_at="",
             invocation_id="contract",
         ),
-        nodes={node.unique_id: node},
+        nodes={node.unique_id: node, **{u.unique_id: u for u in upstream}},
         sources=dict(sources or {}),
         units={unit: ExecutionUnit(unit_id=unit, nodes=(node.unique_id,), parents=())},
         parent_map={node.unique_id: ()},
@@ -527,6 +553,62 @@ class EngineContract:
             self.write(s, h, "t_up", ROWS[:1], "overwrite", "r:2")
             rel = s.reader("table").read(ReadSpec("table", table=view))
             assert [r["id"] for r in h.to_rows(rel.native)] == [1]
+
+    # -- ctx.sql ----------------------------------------------------------------------------
+
+    def _ctx_sql_run(
+        self,
+        h: EngineHarness,
+        tmp_path: Path,
+        name: str,
+        materialized: str,
+        fn: Callable[..., Any],
+        sql_dialect: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Write table `<name>_up`, run model `name` reading it as `up`, read `name` back."""
+        requires(h, "sql_dialect")
+        requires(h, "strategies", "overwrite")
+        up = _node(f"{name}_up", "table", relation=_target(f"{name}_up"))
+        config = ResolvedModelConfig(sql_dialect=sql_dialect)
+        if materialized == "table":
+            config = config.model_copy(
+                update={"write": config.write.model_copy(update={"strategy": "overwrite"})}
+            )
+        node = _node(name, materialized, {"up": up.unique_id}, _target(name), config)
+        with self.session(h, tmp_path) as s:
+            self.write(s, h, f"{name}_up", ROWS, "overwrite", "r:up")
+            result = _run_one(h, s, tmp_path, node, fn, (up,))
+            assert result is not None and result.error is None, result and result.error
+            rel = s.reader("table").read(ReadSpec("table", table=_target(name)))
+            return sorted(h.to_rows(rel.native), key=lambda r: r["id"])
+
+    def test_ctx_sql_reads_an_input(self, h: EngineHarness, tmp_path: Path) -> None:
+        def build(ctx: Any, up: Any) -> Any:
+            return ctx.sql("select id from up where id > 1")
+
+        assert self._ctx_sql_run(h, tmp_path, "t_ctxsql", "table", build) == [
+            {"id": 2},
+            {"id": 3},
+        ]
+
+    def test_ctx_sql_translates_a_declared_dialect(self, h: EngineHarness, tmp_path: Path) -> None:
+        pytest.importorskip("sqlglot")
+        if h.engine.capabilities.sql_dialect == "tsql":
+            pytest.skip("the engine runs tsql: nothing to translate")
+
+        def build(ctx: Any, up: Any) -> Any:
+            return ctx.sql("select top 2 id from up order by id desc")
+
+        rows = self._ctx_sql_run(h, tmp_path, "t_ctxsql_tsql", "table", build, "tsql")
+        assert rows == [{"id": 2}, {"id": 3}]
+
+    def test_a_python_view(self, h: EngineHarness, tmp_path: Path) -> None:
+        requires(h, "views")
+
+        def view(ctx: Any, up: Any) -> Any:
+            return ctx.sql("select id from up where id < 3")
+
+        assert self._ctx_sql_run(h, tmp_path, "v_py", "view", view) == [{"id": 1}, {"id": 2}]
 
     # -- settings ---------------------------------------------------------------------------
 

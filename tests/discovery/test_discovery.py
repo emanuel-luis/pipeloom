@@ -242,13 +242,15 @@ def test_file_removed_between_scan_and_resolve(
 def test_relpath_across_drives_is_an_outside_roots_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    write(tmp_path, {"models/s.py": STATIC})
+    # Only a file outside the project dir needs relpath; one inside is sliced from the path.
+    write(tmp_path, {"other/s.py": STATIC})
+    (tmp_path / "p").mkdir()
 
     def boom(*_: Any) -> str:
         raise ValueError("path is on mount 'D:', start on mount 'C:'")
 
     monkeypatch.setattr(os.path, "relpath", boom)
-    result = discover(tmp_path, ["models"], use_cache=False)
+    result = discover(tmp_path / "p", ["../other"], python_paths=[".."], use_cache=False)
     assert result.models == ()
     assert [f.kind for f in result.failures] == ["outside_roots"]
 

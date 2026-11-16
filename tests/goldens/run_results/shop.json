@@ -49,7 +49,7 @@
     ],
     "project": "shop",
     "target": "ci",
-    "plan_hash": "e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0",
+    "plan_hash": "2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da",
     "selector": {
       "select": [],
       "exclude": []
@@ -60,15 +60,15 @@
     "ended_at": "<timestamp>",
     "duration_ms": 0,
     "counts": {
-      "total": 6,
-      "succeeded": 6,
+      "total": 7,
+      "succeeded": 7,
       "failed": 0,
       "skipped": 0,
       "cancelled": 0,
       "timed_out": 0
     },
     "totals": {
-      "rows_written": 14,
+      "rows_written": 16,
       "bytes_written": 0
     },
     "identity": {
@@ -361,6 +361,48 @@
       "engine_version": "1",
       "executor": "thread",
       "idempotency_token": "run1:stg_payments",
+      "skip_reason": null,
+      "orchestrator_ids": {}
+    },
+    {
+      "unique_id": "model.shop.top_customers",
+      "unit_id": "top_customers",
+      "ephemeral_inlined": [],
+      "materialization": "table",
+      "strategy": "overwrite",
+      "relation_name": "main.top_customers",
+      "status": "succeeded",
+      "attempt": 1,
+      "retries_used": 0,
+      "started_at": "<timestamp>",
+      "ended_at": "<timestamp>",
+      "duration_ms": 0,
+      "queue_wait_ms": 0,
+      "rows_read": {
+        "rpt_revenue": 2
+      },
+      "rows_written": 2,
+      "rows_inserted": 2,
+      "rows_updated": null,
+      "rows_deleted": null,
+      "rows_dropped": null,
+      "rows_quarantined": null,
+      "bytes_read": null,
+      "bytes_written": null,
+      "target_version": null,
+      "full_refresh": false,
+      "is_incremental": false,
+      "watermark_before": null,
+      "watermark_after": null,
+      "schema_hash": "2ddb7f149cff88c2ac00adcb21c99e6273e237db36c40d672b799f7ebbcaa770",
+      "schema_changes": [],
+      "expectations": [],
+      "warnings": [],
+      "error": null,
+      "engine": "memory",
+      "engine_version": "1",
+      "executor": "thread",
+      "idempotency_token": "run1:top_customers",
       "skip_reason": null,
       "orchestrator_ids": {}
     }

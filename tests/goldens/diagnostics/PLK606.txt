@@ -1,0 +1,2 @@
+warning PLK606 models/m.yml:3:13 'm:a' calls ctx.sql, but engine 'nosql' has no SQL
+      hint: write the model with frames, or choose an engine with SQL

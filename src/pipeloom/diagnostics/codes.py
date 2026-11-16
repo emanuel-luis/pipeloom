@@ -363,8 +363,8 @@ _ACTIVE_02: Final = (
     (
         "PLP409",
         E,
-        "View is not a plain SQL model",
-        "A view must be a SQL model that reads no ephemeral model, because its query is stored in the catalog as written.",
+        "View inlines an ephemeral model",
+        "A view cannot read an ephemeral model, because its query is stored in the catalog and an ephemeral model has no relation to name. A view may be a SQL model or a Python function that returns ctx.sql(...).",
     ),
     (
         "PLX103",
@@ -756,10 +756,40 @@ _ACTIVE_09: Final = (
         "A model writing with scd2 sets an option the strategy cannot apply: an empty tracked_columns, a tracked column that is part of unique_key, deletes with mode: soft, or a unique_key, tracked_columns, partition_by, cluster_by, deletes.column or contract column named valid_from, valid_to or is_current (scd2 adds those columns itself).",
     ),
     (
+        "PLC513",
+        E,
+        "SQL translation needs the sqlglot extra",
+        "The model's sql_dialect differs from the dialect of the target engine, so its ctx.sql queries must be translated, and sqlglot is not installed. Install pipeloom[sqlglot], or remove sql_dialect and write the queries in the engine's dialect.",
+    ),
+    (
+        "PLK606",
+        W,
+        "ctx.sql on an engine without SQL",
+        "The model function calls ctx.sql, but the target engine runs no SQL (its sql_dialect is None), so the call raises at run time (PLX101). Write the model with frames, or choose an engine with SQL.",
+    ),
+    (
+        "PLX120",
+        E,
+        "View model did not return ctx.sql(...), or passed it inputs=",
+        "A Python view model runs in view mode: its input parameters are placeholders that only ctx.sql may name, and ctx.sql returns the query the catalog stores. The function returned something else, passed inputs= frames to ctx.sql, or used an input as a frame.",
+    ),
+    (
         "PLR209",
         E,
         "Properties entry names no model, or describes one twice",
         "An entry of a properties file (a models entry without sql or python) names a model that does not exist, or a model that another properties entry already describes. Each model has at most one properties entry. The hint suggests the closest model name, or points at the first entry.",
+    ),
+    (
+        "PLY005",
+        E,
+        "Model module cannot be loaded",
+        "A Python file under model_paths or model_packages has a syntax error, raised an exception while it was imported, lies outside every python_paths root, or resolves to another file under its module name (an installed package or another module shadows it, or its top-level name is a standard library module). Every such file is reported; the location is the innermost traceback frame in that file, or the syntax error. While any is reported, PLR209 is not, since the missing models may be the ones a properties entry describes.",
+    ),
+    (
+        "PLR210",
+        E,
+        "Input name matches a table in several source groups",
+        "A parameter of a Python model binds by name to a source table, and tables with that name exist in more than one source group. Bind it explicitly with inputs={'name': source('group', 'table')}.",
     ),
 )
 

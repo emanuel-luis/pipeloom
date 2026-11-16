@@ -1,0 +1,13 @@
+"""Bronze: the raw orders, as they arrive.
+
+A model never reads itself, so the `orders` parameter binds the source table `raw.orders`.
+"""
+
+import pandas as pd
+
+from pipeloom import model
+
+
+@model
+def orders(orders: pd.DataFrame) -> pd.DataFrame:
+    return orders
