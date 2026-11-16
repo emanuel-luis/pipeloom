@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.plan.model import PythonBody
 from pipeloom.runtime.run import RunOptions
@@ -111,6 +113,30 @@ def check(big):
     assert _codes(tmp_path, code) == [
         ("PLS102", "models/shop_models.py", 9, "/@model/retries"),
         ("PLS102", "models/shop_models.py", 15, "/@model/tags/0"),
+    ]
+
+
+def test_literal_ctx_sql_is_checked(tmp_path: Path) -> None:
+    pytest.importorskip("sqlglot")
+    code = """\
+from pipeloom import model
+
+
+def src(ctx):
+    return []
+
+
+@model
+def big(ctx, src):
+    return ctx.sql("select id from src join extra using (id) join more using (id)",
+                   inputs={"more": []})
+"""
+    root = make_project(tmp_path, {**FILES, "models/shop_models.py": code})
+    outcome = Project(ProjectOptions(project_dir=root, env={})).validate()
+    found = [(d.code, d.location.line, d.location.col) for d in outcome.diagnostics if d.location]
+    assert ("PLK603", 10, 20) in found
+    assert [d.message for d in outcome.diagnostics if d.code == "PLK603"] == [
+        "SQL of model 'big' reads 'extra', which is not an input alias"
     ]
 
 
