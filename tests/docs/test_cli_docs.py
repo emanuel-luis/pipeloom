@@ -316,6 +316,25 @@ def test_serve_regenerates_the_page_when_models_change(project: Path) -> None:
     assert b"added_by_serve" in page.read_bytes()
 
 
+def test_serve_reimports_dynamic_modules_and_their_helpers(project: Path) -> None:
+    assert cli("docs", "generate", "--project-dir", str(project)).exit_code == 0
+    page = project / "target" / "docs" / "index.html"
+    helper = project / "models" / "serve_helper.py"
+    helper.write_text("TAGS = ['first_tag']\n", encoding="utf-8")
+    (project / "models" / "serve_dynamic.py").write_text(
+        "from pipeloom import model\n"
+        "from models.serve_helper import TAGS\n\n\n"
+        "@model(tags=list(TAGS))\n"
+        "def serve_dynamic():\n    return []\n",
+        encoding="utf-8",
+    )
+    refresh = sys.modules["pipeloom.cli.docs"]._refresher(project, page.parent)
+    assert refresh is not None
+    helper.write_text("TAGS = ['second_tag_value']\n", encoding="utf-8")
+    refresh()  # the helper is not a model file: only the re-import sees the change
+    assert b"second_tag_value" in page.read_bytes()
+
+
 def test_make_server_serves_the_page(project: Path) -> None:
     assert cli("docs", "generate", "--project-dir", str(project), "--out", "site").exit_code == 0
     server = make_server(project / "site", "127.0.0.1", 0)
