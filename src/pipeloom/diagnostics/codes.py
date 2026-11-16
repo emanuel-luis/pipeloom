@@ -192,8 +192,8 @@ _ACTIVE: Final = (
         E,
         "Plugin API mismatch",
         (
-            "A plugin was built for another plugin API version. While the major version is 0 "
-            "the versions must match exactly."
+            "A plugin was built for another plugin API version. The major version must match "
+            "and the plugin's minor must not be above the core's."
         ),
     ),
     (
