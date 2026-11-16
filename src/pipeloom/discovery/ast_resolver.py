@@ -363,13 +363,22 @@ def build_models(
     failures: list[DiscoveryFailure] = []
     for m in parsed.models:
         try:
+            literal = decode(m.kwargs["name"]) if "name" in m.kwargs else None
+        except (InvalidArgument, TypeError):
+            literal = None
+        known = literal if isinstance(literal, str) else m.attr
+        try:
             kwargs = {k: decode(v) for k, v in m.kwargs.items()}
         except InvalidArgument as exc:
-            failures.append(DiscoveryFailure(path, *exc.at, "invalid_argument", str(exc)))
+            failures.append(
+                DiscoveryFailure(path, *exc.at, "invalid_argument", str(exc), model=known)
+            )
             continue
         except TypeError as exc:  # an unhashable set member or dict key
             failures.append(
-                DiscoveryFailure(path, m.site.line, m.site.col, "invalid_argument", str(exc))
+                DiscoveryFailure(
+                    path, m.site.line, m.site.col, "invalid_argument", str(exc), model=known
+                )
             )
             continue
         name = kwargs.get("name")

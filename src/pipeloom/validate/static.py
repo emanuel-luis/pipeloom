@@ -200,7 +200,8 @@ def check_static(pg: ProjectGraph, report: Report) -> None:
                     hint="write the model with frames, or choose an engine with SQL",
                     context={**ctx, "engine": no_sql},
                 )
-            why = _mismatch(last, set(m.inputs))
+            # A decorated model's parameters are its inputs; binding reported PLK602 already.
+            why = _mismatch(last, set(m.inputs)) if m.site is None else None
             if why is not None:
                 expected = ", ".join(["ctx", *m.inputs])
                 report.add(

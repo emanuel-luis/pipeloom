@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pipeloom.config.resolve import ResolvedProject
+from pipeloom.config.resolve import ResolvedModel, ResolvedProject
 from pipeloom.diagnostics import Report, suggest
 
 
@@ -13,6 +13,8 @@ def check_references(
     errors. `models_incomplete` (some model modules could not be loaded) suppresses PLR209,
     whose entries may describe the models that are missing."""
     model_names = [m.name for m in project.models.values()]
+    for b in project.binding_problems:
+        report.add(b.code, b.message, location=b.location, hint=b.hint, context=dict(b.context))
     for p in () if models_incomplete else project.properties_problems:
         if p.first is None:
             message = f"properties entry names no model '{p.name}'"
@@ -33,11 +35,15 @@ def check_references(
     ):
         for dup in shadowed:
             first = first_of[dup.unique_id]
-            there = project.locate(first.file, f"{first.pointer}/name")
+            if isinstance(first, ResolvedModel) and isinstance(dup, ResolvedModel):
+                there, here = project.at(first, "/name"), project.at(dup, "/name")
+            else:
+                there = project.locate(first.file, f"{first.pointer}/name")
+                here = project.locate(dup.file, f"{dup.pointer}/name")
             report.add(
                 code,
                 f"duplicate {kind} name '{dup.name}'",
-                location=project.locate(dup.file, f"{dup.pointer}/name"),
+                location=here,
                 hint=f"first defined in {there.file}:{there.line}",
                 context={"name": dup.name, "first": first.file},
             )
@@ -47,11 +53,13 @@ def check_references(
             is_ref = binding.kind == "model"
             if binding.unique_id in (project.models if is_ref else project.sources):
                 continue
+            if is_ref and binding.name in project.broken_models:
+                continue  # its own PLS code is reported
             key = "ref" if is_ref else "source"
             report.add(
                 "PLR201" if is_ref else "PLR203",
                 f"unknown {key} '{binding.name}' in input '{alias}' of model '{m.name}'",
-                location=project.locate(m.file, f"{m.pointer}/inputs/{alias}/{key}"),
+                location=project.at(m, f"/inputs/{alias}/{key}"),
                 hint=suggest(binding.name, model_names if is_ref else source_names),
                 context={"model": m.name, "input": alias, key: binding.name},
             )

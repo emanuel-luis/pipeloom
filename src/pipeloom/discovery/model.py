@@ -72,6 +72,8 @@ class DiscoveryFailure:
     kind: FailureKind
     message: str
     traceback: str | None = None
+    model: str | None = None
+    """The model's name, when the failure is one model with an invalid argument."""
 
 
 @dataclass(frozen=True, slots=True)
