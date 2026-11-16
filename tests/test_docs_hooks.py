@@ -20,6 +20,7 @@ PAGES = [
     "schema/v1/project.json",
     "schema/v1/properties.json",
     "schema/v1/run_results.json",
+    "schema/v1/unit_graph.json",
     "schema/v1/unit_states.json",
 ]
 
