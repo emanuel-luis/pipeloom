@@ -146,9 +146,16 @@ class Invocation:
             )
         )
 
-    def completed(self, bus: EventBus, exit_code: int, diagnostics: Sequence[Diagnostic]) -> None:
+    def completed(
+        self,
+        bus: EventBus,
+        exit_code: int,
+        diagnostics: Sequence[Diagnostic],
+        extra_errors: int = 0,
+    ) -> None:
+        """`extra_errors` counts errors that events carry, such as failed unit tests."""
         counts = {
-            "errors": sum(1 for d in diagnostics if d.severity is Severity.ERROR),
+            "errors": extra_errors + sum(1 for d in diagnostics if d.severity is Severity.ERROR),
             "warnings": sum(1 for d in diagnostics if d.severity is Severity.WARNING),
         }
         bus.emit(
@@ -168,17 +175,19 @@ class Invocation:
         bound: BoundProject | None = None,
         project: str | None = None,
         target: str | None = None,
+        extra_errors: int = 0,
     ) -> None:
         """Emit started, diagnostics, other events, completed; close the bus; exit if non-zero.
 
         Project-config sinks are added only when `bound` is given (a successful load and bind).
+        `extra_errors` counts errors the queued events carry, such as failed unit tests.
         """
         terminal: EventSink = JsonlSink(None) if self.log_format == "json" else ConsoleSink()
         sinks = [(terminal, TERMINAL_BUDGET), *config_sinks(bound)]
         if bound is not None:
             project, target = bound.loaded.config.name, bound.target
         counts: Mapping[str, int] = {
-            "errors": sum(1 for d in diagnostics if d.severity is Severity.ERROR),
+            "errors": extra_errors + sum(1 for d in diagnostics if d.severity is Severity.ERROR),
             "warnings": sum(1 for d in diagnostics if d.severity is Severity.WARNING),
         }
         with EventBus(

@@ -232,6 +232,22 @@ class PandasSession:
             raise TypeError(f"the pandas engine takes a DataFrame, not {type(native).__name__}")
         return _rel(native)
 
+    def from_rows(self, rows: Sequence[Mapping[str, Any]], schema: Schema) -> Relation:
+        fields = []
+        for c in schema:
+            kind = io.arrow_type(c.dtype)
+            if kind is None:
+                raise ValueError(f"the pandas engine cannot build a column of type {c.dtype}")
+            fields.append((c.name, kind))
+        table = pa.Table.from_pylist([dict(r) for r in rows], schema=pa.schema(fields))
+        return _rel(table.to_pandas(types_mapper=pd.ArrowDtype))
+
+    def to_rows(self, rel: Relation) -> list[dict[str, Any]]:
+        return portable.to_rows(rel.native)
+
+    def orphans(self, rel: Relation, column: str, parent: Relation, field: str) -> int:
+        return portable.orphans(rel.native, column, parent.native, field)
+
     def persist(self, rel: Relation) -> Relation:
         return rel  # already in memory
 

@@ -37,6 +37,7 @@ pandas = ["pipeloom-pandas==0.8.0"]
 spark = ["pipeloom-spark[local]==0.8.0"]
 databricks = ["pipeloom-databricks==0.8.0"]
 airflow = ["pipeloom-airflow==0.8.0"]
+openlineage = ["pipeloom-openlineage==0.8.0"]
 sqlglot = ["sqlglot>=26"]
 
 [project.urls]
@@ -66,7 +67,11 @@ dev = [
 ]
 spark = ["pipeloom-spark[local]"]
 # Airflow does not support Windows: install this group on Linux, macOS or WSL only.
-airflow = ["apache-airflow>=3.2,<4", "apache-airflow-providers-cncf-kubernetes>=10.25,<11"]
+airflow = [
+    "apache-airflow>=3.2,<4",
+    "apache-airflow-providers-cncf-kubernetes>=10.25,<11",
+    "apache-airflow-providers-openlineage>=2.8,<3",
+]
 docs = ["mkdocs-material", "mkdocstrings[python]", "mkdocs-click", "mike"]
 
 [tool.uv.workspace]
@@ -78,6 +83,7 @@ pipeloom-pandas = { workspace = true }
 pipeloom-spark = { workspace = true }
 pipeloom-databricks = { workspace = true }
 pipeloom-airflow = { workspace = true }
+pipeloom-openlineage = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pipeloom"]
@@ -96,6 +102,7 @@ src = [
     "plugins/pipeloom-spark/src",
     "plugins/pipeloom-databricks/src",
     "plugins/pipeloom-airflow/src",
+    "plugins/pipeloom-openlineage/src",
 ]
 
 [tool.ruff.lint]
@@ -116,6 +123,8 @@ files = [
     "plugins/pipeloom-databricks/tests",
     "plugins/pipeloom-airflow/src",
     "plugins/pipeloom-airflow/tests",
+    "plugins/pipeloom-openlineage/src",
+    "plugins/pipeloom-openlineage/tests",
 ]
 
 [[tool.mypy.overrides]]
@@ -144,7 +153,7 @@ disallow_subclassing_any = false
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
 timeout = 60
-testpaths = ["tests", "plugins/pipeloom-polars/tests", "plugins/pipeloom-pandas/tests", "plugins/pipeloom-spark/tests", "plugins/pipeloom-databricks/tests", "plugins/pipeloom-airflow/tests"]
+testpaths = ["tests", "plugins/pipeloom-polars/tests", "plugins/pipeloom-pandas/tests", "plugins/pipeloom-spark/tests", "plugins/pipeloom-databricks/tests", "plugins/pipeloom-airflow/tests", "plugins/pipeloom-openlineage/tests"]
 pythonpath = ["."]
 markers = [
     "spark: needs local Spark (PIPELOOM_TEST_SPARK=classic, Linux or macOS, Java)",
@@ -164,6 +173,7 @@ source = [
   "plugins/pipeloom-spark/src/pipeloom_spark",
   "plugins/pipeloom-databricks/src/pipeloom_databricks",
   "plugins/pipeloom-airflow/src/pipeloom_airflow",
+  "plugins/pipeloom-openlineage/src/pipeloom_openlineage",
 ]
 
 [tool.importlinter]
@@ -281,6 +291,12 @@ ignore_imports = [
     "pipeloom_airflow._compat_k8s -> kubernetes",
 ]
 unmatched_ignore_imports_alerting = "none"
+
+[[tool.importlinter.contracts]]
+name = "The core never imports the OpenLineage plugin or client"
+type = "forbidden"
+source_modules = ["pipeloom"]
+forbidden_modules = ["pipeloom_openlineage", "openlineage"]
 
 [[tool.importlinter.contracts]]
 name = "Only pipeloom.engine.portable imports narwhals"

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import NoReturn
+from typing import Any, Literal, NoReturn
 
-from pipeloom.engine.types import ReadSpec
+from pipeloom.engine import portable
+from pipeloom.engine.protocols import EngineSession
+from pipeloom.engine.types import ReadSpec, Relation
 
 
 class SqlUnsupportedError(Exception):
@@ -87,3 +89,25 @@ def translate(query: str, dialect: str | None, engine: str | None) -> str:
             "install pipeloom[sqlglot] or drop sql_dialect"
         ) from exc
     return ";\n".join(sqlglot.transpile(query, read=dialect, write=engine))
+
+
+def sql_runner(
+    session: EngineSession,
+    inputs: Mapping[str, Relation],
+    *,
+    node_dialect: str | None,
+    engine_dialect: str | None,
+    api: Literal["native", "narwhals"],
+) -> Callable[[str, str | None, Mapping[str, Any] | None], Any]:
+    """The `ModelContext._run_sql` callback: translate the query (the call's dialect, else the
+    node's) to the engine's, run it over `inputs` plus the frames passed as `extra`, and return
+    the result in the model's frame API."""
+
+    def run_sql(query: str, dialect: str | None, extra: Mapping[str, Any] | None) -> Any:
+        text = translate(query, dialect or node_dialect, engine_dialect)
+        frames = dict(inputs)
+        for name, frame in (extra or {}).items():
+            frames[name] = session.relation(portable.from_frame_api(frame))
+        return portable.to_frame_api(session.sql(text, frames).native, api)
+
+    return run_sql

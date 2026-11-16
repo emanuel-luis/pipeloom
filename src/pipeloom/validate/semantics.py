@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from pipeloom.config.models import ResolvedModelConfig
+from pipeloom.config.models import DataTestConfig, ResolvedModelConfig
 from pipeloom.config.resolve import ResolvedModel, ResolvedProject
 from pipeloom.diagnostics import JsonValue, Location, Report
 from pipeloom.engine.types import SCD2_COLUMNS
-from pipeloom.graph.dag import ProjectGraph, inlined_ancestors
+from pipeloom.graph.dag import Graph, ProjectGraph, inlined_ancestors
 
 PERSISTED = ("table", "incremental", "intermediate")
 _KEYED = ("merge", "scd2")
@@ -207,6 +207,65 @@ def _check_view(
     )
 
 
+def _check_data_tests(pg: ProjectGraph, ephemeral: frozenset[str], report: Report) -> None:
+    """PLP415: data tests on an ephemeral model, or a relationships parent that is the model
+    itself, a descendant, an ephemeral or intermediate model (an intermediate table may not exist
+    when the parent is not built in the run), or that closes a cycle of relationship edges."""
+    project, graph = pg.project, pg.graph
+    by_name = {m.name: uid for uid, m in project.models.items()}
+    intermediate = {u for u, m in project.models.items() if m.config.materialized == "intermediate"}
+
+    def parent_of(test: DataTestConfig) -> str | None:
+        rel = test.check.relationships
+        return None if rel is None or rel.to.ref is None else by_name.get(rel.to.ref)
+
+    extra = {
+        uid: tuple(p for t in m.entry.data_tests or () if (p := parent_of(t)) is not None)
+        for uid, m in project.models.items()
+    }
+    combined = Graph(
+        {u: (*graph.parents.get(u, ()), *extra.get(u, ())) for u in graph.kinds}, {}, graph.kinds
+    )
+    for uid, m in project.models.items():
+        for i, test in enumerate(m.entry.data_tests or ()):
+            parent = parent_of(test)
+            why = None
+            if uid in ephemeral:
+                why = f"ephemeral model '{m.name}' cannot have data tests"
+            elif parent is None:
+                continue
+            elif parent == uid:
+                why = f"data test '{test.name}' of model '{m.name}' relates the model to itself"
+            elif parent in ephemeral or parent in intermediate or parent in graph.descendants(uid):
+                kind = (
+                    "ephemeral model"
+                    if parent in ephemeral
+                    else "intermediate model"
+                    if parent in intermediate
+                    else "descendant"
+                )
+                why = (
+                    f"data test '{test.name}' of model '{m.name}' relates it to "
+                    f"{kind} '{project.models[parent].name}'"
+                )
+            elif uid in combined.ancestors(parent):
+                why = (
+                    f"data test '{test.name}' of model '{m.name}' closes a cycle through "
+                    f"'{project.models[parent].name}'"
+                )
+            if why is None:
+                continue
+            report.add(
+                "PLP415",
+                why,
+                location=project.locate_data_test(m, i),
+                hint="test the relationship on a table that is not upstream of the parent"
+                if uid not in ephemeral
+                else "move the data tests to a table that reads it",
+                context={"model": m.name, "data_test": test.name},
+            )
+
+
 def check_semantics(pg: ProjectGraph, report: Report) -> None:
     """Report PLP401 to PLP409 for every model."""
     project, graph = pg.project, pg.graph
@@ -218,6 +277,7 @@ def check_semantics(pg: ProjectGraph, report: Report) -> None:
         if uid not in ephemeral:
             for e in inlined_ancestors(graph, uid, ephemeral):
                 fanout[e] += 1
+    _check_data_tests(pg, ephemeral, report)
     limit = project.bound.loaded.config.ephemeral_fanout_warn
     # The effective catalog and schema: the model's own, else the naming options'. Prefix and
     # per_user transform both sides of a comparison equally, so they need not be applied.

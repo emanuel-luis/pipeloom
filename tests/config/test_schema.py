@@ -164,10 +164,11 @@ def test_properties_schema() -> None:
         "description": "d",
         "config": {"retries": 2},
         "columns": [{"name": "id", "dtype": "int64"}],
-        "data_tests": [{"name": "t"}],
-        "unit_tests": [{"name": "u"}],
+        "data_tests": [{"name": "t", "check": {"unique": ["id"]}}],
+        "unit_tests": [{"name": "u", "given": {"a": {"rows": []}}, "expect": {"rows": []}}],
     }
     assert errors(schema, {"models": [entry]}) == []
+    assert errors(schema, {"models": [{"name": "m", "data_tests": [{"name": "t"}]}]})
     assert errors(schema, {"models": [{"name": "m", "inputs": {}}]})
     assert errors(schema, {"models": [{"name": "m", "sql": "select 1"}]})
 

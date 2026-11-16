@@ -339,6 +339,16 @@ class MemorySession:
     def persist(self, rel: Relation) -> Relation:
         return rel  # rows are already in memory
 
+    def from_rows(self, rows: Sequence[Mapping[str, Any]], schema: Schema) -> Relation:
+        names = [c.name for c in schema]
+        return Relation(tuple({n: r.get(n) for n in names} for r in rows), "memory")
+
+    def to_rows(self, rel: Relation) -> list[dict[str, Any]]:
+        return [dict(r) for r in _rows(rel)]
+
+    def orphans(self, rel: Relation, column: str, parent: Relation, field: str) -> int:
+        return reference.orphans_rows(_rows(rel), column, _rows(parent), field)
+
     def create_view(
         self, target: TargetRef, query: str, inputs: Mapping[str, ReadSpec]
     ) -> WriteResult:

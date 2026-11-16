@@ -25,6 +25,7 @@ from pipeloom.config.models import (
     SourceTableConfig,
 )
 from pipeloom.diagnostics import Report, suggest
+from pipeloom.platform import is_absolute_location
 from pipeloom.plugins import Group, PluginRegistry, PluginSpec
 from pipeloom.secrets.resolve import SecretError, SecretResolver
 
@@ -144,10 +145,8 @@ def _table_source(key: str, group: SourceGroupConfig, t: SourceTableConfig) -> S
     location = table = None
     if t.location is not None:
         base = group.location
-        # The same rule as `Runner._source_spec` in runtime/runner.py: a URL, a POSIX path or
-        # a Windows drive path is absolute.
-        loc = t.location
-        absolute = "://" in loc or loc.startswith("/") or ":" in loc[:2]
+        # The runner applies the same rule to a location that has no group to join.
+        absolute = is_absolute_location(t.location)
         location = t.location if base is None or absolute else f"{base.rstrip('/')}/{t.location}"
     else:
         table = t.table or key

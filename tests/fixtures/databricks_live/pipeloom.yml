@@ -3,6 +3,7 @@ name: live
 python_paths:
 - src
 - .
+# tools/databricks_live.py passes every var below with --vars.
 vars:
   catalog: main
   schema: pipeloom_live
@@ -11,11 +12,19 @@ vars:
   wheel_core: /Volumes/main/ops/pipeloom_live/wheels/pipeloom.whl
   wheel_spark: /Volumes/main/ops/pipeloom_live/wheels/pipeloom_spark.whl
   wheel_databricks: /Volumes/main/ops/pipeloom_live/wheels/pipeloom_databricks.whl
+  sample_csv: /Volumes/main/ops/pipeloom_live/samples/region.csv
 models:
   +materialized: table
 model_paths:
 - models
 - src
+sources:
+  # tools/databricks_live.py uploads examples/tpch_spark/data/region.csv to the volume.
+  samples:
+    format: csv
+    tables:
+      region:
+        location: ${var:sample_csv}
 targets:
   live:
     engine:

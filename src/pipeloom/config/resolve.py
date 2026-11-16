@@ -31,6 +31,7 @@ from pipeloom.config.models import (
     PropertiesEntry,
     ResolvedModelConfig,
     SourceConfig,
+    UnitTestConfig,
     WriteConfig,
 )
 from pipeloom.config.yaml import LoadedDocument
@@ -97,6 +98,9 @@ class ResolvedModel:
     """The `@model` decorator."""
     origins: Mapping[str, Origin] = field(default_factory=dict)
     """The winning layer of each setting, `description` and `columns` that some layer sets."""
+    data_tests_at: tuple[str, str] | None = None
+    """File and JSON pointer of the properties `data_tests` list; None when the decorator sets
+    them or no layer does."""
 
 
 @dataclass(frozen=True)
@@ -122,6 +126,17 @@ class PropertiesProblem:
 
 
 @dataclass(frozen=True)
+class ResolvedUnitTest:
+    model: str
+    """Name of the tested model."""
+    name: str
+    file: str
+    pointer: str
+    """JSON pointer of the case in its properties file, for example `/models/0/unit_tests/1`."""
+    config: UnitTestConfig
+
+
+@dataclass(frozen=True)
 class ResolvedProject:
     bound: BoundProject
     models: Mapping[str, ResolvedModel]
@@ -131,6 +146,8 @@ class ResolvedProject:
     """Later definitions of a model name already taken (PLR202)."""
     docs: Mapping[str, LoadedDocument]
     interpolations: tuple[InterpolationRecord, ...]
+    unit_tests: tuple[ResolvedUnitTest, ...] = ()
+    """Every unit test, in file order (ADR-0045)."""
     properties_problems: tuple[PropertiesProblem, ...] = ()
     """Properties entries that describe no model or a model twice (PLR209)."""
     binding_problems: tuple[Problem, ...] = ()
@@ -158,6 +175,13 @@ class ResolvedProject:
             return origin.location
         own = field is not None and field in model.own_fields
         return model.site.locate(f"/{field}" if own else "")
+
+    def locate_data_test(self, model: ResolvedModel, index: int, leaf: str = "") -> Location:
+        """Where the `index`th data test of `model` (plus `leaf`, such as `/check`) is written."""
+        if model.data_tests_at is None:
+            return model.site.locate(f"/data_tests/{index}{leaf}")
+        file, pointer = model.data_tests_at
+        return self.locate(file, f"{pointer}/{index}{leaf}")
 
 
 @dataclass(frozen=True)
@@ -296,6 +320,7 @@ def resolve_project(
     models: dict[str, ResolvedModel] = {}
     sources: dict[str, ResolvedSource] = {}
     shadowed_models: list[ResolvedModel] = []
+    unit_tests: list[ResolvedUnitTest] = []
     for bs in bound.sources:
         name = f"{bs.group}.{bs.table}"
         sources[source_id(project, name)] = ResolvedSource(
@@ -328,6 +353,15 @@ def resolve_project(
         }
         if columns is not None:
             origins["columns"] = columns
+        # data_tests is a model key: the decorator's list replaces the properties one.
+        data_tests = p.data_tests
+        props_at: tuple[str, str] | None = None
+        if data_tests is not None:
+            origins["data_tests"] = Origin("decorator", p.site.locate("/data_tests"))
+        elif p.name in props and props[p.name][2].data_tests is not None:
+            pfile, ppointer, pe = props[p.name]
+            data_tests, props_at = pe.data_tests, (pfile, f"{ppointer}/data_tests")
+            origins["data_tests"] = Origin("properties", locate(*props_at))
         inputs = _bind(p, project, known, tables, binding)
         m = ResolvedModel(
             unique_id=model_id(project, p.name),
@@ -349,13 +383,21 @@ def resolve_project(
                 write=WriteConfig.model_validate(p.settings["write"])
                 if "write" in p.settings
                 else None,
+                data_tests=data_tests,
             ),
             config=merge_settings([layer.settings for layer in layers]),
             inputs=inputs,
             own_fields=p.own_fields,
             origins=origins,
+            data_tests_at=props_at,
             site=p.site,
         )
+        if p.name in props and m.unique_id not in models:
+            pfile, ppointer, pe = props[p.name]
+            for j, case in enumerate(pe.unit_tests or ()):
+                unit_tests.append(
+                    ResolvedUnitTest(p.name, case.name, pfile, f"{ppointer}/unit_tests/{j}", case)
+                )
         if m.unique_id in models:
             shadowed_models.append(m)
         else:
@@ -378,6 +420,7 @@ def resolve_project(
         shadowed_models=tuple(shadowed_models),
         docs=docs,
         interpolations=loaded.interpolations,
+        unit_tests=tuple(unit_tests),
         properties_problems=tuple(problems),
         binding_problems=tuple(binding),
         broken_models=broken,

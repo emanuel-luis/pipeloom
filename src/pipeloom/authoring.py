@@ -18,6 +18,7 @@ from pipeloom.config.models import (
     AcceptedValuesCheck,
     CheckConfig,
     ColumnConfig,
+    DataTestConfig,
     DeletesConfig,
     ExpectationConfig,
     FreshnessCheck,
@@ -34,6 +35,7 @@ __all__ = [
     "MARKER",
     "NO_DEFAULT",
     "Column",
+    "DataTest",
     "Deletes",
     "Expectation",
     "Incremental",
@@ -63,6 +65,7 @@ Column = ColumnConfig
 Expectation = ExpectationConfig
 Quality = QualityConfig
 Deletes = DeletesConfig
+DataTest = DataTestConfig
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -125,6 +128,7 @@ def model(
     cluster_by: Sequence[str] | None = None,
     columns: Sequence[Column | Mapping[str, Any]] | None = None,
     expectations: Sequence[Expectation | Mapping[str, Any]] | None = None,
+    data_tests: Sequence[DataTest | Mapping[str, Any]] | None = None,
     quality: Quality | Mapping[str, Any] | None = None,
     tags: Sequence[str] | None = None,
     retries: int | None = None,

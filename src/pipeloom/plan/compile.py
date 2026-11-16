@@ -60,7 +60,7 @@ def _config(m: ResolvedModel) -> ResolvedModelConfig:
 def model_checksums(pg: ProjectGraph) -> dict[str, str]:
     """The node checksum of every model, as `compile_plan` records it."""
     return {
-        uid: node_checksum(_config(m), _body(pg, m)[1], m.entry.columns)
+        uid: node_checksum(_config(m), _body(pg, m)[1], m.entry.columns, m.entry.data_tests)
         for uid, m in pg.project.models.items()
     }
 
@@ -115,8 +115,9 @@ def compile_plan(
             unit_ids=tuple(sorted(unit_ids[uid])),
             config=config,
             tags=tuple(m.config.tags),
-            checksum=node_checksum(config, raw, m.entry.columns),
+            checksum=node_checksum(config, raw, m.entry.columns, m.entry.data_tests),
             columns=None if m.entry.columns is None else tuple(m.entry.columns),
+            data_tests=None if m.entry.data_tests is None else tuple(m.entry.data_tests),
         )
     sources = {
         uid: PlanSource(

@@ -73,6 +73,8 @@ def test_active_codes_and_others_reserved() -> None:
         | {"PLG307", "PLG308", "PLX110", "PLX111", "PLX112", "PLX113"}
         | {"PLM208", "PLP414"}
         | {"PLX117", "PLX118"}
+        | {"PLR208", "PLX114", "PLX115"}
+        | {"PLP415", "PLQ303"}
         | {"PLP416"}
         | {"PLC513", "PLK606", "PLX120"}
         | {"PLR209", "PLR210"}

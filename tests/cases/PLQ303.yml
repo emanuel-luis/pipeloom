@@ -1,0 +1,24 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
+        naming:
+          kind: none
+  models/m.yml: |
+    models:
+      - name: a
+        sql: select 1 as id union all select null
+        data_tests:
+          - name: id_set
+            check:
+              not_null:
+                - id
+            on_violation: fail
+run:
+  data_tests: true

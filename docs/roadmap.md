@@ -251,11 +251,11 @@ Python-first authoring comes first; contracts and the test and build work are th
 |---|---|---|
 | Python-first authoring (done) | [ADR-0050](adr/0050-python-first-authoring.md) | the four TPC-H examples run from decorated models, and cold discovery of 1,000 static models takes under 2 s |
 | Model contracts (`columns`) | [ADR-0044](adr/0044-model-contracts.md) | a type mismatch fails before the write with a new PLM code on polars, pandas and Spark (the shared engine contract suite) |
-| `pipeloom test` and `pipeloom build` | ADR-0045 (proposed) | a case whose expected rows match passes, and a case with one wrong row fails with a row diff, on polars, pandas and Spark |
-| Post-write data tests with `relationships` | ADR-0045 (proposed) | results appear in `run_results` with `scope: table` |
+| `pipeloom test` and `pipeloom build` | [ADR-0045](adr/0045-unit-and-data-tests.md) | a case whose expected rows match passes, and a case with one wrong row fails with a row diff, on polars, pandas and Spark |
+| Post-write data tests with `relationships` | [ADR-0045](adr/0045-unit-and-data-tests.md) | results appear in `run_results` with `scope: table` |
 | Sample data on Spark and Databricks | none | a CSV source in the TPC-H Spark example runs locally and on a Databricks volume |
 | SCD2 write strategy | [ADR-0008 amendment](adr/0008-incremental-and-state.md#amendment-09-scd2) | the SCD2 cells of the engine contract suite pass on polars and Spark |
-| `pipeloom-openlineage` sink and Airflow facets | ADR-0046 (proposed) | a TPC-H run in Marquez shows the full graph, the schemas and the quality assertions |
+| `pipeloom-openlineage` sink and Airflow facets | ADR-0046 | a TPC-H run in Marquez shows the full graph, the schemas and the quality assertions |
 | Run history (`list_runs`, `pipeloom runs`) and the `webhook` sink | [ADR-0047](adr/0047-run-history-and-webhook.md), plugin API (0, 5) | `pipeloom runs ls` lists the last N runs on the sqlite, json and table stores, and a failed run posts once |
 | Airflow WATCHER mode | ADR-0048 (proposed) | the examples' Astro project runs in WATCHER mode with one producer, a sensor and an asset per model, and clearing a failed sensor reruns one unit |
 

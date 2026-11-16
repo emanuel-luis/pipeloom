@@ -346,6 +346,66 @@ class ColumnConfig(_Model):
     """What the column holds. Not part of the checksum or the plan hash."""
 
 
+class RelationshipsCheck(_Model):
+    """Every non-null `column` value of the model must exist in `field` of `to`."""
+
+    column: str
+    """Column of the model that holds the key."""
+    to: InputConfig
+    """The parent: another model (ref) or a source."""
+    field: str
+    """Column of the parent the key must match."""
+
+
+class DataCheckConfig(_Model):
+    not_null: list[str] | None = None
+    unique: list[str] | None = None
+    relationships: RelationshipsCheck | None = None
+
+    @model_validator(mode="after")
+    def _one_check(self) -> DataCheckConfig:
+        _exactly_one(self, tuple(type(self).model_fields))
+        return self
+
+
+class DataTestConfig(_Model):
+    """A check run against the whole written table after the write (ADR-0045)."""
+
+    name: Identifier
+    """Name shown in results."""
+    check: DataCheckConfig
+    """The check."""
+    on_violation: Literal["warn", "fail"] = "fail"
+    """warn records the count; fail fails the unit with PLQ303 (the data stays written)."""
+
+
+class GivenConfig(_Model):
+    """Rows for a unit test: inline or from a CSV file."""
+
+    rows: list[dict[str, Any]] | None = None
+    """The rows, one mapping per row."""
+    csv: RelativePosixPath | None = None
+    """A CSV file with a header, relative to the project dir; an empty field is null."""
+    columns: list[ColumnConfig] | None = None
+    """Logical types of the columns; others are taken from the upstream contract or inferred."""
+
+    @model_validator(mode="after")
+    def _rows_or_csv(self) -> GivenConfig:
+        _exactly_one(self, ("rows", "csv"))
+        return self
+
+
+class UnitTestConfig(_Model):
+    """A unit test: the model body run on given input rows, compared with expected rows."""
+
+    name: Identifier
+    """Name of the case, unique per model."""
+    given: dict[Identifier, GivenConfig] = Field(default_factory=dict)
+    """Rows for every input alias of the model."""
+    expect: GivenConfig
+    """Expected output rows; only their columns are compared, in any order."""
+
+
 class ModelConfig(ModelSettings):
     """One resolved model entry, built from a `@model` function (never read from YAML)."""
 
@@ -359,6 +419,8 @@ class ModelConfig(ModelSettings):
     """Local aliases bound to refs or sources."""
     columns: list[ColumnConfig] | None = None
     """Model contract: the exact output columns, checked before every write (PLM208)."""
+    data_tests: list[DataTestConfig] | None = None
+    """Checks `pipeloom build` runs against the written table (ADR-0045)."""
 
     @field_validator("columns")
     @classmethod
@@ -381,6 +443,7 @@ class DecoratorArgs(ModelSettings):
     description: str | None = None
     inputs: dict[Identifier, InputConfig | Identifier] = Field(default_factory=dict)
     columns: list[ColumnConfig] | None = None
+    data_tests: list[DataTestConfig] | None = None
 
     @field_validator("name")
     @classmethod
@@ -498,10 +561,10 @@ class PropertiesEntry(_Model):
     """Model settings, below the model's own and above the `models:` tree."""
     columns: list[ColumnConfig] | None = None
     """Model contract, used when the model declares none itself."""
-    data_tests: list[dict[str, Any]] | None = None
-    """Data tests. Accepted and kept as written; a later release checks and runs them."""
-    unit_tests: list[dict[str, Any]] | None = None
-    """Unit tests. Accepted and kept as written; a later release checks and runs them."""
+    data_tests: list[DataTestConfig] | None = None
+    """Checks run against the written table, used when the model sets none itself (ADR-0045)."""
+    unit_tests: list[UnitTestConfig] | None = None
+    """Cases `pipeloom test` runs on given rows, keyed by input alias (ADR-0045)."""
 
     @field_validator("columns")
     @classmethod

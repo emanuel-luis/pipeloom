@@ -110,6 +110,7 @@ def _convert(d: DiscoveredModel, vars: Mapping[str, Any], report: Report) -> Pyt
         site=site,
         settings=settings,
         columns=args.columns,
+        data_tests=args.data_tests,
         inputs=args.inputs,
         params=d.params,
         own_fields=frozenset(data),

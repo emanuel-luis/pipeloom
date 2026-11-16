@@ -319,6 +319,10 @@ class ModelWritten(EventPayload):
     duration_ms: int
     skipped: bool = False
     """The write token had been applied before: nothing was written."""
+    columns: list[dict[str, JsonValue]] | None = None
+    """The table's columns after the write (name, dtype, nullable), as the schema policy
+    resolved them. None when the write path does not know them: intermediates, views and
+    replayed writes."""
 
 
 class StateWatermarkCommitted(EventPayload):
@@ -364,6 +368,39 @@ class ModelQualityEvaluated(EventPayload):
             r["action"] in ("warn", "drop") and r["failed"] for r in self.results
         )
         return Level.WARNING if noisy else Level.INFO
+
+
+class UnitTestPassed(EventPayload):
+    TYPE = "unit_test.passed"
+
+    model: str
+    unit_test: str
+
+
+class UnitTestFailed(EventPayload):
+    TYPE = "unit_test.failed"
+    LEVEL = Level.ERROR
+
+    model: str
+    unit_test: str
+    code: str
+    """PLX114 when the rows differ, PLX115 when the case could not run."""
+    message: str
+    location: dict[str, JsonValue] | None
+    missing: list[dict[str, JsonValue]]
+    """Up to 50 expected rows the output lacks."""
+    unexpected: list[dict[str, JsonValue]]
+    """Up to 50 output rows that were not expected."""
+
+
+class UnitTestsCompleted(EventPayload):
+    TYPE = "unit_tests.completed"
+
+    passed: int
+    failed: int
+
+    def event_level(self) -> Level:
+        return Level.ERROR if self.failed else Level.INFO
 
 
 class ModelLog(EventPayload):

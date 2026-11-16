@@ -9,12 +9,23 @@ from collections import deque
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from types import TracebackType
-from typing import Protocol, Self
+from typing import Any, Protocol, Self
 
 from pipeloom.events.model import Event, EventPayload, Level, SinkDisabled
 from pipeloom.platform import Clock
 from pipeloom.secrets.redaction import Redactor
+
+
+@dataclass(frozen=True)
+class PlanInfo:
+    """What a run executes, for sinks that describe it (lineage). Plugin API (0, 5), additive."""
+
+    manifest: Mapping[str, Any]
+    """The `pipeloom.manifest/1` document of the run, as `manifest_dict(plan)` returns it."""
+    project_dir: Path
+    """The absolute project dir: manifest paths are relative to it."""
 
 
 class EventSink(Protocol):
@@ -22,6 +33,10 @@ class EventSink(Protocol):
 
     A sink may set a class attribute `forwarded = False` to skip events that `EventBus.forward`
     relays from another process. The default is to receive them.
+
+    A sink may also define `plan_ready(info: PlanInfo) -> None`. The bus calls it once per run
+    invocation that has a plan (`run`, a unit invocation, `finalize`), right after `run.started`
+    or where that event would be, and before any unit event. Sinks without it are skipped.
     """
 
     def emit(self, event: Event) -> None: ...
@@ -48,6 +63,12 @@ def _emit(event: Event, sink: EventSink) -> None:
 
 def _flush(sink: EventSink) -> None:
     sink.flush()
+
+
+def _plan_ready(info: PlanInfo, sink: EventSink) -> None:
+    hook = getattr(sink, "plan_ready", None)
+    if hook is not None:
+        hook(info)
 
 
 def _sink_name(sink: EventSink) -> str:
@@ -186,6 +207,16 @@ class EventBus:
                 raise RuntimeError("the event bus is closed")
             pending: deque[Event] = deque()
             self._each(partial(_emit, event), pending, resets=True, relayed=True)
+            self._drain(pending)
+
+    def plan_ready(self, info: PlanInfo) -> None:
+        """Hand the run's plan to every enabled sink that defines `plan_ready`. A failure counts
+        against the sink's budget like a failed delivery."""
+        with self._lock:
+            if self._closed:
+                raise RuntimeError("the event bus is closed")
+            pending: deque[Event] = deque()
+            self._each(partial(_plan_ready, info), pending)
             self._drain(pending)
 
     def flush(self) -> None:
