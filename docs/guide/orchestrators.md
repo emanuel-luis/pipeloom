@@ -21,12 +21,14 @@ the short version, and [the GitHub Actions recipe](recipe-github-actions.md) is 
 Compile once, then read the unit graph from that manifest, so every unit runs the same plan:
 
 ```console
-$ pipeloom compile --project-dir <dir> --target <target> --stable --out manifest.json
-$ pipeloom graph --units --output json --project-dir <dir> --target <target> --manifest manifest.json > units.json
+$ pipeloom compile --project-dir <dir> --target <target> --stable --out /tmp/plan/manifest.json
+$ pipeloom graph --units --output json --project-dir <dir> --target <target> --manifest /tmp/plan/manifest.json > units.json
 ```
 
 `--stable` leaves the timestamps out of the manifest, so the same project always gives the same
-bytes. `--out` is relative to the project directory unless it is absolute. The unit graph
+bytes. Use an absolute manifest path: `compile --out` resolves a relative path against the project
+directory, while every `--manifest` option (and so the `{manifest}` placeholder) resolves it
+against the working directory. The unit graph
 (`pipeloom.unit_graph/1`) has the plan hash, the `units` in topological order, the `edges`, and
 `finalize.argv`. Each unit lists its `parents`, its `retries`, `retry_delay_s`, `retry_on` and
 `timeout_s`, and its `argv`.
@@ -41,8 +43,10 @@ not collide, such as `gha-<run_id>-<attempt>`.
 ## 3. Start time
 
 Give every invocation the same start time, with a UTC offset. Either pass `--run-started-at` to
-each command or export `PIPELOOM_RUN_STARTED_AT` once. Engines use it to make writes idempotent,
-and a run id that already recorded its start keeps it. The option needs `--run-id`.
+each command or export `PIPELOOM_RUN_STARTED_AT` once. Engines use it to make writes idempotent.
+Once a run has recorded its start, a retry or repair must pass the same value or leave it out (the
+recorded one is kept); a different value stops `run` and `finalize` with PLX108 (exit 2). So
+compute the start time once per orchestrator run, never per attempt. The option needs `--run-id`.
 
 ## 4. Run a unit
 
@@ -51,7 +55,7 @@ The `argv` of a unit is a command line with three placeholders: `{project_dir}`,
 hash are already in it. For the example in the recipe a unit looks like this:
 
 ```console
-$ pipeloom run --project-dir examples/tpch_polars --target dev --manifest manifest.json \
+$ pipeloom run --project-dir examples/tpch_polars --target dev --manifest /tmp/plan/manifest.json \
     --select unit:orders --run-id gha-1-1 --expect-plan-hash <sha256>
 ```
 
@@ -124,7 +128,7 @@ document has a published JSON Schema, so a consumer in any language can validate
 
 | Document | Tag | Schema |
 |---|---|---|
-| `manifest.json` | `pipeloom.manifest/1` | [manifest.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/manifest.json) |
+| `manifest.json` | `pipeloom.manifest/1` | published with 1.0.0rc1 as `schema/v1/manifest.json` |
 | `run_results.json`, attempt files | `pipeloom.run_results/1` | [run_results.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/run_results.json) |
 | one event | `pipeloom.event/1` | [event.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/event.json) |
 | unit states | `pipeloom.unit_states/1` | [unit_states.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_states.json) |
