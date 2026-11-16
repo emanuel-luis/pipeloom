@@ -1652,6 +1652,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plc513" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC513
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1718,6 +1729,17 @@
     <span class="md-ellipsis">
       
         PLK605
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plk606" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK606
       
     </span>
   </a>
@@ -2138,6 +2160,17 @@
     <span class="md-ellipsis">
       
         PLX118
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx120" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX120
       
     </span>
   </a>
@@ -3239,6 +3272,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plc513" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC513
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3305,6 +3349,17 @@
     <span class="md-ellipsis">
       
         PLK605
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plk606" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK606
       
     </span>
   </a>
@@ -3731,6 +3786,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plx120" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX120
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4127,8 +4193,8 @@
 <p>Ephemeral model with no consumer. Severity: warning. Status: active. Since: 0.1.</p>
 <p>No persisted model reads this ephemeral model, directly or through other ephemeral models, so it never runs.</p>
 <h3 id="plp409">PLP409<a class="headerlink" href="#plp409" title="Permanent link">&para;</a></h3>
-<p>View is not a plain SQL model. Severity: error. Status: active. Since: 0.2.</p>
-<p>A view must be a SQL model that reads no ephemeral model, because its query is stored in the catalog as written.</p>
+<p>View inlines an ephemeral model. Severity: error. Status: active. Since: 0.2.</p>
+<p>A view cannot read an ephemeral model, because its query is stored in the catalog and an ephemeral model has no relation to name. A view may be a SQL model or a Python function that returns ctx.sql(...).</p>
 <h3 id="plp410">PLP410<a class="headerlink" href="#plp410" title="Permanent link">&para;</a></h3>
 <p>append with lookback reloads rows. Severity: warning. Status: active. Since: 0.3.</p>
 <p>An incremental model appends with a lookback above zero, so rows inside the window are written again. Use merge with a unique_key.</p>
@@ -4178,6 +4244,9 @@
 <h3 id="plc510">PLC510<a class="headerlink" href="#plc510" title="Permanent link">&para;</a></h3>
 <p>Expectations on an engine without quality. Severity: error. Status: active. Since: 0.3.</p>
 <p>The selected engine does not declare the quality capability, so it cannot evaluate expectations or count nulls in non-nullable contract columns.</p>
+<h3 id="plc513">PLC513<a class="headerlink" href="#plc513" title="Permanent link">&para;</a></h3>
+<p>SQL translation needs the sqlglot extra. Severity: error. Status: active. Since: 0.9.</p>
+<p>The model's sql_dialect differs from the dialect of the target engine, so its ctx.sql queries must be translated, and sqlglot is not installed. Install pipeloom[sqlglot], or remove sql_dialect and write the queries in the engine's dialect.</p>
 <h2 id="l6-static-code">L6 static code<a class="headerlink" href="#l6-static-code" title="Permanent link">&para;</a></h2>
 <h3 id="plk601">PLK601<a class="headerlink" href="#plk601" title="Permanent link">&para;</a></h3>
 <p>Callable file or function not found. Severity: error. Status: active. Since: 0.1.</p>
@@ -4194,6 +4263,9 @@
 <h3 id="plk605">PLK605<a class="headerlink" href="#plk605" title="Permanent link">&para;</a></h3>
 <p>SQL not parseable. Severity: warning. Status: active. Since: 0.2.</p>
 <p>sqlglot could not parse the model's SQL, so its tables were not checked. Checked only when sqlglot is installed.</p>
+<h3 id="plk606">PLK606<a class="headerlink" href="#plk606" title="Permanent link">&para;</a></h3>
+<p>ctx.sql on an engine without SQL. Severity: warning. Status: active. Since: 0.9.</p>
+<p>The model function calls ctx.sql, but the target engine runs no SQL (its sql_dialect is None), so the call raises at run time (PLX101). Write the model with frames, or choose an engine with SQL.</p>
 <h2 id="l7-preflight">L7 preflight<a class="headerlink" href="#l7-preflight" title="Permanent link">&para;</a></h2>
 <h3 id="plf701">PLF701<a class="headerlink" href="#plf701" title="Permanent link">&para;</a></h3>
 <p>Engine unreachable. Severity: error. Status: reserved. Since: 0.2.</p>
@@ -4294,6 +4366,9 @@
 <h3 id="plx118">PLX118<a class="headerlink" href="#plx118" title="Permanent link">&para;</a></h3>
 <p>Run not found. Severity: error. Status: active. Since: 0.9.</p>
 <p>pipeloom runs show, or runs ls --before, names a run id that the state store (or, with --artifacts, the artifacts root) does not hold for this project and target. Check the target, or list the runs with pipeloom runs ls.</p>
+<h3 id="plx120">PLX120<a class="headerlink" href="#plx120" title="Permanent link">&para;</a></h3>
+<p>View model did not return ctx.sql(...), or passed it inputs=. Severity: error. Status: active. Since: 0.9.</p>
+<p>A Python view model runs in view mode: its input parameters are placeholders that only ctx.sql may name, and ctx.sql returns the query the catalog stores. The function returned something else, passed inputs= frames to ctx.sql, or used an input as a frame.</p>
 <h2 id="renderers">Renderers<a class="headerlink" href="#renderers" title="Permanent link">&para;</a></h2>
 <h3 id="pla001">PLA001<a class="headerlink" href="#pla001" title="Permanent link">&para;</a></h3>
 <p>Unsupported execution mode. Severity: error. Status: active. Since: 0.6.</p>
