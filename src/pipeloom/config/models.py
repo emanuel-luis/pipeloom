@@ -404,9 +404,7 @@ class DecoratorArgs(ModelSettings):
 
     @field_validator("inputs")
     @classmethod
-    def _alias_names(
-        cls, value: dict[str, InputConfig | str]
-    ) -> dict[str, InputConfig | str]:
+    def _alias_names(cls, value: dict[str, InputConfig | str]) -> dict[str, InputConfig | str]:
         for alias in value:
             if alias == "ctx" or keyword.iskeyword(alias):
                 raise ValueError(f"'{alias}' cannot be an input alias")

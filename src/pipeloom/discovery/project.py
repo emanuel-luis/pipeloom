@@ -39,9 +39,7 @@ class PythonModels:
     """Some model module could not be loaded (PLY005)."""
 
 
-def python_models(
-    result: DiscoveryResult, vars: Mapping[str, Any], report: Report
-) -> PythonModels:
+def python_models(result: DiscoveryResult, vars: Mapping[str, Any], report: Report) -> PythonModels:
     """Report the discovery failures and validate the discovered models."""
     incomplete = False
     broken: set[str] = set()

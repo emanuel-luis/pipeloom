@@ -43,7 +43,9 @@ from pipeloom.secrets.interpolation import InterpolationRecord
 
 _SETTING_FIELDS = frozenset(ModelSettings.model_fields)
 
-Layer = Literal["model", "decorator", "properties", "folder", "project", "defaults_file", "project_defaults"]
+Layer = Literal[
+    "model", "decorator", "properties", "folder", "project", "defaults_file", "project_defaults"
+]
 
 
 def model_id(project: str, name: str) -> str:

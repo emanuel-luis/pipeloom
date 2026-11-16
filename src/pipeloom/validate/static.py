@@ -90,9 +90,7 @@ def _calls_ctx_sql(fn: _Def) -> bool:
     )
 
 
-def _literal_queries(
-    project_dir: Path, m: ResolvedModel
-) -> list[tuple[str, set[str], Location]]:
+def _literal_queries(project_dir: Path, m: ResolvedModel) -> list[tuple[str, set[str], Location]]:
     """The literal `ctx.sql("...")` queries of a decorated model's function, with the names its
     literal `inputs=` mapping adds and the call's location."""
     attr = (m.entry.python or "").partition(":")[2]

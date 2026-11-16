@@ -9,9 +9,9 @@ from pathlib import Path
 import pytest
 
 from pipeloom.diagnostics import Location
+from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine.types import Relation
 from pipeloom.runtime.errors import build_error, classify, to_diagnostic
-from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.runtime.memo import EphemeralMemo
 
 REL = Relation((), "memory")

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+import threading
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -134,6 +136,40 @@ def generate(
     inv.finish([d for d in diags if d.severity is not Severity.ERROR], 0, bound=bound)
 
 
+def _refresher(project_dir: Path, folder: Path) -> Callable[[], None] | None:
+    """What `docs serve` runs on each index request: refresh discovery and, when the models
+    changed, compile again and rewrite index.html (ADR-0050 point 2, reload). None when the
+    project does not resolve."""
+    # ponytail: default target and no --vars; serve takes neither option today.
+    opts = ProjectOptions(project_dir=project_dir, env=os.environ)
+    project = Project(opts)
+    discovery = project.discovery if project.resolve().value is not None else None
+    if discovery is None:
+        return None
+    lock = threading.Lock()
+    last = [discovery.refresh()]
+
+    def refresh() -> None:
+        with lock:
+            now = discovery.refresh()
+            if now == last[0]:
+                return
+            last[0] = now
+            fresh = Project(opts)
+            plan = fresh.compile(Selection()).value
+            bound = fresh.bind().value
+            if plan is None or bound is None:
+                click.echo(
+                    "docs serve: the project no longer compiles; serving the last page", err=True
+                )
+                return
+            found = artifacts_root(bound, project_dir) / "run_results.json"
+            results = _load_results(found, plan.metadata.project) if found.is_file() else None
+            (folder / "index.html").write_bytes(render_site(plan, results).encode("utf-8"))
+
+    return refresh
+
+
 @docs.command()
 @click.option(
     "--project-dir",
@@ -163,7 +199,7 @@ def serve(project_dir: Path, directory: Path | None, host: str, port: int) -> No
             f"{folder.as_posix()}/index.html not found; run `pipeloom docs generate` first"
         )
     try:
-        server = make_server(folder, host, port)
+        server = make_server(folder, host, port, _refresher(project_dir, folder))
     except OSError as err:
         raise click.UsageError(f"cannot listen on {host}:{port}: {err}") from err
     click.echo(f"serving {folder.as_posix()} at http://{host}:{server.server_address[1]}/")

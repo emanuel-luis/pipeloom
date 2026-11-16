@@ -15,6 +15,7 @@ from pipeloom.artifacts.io import write_json_once
 from pipeloom.artifacts.layout import RunPaths
 from pipeloom.artifacts.results import result_row, schema_hash
 from pipeloom.diagnostics import JsonValue, Location
+from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine import portable
 from pipeloom.engine.errors import WriteKeyError, WriteRefusedError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
@@ -60,7 +61,6 @@ from pipeloom.runtime.control import CancelToken, Reason, UnitInterrupted, inter
 from pipeloom.runtime.errors import ErrorInfo, Phase, build_error, full_traceback
 from pipeloom.runtime.executors import UnitCompletion, UnitHandle
 from pipeloom.runtime.incremental import IncrementalError, IncrementalState, WatermarkConflict
-from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.retry import NO_POLICY, UnitPolicy
 from pipeloom.runtime.schema_policy import (

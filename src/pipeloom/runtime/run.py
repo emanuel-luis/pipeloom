@@ -22,6 +22,7 @@ from pipeloom.artifacts.reference import Reference, load_reference
 from pipeloom.artifacts.results import RunHeader, RunStatusName, exit_code_of, git_sha, result_row
 from pipeloom.config.bind import BoundProject
 from pipeloom.diagnostics import Diagnostic, JsonValue, Location, Report, Severity
+from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
 from pipeloom.engine.types import TargetRef
 from pipeloom.events.bus import EventBus
@@ -43,7 +44,6 @@ from pipeloom.runtime.errors import ErrorInfo, to_diagnostic
 from pipeloom.runtime.executors import Executor
 from pipeloom.runtime.executors.process import ChildCommand, ProcessExecutor
 from pipeloom.runtime.executors.thread import ThreadExecutor
-from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.retry import UnitPolicy
 from pipeloom.runtime.runner import ModelRunner

@@ -291,13 +291,29 @@ def test_serve_stops_on_ctrl_c(project: Path, monkeypatch: pytest.MonkeyPatch) -
 def test_serve_default_dir_and_busy_port(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     assert cli("docs", "generate", "--project-dir", str(project)).exit_code == 0
 
-    def refuse(directory: Path, host: str, port: int) -> ThreadingHTTPServer:
+    def refuse(directory: Path, host: str, port: int, on_index: object) -> ThreadingHTTPServer:
         raise OSError("address in use")
 
     # `pipeloom.cli.docs` as an attribute path is the click group, so go through sys.modules
     monkeypatch.setattr(sys.modules["pipeloom.cli.docs"], "make_server", refuse)
     result = cli("docs", "serve", "--project-dir", str(project))
     assert result.exit_code == 2 and "cannot listen on 127.0.0.1:8000" in result.stderr
+
+
+def test_serve_regenerates_the_page_when_models_change(project: Path) -> None:
+    assert cli("docs", "generate", "--project-dir", str(project)).exit_code == 0
+    page = project / "target" / "docs" / "index.html"
+    refresh = sys.modules["pipeloom.cli.docs"]._refresher(project, page.parent)
+    assert refresh is not None
+    before = page.read_bytes()
+    refresh()
+    assert page.read_bytes() == before  # nothing changed: not regenerated
+    (project / "models" / "added_by_serve.py").write_text(
+        "from pipeloom import model\n\n\n@model\ndef added_by_serve():\n    return []\n",
+        encoding="utf-8",
+    )
+    refresh()
+    assert b"added_by_serve" in page.read_bytes()
 
 
 def test_make_server_serves_the_page(project: Path) -> None:
