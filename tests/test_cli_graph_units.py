@@ -14,7 +14,8 @@ from jsonschema import Draft202012Validator
 from pipeloom.artifacts.schema import close, unit_graph_schema
 from pipeloom.artifacts.unit_graph import asset_uri
 from pipeloom.cli import main
-from tests.conftest import FIXTURES
+from tests.conftest import FIXTURES, make_project
+from tests.runtime.fakes import reset_keep
 from tests.runtime.test_runner import shop
 from tests.test_cli_run import ENV
 
@@ -106,7 +107,49 @@ def test_state_selectors_become_units_in_finalize(tmp_path: Path) -> None:
     r = invoke(*(values.get(a, a) for a in argv[1:]))
     assert r.exit_code == 0, r.stderr
     nothing = units(*project, *state, "--select", "state:new")
-    assert nothing["units"] == [] and "--exclude" in nothing["finalize"]["argv"]
+    argv = nothing["finalize"]["argv"]
+    assert nothing["units"] == [] and argv[argv.index("--exclude") + 1] == "*"
+    values["{run_id}"] = "r2"
+    r = invoke(*(values.get(a, a) for a in argv[1:]))
+    assert r.exit_code == 0, r.stderr
+
+
+PLUGIN_YML = """config_version: 1
+name: p
+targets:
+  ci:
+    engine:
+      kind: keepmem
+    catalog:
+      kind: keepmem
+"""
+PLUGIN_MODELS = """models:
+  - name: a
+    sql: select 1 as x
+  - name: b
+    sql: select * from a
+    inputs:
+      a:
+        ref: a
+"""
+
+
+def test_plugin_specs_reach_every_argv(tmp_path: Path) -> None:
+    """A kind loaded with --plugin binds only when each command line names it again."""
+    reset_keep()
+    root = make_project(tmp_path, {"pipeloom.yml": PLUGIN_YML, "models/m.yml": PLUGIN_MODELS})
+    plugins = ["--plugin", "tests.runtime.fakes:KEEP_ENGINE"]
+    plugins += ["--plugin", "tests.runtime.fakes:KEEP_CATALOG"]
+    project = ["--project-dir", str(root), "--target", "ci", *plugins]
+    manifest = root / "target" / "manifest.json"
+    compile_to(project, manifest)
+    doc = units(*project, "--manifest", str(manifest))
+    argvs = [u["argv"] for u in doc["units"]] + [doc["finalize"]["argv"]]
+    values = {"{project_dir}": str(root), "{manifest}": str(manifest), "{run_id}": "r1"}
+    for argv in argvs:
+        assert argv[-4:] == plugins
+        r = invoke(*(values.get(a, a) for a in argv[1:]))
+        assert r.exit_code == 0, r.stderr
 
 
 @pytest.mark.parametrize("output", [None, "text", "dot", "mermaid"])

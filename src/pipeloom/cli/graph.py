@@ -106,7 +106,7 @@ def _units(
     if plan is None:
         inv.finish(diags, 2 if any(d.code in USAGE for d in diags) else 1, bound=bound)
         return
-    click.echo(json.dumps(unit_graph_dict(plan), indent=2, ensure_ascii=True))
+    click.echo(json.dumps(unit_graph_dict(plan, plugins), indent=2, ensure_ascii=True))
     inv.finish(diags, 0, bound=bound)
 
 

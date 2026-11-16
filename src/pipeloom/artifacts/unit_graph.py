@@ -87,7 +87,9 @@ def asset_uri(project: str, target: str, relation_name: str) -> str:
     return "pipeloom://{}/{}/{}".format(*parts)
 
 
-def _unit(plan: Plan, node: PlanNode, unit_id: str, parents: tuple[str, ...]) -> Unit:
+def _unit(
+    plan: Plan, node: PlanNode, unit_id: str, parents: tuple[str, ...], tail: tuple[str, ...]
+) -> Unit:
     meta, c, rel = plan.metadata, node.config, node.relation
     relation = None
     assets: tuple[str, ...] = ()
@@ -121,6 +123,7 @@ def _unit(plan: Plan, node: PlanNode, unit_id: str, parents: tuple[str, ...]) ->
             "{run_id}",
             "--expect-plan-hash",
             meta.plan_hash,
+            *tail,
         ),
     )
 
@@ -136,9 +139,12 @@ def _needs_state(exprs: tuple[str, ...]) -> bool:
     return any(a.method in ("state", "result") for term in terms for a in term)
 
 
-def build_unit_graph(plan: Plan) -> UnitGraph:
-    """The units whose persisted node the plan selects, with parents and edges among them."""
+def build_unit_graph(plan: Plan, plugins: tuple[str, ...] = ()) -> UnitGraph:
+    """The units whose persisted node the plan selects, with parents and edges among them.
+    `plugins` are the `--plugin` specs every command line repeats, since only the command line
+    loads them."""
     meta, sel = plan.metadata, plan.selection
+    tail = tuple(arg for spec in plugins for arg in ("--plugin", spec))
     chosen = set(sel.selected)
     scope = {u for u, unit in plan.units.items() if unit.nodes[-1] in chosen}
     parents = {u: tuple(p for p in plan.units[u].parents if p in scope) for u in scope}
@@ -164,7 +170,9 @@ def build_unit_graph(plan: Plan) -> UnitGraph:
         plan_hash=meta.plan_hash,
         selectors=Selectors(select=sel.select, exclude=sel.exclude),
         placeholders=PLACEHOLDERS,
-        units=tuple(_unit(plan, plan.nodes[plan.units[u].nodes[-1]], u, parents[u]) for u in order),
+        units=tuple(
+            _unit(plan, plan.nodes[plan.units[u].nodes[-1]], u, parents[u], tail) for u in order
+        ),
         edges=tuple(Edge.model_validate({"from": p, "to": u}) for u in order for p in parents[u]),
         finalize=Finalize(
             argv=(
@@ -176,11 +184,12 @@ def build_unit_graph(plan: Plan) -> UnitGraph:
                 "{run_id}",
                 "--expect-plan-hash",
                 meta.plan_hash,
+                *tail,
             )
         ),
     )
 
 
-def unit_graph_dict(plan: Plan) -> dict[str, Any]:
+def unit_graph_dict(plan: Plan, plugins: tuple[str, ...] = ()) -> dict[str, Any]:
     """The document as JSON data."""
-    return build_unit_graph(plan).model_dump(mode="json", by_alias=True)
+    return build_unit_graph(plan, plugins).model_dump(mode="json", by_alias=True)

@@ -142,4 +142,5 @@ See [Run artifacts](../reference/artifacts.md) for the fields.
 The protocol and the five schemas are part of pipeloom 1.0. A new field is optional, so a consumer
 must ignore fields it does not know. Event types and `skip_reason` are open strings. `status`
 values are a closed set, and a new one needs a new schema version. Anything a consumer must
-understand to act correctly is a breaking change.
+understand to act correctly is a breaking change. The full policy is in
+[Stability and deprecations](../reference/stability.md).

@@ -120,6 +120,11 @@ def event_schema() -> dict[str, Any]:
                 "then": {"properties": {"data": {"$ref": _DEFS + payload.__name__}}},
             }
         )
+    # Skip reasons are an open set, as in the run_results row `skip_reason`.
+    defs["UnitSkipped"]["properties"]["reason"] = {
+        "type": "string",
+        "description": "upstream_failed, fail_fast, not_run, or a reason added later.",
+    }
     body = {
         "description": "One event: the envelope, and a data object per event type.",
         "properties": envelope["properties"],

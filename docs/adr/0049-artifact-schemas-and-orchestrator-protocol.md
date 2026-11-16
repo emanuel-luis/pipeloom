@@ -40,8 +40,8 @@ Every document has a required `schema` property whose value is its tag (a `const
 **What stays within `/1`.**
 
 - A new field is optional and never enters `required`. It has a default or may be absent.
-- Event types and `skip_reason` are open strings: a consumer must accept a value it does not know.
-- `status` (results rows, the run, unit states), `level` (events) and `materialized` (manifest) are closed enums. A new value is a breaking change and needs `/2`.
+- Event types and skip reasons (the row `skip_reason` and the `unit.skipped` `data.reason`) are open strings: a consumer must accept a value it does not know.
+- Every other enumerated value is a closed enum, and a new value is a breaking change that needs `/2`: `status` of a results row, of the run, of `run.completed` and of a unit state; the event `level`; `materialized` (manifest); `ErrorInfo.category` (the row `error` and the `unit.failed` and `unit.retrying` events); `unit.cancelled` `reason`; `model.input_read` `kind`; `model.schema_changed` `action`; `run.started` `boundary`; `state.watermark_committed` `source`; `model.log` `level`.
 - Within `manifest/1` the plan hash and node checksum formulas are frozen. A field added to the manifest stays out of the hash and has a default, so an older manifest keeps its hash.
 - Anything a consumer must understand to act correctly needs `/2`.
 
@@ -51,13 +51,13 @@ Every document has a required `schema` property whose value is its tag (a `const
 - `edges`, `{"from": parent, "to": child}`, only among selected units; `parents` likewise.
 - `finalize.argv`, the command line that closes the run.
 
-An `argv` is a list with the placeholders `{project_dir}`, `{manifest}` and `{run_id}`; the unit id, target and plan hash are literal, and the selectors are copied into the finalize command. Assets are `pipeloom://{project}/{target}/{relation_name}`, percent-encoded like the Airflow plugin's default; intermediates and models without a relation get none. The pydantic models live in `pipeloom.artifacts.unit_graph`.
+An `argv` is a list with the placeholders `{project_dir}`, `{manifest}` and `{run_id}`; the unit id, target and plan hash are literal, and the selectors are copied into the finalize command. `finalize` has no `--state`, so when a selector uses `state:` or `result:` the finalize command instead selects each selected unit with `--select unit:<id>`, in unit order, or gets `--exclude *` when no unit is selected. The `--plugin` specs given to `graph` are repeated at the end of every `argv`, since plugins named that way load only from the command line. Assets are `pipeloom://{project}/{target}/{relation_name}`, percent-encoded like the Airflow plugin's default; intermediates and models without a relation get none. The pydantic models live in `pipeloom.artifacts.unit_graph`.
 
 **The orchestrator protocol.** A docs page states what any orchestrator does, all of it behavior that exists today:
 
 1. Prepare: `compile --stable --out manifest.json`, then `graph --units --output json --manifest manifest.json`.
 2. Pick one run id per orchestrator run, matching `[A-Za-z0-9._-]{1,64}` ([ADR-0013](0013-run-identity-and-reruns.md)), and keep it across retries and repairs. Give every invocation the same `--run-started-at` (or `PIPELOOM_RUN_STARTED_AT`).
-3. Run each unit with its `argv`. Optional: `--orchestrator-id`, `--log-format json`, `--cancel-grace`, `--full-refresh`. A plan hash mismatch is PLX103; exit 1 with no new attempt file is a setup failure and is not retried.
+3. Run each unit with its `argv`, which already carries any `--plugin` given to `graph`. Optional: `--orchestrator-id`, `--log-format json`, `--cancel-grace`, `--full-refresh`. A plan hash mismatch is PLX103; exit 1 with no new attempt file is a setup failure and is not retried.
 4. Exit codes: 0 succeeded; 2 is a usage error and never retried; 130 was cancelled and may be retried; for 1 the orchestrator reads the newest attempt file's `error.category` and retries when attempts remain and the category is `transient` or the unit's `retry_on` is `any`. The orchestrator owns retries, their delay and the timeout (`timeout_s` plus the cancel grace plus a margin), and stops a unit with SIGTERM, then SIGKILL after the grace. Unit invocations never retry inside pipeloom (`retries=0` in unit mode).
 5. Order: a unit starts only after its parents succeeded, and the same unit never runs twice at once. Unit invocations take no lock.
 6. Storage: every invocation sees one artifacts root, state store and catalog ([ADR-0038](0038-airflow-execution-modes-and-artifact-store.md)).

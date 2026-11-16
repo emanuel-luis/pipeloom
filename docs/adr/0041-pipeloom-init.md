@@ -39,7 +39,7 @@ A new user starts from an empty folder and has to write `pipeloom.yml`, a target
 
 ## Status
 
-Accepted. Amended in 0.8 (editor setup, `pipeloom new model`).
+Accepted. Amended in 0.8 (editor setup, `pipeloom new model`) and in 0.9 by [ADR-0050](0050-python-first-authoring.md).
 
 ## Amendment (0.8): editor setup and pipeloom new model
 
@@ -62,3 +62,7 @@ Accepted. Amended in 0.8 (editor setup, `pipeloom new model`).
 - Authors get completion and validation squiggles in VS Code without installing a pipeloom extension. The schemas come from the published docs site, so completion needs network access the first time.
 - The `.vscode` templates ship in the wheel with the other templates.
 - New files stay valid by construction: tests run `validate` on generated models for polars and pandas and check every generated YAML against the exported JSON Schemas.
+
+## Amendment 0.9 (ADR-0050)
+
+With Python-first authoring ([ADR-0050](0050-python-first-authoring.md)) `pipeloom new model NAME [--sql|--python] [--folder PATH]` writes one file, `models/<folder>/<name>.py`, with a decorated function and no YAML entry. With `--sql` the body returns `ctx.sql("select 1 as id")`; with `--python` it returns a frame stub. The default stays `--python` on pandas and `--sql` otherwise. The usage error for a Python model without `python_paths` goes away, because `python_paths` defaults to `["."]`. `init` writes one `.py` model per layer, a `models:` tree in `pipeloom.yml` instead of `_defaults.yml`, and `models/silver/_properties.yml`; `.vscode/settings.json` maps `project.json` to `pipeloom.yml` and `properties.json` to `models/**/*.yml`, and the `defaults.json` and `models.json` globs go away. These templates change with the examples, after the discovery and resolve changes of ADR-0050.

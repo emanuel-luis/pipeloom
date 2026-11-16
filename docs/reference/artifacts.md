@@ -98,8 +98,13 @@ config schemas ([ADR-0049](../adr/0049-artifact-schemas-and-orchestrator-protoco
 
 Compatibility within a version: consumers must ignore fields they do not know, since the schemas
 leave objects open. A 1.x release may add optional fields, new event types and new skip reasons
-and stays on `/1`. A new value of a closed enum (`status`, `level`) or any change a consumer must
-understand moves the document to `/2`.
+and stays on `/1`: skip reasons are open strings both in the row `skip_reason` and in the
+`unit.skipped` event. Every other enumerated value is closed: `status` of a row, of the run, of
+`run.completed` and of a unit state, the event `level`, the error `category` (`transient` or
+`permanent`), `unit.cancelled` `reason`, `model.input_read` `kind`, `model.schema_changed`
+`action`, `run.started` `boundary`, `state.watermark_committed` `source` and `model.log`
+`level`. A new value of one of them, or any change a consumer must understand, moves the
+document to `/2`.
 
 ## Unit graph
 
@@ -117,7 +122,8 @@ when its persisted model is selected; `parents` and `edges` only name units in s
 | `edges` | `{"from": parent, "to": child}`. |
 | `finalize.argv` | The command line that closes the run. |
 
-An `argv` starts with `pipeloom`; the unit id, target and plan hash are literal. Assets are
+An `argv` starts with `pipeloom`; the unit id, target and plan hash are literal, and every
+`--plugin` given to `graph` is repeated at the end, so each process can load the same kinds. Assets are
 `pipeloom://{project}/{target}/{relation_name}` with each part percent-encoded; intermediates and
 models without a relation have none. The schema is
 [unit_graph.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_graph.json).

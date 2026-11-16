@@ -940,12 +940,7 @@
     "UnitSkipped": {
       "properties": {
         "reason": {
-          "enum": [
-            "upstream_failed",
-            "fail_fast",
-            "not_run"
-          ],
-          "title": "Reason",
+          "description": "upstream_failed, fail_fast, not_run, or a reason added later.",
           "type": "string"
         },
         "upstream": {
