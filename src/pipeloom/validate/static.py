@@ -103,10 +103,14 @@ def check_sql(pg: ProjectGraph, report: Report) -> None:
     from sqlglot.errors import SqlglotError
 
     project = pg.project
+    engine = project.bound.plugins.get("engines")
+    caps = None if engine is None else engine.spec.capabilities
+    engine_dialect = caps.sql_dialect if isinstance(caps, EngineCapabilities) else None
     queries: list[tuple[ResolvedModel, str, set[str], Location, str | None]] = []
     for m in project.models.values():
+        # the same order as the runtime: the call's dialect=, the model's, the engine's
         queries += [
-            (m, sql, set(m.inputs) | extra, loc, dialect)
+            (m, sql, set(m.inputs) | extra, loc, dialect or m.config.sql_dialect or engine_dialect)
             for sql, extra, loc, dialect in _literal_queries(project.bound.loaded.project_dir, m)
         ]
     for m, sql, aliases, loc, dialect in queries:

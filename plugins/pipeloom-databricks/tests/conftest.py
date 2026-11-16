@@ -224,10 +224,7 @@ def sim(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[..., Sim]:
             ),
             "models/m.yml": SIM_MODELS,
         }
-        for rel, text in files.items():
-            path = root / rel
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(text.encode("utf-8"))
+        make_project(root, files)
         plan = compile_dir(root, "prod")
         manifest = tmp_path / "manifest.json"
         manifest.write_bytes(manifest_bytes(plan, stable=True))

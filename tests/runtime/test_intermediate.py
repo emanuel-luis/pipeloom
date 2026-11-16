@@ -15,6 +15,7 @@ from pipeloom.runtime.run import RunOptions, RunOutcome
 from pipeloom.testing.clock import FakeClock
 from pipeloom.testing.memory import JsonTableStore
 from pipeloom.testing.recording import RecordingSink
+from tests.conftest import make_project
 
 ORDERS = [{"id": 1, "v": 5}, {"id": 2, "v": -1}, {"id": 3, "v": 7}]
 
@@ -48,10 +49,7 @@ def project(tmp_path: Path, ttl: str | None = None, extra: str = "") -> Path:
             f"{extra}"
         ),
     }
-    for rel, text in files.items():
-        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / rel).write_bytes(text.encode("utf-8"))
-    return tmp_path
+    return make_project(tmp_path, files)
 
 
 def run(root: Path, run_id: str = "r1", sink: RecordingSink | None = None) -> RunOutcome:

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from tests.conftest import make_project
 
 from pipeloom.diagnostics import Report
 from pipeloom.graph.selectors import Selection
@@ -35,9 +36,7 @@ MODELS = """models:
 
 @pytest.fixture
 def project(tmp_path: Path) -> tuple[Path, Plan]:
-    (tmp_path / "models").mkdir()
-    (tmp_path / "pipeloom.yml").write_text(PROJECT, encoding="utf-8")
-    (tmp_path / "models" / "m.yml").write_text(MODELS, encoding="utf-8")
+    make_project(tmp_path, {"pipeloom.yml": PROJECT, "models/m.yml": MODELS})
     report = Report()
     loaded = load_project(
         tmp_path.as_posix(), "prod", {}, expect_plan_hash="", env={}, report=report

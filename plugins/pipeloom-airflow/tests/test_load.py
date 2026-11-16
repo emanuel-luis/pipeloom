@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 from pydantic import JsonValue
+from tests.conftest import make_project
 
 import pipeloom_airflow.load as load_module
 from pipeloom.api import Project
@@ -127,16 +128,16 @@ def test_new_vars_are_a_miss(project: Path, tmp_path: Path, compiles: list[int])
 
 
 def test_a_changed_env_value_is_a_miss(tmp_path: Path, compiles: list[int]) -> None:
-    proj = tmp_path / "p"
-    (proj / "models").mkdir(parents=True)
-    (proj / "pipeloom.yml").write_text(
-        "config_version: 1\nname: gen\nengine: {kind: memory}\ncatalog: {kind: memory}\n"
-        "targets:\n  ci: {}\n",
-        encoding="utf-8",
-    )
-    (proj / "models" / "m.yml").write_text(
-        'models:\n  - {name: a, sql: select 1 as x, meta: {k: "${env:PL_AIRFLOW_X:-d}"}}\n',
-        encoding="utf-8",
+    proj = make_project(
+        tmp_path / "p",
+        {
+            "pipeloom.yml": (
+                "config_version: 1\nname: gen\nengine: {kind: memory}\ncatalog: {kind: memory}\n"
+                'defaults:\n  models:\n    meta: {k: "${env:PL_AIRFLOW_X:-d}"}\n'
+                "targets:\n  ci: {}\n"
+            ),
+            "models/m.yml": "models:\n  - {name: a, sql: select 1 as x}\n",
+        },
     )
     cache = tmp_path / "cache"
     assert go(proj, cache, {"PL_AIRFLOW_X": "1"})[0] is not None

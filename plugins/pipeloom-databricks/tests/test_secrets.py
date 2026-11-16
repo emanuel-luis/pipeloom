@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
+from tests.conftest import make_project
 
 from pipeloom.cli import main
 from pipeloom.secrets.resolve import SecretError
@@ -101,10 +102,7 @@ ENV = {"PIPELOOM_TARGET": "", "PIPELOOM_DISABLE_PLUGIN_AUTOLOAD": "", "PIPELOOM_
 
 
 def write_project(root: Path, yml: str) -> None:
-    for rel, text in {"pipeloom.yml": yml, "models/m.yml": MODELS, "src/m.py": BODY}.items():
-        path = root / rel
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(text.encode("utf-8"))
+    make_project(root, {"pipeloom.yml": yml, "models/m.yml": MODELS, "src/m.py": BODY})
 
 
 def run_args(root: Path) -> list[str]:
