@@ -928,6 +928,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stability and deprecations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1087,6 +1115,89 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#amendment-10-stability-and-deprecation-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (1.0): stability and deprecation policy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Amendment (1.0): stability and deprecation policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-is-stable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is stable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-counts-as-breaking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What counts as breaking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-deprecation-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How deprecation works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plugin-api-and-config-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin API and config version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#version-check-planned" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version check (planned)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prereleases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prereleases
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1152,8 +1263,50 @@
 <li>Lockstep versioning means plugin-only fixes bump every distribution during 0.x.</li>
 <li>At 1.0, <code>config_version: 1</code>, the plugin API 1.0, and the manifest, event and run_results schemas v1 are declared stable.</li>
 </ul>
+<h2 id="amendment-10-stability-and-deprecation-policy">Amendment (1.0): stability and deprecation policy<a class="headerlink" href="#amendment-10-stability-and-deprecation-policy" title="Permanent link">&para;</a></h2>
+<p>From 1.0.0 pipeloom follows Semantic Versioning for the surfaces below. The user-facing summary is <a href="../../reference/stability/">Stability and deprecations</a>.</p>
+<h3 id="what-is-stable">What is stable<a class="headerlink" href="#what-is-stable" title="Permanent link">&para;</a></h3>
+<ul>
+<li>CLI command names, flag names and their meanings, and the exit codes 0, 1, 2 and 130.</li>
+<li>Every JSON output that carries a version tag.</li>
+<li><code>config_version: 1</code>. It is the only value accepted through 1.x.</li>
+<li>The artifact schemas <code>pipeloom.manifest/1</code>, <code>pipeloom.run_results/1</code>, <code>pipeloom.event/1</code>, <code>pipeloom.unit_states/1</code> and <code>pipeloom.unit_graph/1</code>, and the event types, as defined in ADR-0049.</li>
+<li>Plugin API 1.0: the protocols, <code>PluginSpec</code> and the capabilities. <code>pipeloom.testing</code> is part of the plugin API.</li>
+<li>The meaning of each diagnostic code. Messages and hints are not stable.</li>
+<li>The documented Python API: the <code>pipeloom</code> top-level exports and <code>pipeloom.api</code>.</li>
+</ul>
+<p>Not stable: console text (including log lines and table layout) and anything undocumented, such as private modules and names that start with an underscore.</p>
+<h3 id="what-counts-as-breaking">What counts as breaking<a class="headerlink" href="#what-counts-as-breaking" title="Permanent link">&para;</a></h3>
+<p>A breaking change needs a new major version. These are breaking:</p>
+<ul>
+<li>Removing or renaming anything listed above.</li>
+<li>Changing a type, a default or an exit code.</li>
+<li>Adding a value to a closed enum.</li>
+<li>Adding a required method to a plugin protocol.</li>
+<li>Raising a warning to an error.</li>
+<li>Rejecting configuration that was valid before. The exception is a rule that was letting wrong data through: that fix ships in a minor or patch release and is listed under Security or Fixed in the CHANGELOG.</li>
+</ul>
+<p>Additive changes ship in a minor release: new commands, flags, optional fields, event types, diagnostic codes and optional protocol members.</p>
+<h3 id="how-deprecation-works">How deprecation works<a class="headerlink" href="#how-deprecation-works" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The CHANGELOG lists the item under "Deprecated", and the Deprecations table on the stability page gets a row with the item, the version that deprecated it, the replacement and the earliest removal.</li>
+<li>At use time pipeloom emits a warning diagnostic with a code in the new reserved prefix <code>PLV</code> (layer "Deprecations"). Python and plugin API members also raise a <code>DeprecationWarning</code>.</li>
+<li>A deprecated item keeps working for the rest of the major. It is removed only in the next major, and only after at least one minor release that warned.</li>
+<li>The <code>PLV</code> prefix is reserved by this amendment. No code is added now: the first <code>PLV</code> code and its case file (<code>tests/cases/&lt;CODE&gt;.yml</code>) arrive with the first real deprecation.</li>
+</ul>
+<h3 id="plugin-api-and-config-version">Plugin API and config version<a class="headerlink" href="#plugin-api-and-config-version" title="Permanent link">&para;</a></h3>
+<p>The plugin API becomes <code>(1, 0)</code> with pipeloom 1.0. The core accepts a plugin with the same major and a minor not above its own, otherwise it raises PLU001. The exact match that ADR-0017 requires while the major is 0 ends with 1.0. <code>config_version: 1</code> is the only accepted value through 1.x.</p>
+<h3 id="version-check-planned">Version check (planned)<a class="headerlink" href="#version-check-planned" title="Permanent link">&para;</a></h3>
+<p><code>tools/versions.py check</code> gains these checks, which land with the 1.0.0rc1 work and run in the CI lint job:</p>
+<ul>
+<li>The root <code>[tool.pipeloom]</code> keys <code>config-version</code> and <code>plugin-api</code> equal <code>CONFIG_VERSION</code> and <code>API_VERSION</code> in the source (read with <code>ast</code>, no import).</li>
+<li>Every member distribution declares the same <code>plugin-api</code>.</li>
+<li>Every <code>PluginSpec</code> passes <code>API_VERSION</code>.</li>
+</ul>
+<h3 id="prereleases">Prereleases<a class="headerlink" href="#prereleases" title="Permanent link">&para;</a></h3>
+<p>Prereleases such as <code>1.0.0rc1</code> are published to PyPI. Version pins between distributions must accept them (<code>pipeloom~=1.0.0</code> does not match <code>1.0.0rc1</code>), and the version check must accept the prerelease form.</p>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted. Amended by <a href="../0017-plugin-spec-and-builtins/">ADR-0017</a>: while the plugin API major is 0 the versions must match exactly.</p>
+<p>Accepted. Amended by <a href="../0017-plugin-spec-and-builtins/">ADR-0017</a>: while the plugin API major is 0 the versions must match exactly. Amended in 1.0: stability and deprecation policy (see above).</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
 <p>2026-10-29</p>
 
