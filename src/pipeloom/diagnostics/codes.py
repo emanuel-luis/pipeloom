@@ -743,6 +743,12 @@ _ACTIVE_09: Final = (
         "View model did not return ctx.sql(...), or passed it inputs=",
         "A Python view model runs in view mode: its input parameters are placeholders that only ctx.sql may name, and ctx.sql returns the query the catalog stores. The function returned something else, passed inputs= frames to ctx.sql, or used an input as a frame.",
     ),
+    (
+        "PLR209",
+        E,
+        "Properties entry names no model, or describes one twice",
+        "An entry of a properties file (a models entry without sql or python) names a model that does not exist, or a model that another properties entry already describes. Each model has at most one properties entry. The hint suggests the closest model name, or points at the first entry.",
+    ),
 )
 
 

@@ -28,6 +28,7 @@ def test_generated_pages() -> None:
         "schema/v1/defaults.json",
         "schema/v1/models.json",
         "schema/v1/project.json",
+        "schema/v1/properties.json",
     ]
     for code in CATALOG:
         assert f"### {code} {{#{code.lower()}}}" in pages["reference/errors.md"]
@@ -52,4 +53,5 @@ def test_on_files_appends_generated_files() -> None:
         "schema/v1/defaults.json",
         "schema/v1/models.json",
         "schema/v1/project.json",
+        "schema/v1/properties.json",
     ]
