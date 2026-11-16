@@ -449,6 +449,24 @@
           ],
           "title": "Bytes Written"
         },
+        "columns": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/JsonValue"
+                },
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Columns"
+        },
         "duration_ms": {
           "title": "Duration Ms",
           "type": "integer"
