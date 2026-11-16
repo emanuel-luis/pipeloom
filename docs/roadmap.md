@@ -265,8 +265,7 @@ Python-first authoring comes first; contracts and the test and build work are th
 
 ### 1.0: stable contracts
 
-Delivered for 1.0. The release ships as 1.0.0rc1 first, and 1.0.0 follows once the maintainer approves the
-release candidate. What each item became:
+Delivered in 1.0.0, after the 1.0.0rc1 release candidate, with the same content. What each item became:
 
 - JSON Schemas: `run_results`, `event` and `unit_states` were published in 0.9.0 and the manifest schema joins them
   in 1.0, all under `schema/v1/` with the goldens validated in CI

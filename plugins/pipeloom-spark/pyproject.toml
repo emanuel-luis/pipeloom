@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pipeloom-spark"
-version = "1.0.0rc1"
+version = "1.0.0"
 description = "Spark engine for pipeloom: DataFrames, Spark SQL and Delta tables, local or through Spark Connect."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -13,7 +13,7 @@ license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "Emanuel Luis", email = "emanuel.filho08@gmail.com" }]
 keywords = ["pipeloom", "spark", "pyspark", "delta", "data-engineering", "pipelines"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
@@ -24,7 +24,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 # No hard pyspark dependency: Databricks runtimes and Databricks Connect ship their own.
-dependencies = ["pipeloom~=1.0.0rc1"]
+dependencies = ["pipeloom~=1.0.0"]
 
 [project.optional-dependencies]
 local = ["pyspark[connect]>=4.0.1,<4.3", "delta-spark>=4.1,<4.5"]
