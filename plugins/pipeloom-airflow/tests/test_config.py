@@ -49,6 +49,35 @@ def test_databricks_timeout_and_poll_interval_must_be_positive() -> None:
     assert ExecutionConfig().databricks_timeout == 86400.0
 
 
+def test_watcher_settings_are_validated() -> None:
+    assert check(execution=ExecutionConfig(mode=ExecutionMode.WATCHER)) == []
+    bad = ExecutionConfig(
+        mode=ExecutionMode.WATCHER,
+        watcher_workers=0,
+        watcher_poll_interval=0,
+        watcher_timeout=-1,
+        watcher_artifacts_root="rel/root",
+    )
+    assert check(execution=bad) == [
+        ("PLA002", "execution.watcher_artifacts_root must be an absolute path, got 'rel/root'"),
+        ("PLA002", "execution.watcher_poll_interval must be a positive number of seconds"),
+        ("PLA002", "execution.watcher_timeout must be a positive number of seconds"),
+        ("PLA002", "execution.watcher_workers must be 1 or more, got 0"),
+    ]
+    assert ExecutionConfig().watcher_timeout == 86400.0
+    assert ExecutionConfig().watcher_poll_interval == 10.0
+
+
+def test_a_watcher_selection_of_unit_atoms_only_is_pla002() -> None:
+    watcher = ExecutionConfig(mode=ExecutionMode.WATCHER)
+    units = RenderConfig(select=("unit:a", "unit:b"))
+    assert check(render=units, execution=watcher) == [
+        ("PLA002", "a WATCHER selection made only of unit: selectors runs the producer in unit mode")
+    ]
+    assert check(render=RenderConfig(select=("unit:a", "tag:x")), execution=watcher) == []
+    assert check(render=units) == []
+
+
 def test_docker_is_pla001() -> None:
     assert [c for c, _ in check(execution=ExecutionConfig(mode=ExecutionMode.DOCKER))] == ["PLA001"]
 
