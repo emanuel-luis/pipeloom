@@ -1997,7 +1997,8 @@ is optional, as in VIRTUALENV.</p>
   <code>retries</code> and <code>retry_on</code> allow no more, or timed out, or was cancelled. If the producer ended and
   left no run results, the watcher raises PLA009 after a short grace, and a retry runs again.</li>
 <li>The watcher's log shows the attempt summary and the last 200 lines of the unit's log, or the error
-  code, message and trace excerpt.</li>
+  code, message and trace excerpt. A unit has a log of its own only with <code>boundary: task</code>;
+  otherwise the watcher says that the unit's output is in the producer task's log.</li>
 <li>To rerun a unit, clear its failed watcher with Downstream. At try 2 or later, when the producer is
   no longer running the unit, the watcher runs the unit itself (same run id, one attempt), and the
   cleared descendants follow. Finalize then merges the new attempt.</li>
@@ -2186,6 +2187,10 @@ use <code>shared</code>.</p>
   is limited to 128 KiB. Above that it fails with PLA002; split the project with <code>select</code>.</li>
 <li>A DATABRICKS-mode DAG needs the project files on the worker that runs the launch, and each wait
   is bounded by <code>databricks_timeout</code>.</li>
+<li>On Airflow 3.2, <code>dag.test()</code> fails in the finalize task and in WATCHER sensors: they read task
+  states through the Task SDK, and the in-process Execution API that <code>dag.test()</code> starts on 3.2
+  answers that call with a server error. A real deployment on 3.2 is not affected, and <code>dag.test()</code>
+  works from Airflow 3.3.0.</li>
 </ul>
 <h2 id="diagnostics">Diagnostics<a class="headerlink" href="#diagnostics" title="Permanent link">&para;</a></h2>
 <p>PLA001 unsupported mode or missing extra, PLA002 invalid configuration, PLA003 the selection renders
