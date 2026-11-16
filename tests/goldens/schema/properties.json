@@ -948,7 +948,7 @@
   "$id": "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "A properties file under model_paths.",
+  "description": "A properties file: any `*.yml` or `*.yaml` under model_paths.",
   "properties": {
     "models": {
       "description": "Properties entries, one per model.",

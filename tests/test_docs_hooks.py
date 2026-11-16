@@ -14,9 +14,7 @@ from pipeloom.diagnostics.codes import CATALOG
 ROOT = Path(__file__).parent.parent
 PAGES = [
     "reference/errors.md",
-    "schema/v1/defaults.json",
     "schema/v1/event.json",
-    "schema/v1/models.json",
     "schema/v1/project.json",
     "schema/v1/properties.json",
     "schema/v1/run_results.json",
