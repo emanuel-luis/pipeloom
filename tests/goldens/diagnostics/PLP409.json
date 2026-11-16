@@ -2,13 +2,13 @@
   {
     "code": "PLP409",
     "severity": "error",
-    "message": "view 'a' is a Python model",
-    "hint": "write the view as SQL, or materialize it as a table",
+    "message": "view 'a' reads ephemeral model(s) e",
+    "hint": "make those models tables, or materialize the view as a table",
     "location": {
       "file": "models/m.yml",
-      "line": 4,
+      "line": 7,
       "col": 19,
-      "json_pointer": "/models/0/materialized"
+      "json_pointer": "/models/1/materialized"
     },
     "context": {
       "model": "a"

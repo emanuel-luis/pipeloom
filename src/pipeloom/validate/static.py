@@ -9,6 +9,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from pipeloom.diagnostics import Report
+from pipeloom.engine.types import EngineCapabilities
 from pipeloom.graph.dag import ProjectGraph
 from pipeloom.validate.semantics import where
 
@@ -77,6 +78,17 @@ def _mismatch(fn: _Def, aliases: set[str]) -> str | None:
     return ", ".join(bits) or None
 
 
+def _calls_ctx_sql(fn: _Def) -> bool:
+    return any(
+        isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Attribute)
+        and n.func.attr == "sql"
+        and isinstance(n.func.value, ast.Name)
+        and n.func.value.id == "ctx"
+        for n in ast.walk(fn)
+    )
+
+
 def check_sql(pg: ProjectGraph, report: Report) -> None:
     """Report PLK603 and PLK605 for SQL models. Does nothing unless sqlglot is installed."""
     if importlib.util.find_spec("sqlglot") is None:
@@ -121,9 +133,16 @@ def check_sql(pg: ProjectGraph, report: Report) -> None:
 
 
 def check_static(pg: ProjectGraph, report: Report) -> None:
-    """Report PLK601, PLK602 and PLK604 for Python models."""
+    """Report PLK601, PLK602, PLK604 and PLK606 for Python models."""
     project = pg.project
     loaded = project.bound.loaded
+    engine = project.bound.plugins.get("engines")
+    caps = None if engine is None else engine.spec.capabilities
+    no_sql = (
+        engine.kind
+        if engine is not None and isinstance(caps, EngineCapabilities) and caps.sql_dialect is None
+        else None
+    )
     trees: dict[str, ast.Module | str] = {}
     for m in project.models.values():
         ref = m.entry.python
@@ -173,6 +192,14 @@ def check_static(pg: ProjectGraph, report: Report) -> None:
                 context=ctx,
             )
         else:
+            if no_sql is not None and _calls_ctx_sql(last):
+                report.add(
+                    "PLK606",
+                    f"'{ref}' calls ctx.sql, but engine '{no_sql}' has no SQL",
+                    location=loc,
+                    hint="write the model with frames, or choose an engine with SQL",
+                    context={**ctx, "engine": no_sql},
+                )
             why = _mismatch(last, set(m.inputs))
             if why is not None:
                 expected = ", ".join(["ctx", *m.inputs])
