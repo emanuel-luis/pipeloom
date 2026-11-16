@@ -30,5 +30,69 @@
       "model": "b",
       "data_test": "b_in_c"
     }
+  },
+  {
+    "code": "PLP415",
+    "severity": "error",
+    "message": "data test 'd_in_d' of model 'd' relates the model to itself",
+    "hint": "test the relationship on a table that is not upstream of the parent",
+    "location": {
+      "file": "models/m.yml",
+      "line": 31,
+      "col": 9,
+      "json_pointer": "/models/3/data_tests/0"
+    },
+    "context": {
+      "model": "d",
+      "data_test": "d_in_d"
+    }
+  },
+  {
+    "code": "PLP415",
+    "severity": "error",
+    "message": "data test 'e_in_i' of model 'e' relates it to intermediate model 'i'",
+    "hint": "test the relationship on a table that is not upstream of the parent",
+    "location": {
+      "file": "models/m.yml",
+      "line": 44,
+      "col": 9,
+      "json_pointer": "/models/5/data_tests/0"
+    },
+    "context": {
+      "model": "e",
+      "data_test": "e_in_i"
+    }
+  },
+  {
+    "code": "PLP415",
+    "severity": "error",
+    "message": "data test 'g_in_h' of model 'g' closes a cycle through 'h'",
+    "hint": "test the relationship on a table that is not upstream of the parent",
+    "location": {
+      "file": "models/m.yml",
+      "line": 54,
+      "col": 9,
+      "json_pointer": "/models/6/data_tests/0"
+    },
+    "context": {
+      "model": "g",
+      "data_test": "g_in_h"
+    }
+  },
+  {
+    "code": "PLP415",
+    "severity": "error",
+    "message": "data test 'h_in_k' of model 'h' closes a cycle through 'k'",
+    "hint": "test the relationship on a table that is not upstream of the parent",
+    "location": {
+      "file": "models/m.yml",
+      "line": 64,
+      "col": 9,
+      "json_pointer": "/models/7/data_tests/0"
+    },
+    "context": {
+      "model": "h",
+      "data_test": "h_in_k"
+    }
   }
 ]

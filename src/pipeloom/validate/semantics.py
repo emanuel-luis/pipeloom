@@ -215,9 +215,11 @@ def _check_view(
 
 def _check_data_tests(pg: ProjectGraph, ephemeral: frozenset[str], report: Report) -> None:
     """PLP415: data tests on an ephemeral model, or a relationships parent that is the model
-    itself, a descendant, an ephemeral model, or that closes a cycle of relationship edges."""
+    itself, a descendant, an ephemeral or intermediate model (an intermediate table may not exist
+    when the parent is not built in the run), or that closes a cycle of relationship edges."""
     project, graph = pg.project, pg.graph
     by_name = {m.name: uid for uid, m in project.models.items()}
+    intermediate = {u for u, m in project.models.items() if m.config.materialized == "intermediate"}
 
     def parent_of(test: DataTestConfig) -> str | None:
         rel = test.check.relationships
@@ -240,8 +242,14 @@ def _check_data_tests(pg: ProjectGraph, ephemeral: frozenset[str], report: Repor
                 continue
             elif parent == uid:
                 why = f"data test '{test.name}' of model '{m.name}' relates the model to itself"
-            elif parent in ephemeral or parent in graph.descendants(uid):
-                kind = "ephemeral model" if parent in ephemeral else "descendant"
+            elif parent in ephemeral or parent in intermediate or parent in graph.descendants(uid):
+                kind = (
+                    "ephemeral model"
+                    if parent in ephemeral
+                    else "intermediate model"
+                    if parent in intermediate
+                    else "descendant"
+                )
                 why = (
                     f"data test '{test.name}' of model '{m.name}' relates it to "
                     f"{kind} '{project.models[parent].name}'"
