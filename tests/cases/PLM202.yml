@@ -2,7 +2,9 @@ files:
   pipeloom.yml: |
     config_version: 1
     name: shop
-    python_paths: [src]
+    python_paths:
+    - src
+    - .
     targets:
       dev:
         engine:
@@ -16,10 +18,13 @@ files:
           root: store
         naming:
           kind: none
-  models/m.yml: |
-    models:
-      - name: a
-        sql: select 1 as id, 'x' as extra
-        write:
-          strategy: append
+  models/m.py: |
+    from pipeloom import model
+
+
+    @model(
+        write={"strategy": "append"},
+    )
+    def a(ctx):
+        return ctx.sql("select 1 as id, 'x' as extra")
 run: true

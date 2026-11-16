@@ -5,8 +5,8 @@
     "message": "model 'a': expectation 'nope_set' names unknown column(s): nope: ValueError: expectation 'nope_set' names unknown column(s): nope",
     "hint": "check the column names in expectations against the model output",
     "location": {
-      "file": "models/m.yml",
-      "line": 2,
+      "file": "models/m.py",
+      "line": 4,
       "col": null,
       "json_pointer": null
     },

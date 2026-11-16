@@ -1,17 +1,18 @@
 [
   {
-    "code": "PLC502",
-    "severity": "error",
-    "message": "engine 'nosql' cannot run SQL, but model 'a' is SQL",
-    "hint": "write the model in Python or choose an engine with SQL",
+    "code": "PLK606",
+    "severity": "warning",
+    "message": "'models.m:a' calls ctx.sql, but engine 'nosql' has no SQL",
+    "hint": "write the model with frames, or choose an engine with SQL",
     "location": {
-      "file": "models/m.yml",
-      "line": 3,
-      "col": 10,
-      "json_pointer": "/models/0/sql"
+      "file": "models/m.py",
+      "line": 4,
+      "col": 2,
+      "json_pointer": "/@model"
     },
     "context": {
       "model": "a",
+      "callable": "models.m:a",
       "engine": "nosql"
     }
   },
@@ -21,10 +22,10 @@
     "message": "engine 'nosql' has no catalog views (model 'a')",
     "hint": "use table, or an engine with views",
     "location": {
-      "file": "models/m.yml",
-      "line": 4,
-      "col": 19,
-      "json_pointer": "/models/0/materialized"
+      "file": "models/m.py",
+      "line": 5,
+      "col": 5,
+      "json_pointer": "/@model/materialized"
     },
     "context": {
       "model": "a",

@@ -5,10 +5,10 @@
     "message": "option 'unique_key' of 'a' is not applied by strategy 'append'",
     "hint": "remove 'unique_key' or change the strategy or materialization",
     "location": {
-      "file": "models/m.yml",
-      "line": 6,
-      "col": 19,
-      "json_pointer": "/models/0/write/unique_key"
+      "file": "models/m.py",
+      "line": 5,
+      "col": 5,
+      "json_pointer": "/@model/write/unique_key"
     },
     "context": {
       "model": "a"

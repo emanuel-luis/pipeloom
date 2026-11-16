@@ -5,10 +5,10 @@
     "message": "engine 'nosql' cannot evaluate expectations (model 'a')",
     "hint": "remove the expectations or use an engine with the quality capability",
     "location": {
-      "file": "models/m.yml",
-      "line": 5,
-      "col": 7,
-      "json_pointer": "/models/0/expectations"
+      "file": "src/m.py",
+      "line": 4,
+      "col": 5,
+      "json_pointer": "/@model/expectations"
     },
     "context": {
       "model": "a",

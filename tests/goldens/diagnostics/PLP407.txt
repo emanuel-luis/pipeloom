@@ -1,2 +1,2 @@
-error PLP407 models/m.yml:2:11 model 'a' uses replace_partitions without partition_by
+error PLP407 models/m.py:4:2 model 'a' uses replace_partitions without partition_by
       hint: set partition_by to the partition columns

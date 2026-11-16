@@ -3,16 +3,18 @@ files:
     config_version: 1
     name: shop
     python_paths: [src]
+    model_paths:
+    - src
     targets:
       dev:
         engine:
           kind: nosql
-  models/m.yml: |
-    models:
-      - name: a
-        python: "m:a"
-        materialized: intermediate
   src/m.py: |
+    from pipeloom import model
+
+    @model(
+        materialized="intermediate",
+    )
     def a(ctx):
         return None
 plugins: ["tests.plugins.fakes:NOSQL"]

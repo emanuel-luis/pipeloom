@@ -5,10 +5,10 @@
     "message": "view model 'a' cannot have a contract (columns)",
     "hint": "move the columns to a table that reads it, or materialize the model as a table",
     "location": {
-      "file": "models/m.yml",
+      "file": "models/m.py",
       "line": 6,
-      "col": 7,
-      "json_pointer": "/models/0/columns"
+      "col": 5,
+      "json_pointer": "/@model/columns"
     },
     "context": {
       "model": "a"

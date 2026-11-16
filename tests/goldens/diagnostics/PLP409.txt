@@ -1,2 +1,2 @@
-error PLP409 models/m.yml:7:19 view 'a' reads ephemeral model(s) e
+error PLP409 src/m.py:4:5 view 'a' reads ephemeral model(s) e
       hint: make those models tables, or materialize the view as a table

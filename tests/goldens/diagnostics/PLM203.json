@@ -5,8 +5,8 @@
     "message": "the watermark of model 'a' changed while the unit ran; the data was already written: pipeloom.runtime.incremental.WatermarkConflict: the watermark of model 'a' changed while the unit ran",
     "hint": "another run on the same target is the likely cause; run again, or avoid --no-lock with concurrent runs",
     "location": {
-      "file": "models/m.yml",
-      "line": 2,
+      "file": "src/shop/hook.py",
+      "line": 14,
       "col": null,
       "json_pointer": null
     },

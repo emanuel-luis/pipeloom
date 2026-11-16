@@ -6,7 +6,7 @@
     "hint": "compatible engines: memory",
     "location": {
       "file": "pipeloom.yml",
-      "line": 9,
+      "line": 11,
       "col": 13,
       "json_pointer": "/targets/dev/catalog/kind"
     },

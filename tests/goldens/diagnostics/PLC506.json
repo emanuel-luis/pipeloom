@@ -2,16 +2,16 @@
   {
     "code": "PLC506",
     "severity": "error",
-    "message": "source 'raw' has format 'parquet', which engine 'memory' cannot read",
+    "message": "source 'raw.raw' has format 'parquet', which engine 'memory' cannot read",
     "hint": "supported formats: memory",
     "location": {
-      "file": "models/m.yml",
-      "line": 3,
-      "col": 13,
-      "json_pointer": "/sources/0/format"
+      "file": "pipeloom.yml",
+      "line": 8,
+      "col": 17,
+      "json_pointer": "/sources/raw/tables/raw/format"
     },
     "context": {
-      "source": "raw",
+      "source": "raw.raw",
       "format": "parquet"
     }
   }

@@ -5,10 +5,10 @@
     "message": "incremental model 'a' has no incremental.column",
     "hint": "set incremental.column to the column compared with the watermark",
     "location": {
-      "file": "models/m.yml",
-      "line": 2,
-      "col": 11,
-      "json_pointer": "/models/0/name"
+      "file": "models/m.py",
+      "line": 4,
+      "col": 2,
+      "json_pointer": "/@model"
     },
     "context": {
       "model": "a"

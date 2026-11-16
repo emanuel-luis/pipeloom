@@ -3,6 +3,13 @@ files:
     config_version: 1
     name: shop
     python_paths: [src]
+    sources:
+      raw:
+        tables:
+          raw:
+            table: main.raw
+    model_paths:
+    - src
     targets:
       dev:
         engine:
@@ -16,24 +23,12 @@ files:
           root: store
         naming:
           kind: none
-  models/m.yml: |
-    models:
-      - name: a
-        python: shop.hook:a
-        materialized: incremental
-        inputs:
-          raw:
-            source: raw
-        incremental:
-          input: raw
-          column: id
-  models/sources.yml: |
-    sources:
-      - name: raw
-        table: main.raw
   src/shop/__init__.py: ""
   src/shop/hook.py: |
     """The model moves its own watermark while it runs, like a concurrent run would."""
+
+    from pipeloom import model, source
+
 
     from datetime import UTC, datetime
     from pathlib import Path
@@ -43,6 +38,11 @@ files:
     from pipeloom.state.types import StateKey, Watermark
 
 
+    @model(
+        inputs={"raw": source("raw", "raw")},
+        materialized="incremental",
+        incremental={"input": "raw", "column": "id"},
+    )
     def a(ctx: Any, raw: Any) -> Any:
         root = Path(__file__).resolve().parents[2]
         moved = Watermark(99, "int64", "other", datetime(2026, 1, 1, tzinfo=UTC))

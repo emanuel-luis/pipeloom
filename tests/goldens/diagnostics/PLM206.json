@@ -5,8 +5,8 @@
     "message": "invalid write key for model 'a': pipeloom.engine.errors.WriteKeyError: the batch repeats the unique_key (1,)",
     "hint": "check write.unique_key and partition_by, and that the batch has no duplicate key",
     "location": {
-      "file": "models/m.yml",
-      "line": 2,
+      "file": "models/m.py",
+      "line": 4,
       "col": null,
       "json_pointer": null
     },

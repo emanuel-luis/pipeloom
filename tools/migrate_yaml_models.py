@@ -39,6 +39,7 @@ KEEP_LEGACY = {
     "PLS108",  # a model entry with both sql: and python:
     "PLR205",  # two flat sources with one name
     "PLK604",  # a python: callable bound by an import, not a def
+    "PLC502",  # a sql: model on an engine without SQL; retired with the legacy path
     "PLK602",  # half legacy: a python: signature that misses an alias; drop that half later
 }
 
@@ -354,6 +355,8 @@ def migrate(files: dict[str, str]) -> dict[str, str]:
             raise MigrationError(f"pipeloom.yml already has a source group '{GROUP}'")
         groups[GROUP] = {"tables": tables}
         changes["sources"] = groups
+    left = [p for p, v in new.items() if v is not None and p != "pipeloom.yml"]
+    model_paths = [r for r in model_paths if any(_under(p, r) is not None for p in left)]
     if model_paths != list(project.get("model_paths", ["models"])):
         changes["model_paths"] = model_paths
     if python_paths != list(project.get("python_paths", ["."])):

@@ -3,15 +3,17 @@ files:
     config_version: 1
     name: shop
     python_paths: [src]
+    model_paths:
+    - src
     targets:
       dev:
         engine:
           kind: memory
-  models/m.yml: |
-    models:
-      - name: a
-        python: "m:a"
-        frame_api: narwhals
   src/m.py: |
+    from pipeloom import model
+
+    @model(
+        frame_api="narwhals",
+    )
     def a(ctx):
         return None

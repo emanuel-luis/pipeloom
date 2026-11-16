@@ -2,22 +2,28 @@ files:
   pipeloom.yml: |
     config_version: 1
     name: shop
-    python_paths: [src]
+    python_paths:
+    - src
+    - .
+    sources:
+      raw:
+        tables:
+          raw:
+            format: memory
+            location: raw/missing
     targets:
       dev:
         engine:
           kind: memory
         catalog:
           kind: memory
-  models/m.yml: |
-    sources:
-      - name: raw
-        format: memory
-        location: raw/missing
-    models:
-      - name: a
-        sql: select * from raw
-        inputs:
-          raw:
-            source: raw
+  models/m.py: |
+    from pipeloom import model, source
+
+
+    @model(
+        inputs={"raw": source("raw", "raw")},
+    )
+    def a(ctx, raw):
+        return ctx.sql("select * from raw")
 run: true

@@ -2,26 +2,28 @@ files:
   pipeloom.yml: |
     config_version: 1
     name: shop
-    python_paths: [src]
+    python_paths:
+    - src
+    - .
+    sources:
+      raw:
+        tables:
+          raw:
+            table: main.raw
     targets:
       dev:
         engine:
           kind: memory
         catalog:
           kind: memory
-  models/m.yml: |
-    models:
-      - name: a
-        sql: select 1 as id, 1 as ts
-        materialized: incremental
-        inputs:
-          raw:
-            source: raw
-        incremental:
-          input: raw
-          column: ts
-          lookback: 1d
-  models/sources.yml: |
-    sources:
-      - name: raw
-        table: main.raw
+  models/m.py: |
+    from pipeloom import model, source
+
+
+    @model(
+        inputs={"raw": source("raw", "raw")},
+        materialized="incremental",
+        incremental={"input": "raw", "column": "ts", "lookback": "1d"},
+    )
+    def a(ctx, raw):
+        return ctx.sql("select 1 as id, 1 as ts")
