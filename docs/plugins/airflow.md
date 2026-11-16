@@ -191,7 +191,8 @@ is optional, as in VIRTUALENV.
   `retries` and `retry_on` allow no more, or timed out, or was cancelled. If the producer ended and
   left no run results, the watcher raises PLA009 after a short grace, and a retry runs again.
 - The watcher's log shows the attempt summary and the last 200 lines of the unit's log, or the error
-  code, message and trace excerpt.
+  code, message and trace excerpt. A unit has a log of its own only under the process executor;
+  otherwise the watcher says that the unit's output is in the producer task's log.
 - To rerun a unit, clear its failed watcher with Downstream. At try 2 or later, when the producer is
   no longer running the unit, the watcher runs the unit itself (same run id, one attempt), and the
   cleared descendants follow. Finalize then merges the new attempt.
