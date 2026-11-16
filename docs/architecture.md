@@ -2,7 +2,7 @@
 
 > **Status:** 0.7 implements the versions listed in section 16: the scheduler, the polars, pandas and Spark engines, incremental models, merge and replace_partitions, expectations and quarantine, retries, timeouts and cancellation, the Databricks and Airflow integrations, and per-model catalogs. Planned work lives in the [roadmap](roadmap.md).
 > Decisions are recorded as ADRs in [adr/](adr/README.md). Diagrams are D2 sources in [diagrams/](diagrams/) with committed SVGs.
-> Model authoring changes in 0.9 ([ADR-0050](adr/0050-python-first-authoring.md)): models become decorated Python functions, and YAML keeps the project and properties files. Text marked "from 0.9" describes that planned design; through 0.8 every model is declared in a YAML model file ([ADR-0003](adr/0003-model-authoring.md), superseded), and that legacy path keeps working on main until it is removed before 0.9.0.
+> From 0.9 models are decorated Python functions, and YAML keeps the project and properties files ([ADR-0050](adr/0050-python-first-authoring.md)). Through 0.8 every model was declared in a YAML model file ([ADR-0003](adr/0003-model-authoring.md), superseded); that path is removed, and [Migrating from 0.8](guide/migrate-0.9.md) maps it to the decorator.
 
 ## 1. Vision, goals, non-goals, principles
 
@@ -105,7 +105,7 @@ Source: [03-lifecycle.d2](diagrams/03-lifecycle.d2).
 
 ## 4. Configuration
 
-From 0.9 ([ADR-0050](adr/0050-python-first-authoring.md)) a project is one `pipeloom.yml`, Python model modules and optional properties files. This section describes that planned design; the YAML model files of 0.8 are summarized under "Legacy model files" below.
+From 0.9 ([ADR-0050](adr/0050-python-first-authoring.md)) a project is one `pipeloom.yml`, Python model modules and optional properties files. The YAML model files of 0.8 are gone; see "YAML model files" below.
 
 **Project file.**
 
@@ -226,48 +226,7 @@ An entry that names no model, or a model another entry already describes, is PLR
 - `Discovery.refresh()` re-reads changed files and re-imports dynamic modules for long-lived processes such as `docs serve`.
 - An executor running a unit from a manifest never runs discovery: it imports the one module named by its node's `callable`. Any invocation that compiles runs discovery, including `pipeloom run` without `--manifest` and every unit task in Airflow PROJECT mode, so dynamic modules are imported there too.
 
-**Legacy model files (through 0.8, removed before 0.9.0).** Any `*.yml` under `model_paths` with `sources:` and `models:` lists, each model with a SQL body or a `python: module:function` pointer and an `inputs` map. Both paths coexist on main, with no warning, until the removal; one project may mix them.
-
-```yaml
-sources:
-  - name: raw_orders
-    format: parquet
-    location: data/raw/orders/
-models:
-  - name: stg_orders
-    sql: |
-      select order_id, customer_id, amount, updated_at from raw_orders
-    inputs:
-      raw_orders:
-        source: raw_orders
-  - name: fct_orders
-    python: shop.marts.orders:build          # module:function
-    inputs:
-      orders:
-        ref: stg_orders
-      customers:
-        ref: dim_customers
-    materialized: incremental
-    incremental:
-      input: orders
-      column: updated_at
-      lookback: 2d
-    write:
-      strategy: merge
-      unique_key: [order_id]
-      on_schema_change: append_new_columns
-    partition_by: [order_date]
-    expectations:
-      - name: amount_non_negative
-        check:
-          range:
-            column: amount
-            min: 0
-        on_violation: drop
-    tags: [finance, daily]
-```
-
-Legacy `_defaults.yml` files set folder-level defaults. They cascade from the model's own folder up to its `model_paths` root, nearest first; mappings merge deeply, lists replace and `tags` is an ordered union without duplicates. From 0.9 they and `defaults.models` map onto the folder and project layers of the `models:` tree until they are removed.
+**YAML model files (0.8 and earlier).** Model entries with `sql:` or `python:`, flat `sources:` lists, `_defaults.yml` and `defaults.models` were removed in 0.9 with no deprecation release; their keys are PLS101 with a hint to the [migration guide](guide/migrate-0.9.md), and PLK601, PLK604, PLC502 and PLR205 are retired.
 
 **ADR-0050: Python-first model authoring** (supersedes ADR-0003, which made YAML declare every model).
 - Context: a YAML-declared Python model was written twice, once in YAML and once as a function whose parameters had to match (PLK602). A benchmark of 1,000 models measured about 11 s to import every module and 1.4 s to parse them with `ast`.
@@ -275,15 +234,14 @@ Legacy `_defaults.yml` files set folder-level defaults. They cascade from the mo
 - Choice: hybrid. Every model is a decorated Python function; YAML holds the project, folder config, sources, targets and properties. The compiler resolves static decorators from the AST and imports only dynamic modules, with a per-file cache. SQL runs through `ctx.sql`. Dependencies stay declared through parameters and `inputs=`, never traced.
 - Consequences: a model is written once, with typed completion. Most compiles run no user code; a dynamic module runs its code at compile time. Every project is rewritten once, with no deprecation release, and plan hashes change once.
 
-**JSON Schema.** `pipeloom schema export --out schemas/` writes `project.json`, `models.json` and `defaults.json` (draft 2020-12) from the pydantic models. From 0.9 it writes `project.json` and `properties.json`; `models.json` and `defaults.json` stop being published under `latest/` with the removal of the legacy path (older version folders keep them).
+**JSON Schema.** `pipeloom schema export --out schemas/` writes `project.json` and `properties.json` (draft 2020-12) from the pydantic models. `models.json` and `defaults.json` are no longer published under `latest/` since 0.9 (older version folders keep them).
 - Plugin option models (engine, catalog, sink, state) are composed as `oneOf` branches on `kind`, using the plugins that are installed (`--plugins builtin` limits it to the built-ins).
 - The docs site publishes the schemas of the built-in plugins under `latest/schema/v1/` (and under each version folder).
 - The modeline above enables completion in editors that use yaml-language-server.
 
 **Precedence.**
 - Runtime settings (highest first): CLI flags; `PIPELOOM_*` environment variables (for example `PIPELOOM_TARGET`, `PIPELOOM_WORKERS`); an optional git-ignored user file `~/.pipeloom/profiles.yml` with per-target overrides; the `targets.<t>` block; then top-level project keys.
-- Model config, from 0.9: the `@model` decorator; then the `config` of the model's properties entry; then the `models:` tree from the folder nearest the model up to the root; then the root `+keys`; then built-in defaults. Mappings deep-merge, lists replace, `tags` is an ordered union and an explicit `null` removes a key (YAML only). `columns` is a model key that the folder tree cannot set, and decorator columns replace properties columns whole. `ResolvedModel.origins` records the layer and location of each top-level key, so a diagnostic points at the layer that set the value; origins are not in the manifest.
-- Model config, through 0.8: the model entry; `_defaults.yml` files from the nearest folder up to the `model_paths` root; then `defaults.models`; then built-in defaults.
+- Model config: the `@model` decorator; then the `config` of the model's properties entry; then the `models:` tree from the folder nearest the model up to the root; then the root `+keys`; then built-in defaults. Mappings deep-merge, lists replace, `tags` is an ordered union and an explicit `null` removes a key (YAML only). `columns` is a model key that the folder tree cannot set, and decorator columns replace properties columns whole. `ResolvedModel.origins` records the layer and location of each top-level key, so a diagnostic points at the layer that set the value; origins are not in the manifest.
 - Targets may change runtime keys (engine options, catalog, naming, state, workers, artifacts, deploy) and, from 0.9, override source groups (`targets.<t>.sources`: format, location, schema, options, tables). `deploy` is a runtime key like the others: the target block wins over the top-level one. The core validates its options with the `config_model` of the `renderers` plugin it names (the factory is never called), records them in the manifest as `metadata.deploy` (not part of the plan hash) and resolves nothing in them at runtime except `${secret:...}` references in plugin options. They may not change model semantics, so plans differ across targets only in physical names, source relations and runtime settings.
 - Interpolation: `${env:NAME}`, `${env:NAME:-default}` and `${var:name}` resolve at compile time and are recorded in the manifest. `${secret:provider/path}` resolves only at runtime (section 14).
 
