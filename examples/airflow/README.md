@@ -18,23 +18,37 @@ and `tpch_spark` run inside the Airflow containers, `tpch_databricks` runs a Dat
    $ uv run examples/tpch_data.py
    ```
 
-2. For the Databricks DAG, write `examples/airflow/.env` from `.env.example` with your workspace URL
+2. Write the stable manifest that `tpch_polars_watcher` loads, from the repository root:
+
+   ```console
+   $ uv run pipeloom compile --project-dir examples/tpch_polars --target dev --stable
+   ```
+
+3. `tpch_polars_watcher` needs the development wheels until a release with the WATCHER mode is on
+   PyPI, because `requirements.txt` pins an older release. Build them before you start Airflow (the
+   Dockerfile installs them, see [Development wheels](#development-wheels)):
+
+   ```console
+   $ uv build --all-packages --out-dir examples/airflow/include/wheels
+   ```
+
+4. For the Databricks DAG, write `examples/airflow/.env` from `.env.example` with your workspace URL
    and token. The file is git-ignored; never commit it.
 
-3. Deploy the Databricks job first. The DAG does not deploy at run time:
+5. Deploy the Databricks job first. The DAG does not deploy at run time:
 
    ```console
    $ pipeloom databricks --profile <your-profile> deploy --target dev --project-dir examples/tpch_databricks
    ```
 
-4. Start Airflow from this folder:
+6. Start Airflow from this folder:
 
    ```console
    $ cd examples/airflow
    $ astro dev start
    ```
 
-5. Open http://localhost:8085, unpause a DAG and trigger it. DAGs have no schedule.
+7. Open http://localhost:8085, unpause a DAG and trigger it. DAGs have no schedule.
 
 Stop with `astro dev stop`, or remove the containers and volumes with `astro dev kill`.
 
@@ -45,15 +59,8 @@ Stop with `astro dev stop`, or remove the containers and volumes with `astro dev
 compile each project at parse time (`LoadMode.PROJECT`), so no manifest is needed. The project
 variable `tpch_dir` (`../data/tpch`) resolves to `examples/data/tpch`.
 
-`tpch_polars_watcher` loads a stable manifest (`LoadMode.MANIFEST`) and uses `emit_assets=True`. Write
-the manifest on the host before you start Airflow, with relative source locations so it works inside
-the containers:
-
-```console
-$ uv run pipeloom compile --project-dir examples/tpch_polars --target dev --stable
-```
-
-The DAG has a producer task `pipeloom_run` that runs every model in one process, one deferrable
+`tpch_polars_watcher` loads the stable manifest from step 2 of "Run it" (`LoadMode.MANIFEST`, relative
+source locations so it works inside the containers) and uses `emit_assets=True`. The DAG has a producer task `pipeloom_run` that runs every model in one process, one deferrable
 watcher and one asset per model, and `pipeloom_finalize`. The watchers wait on the triggerer, which
 mounts the same `examples/` folder, so it sees the artifacts root at the same path. If a model fails,
 fix the cause and clear its watcher with Downstream: the watcher reruns that one unit.
