@@ -89,7 +89,24 @@ def collect(
         add(root / source.file)
     # Properties YAML under model_paths, for parity with the project folder (ADR-0050 point 17).
     entries: list[tuple[str, tuple[str, ...]]] = [(e, (".py",)) for e in plan.metadata.python_paths]
-    entries += [(e, (".yml", ".yaml")) for e in _config_list(root, "model_paths", ["models"])]
+    properties = (".yml", ".yaml")
+    for entry in _config_list(root, "model_paths", ["models"]):
+        if "*" not in entry:
+            entries.append((entry, properties))
+            continue
+        # A glob entry, expanded as discovery expands it (`discovery.files.find_files`).
+        for match in sorted(m.resolve() for m in root.glob(entry)):
+            if match.is_dir():
+                entries.append((str(match), properties))
+            elif (
+                match.name.endswith(properties)
+                and match.is_relative_to(root)
+                and not any(
+                    p.startswith(".") or p in SKIPPED_FOLDERS
+                    for p in match.relative_to(root).parts[:-1]
+                )
+            ):
+                add(match)
     for entry, suffixes in entries:
         base = (root / entry).resolve()
         if not base.is_dir():

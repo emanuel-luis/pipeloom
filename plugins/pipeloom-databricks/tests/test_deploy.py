@@ -332,6 +332,36 @@ def test_python_paths_take_only_py_files_and_skip_environments_and_build_folders
     ]
 
 
+def test_properties_found_through_a_model_paths_glob_are_uploaded(
+    sim: Callable[..., Sim],
+) -> None:
+    s = sim()
+    config = s.root / "pipeloom.yml"
+    globbed = "model_paths:\n  - models\n  - domains/*/models\n  - extra/*.yml\n"
+    config.write_text(config.read_text(encoding="utf-8") + globbed, encoding="utf-8")
+    for rel in (
+        "domains/sales/models/_properties.yml",
+        "domains/sales/models/deep/more.yaml",
+        "domains/sales/notes.yml",
+        "extra/top.yml",
+        "extra/.hidden/x.yml",
+    ):
+        path = s.root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("models: []\n", encoding="utf-8")
+    report = Report()
+    payload = collect(s.root, s.plan, None, report)
+    assert payload is not None and not report.sorted()
+    assert [p for p, _ in payload.files] == [
+        MANIFEST_PATH,
+        "domains/sales/models/_properties.yml",
+        "domains/sales/models/deep/more.yaml",
+        "extra/top.yml",
+        "models/m.yml",
+        "pipeloom.yml",
+    ]
+
+
 def test_model_packages_compile_and_stay_out_of_the_upload(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, compile_project: Callable[..., Any]
 ) -> None:
