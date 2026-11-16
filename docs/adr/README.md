@@ -6,7 +6,7 @@ Each significant decision is one file here, written as Context, Options, Decisio
 |---|---|---|---|
 | 0001 | [Record architecture decisions](0001-record-architecture-decisions.md) | Accepted | 2026-10-29 |
 | 0002 | [Engine abstraction: protocols plus Narwhals helpers](0002-engine-abstraction.md) | Accepted | 2026-10-29 |
-| 0003 | [Model authoring: YAML plus Python or SQL, declared inputs](0003-model-authoring.md) | Accepted | 2026-10-29 |
+| 0003 | [Model authoring: YAML plus Python or SQL, declared inputs](0003-model-authoring.md) | Superseded by ADR-0050 | 2026-10-29 |
 | 0004 | [Plugin discovery via entry points; eight groups](0004-plugin-discovery.md) | Accepted | 2026-10-29 |
 | 0005 | [Packaging](0005-packaging.md) | Accepted | 2026-10-29 |
 | 0006 | [Ready-queue scheduler](0006-ready-queue-scheduler.md) | Accepted | 2026-10-29 |
@@ -38,14 +38,15 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0032 | [Delta writes and idempotency](0032-delta-writes-and-idempotency.md) | Accepted | 2026-11-04 |
 | 0033 | [Delta table state store](0033-delta-table-state-store.md) | Accepted | 2026-11-04 |
 | 0034 | [Core orchestration hooks](0034-core-orchestration-hooks.md) | Accepted | 2026-11-04 |
-| 0035 | [Databricks rendering and job lifecycle](0035-databricks-rendering-and-job-lifecycle.md) | Accepted | 2026-11-05 |
+| 0035 | [Databricks rendering and job lifecycle](0035-databricks-rendering-and-job-lifecycle.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-05 |
 | 0036 | [Databricks client and connection](0036-databricks-client-and-connection.md) | Accepted | 2026-11-05 |
-| 0037 | [Airflow packaging and rendering](0037-airflow-packaging-and-rendering.md) | Accepted | 2026-11-05 |
+| 0037 | [Airflow packaging and rendering](0037-airflow-packaging-and-rendering.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-05 |
 | 0038 | [Airflow execution modes and artifact store](0038-airflow-execution-modes-and-artifact-store.md) | Accepted | 2026-11-05 |
 | 0039 | [Airflow DATABRICKS mode](0039-airflow-databricks-mode.md) | Accepted | 2026-11-05 |
-| 0040 | [Per-model catalog](0040-per-model-catalog.md) | Accepted | 2026-11-05 |
-| 0041 | [pipeloom init](0041-pipeloom-init.md) | Accepted, amended in 0.8 | 2026-11-05 |
-| 0042 | [Selection by state and --defer](0042-state-selection-and-defer.md) | Accepted | 2026-11-06 |
+| 0040 | [Per-model catalog](0040-per-model-catalog.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-05 |
+| 0041 | [pipeloom init](0041-pipeloom-init.md) | Accepted, amended in 0.8 and in 0.9 (ADR-0050) | 2026-11-05 |
+| 0042 | [Selection by state and --defer](0042-state-selection-and-defer.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-06 |
 | 0043 | [Docs site](0043-docs-site.md) | Accepted | 2026-11-06 |
-| 0044 | [Model contracts](0044-model-contracts.md) | Accepted | 2026-11-06 |
-| 0047 | [Run history and the webhook sink](0047-run-history-and-webhook.md) | Accepted | 2026-11-06 |
+| 0044 | [Model contracts](0044-model-contracts.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-06 |
+| 0047 | [Run history and the webhook sink](0047-run-history-and-webhook.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-06 |
+| 0050 | [Python-first model authoring](0050-python-first-authoring.md) | Accepted. Supersedes 0003. | 2026-11-15 |
