@@ -17,6 +17,10 @@ All notable changes to this project are documented here. The format follows
 - Published JSON Schemas for the run artifacts under `schema/v1/`: `run_results.json` (its `#/$defs/result` also covers attempt files), `event.json` (envelope plus one `data` schema per event type) and `unit_states.json`. Objects are open, so consumers ignore unknown fields; CI validates the goldens and a real run against a strict variant ([ADR-0049](docs/adr/0049-artifact-schemas-and-orchestrator-protocol.md)).
 - `run.completed` gains an additive `replay` field: true when `pipeloom finalize` finds the run already finished with the same status (an orchestrator retried the finalize task). The `webhook` sink skips replays, so a failed run posts once.
 
+### Fixed
+
+- On Windows, `boundary: task` runs each child in its own job object, so a timed-out, cancelled or finished unit no longer leaves a grandchild running (POSIX already swept the child's process group). If the parent dies, Windows ends the whole tree. When Windows refuses a job, the executor falls back to `taskkill /T /F` ([ADR-0029 amendment](docs/adr/0029-retries-timeouts-cancellation.md#amendment-10-windows-job-objects)).
+
 ## [0.8.0] - 2026-11-06
 
 pipeloom 0.8 is about the first hour and fast loops. `pipeloom init` scaffolds a project with editor completion set up (polars and pandas projects run out of the box), and `pipeloom new model` adds models to it. `pipeloom explain` prints what a diagnostic code means. `--state` with the `state:modified`, `state:new` and `result:` selectors picks what changed or what failed, and `--defer` reads the parents a run does not build from a reference such as production. `pipeloom retry --from` reruns what a run did not finish. `pipeloom docs generate` and `docs serve` write a one-file docs and lineage site. Plugin API stays (0, 4). Artifacts only gain fields: `run_results` `args` (`state`, `defer`), `run.parent_run_id`, `model.input_read` (`relation`, `deferred`) and `run.started` (`parent_run_id`).
