@@ -1,6 +1,6 @@
 # pipeloom architecture
 
-> **Status:** the code implements the versions listed in section 16: the scheduler, the polars, pandas and Spark engines, incremental models, merge, replace_partitions and scd2, expectations and quarantine, retries, timeouts and cancellation, the Databricks and Airflow integrations, per-model catalogs and, from 0.9, Python-first authoring. Planned work lives in the [roadmap](roadmap.md).
+> **Status:** the code implements the versions listed in section 16: the scheduler, the polars, pandas and Spark engines, incremental models, merge, replace_partitions and scd2, expectations and quarantine, retries, timeouts and cancellation, the Databricks and Airflow integrations, per-model catalogs and, from 0.9, Python-first authoring. 1.0 freezes the contracts: what stays stable within a major version is listed in [Stability and deprecations](reference/stability.md). Planned work lives in the [roadmap](roadmap.md).
 > Decisions are recorded as ADRs in [adr/](adr/README.md). Diagrams are D2 sources in [diagrams/](diagrams/) with committed SVGs.
 > From 0.9 models are decorated Python functions, and YAML keeps the project and properties files ([ADR-0050](adr/0050-python-first-authoring.md)). Through 0.8 every model was declared in a YAML model file ([ADR-0003](adr/0003-model-authoring.md), superseded); that path is removed, and [Migrating from 0.8](guide/migrate-0.9.md) maps it to the decorator.
 
@@ -53,7 +53,7 @@
 
 ## 3. Architecture overview
 
-![pipeloom in context: a pipeline author writes a YAML project, the core compiles and runs it on engine plugins, writes artifacts and events, and renders jobs for Databricks and Airflow.](diagrams/01-context.svg)
+![pipeloom in context: a pipeline author writes a project, the core compiles and runs it on engine plugins, writes artifacts and events, and renders jobs for Databricks and Airflow.](diagrams/01-context.svg)
 
 Source: [01-context.d2](diagrams/01-context.d2).
 
@@ -78,7 +78,7 @@ CLI / Python API (pipeloom.api.Project)
   ├─ plugins    entry-point discovery, built-in table, API-version gate
   ├─ builtins   naming strategies, filesystem catalog spec, env secret provider
   └─ testing    contract suites, RecordingSink, FakeClock, MemoryEngine
-Plugins: pipeloom-pandas | -polars | -spark (0.4) | planned: -databricks | -airflow | -openlineage
+Plugins: pipeloom-pandas | -polars | -spark (0.4) | -databricks (0.5) | -airflow (0.6) | -openlineage (0.9)
 ```
 
 `pipeloom-spark` depends only on `pipeloom`. pyspark is not a dependency of it: the extra `local` brings `pyspark[connect]` and `delta-spark`, and `pipeloom[spark]` pulls `pipeloom-spark[local]` ([ADR-0031](adr/0031-spark-engine.md)). Databricks runtimes and Databricks Connect ship their own pyspark, so there the plugin is installed without extras.
@@ -97,7 +97,7 @@ Source: [02-packages.d2](diagrams/02-packages.d2).
 6. **Execute:** the scheduler runs units through an executor. Orchestrated tasks run `pipeloom run --manifest ... --select unit:<id> --expect-plan-hash <h>`.
 7. **Finalize:** merge per-invocation results, write `run_results.json`, commit run state, flush and close sinks.
 
-**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `new model` (add one decorated `.py` model file; ADR-0041 amendments), `validate`, `compile`, `ls`, `graph`, `run`, `retry` (run again what a finished run did not finish, ADR-0013 amendment), `finalize`, `docs generate|serve` (a read-only one-file site, [ADR-0043](adr/0043-docs-site.md)), `schema export`, `explain` (print a diagnostic code's catalog entry and docs link) and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
+**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `new model` (add one decorated `.py` model file; ADR-0041 amendments), `validate`, `compile`, `ls`, `graph` (with `--units`, the unit graph for orchestrators, [ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md)), `run`, `retry` (run again what a finished run did not finish, ADR-0013 amendment), `test` and `build` (unit tests, then a run with data tests, [ADR-0045](adr/0045-unit-and-data-tests.md)), `runs ls|show` (run history, [ADR-0047](adr/0047-run-history-and-webhook.md)), `finalize`, `docs generate|serve` (a read-only one-file site, [ADR-0043](adr/0043-docs-site.md)), `schema export`, `explain` (print a diagnostic code's catalog entry and docs link) and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
 
 ![The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize.](diagrams/03-lifecycle.svg)
 
@@ -927,7 +927,8 @@ Catalog, state-store and sink contract suites follow the same pattern.
 - **0.7 (delivered):** a `catalog` setting per model and per folder that wins over the naming strategy's catalog, path catalogs that map a catalog to a leading directory (ADR-0040), and `pipeloom compile --stable` for reproducible manifests. Plugin API stays (0, 4).
 - **0.8 (delivered):** `pipeloom init` with editor setup and `pipeloom new model` (ADR-0041 and its amendment), block-style YAML, `pipeloom explain`, the `state:modified`, `state:new` and `result:` selectors with `--state` and `--defer` (ADR-0042), `pipeloom retry --from` (ADR-0013 amendment), and `pipeloom docs generate|serve`, a read-only one-file docs and lineage site (ADR-0043). Plugin API stays (0, 4).
 - **0.9 (delivered):** Python-first authoring with `@model`, hybrid AST and import discovery, the `models:` tree and properties files, `ctx.sql` and Python views (ADR-0050), with YAML model declarations removed; model contracts (ADR-0044); `pipeloom test`, `pipeloom build` and post-write data tests (ADR-0045); the `scd2` write strategy (ADR-0008 amendment); run history and the `webhook` sink (ADR-0047); the `pipeloom-openlineage` distribution and Airflow facets (ADR-0046); CSV sample data on Spark and Databricks; Airflow WATCHER mode (ADR-0048). Plugin API (0, 5).
-- **1.0 and later:** planned in the [roadmap](roadmap.md).
+- **1.0 (delivered):** stable contracts. The manifest JSON Schema joins the artifact schemas and the orchestrator protocol of 0.9 (ADR-0049), the plugin API moves to (1, 0), and the stability and deprecation policy of the ADR-0016 amendment applies ([Stability and deprecations](reference/stability.md)). Every command has help text and a page that explains it.
+- **1.x and later:** planned in the [roadmap](roadmap.md).
 
 ## 17. ADR list and diagrams
 

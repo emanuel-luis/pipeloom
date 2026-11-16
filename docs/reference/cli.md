@@ -1,5 +1,41 @@
 # Command line
 
+## Where each command is explained
+
+The generated reference at the end of this page lists every flag. These pages explain what the
+commands are for. A test keeps this table in step with the commands.
+
+| Command | Explained in |
+|---|---|
+| `pipeloom init` | [pipeloom init](#pipeloom-init), [Quickstart](../quickstart.md) |
+| `pipeloom new` | [pipeloom new model](#pipeloom-new-model) |
+| `pipeloom new model` | [pipeloom new model](#pipeloom-new-model), [Quickstart](../quickstart.md#add-a-model) |
+| `pipeloom validate` | [Inspecting a project](../guide/running.md#inspecting-a-project), [Quickstart](../quickstart.md#check-it) |
+| `pipeloom compile` | [Inspecting a project](../guide/running.md#inspecting-a-project), [Selection by state](../guide/running.md#selection-by-state-and-defer) |
+| `pipeloom ls` | [Inspecting a project](../guide/running.md#inspecting-a-project) |
+| `pipeloom graph` | [Inspecting a project](../guide/running.md#inspecting-a-project), [Orchestrator protocol](../guide/orchestrators.md) |
+| `pipeloom run` | [Running a pipeline](../guide/running.md) |
+| `pipeloom retry` | [Retrying a run](../guide/running.md#retrying-a-run) |
+| `pipeloom test` | [Testing models](../guide/testing.md#running-them) |
+| `pipeloom build` | [Testing models](../guide/testing.md#build) |
+| `pipeloom runs` | [Run history](../guide/run-history.md) |
+| `pipeloom runs ls` | [Run history](../guide/run-history.md#list-runs) |
+| `pipeloom runs show` | [Run history](../guide/run-history.md#show-one-run) |
+| `pipeloom finalize` | [Closing the run](../guide/running.md#closing-the-run-pipeloom-finalize), [Orchestrator protocol](../guide/orchestrators.md#9-finalize) |
+| `pipeloom docs` | [Docs site](../guide/docs-site.md) |
+| `pipeloom docs generate` | [Docs site](../guide/docs-site.md#generate) |
+| `pipeloom docs serve` | [Docs site](../guide/docs-site.md#serve) |
+| `pipeloom schema` | [JSON Schema](schema.md) |
+| `pipeloom schema export` | [JSON Schema](schema.md) |
+| `pipeloom explain` | [Running a pipeline](../guide/running.md#output) |
+| `pipeloom plugins` | [Inspecting a project](../guide/running.md#inspecting-a-project) |
+| `pipeloom plugins list` | [Inspecting a project](../guide/running.md#inspecting-a-project) |
+| `pipeloom databricks` | [Databricks plugin](../plugins/databricks.md), [Databricks commands](databricks-cli.md) |
+| `pipeloom databricks bundle` | [Bundle and direct deploy](../plugins/databricks.md#bundle-and-direct-deploy) |
+| `pipeloom databricks deploy` | [Bundle and direct deploy](../plugins/databricks.md#bundle-and-direct-deploy) |
+| `pipeloom databricks run` | [Run](../plugins/databricks.md#run) |
+| `pipeloom databricks repair` | [Repair](../plugins/databricks.md#repair) |
+
 ## pipeloom init
 
 `pipeloom init [DIRECTORY]` creates a project, like `dbt init`. DIRECTORY defaults to a new

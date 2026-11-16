@@ -1,6 +1,7 @@
 # Roadmap
 
-Status: plan as of 2026-11-06, written against 0.7.0, and updated on 2026-11-15 for Python-first authoring. This
+Status: plan as of 2026-11-06, written against 0.7.0, updated on 2026-11-15 for Python-first authoring and on
+2026-11-16 for 1.0, whose items are delivered (see [1.0: stable contracts](#10-stable-contracts)). This
 page replaces the planned versions that section 16 of [architecture.md](architecture.md#16-roadmap) used to list;
 section 16 keeps the record of what each delivered version contains. Items that change a decision name the ADR they
 need: ADRs up to 0050 exist and are accepted.
@@ -12,8 +13,8 @@ manifest, results, events and logs.
 
 ## 1. Vision and principles
 
-pipeloom should make a pipeline cheap to write, check and run anywhere: one YAML project, one compiled plan, any
-engine, any orchestrator, and every run observable without extra code. The roadmap borrows the developer
+pipeloom should make a pipeline cheap to write, check and run anywhere: one project of Python models, one compiled
+plan, any engine, any orchestrator, and every run observable without extra code. The roadmap borrows the developer
 experience of dbt, the orchestrator integration of astronomer-cosmos and the plan and diff safety of SQLMesh. It
 leaves out the parts that would make pipeloom heavier: Jinja, a server process and a portable SQL dialect.
 
@@ -264,6 +265,22 @@ Python-first authoring comes first; contracts and the test and build work are th
 
 ### 1.0: stable contracts
 
+Delivered for 1.0. The release ships as 1.0.0rc1 first, and 1.0.0 follows once the maintainer approves the
+release candidate. What each item became:
+
+- JSON Schemas: `run_results`, `event` and `unit_states` were published in 0.9.0 and the manifest schema joins them
+  in 1.0, all under `schema/v1/` with the goldens validated in CI
+  ([ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md)).
+- Orchestrator protocol: the [protocol page](guide/orchestrators.md), `graph --units --output json` and the
+  [GitHub Actions recipe](guide/recipe-github-actions.md), which runs the TPC-H polars example unit by unit in CI,
+  shipped in 0.9.0 ([ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md)).
+- Stable versions: the [stability and deprecation policy](reference/stability.md) is the
+  [ADR-0016 amendment](adr/0016-versioning-and-plugin-api.md#amendment-10-stability-and-deprecation-policy), and 1.0
+  moves the plugin API to (1, 0) with a `tools/versions.py check` step that guards the released versions.
+- Hardening and complete docs: the [command line page](reference/cli.md#where-each-command-is-explained) maps every
+  command to the page that explains it, and a test fails when a command is missing there or a command or option has
+  no help text.
+
 | Item | ADR | Acceptance |
 |---|---|---|
 | Published JSON Schemas for the manifest, run results, events and unit states | [ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md) | the docs publish them under `schema/v1/`, and the goldens validate against them in CI |
@@ -277,6 +294,13 @@ Python-first authoring comes first; contracts and the test and build work are th
 source freshness and volume change checks, `pipeloom-dagster`, the Databricks `load_resources` hook, `pipeloom-lsp`
 with the VS Code extension, the Airflow DOCKER mode and the `airflow` secret provider, research on a Lakeflow export,
 and a Prefect recipe.
+
+Two follow-ups deferred from 1.0:
+
+- Stable Airflow DAG parse-time budget tests. They are flaky when the machine is under load; they guard a budget,
+  not user-facing behavior.
+- The `airflow` dependency group on Windows. It does not install there because openlineage-sql publishes no Windows
+  wheel, so Airflow plugin development and its mypy run happen on Linux, WSL or CI.
 
 ## 5. Non-goals and risks
 

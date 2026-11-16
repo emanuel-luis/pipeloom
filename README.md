@@ -25,10 +25,13 @@ $ pipeloom run
 ```
 
 The optional extra `sqlglot` adds warnings for SQL that reads undeclared tables. Commands: `init`, `new model`, `validate`,
-`compile`, `run`, `retry`, `ls`, `graph`, `explain`, `docs generate`, `docs serve`, `schema export` and `plugins list`. See the
-[quickstart](https://emanuel-luis.github.io/pipeloom/latest/quickstart/).
+`compile`, `ls`, `graph` (with `--units` for orchestrators), `run`, `retry`, `test`, `build`, `runs ls`, `runs show`,
+`finalize`, `explain`, `docs generate`, `docs serve`, `schema export` and `plugins list`; the `pipeloom-databricks`
+plugin adds `databricks bundle`, `deploy`, `run` and `repair`. See the
+[quickstart](https://emanuel-luis.github.io/pipeloom/latest/quickstart/) and the
+[command line reference](https://emanuel-luis.github.io/pipeloom/latest/reference/cli/).
 
-![Context diagram: users, the YAML project, the CLI and API, engines, catalogs, orchestrators and event consumers.](docs/diagrams/01-context.svg)
+![Context diagram: users, the project, the CLI and API, engines, catalogs, orchestrators and event consumers.](docs/diagrams/01-context.svg)
 
 ## Examples
 
@@ -46,16 +49,15 @@ pandas, Spark and Databricks, with a data generator.
 - Docs, CLI reference, JSON Schema and error catalog generated from code.
 - Open-source hygiene from day one.
 
-## Planned packages
+## Packages
 
-`pipeloom`, `pipeloom-polars` and `pipeloom-pandas` are published with 0.3. The other rows are the
-plan; a plugin name is published with its first functional release.
+Every distribution is released together and carries the same version.
 
 | Distribution | Role |
 |---|---|
 | `pipeloom` | Core: config, validation, plan, scheduler, events, CLI |
-| `pipeloom-polars` | polars engine (published) |
-| `pipeloom-pandas` | pandas engine (published) |
+| `pipeloom-polars` | polars engine |
+| `pipeloom-pandas` | pandas engine |
 | `pipeloom-spark` | PySpark engine (Delta and Spark Connect) |
 | `pipeloom-databricks` | Databricks job renderer and runner |
 | `pipeloom-airflow` | Airflow DAG integration |

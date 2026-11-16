@@ -1,4 +1,4 @@
-"""pipeloom: declarative, engine-agnostic data pipelines in YAML."""
+"""pipeloom: engine-agnostic data pipelines, with models written as Python functions."""
 
 from pipeloom._version import __version__
 from pipeloom.authoring import (

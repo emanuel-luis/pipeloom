@@ -14,6 +14,7 @@ All notable changes to this project are documented here. The format follows
 ### Changed
 
 - Breaking for plugin authors: the plugin API is (1, 0). A plugin built for (0, 5) fails with PLU001. From now on the core accepts a plugin with the same major and a minor not above its own. `config_version: 1` stays the only accepted value, now named by `CONFIG_VERSION` in `pipeloom.config.types`.
+- `pipeloom --help` describes pipeloom as Python-first instead of "pipelines in YAML", and `pipeloom plugins list --output` has help text. The [command line page](docs/reference/cli.md#where-each-command-is-explained) gains a table that maps every command, the Databricks ones included, to the guide that explains it, and the running guide gains an "Inspecting a project" section for `validate`, `compile`, `ls`, `graph`, `plugins list` and `schema export`. A test fails when a command is missing from the table or a command or option has no help.
 
 ### Fixed
 

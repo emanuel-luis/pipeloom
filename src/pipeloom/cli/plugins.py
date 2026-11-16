@@ -39,6 +39,7 @@ def plugins() -> None:
     type=click.Choice(["text", "json"]),
     default="text",
     show_default=True,
+    help="Print a table, or a JSON array with one object per plugin.",
 )
 @click.option("--check", is_flag=True, help="Import each plugin and report its API and status.")
 @plugin_option
