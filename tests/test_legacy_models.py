@@ -1,4 +1,4 @@
-"""tools/migrate_yaml_models.py: legacy YAML models become decorated Python models."""
+"""tests/legacy_models.py: legacy YAML models become decorated Python models."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from tools import migrate_yaml_models as mig
+from tests import legacy_models as mig
 
 from pipeloom.api import Project, ProjectOptions
 

@@ -23,8 +23,15 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
-def make_project(tmp_path: Path, files: Mapping[str, Any]) -> Path:
-    """Write files into tmp_path. A value is text, or {'base64': ...} for raw bytes. LF only."""
+def make_project(tmp_path: Path, files: Mapping[str, Any], *, convert: bool = True) -> Path:
+    """Write files into tmp_path. A value is text, or {'base64': ...} for raw bytes. LF only.
+
+    Legacy YAML models (`sql:`, `python:`, flat sources, `_defaults.yml`) are converted to
+    Python-first models on write, unless `convert` is False (case files keep what they say)."""
+    from tests.legacy_models import migrate
+
+    if convert:
+        files = migrate(dict(files))
     for rel, content in files.items():
         target = tmp_path / rel
         target.parent.mkdir(parents=True, exist_ok=True)

@@ -1,10 +1,11 @@
-"""Convert a project's legacy YAML model declarations to Python-first models (ADR-0050).
+"""Convert legacy YAML model declarations to Python-first models (ADR-0050).
 
-    python tools/migrate_yaml_models.py <project-dir>
-    python tools/migrate_yaml_models.py <case.yml> --case
+    python -m tests.legacy_models <project-dir>...
+    python -m tests.legacy_models <case.yml>... --case
 
-Internal and temporary: it migrates the repository's own fixtures and case files, writes in
-place, and is deleted with the legacy path. It converts:
+A test support utility: `migrate(files)` lets tests keep writing compact YAML-style models,
+which `tests.conftest.make_project` converts on write, and the command line migrated the
+fixtures and case files in place. It is not a user-facing command. It converts:
 
 - each `sql:` model into a decorated function in a `.py` file next to its YAML file, whose body
   is `return ctx.sql(...)` and whose parameters are the input aliases;
