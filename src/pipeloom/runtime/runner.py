@@ -780,11 +780,14 @@ class ModelRunner:
 
     def _call(self, body: PythonBody, ctx: ModelContext, args: Mapping[str, Any]) -> Any:
         """Call the body with the input aliases by keyword. `ctx` goes first and positional when
-        it is the first parameter (so `ctx, /` and `*args` wrappers work), by name when it is
+        it is the first parameter or the function takes `*args` (legacy models always got it first),
+        by name when it is
         elsewhere, and is left out when the function has no such parameter."""
         fn = self._loader.load(body.callable)
-        names = list(inspect.signature(fn).parameters)
-        if names[:1] == ["ctx"]:
+        params = inspect.signature(fn).parameters
+        names = list(params)
+        var_positional = any(p.kind is inspect.Parameter.VAR_POSITIONAL for p in params.values())
+        if names[:1] == ["ctx"] or var_positional:
             out = fn(ctx, **args)
         elif "ctx" in names:
             out = fn(**{"ctx": ctx, **args})

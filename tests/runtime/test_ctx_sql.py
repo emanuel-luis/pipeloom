@@ -144,7 +144,11 @@ def test_ctx_goes_first_and_positional_when_it_is_the_first_parameter() -> None:
     runner = ModelRunner.__new__(ModelRunner)
     body = PythonBody(callable="m:f", file="src/m.py")
     ctx = cast(ModelContext, "ctx")
-    for fn in (positional_only, wrapper):
+
+    def plain_wrapper(*args: Any, **kwargs: Any) -> tuple[Any, Any]:
+        return args[0], kwargs["src"]
+
+    for fn in (positional_only, wrapper, plain_wrapper):
         runner._loader = Loader(fn)  # type: ignore[assignment]
         assert runner._call(body, ctx, {"src": 1}) == ("ctx", 1)
 
