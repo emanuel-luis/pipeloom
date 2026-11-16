@@ -85,6 +85,64 @@ def test_a_task_group_prefixes_its_tasks_and_its_run_id(af_project: Any, af_plan
     assert set(finalize.task_units) == {f"shop.untagged.{t.task_id}" for t in af_plan[0].tasks}
 
 
+WATCHER = ExecutionConfig(mode=ExecutionMode.WATCHER, watcher_timeout=600.0)
+
+
+def test_the_watcher_graph(af_project: Any, af_plan: Any) -> None:
+    dag = make_dag(af_project, execution_config=WATCHER, operator_args={"pool": "p"})
+    plan = af_plan[0]
+    producer = dag.get_task(naming.PRODUCER_ID)
+    assert type(producer).__name__ == "PipeloomWatcherProducerOperator"
+    assert producer.upstream_task_ids == set() and producer.retries == 0
+    assert producer.priority_weight == len(plan.tasks) + 2
+    assert str(getattr(producer.weight_rule, "value", producer.weight_rule)) == "absolute"
+    assert producer.execution_timeout == timedelta(seconds=600)
+    assert producer.run_root == f"{af_project[0].as_posix()}/target"
+    assert producer.pool == "p"
+    for t in plan.tasks:
+        op = dag.get_task(t.task_id)
+        assert type(op).__name__ == "PipeloomWatcherSensor"
+        assert op.upstream_task_ids == set(t.upstream)
+        assert (op.producer_task_id, op.run_root) == (naming.PRODUCER_ID, producer.run_root)
+        assert (op.retries, op.watch_timeout_s, op.poll_interval) == (t.retries, 600.0, 10.0)
+        assert op.execution_timeout is None and op.pool == "p"
+    finalize = dag.get_task(naming.FINALIZE_ID)
+    assert finalize.upstream_task_ids == {*plan.leaves, naming.PRODUCER_ID}
+    assert set(finalize.task_units) == {t.task_id for t in plan.tasks}
+
+
+def test_watchers_in_a_task_group_name_the_prefixed_producer(af_project: Any) -> None:
+    with _compat.DAG(dag_id="outer", schedule=None, start_date=START) as dag:
+        PipeloomTaskGroup(
+            "shop",
+            project_config=project_config(af_project),
+            target="dev",
+            render_config=RenderConfig(group_by="tag"),
+            execution_config=WATCHER,
+        )
+    producer = f"shop.{naming.PRODUCER_ID}"
+    watchers = [t for t in dag.tasks if type(t).__name__ == "PipeloomWatcherSensor"]
+    assert producer in dag.task_ids and watchers
+    assert all(w.producer_task_id == producer for w in watchers)
+    assert all(w.task_id.startswith("shop.untagged.") for w in watchers)
+
+
+def test_the_artifacts_root_override_wins(af_project: Any, tmp_path: Path) -> None:
+    root = (tmp_path / "shared").as_posix()
+    execution = ExecutionConfig(mode=ExecutionMode.WATCHER, watcher_artifacts_root=root)
+    dag = make_dag(af_project, execution_config=execution)
+    assert dag.get_task(naming.PRODUCER_ID).run_root == root
+
+
+def test_an_unresolved_artifacts_root_is_pla008(af_project: Any) -> None:
+    pipeloom_yml = af_project[0] / "pipeloom.yml"
+    text = pipeloom_yml.read_text(encoding="utf-8")
+    pipeloom_yml.write_text(text + "artifacts:\n  root: ${env:ROOT}\n", encoding="utf-8")
+    with pytest.raises(PipeloomAirflowError) as info:
+        make_dag(af_project, execution_config=WATCHER)
+    assert [d.code for d in info.value.diagnostics] == ["PLA008"]
+
+
 @pytest.mark.parametrize(
     ("kw", "code"),
     [
