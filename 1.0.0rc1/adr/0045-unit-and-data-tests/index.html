@@ -1,0 +1,1503 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
+      
+      
+      
+        <link rel="canonical" href="https://emanuel-luis.github.io/pipeloom/1.0.0rc1/adr/0045-unit-and-data-tests/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>ADR-0045: Unit tests, post-write data tests and pipeloom build - pipeloom</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#adr-0045-unit-tests-post-write-data-tests-and-pipeloom-build" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="pipeloom" class="md-header__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            pipeloom
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ADR-0045: Unit tests, post-write data tests and pipeloom build
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="pipeloom" class="md-nav__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    pipeloom
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/running/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/write-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge, replace_partitions, scd2 and schema changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/retries-and-cancellation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retries, timeouts and cancellation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/docs-site/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs site
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/run-history/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/alerts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/openlineage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lineage with OpenLineage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/orchestrators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrator protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/recipe-github-actions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipe: GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/polars/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/pandas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pandas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/spark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spark
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/databricks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/airflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Airflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/databricks-cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/errors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stability and deprecations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Decision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#naming-and-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naming and config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#types-and-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Types and comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-a-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running a case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#engine-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine protocol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-tests-implemented-in-the-second-half-of-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data tests (implemented in the second half of 0.9)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#non-goals-for-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Non-goals for 0.9
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#date" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Date
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="adr-0045-unit-tests-post-write-data-tests-and-pipeloom-build">ADR-0045: Unit tests, post-write data tests and pipeloom build<a class="headerlink" href="#adr-0045-unit-tests-post-write-data-tests-and-pipeloom-build" title="Permanent link">&para;</a></h1>
+<p>Architecture: <a href="../../architecture/">Section 4, Configuration, section 5, Validation, section 7, Execution, and section 10, Data quality</a></p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>Expectations (<a href="../0009-expectations-and-quarantine/">ADR-0009</a>, <a href="../0028-expectation-evaluation/">ADR-0028</a>) judge each batch before it is written, and contracts (<a href="../0044-model-contracts/">ADR-0044</a>) fix its schema. Neither answers two questions users ask of a transformation. Does the body compute the right rows for a known input, without a warehouse? And does the written table hold together as a whole, for example every foreign key finds its parent? dbt answers the first with unit tests (<code>given</code> input rows, <code>expect</code> output rows, run on the warehouse without building parents) and the second with data tests (<code>not_null</code>, <code>unique</code>, <code>relationships</code>) run after the build; dbt 1.8 renamed the model key <code>tests</code> to <code>data_tests</code> to stop the two being confused (<a href="https://docs.getdbt.com/docs/build/unit-tests">dbt unit tests</a>, <a href="https://docs.getdbt.com/docs/build/data-tests">dbt data tests</a>). <code>dbt build</code> runs both in DAG order.</p>
+<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Naming.</strong> A bare <code>tests</code> key, or <code>unit_tests</code> and <code>data_tests</code>.</li>
+<li><strong>Where cases live.</strong> On the model only, or also in separate files, with or without a new discovery path.</li>
+<li><strong>Hashes.</strong> Cases in the plan and manifest, or kept out of both.</li>
+<li><strong>Where a case runs.</strong> Through the full unit runner with a throwaway catalog, or by calling the body directly with in-memory inputs.</li>
+<li><strong>Comparing rows.</strong> Ordered or as a multiset; with or without float tolerance; in the core or per engine.</li>
+<li><strong>Data tests.</strong> As expectations with a new action, or as a separate list run against the written table.</li>
+<li><strong><code>build</code>.</strong> A new scheduler that interleaves test nodes, or <code>test</code> followed by <code>run</code> with data tests on.</li>
+</ul>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<h3 id="naming-and-config">Naming and config<a class="headerlink" href="#naming-and-config" title="Permanent link">&para;</a></h3>
+<ol>
+<li><code>unit_tests</code> holds cases, <code>data_tests</code> holds post-write checks. There is no bare <code>tests</code> key. The roadmap text uses these names.</li>
+<li>Under Python-first authoring (<a href="../0050-python-first-authoring/">ADR-0050</a>, point 15) unit tests live in the model's properties entry, as <code>unit_tests:</code> beside <code>description</code>, <code>config</code>, <code>columns</code> and <code>data_tests</code>, and never on the decorator: rows are data, not code. The diagnostics point at the properties file. While the legacy YAML path coexists with Python-first (ADR-0050, point 19), a YAML model entry may also declare <code>unit_tests:</code>, and any YAML file under <code>model_paths</code> may hold a top-level <code>unit_tests:</code> list whose entries name their model with <code>model:</code> (a missing <code>model:</code> is PLS105); both go away with the legacy path. There is no new discovery path and no new project key. <code>unit_tests</code> is a model key, not a setting: the <code>models:</code> tree cannot set it.</li>
+<li>A case is <code>{name, given: {alias: {rows | csv, columns?}}, expect: {rows | csv, columns?}}</code>. A <code>given</code> key is an input alias, which for a decorated function is the parameter name. <code>rows</code> and <code>csv</code> are mutually exclusive (PLS108). Every input alias of the model must be given, and only input aliases (PLR208). CSV paths are relative to the project dir and read with the standard <code>csv</code> module; an empty field is null. Case names are unique per model (PLR208); an unknown <code>model:</code> is PLR208.</li>
+<li>Cases stay out of <code>PlanNode</code>, the manifest, the node checksum and the plan hash. Manifests and plan hashes are byte-identical with or without unit tests.</li>
+</ol>
+<h3 id="types-and-comparison">Types and comparison<a class="headerlink" href="#types-and-comparison" title="Permanent link">&para;</a></h3>
+<ol>
+<li>A given column's type comes from the given <code>columns</code>, else from the upstream model's ADR-0044 <code>columns</code>, else from inference. Inline values infer <code>boolean</code>, <code>int64</code>, <code>float64</code>, <code>string</code>, <code>date</code>, <code>timestamp[us]</code> and <code>timestamp[us, UTC]</code> from their YAML type (a quoted date stays a string). CSV columns infer <code>int64</code>, then <code>float64</code>, then <code>string</code>; dates and timestamps must be declared. An all-null column with no declared type is PLX115.</li>
+<li>Comparison lives in <code>pipeloom.quality.rows</code>, because the core may not import <code>pipeloom.testing</code>; <code>pipeloom.testing.reference</code> re-exports it. The compared columns are the keys of <code>expect</code>; extra output columns are ignored, a missing one fails the case. Expected values are cast to the output column's logical type. Rows compare as a multiset: order is ignored, duplicates count. Null equals NaN, floats are normalized to 12 significant digits, a naive timestamp is read as UTC, and decimals compare exactly. The diff lists missing and unexpected rows: 10 of each in the message, 50 in the event.</li>
+</ol>
+<h3 id="running-a-case">Running a case<a class="headerlink" href="#running-a-case" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Given rows become relations through <code>EngineSession.from_rows(rows, schema)</code>. A SQL body runs through the existing <code>session.sql(body, inputs)</code>, which scopes the aliases to that query; a Python body is called as <code>build(ctx, **inputs)</code> with <code>is_incremental=False</code> and the model's <code>frame_api</code>. The result is read back with <code>EngineSession.to_rows(rel)</code>, which returns plain Python values. No materializer runs, no namespace is created and nothing touches the catalog or the state store. Ephemeral parents are not inlined: their alias is given like any other input.</li>
+<li><code>pipeloom test</code> takes <code>--select</code>, <code>--exclude</code>, <code>--state</code>, <code>--target</code>, <code>--vars</code>, <code>--plugin</code>, <code>--project-dir</code> and <code>--log-format</code>. It runs the cases of the selected models in plan order, takes no lock, writes no artifacts and creates no run id. Each case emits <code>unit_test.passed</code> or <code>unit_test.failed</code>; <code>unit_tests.completed</code> closes the invocation with the counts. A case whose rows differ is PLX114, a case that cannot run (a missing or unreadable CSV, a value that does not cast, an untyped all-null column, an engine without <code>from_rows</code> or <code>to_rows</code>, a body that raises) is PLX115. Both travel as the <code>code</code> of <code>unit_test.failed</code>, which carries the diff, and count as errors of the invocation. Exit codes: 0 when every case passed, 1 when one failed, 2 for a usage error, 130 when stopped.</li>
+</ol>
+<h3 id="engine-protocol">Engine protocol<a class="headerlink" href="#engine-protocol" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Plugin API (0, 5) gains <code>from_rows(rows, schema) -&gt; Relation</code>, <code>to_rows(rel) -&gt; list[dict]</code> and <code>orphans(rel, column, parent, field) -&gt; int</code> on <code>EngineSession</code>. They are additions to 0.5 before 0.9 ships, so a third-party 0.5 engine without them fails only when it is used, with PLX115, mirroring PLX117. <code>pipeloom.engine.portable</code> has a narwhals <code>to_rows</code> and an anti-join <code>orphans</code> that polars and pandas reuse; <code>from_rows</code> uses each engine's own logical-type map (polars <code>polars_dtype</code>, pandas <code>arrow_type</code>), because a narwhals Decimal cannot carry a precision on every backend. <code>MemoryEngine</code> keeps plain rows. Spark builds a <code>StructType</code> from its logical-type map for <code>createDataFrame</code>, reads timestamps back through <code>unix_micros</code> so they come out as aware UTC whatever the session time zone, and counts orphans with a <code>left_anti</code> join.</li>
+</ol>
+<h3 id="data-tests-implemented-in-the-second-half-of-09">Data tests (implemented in the second half of 0.9)<a class="headerlink" href="#data-tests-implemented-in-the-second-half-of-09" title="Permanent link">&para;</a></h3>
+<ol>
+<li><code>data_tests: [{name, check: {not_null | unique | relationships: {column, to: {ref | source}, field}}, on_violation: warn | fail}]</code> is a model key like <code>columns</code>. The decorator sets it with <code>data_tests=</code> (a list of <code>pipeloom.DataTest</code> objects or mappings) and properties set it with <code>data_tests:</code>; the decorator list (or, on the legacy path, the YAML model entry's) replaces the properties list whole. Being a model key, the <code>models:</code> tree and its root <code>+keys</code> cannot set it, which keeps a relationship next to the model it describes. Diagnostics point at the list that won (<code>ResolvedModel.data_tests_at</code>). <code>PlanNode.data_tests</code> is left out of the manifest when absent; the node checksum and the plan hash cover it only when declared (the ADR-0044 pattern).</li>
+<li>A relationships violation is a child row whose non-null <code>column</code> (NaN counts as null) matches no <code>field</code> value of the parent; parent nulls never match. <code>to</code> is read like an input, through the runner's read and source specs, so <code>--defer</code>, intermediates and per-model catalogs behave the same; an unreadable parent is PLM204. The judge treats <code>relationships</code> like <code>unique</code>: the violation count is the value. <code>to</code> reuses PLR201 and PLR203 for unknown names.</li>
+<li>Data tests run inside the unit after the write and the watermark commit and before the attempt file, and also on the replay path, so a retry that replays the write token tests again. They read the whole written table, incremental models included. Tables, incremental, intermediate and view models take them; <code>data_tests</code> on an ephemeral model is PLP415, as is a relationships <code>to</code> that names the model itself, a descendant, an ephemeral model, an intermediate model, or that closes a cycle among edges of both kinds (inputs and relationships). An intermediate parent is rejected because its table exists only while a run that builds it is in progress: a run that selects the child alone would fail with PLM204.</li>
+<li>Results are entries of <code>results[].expectations</code> with <code>scope: "table"</code>. From 0.9 every entry carries <code>scope</code>: batch entries get <code>"batch"</code>, filled in when old <code>commit_meta</code> replays. The change is additive. <code>warn</code> adds to <code>warnings[]</code>; a <code>fail</code> is PLQ303, permanent: the unit fails, its descendants are skipped, the run exits 1, and the data stays written. PLC510 also covers data tests on an engine without <code>quality</code>.</li>
+</ol>
+<h3 id="build">build<a class="headerlink" href="#build" title="Permanent link">&para;</a></h3>
+<ol>
+<li><code>pipeloom build</code> runs the unit tests of the selected models first; any failure stops it with exit 1 before a run id exists and before any write, and <code>invocation.completed</code> counts each failed case as an error (<code>RunOutcome.extra_errors</code>). Then it runs <code>run</code> with data tests on. Relationship parents become extra scheduling edges at run time only (<code>UnitGraph.from_parents</code>); <code>run</code> and <code>unit_parent_map</code> are unchanged. <code>build</code> takes <code>run</code>'s user-facing flags. <code>run</code> gets a hidden <code>--data-tests true|false</code> that the process executor passes to its children; <code>args.data_tests</code> is recorded in <code>run_results</code>, and <code>retry --from</code> inherits it.</li>
+</ol>
+<h3 id="non-goals-for-09">Non-goals for 0.9<a class="headerlink" href="#non-goals-for-09" title="Permanent link">&para;</a></h3>
+<ol>
+<li>The Airflow and Databricks renderers do not pass <code>--data-tests</code> yet. <code>pipeloom test</code> does not run data tests against existing tables. <code>init</code> templates are unchanged.</li>
+</ol>
+<p>Since the legacy model path was removed in 0.9 (ADR-0050), cases come only from properties entries of resolved models, so a properties entry for an unknown model is PLR209 and PLR208 covers the case itself (a missing or unknown input alias, a duplicate case name). There are no SQL bodies: a model that calls <code>ctx.sql</code> runs it through the same translate and <code>session.sql</code> path as <code>pipeloom run</code> (point 7).</p>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<ul>
+<li>A body is testable on a laptop in milliseconds, on every engine, with the same properties file. A plain pytest call on the decorated function also works. The contract suite runs one passing and one failing case per engine.</li>
+<li>Unit tests never change a manifest or a plan hash, so adding them selects nothing under <code>state:modified</code>.</li>
+<li>Data tests scan the whole written table on every build, incremental models included; <code>on_violation: warn</code> is available where that is too slow.</li>
+<li>Type inference can surprise (a CSV id read as <code>int64</code> where a string was meant); declaring <code>columns</code> on the given is the fix the guide documents.</li>
+<li><code>scope</code> on every expectation entry changes the run_results goldens and event payloads, additively.</li>
+<li>Third-party 0.5 engines without the new methods fail only when a test runs.</li>
+</ul>
+<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
+<p>Accepted</p>
+<h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
+<p>2026-11-16</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
