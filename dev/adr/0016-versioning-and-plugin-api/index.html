@@ -1311,10 +1311,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#version-check-planned" class="md-nav__link">
+  <a href="#version-check" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Version check (planned)
+        Version check
       
     </span>
   </a>
@@ -1436,15 +1436,15 @@
 </ul>
 <h3 id="plugin-api-and-config-version">Plugin API and config version<a class="headerlink" href="#plugin-api-and-config-version" title="Permanent link">&para;</a></h3>
 <p>The plugin API becomes <code>(1, 0)</code> with pipeloom 1.0. The core accepts a plugin with the same major and a minor not above its own, otherwise it raises PLU001. The exact match that ADR-0017 requires while the major is 0 ends with 1.0. <code>config_version: 1</code> is the only accepted value through 1.x.</p>
-<h3 id="version-check-planned">Version check (planned)<a class="headerlink" href="#version-check-planned" title="Permanent link">&para;</a></h3>
-<p><code>tools/versions.py check</code> gains these checks, which land with the 1.0.0rc1 work and run in the CI lint job:</p>
+<h3 id="version-check">Version check<a class="headerlink" href="#version-check" title="Permanent link">&para;</a></h3>
+<p><code>tools/versions.py check</code> runs these checks in the CI lint job and in the release workflow:</p>
 <ul>
-<li>The root <code>[tool.pipeloom]</code> keys <code>config-version</code> and <code>plugin-api</code> equal <code>CONFIG_VERSION</code> and <code>API_VERSION</code> in the source (read with <code>ast</code>, no import).</li>
-<li>Every member distribution declares the same <code>plugin-api</code>.</li>
-<li>Every <code>PluginSpec</code> passes <code>API_VERSION</code>.</li>
+<li>The root <code>[tool.pipeloom]</code> keys <code>config-version</code> and <code>plugin-api</code> equal <code>CONFIG_VERSION</code> (<code>pipeloom.config.types</code>) and <code>API_VERSION</code> (<code>pipeloom.plugins</code>) in the source (read with <code>ast</code>, no import).</li>
+<li>Every member distribution declares the same <code>plugin-api</code> and <code>config-version</code> as the root.</li>
+<li>Every <code>PluginSpec</code> passes <code>API_VERSION</code>, not a literal.</li>
 </ul>
 <h3 id="prereleases">Prereleases<a class="headerlink" href="#prereleases" title="Permanent link">&para;</a></h3>
-<p>Prereleases such as <code>1.0.0rc1</code> are published to PyPI. Version pins between distributions must accept them (<code>pipeloom~=1.0.0</code> does not match <code>1.0.0rc1</code>), and the version check must accept the prerelease form.</p>
+<p>Prereleases such as <code>1.0.0rc1</code> are published to PyPI. Version pins between distributions must accept them (<code>pipeloom~=1.0.0</code> does not match <code>1.0.0rc1</code>), so for a prerelease the members depend on <code>pipeloom~=1.0.0rc1</code>, which accepts the rc and the final <code>1.0.0</code>. <code>tools/versions.py</code> accepts <code>X.Y.Z</code> and <code>X.Y.Z(a|b|rc)N</code> in <code>check</code>, <code>bump</code> and <code>--tag</code>, and <code>bump 1.0.0</code> after <code>bump 1.0.0rc1</code> restores the <code>~=X.Y.0</code> pins. The release workflow marks a prerelease tag as a GitHub prerelease.</p>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
 <p>Accepted. Amended by <a href="../0017-plugin-spec-and-builtins/">ADR-0017</a>: while the plugin API major is 0 the versions must match exactly. Amended in 1.0: stability and deprecation policy (see above).</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>

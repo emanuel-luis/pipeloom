@@ -2130,7 +2130,9 @@ class SecretProvider(Protocol):
 - MINOR covers additive changes: new optional protocol methods with defaults, new capabilities.
 - MAJOR covers breaking protocol changes.
 - The core accepts plugins with the same MAJOR and MINOR ≤ its own. Otherwise it raises PLU001 naming the installed and required versions.
-- Before 1.0 the API is <code>0.x</code> and any minor may break. Plugin API 1.0 ships with pipeloom 1.0.</p>
+- The plugin API is <code>(1, 0)</code>. Before 1.0 it was <code>0.x</code> with an exact match, so a plugin built for <code>(0, 5)</code> fails with PLU001.
+- <code>config_version: 1</code> is the only accepted value through 1.x (<code>CONFIG_VERSION</code> in <code>pipeloom.config.types</code>).
+- Every distribution declares <code>config-version</code> and <code>plugin-api</code> in a <code>[tool.pipeloom]</code> table. <code>tools/versions.py check</code> compares them with <code>CONFIG_VERSION</code> and <code>API_VERSION</code> in the source and requires every <code>PluginSpec</code> to pass <code>API_VERSION</code>.</p>
 <h2 id="7-validation-layers-and-error-catalog">7. Validation layers and error catalog<a class="headerlink" href="#7-validation-layers-and-error-catalog" title="Permanent link">&para;</a></h2>
 <p>Each finding is a <code>Diagnostic(code, severity, message, hint, location{file,line,col,json_pointer}, context)</code>. Diagnostics serialize to JSON. The catalog lives in code (<code>pipeloom.diagnostics.codes</code>) and generates the docs page. Codes are never reused.</p>
 <table>
@@ -2634,6 +2636,8 @@ shop_daily = PipeloomDag(
 - Docs build with <code>--strict</code> and D2 compile.</p>
 <p><strong>Release (ADR-0016):</strong>
 - SemVer per distribution, with lockstep versions for first-party distributions during 0.x and one tag <code>vX.Y.Z</code>.
+- Prereleases (<code>vX.Y.ZrcN</code>, also <code>a</code> and <code>b</code>) use the same tag flow. Members pin <code>pipeloom~=X.Y.ZrcN</code>, which accepts the rc and the final version, and the GitHub release is marked as a prerelease.
+- <code>tools/versions.py check</code> runs in the CI lint job and in the tag workflow. Besides the lockstep it checks the <code>[tool.pipeloom]</code> declarations against <code>CONFIG_VERSION</code> and <code>API_VERSION</code> and that every <code>PluginSpec</code> passes <code>API_VERSION</code>.
 - The tag workflow checks that the tag equals the version, builds, then publishes to PyPI by trusted publishing through the protected <code>pypi</code> environment, then creates the GitHub release with notes from <code>CHANGELOG.md</code> (Keep a Changelog).
 - <code>config_version</code>, the manifest and event schema versions, and the plugin API version are versioned separately.</p>
 <p><strong>Docs:</strong>

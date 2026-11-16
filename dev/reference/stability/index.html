@@ -1389,6 +1389,9 @@ defined in <a href="../../adr/0049-artifact-schemas-and-orchestrator-protocol/">
 <li>The meaning of each diagnostic code.</li>
 <li>The documented Python API: the <code>pipeloom</code> top-level exports and <code>pipeloom.api</code>.</li>
 </ul>
+<p>Release candidates such as <code>1.0.0rc1</code> are published to PyPI, and <code>pip</code> skips them unless you
+pass <code>--pre</code>. The distributions pin each other with <code>~=</code> on the prerelease (<code>pipeloom~=1.0.0rc1</code>),
+which accepts <code>1.0.0rc1</code> and the final <code>1.0.0</code>, but no other minor.</p>
 <h2 id="what-may-change-in-a-minor-release">What may change in a minor release<a class="headerlink" href="#what-may-change-in-a-minor-release" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Console text, including messages and hints of diagnostics, log lines and table layout. Read
