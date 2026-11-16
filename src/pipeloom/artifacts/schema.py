@@ -32,6 +32,26 @@ _INTEGER: Final = {"type": "integer"}
 _BOOLEAN: Final = {"type": "boolean"}
 _STRINGS: Final = {"type": "array", "items": _STRING}
 _OBJECT: Final = {"type": "object"}
+# The resolved config keys every 1.0 manifest writes. Frozen: a field added later stays optional
+# (ADR-0049), so it must not join this tuple.
+MANIFEST_CONFIG_REQUIRED: Final = (
+    "materialized",
+    "write",
+    "incremental",
+    "partition_by",
+    "cluster_by",
+    "expectations",
+    "quality",
+    "tags",
+    "retries",
+    "retry_delay",
+    "retry_on",
+    "timeout",
+    "frame_api",
+    "schema",
+    "catalog",
+    "meta",
+)
 _ORCHESTRATOR_IDS: Final = {
     "type": "object",
     "propertyNames": {"pattern": "^[a-z][a-z0-9_]{0,63}$"},
@@ -313,9 +333,9 @@ def manifest_schema() -> dict[str, Any]:
     for key in ("generated_at", "invocation_id"):
         meta[key]["description"] = "An empty string in `compile --stable` output."
     config = defs["ResolvedModelConfig"]
-    # `_config` drops `sql_dialect` while it is None; every other key is always written.
+    # `_config` drops `sql_dialect` while it is None.
     config["properties"]["sql_dialect"] = {**_STRING, "description": "Absent while unset."}
-    config["required"] = [k for k in config["properties"] if k != "sql_dialect"]
+    config["required"] = list(MANIFEST_CONFIG_REQUIRED)
     ids = {"type": "object", "additionalProperties": _STRINGS}
     body = {
         "description": "The compiled plan: nodes, sources, execution units and edges.",

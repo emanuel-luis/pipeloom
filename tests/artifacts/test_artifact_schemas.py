@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args
 
 import pytest
 from click.testing import CliRunner
@@ -13,6 +13,7 @@ from jsonschema import Draft202012Validator, ValidationError
 
 from pipeloom.artifacts.results import ROW_DEFAULTS
 from pipeloom.artifacts.schema import (
+    MANIFEST_CONFIG_REQUIRED,
     artifact_schemas,
     close,
     event_payloads,
@@ -20,6 +21,7 @@ from pipeloom.artifacts.schema import (
     unit_states_schema,
 )
 from pipeloom.cli import main
+from pipeloom.config.models import Materialized
 from pipeloom.config.schema import DIALECT, dump_schema
 from pipeloom.runtime.finalize_run import parse_unit_states
 from tests.conftest import FIXTURES, GOLDENS, make_project
@@ -184,6 +186,83 @@ def test_a_real_compile_writes_a_valid_manifest(tmp_path: Path, project: str, st
     doc = json.loads(out.read_bytes().decode("utf-8"))
     STRICT["manifest.json"].validate(doc)
     assert (doc["metadata"]["generated_at"] == "") is stable
+
+
+WIDE_YML = """config_version: 1
+name: wide
+targets:
+  ci:
+    engine:
+      kind: memory
+    catalog:
+      kind: memory
+    deploy:
+      kind: fakejobs
+      pipelines:
+      - main
+"""
+WIDE_MODELS = """from pipeloom import model
+
+
+@model(columns=[{"name": "x", "dtype": "int64", "nullable": False}], sql_dialect="duckdb")
+def a(ctx):
+    return ctx.sql("select 1 as x")
+
+
+@model(
+    materialized="incremental",
+    incremental={"input": "a", "column": "x"},
+    write={"strategy": "merge", "unique_key": ["x"]},
+    data_tests=[{"name": "x_unique", "check": {"unique": ["x"]}}],
+)
+def inc(ctx, a):
+    return a
+
+
+@model(materialized="view")
+def v(ctx, inc):
+    return inc
+
+
+@model(materialized="ephemeral")
+def eph(ctx, a):
+    return a
+
+
+@model(materialized="intermediate")
+def mid(ctx, eph):
+    return eph
+"""
+
+
+@pytest.mark.parametrize("stable", [True, False], ids=["stable", "full"])
+def test_a_manifest_with_every_optional_part_validates(tmp_path: Path, stable: bool) -> None:
+    """Contracts, data tests, `sql_dialect`, a deploy block and every materialization: the
+    parts `manifest_dict` writes only when they are set."""
+    root = make_project(
+        tmp_path, {"pipeloom.yml": WIDE_YML, "models/wide.py": WIDE_MODELS}, convert=False
+    )
+    out = tmp_path / "manifest.json"
+    argv = ["compile", "--project-dir", str(root), "--target", "ci", "--out", str(out)]
+    argv += ["--plugin", "tests.plugins.fakes:RENDERER", *(["--stable"] if stable else [])]
+    done = CliRunner().invoke(main, argv, env={})
+    assert done.exit_code == 0, done.stderr
+    doc = json.loads(out.read_bytes().decode("utf-8"))
+    STRICT["manifest.json"].validate(doc)
+    nodes = doc["nodes"]
+    assert {n["materialized"] for n in nodes.values()} == set(get_args(Materialized))
+    a, inc = nodes["model.wide.a"], nodes["model.wide.inc"]
+    assert "columns" in a and a["config"]["sql_dialect"] == "duckdb"
+    assert "data_tests" in inc and inc["config"]["incremental"] is not None
+    assert doc["metadata"]["deploy"]["kind"] == "fakejobs"
+
+
+def test_new_config_fields_stay_optional() -> None:
+    """ADR-0049: a field added to the resolved config never enters `required`."""
+    config = SCHEMAS["manifest.json"]["$defs"]["ResolvedModelConfig"]
+    assert config["required"] == list(MANIFEST_CONFIG_REQUIRED)
+    later = set(config["properties"]) - set(MANIFEST_CONFIG_REQUIRED)
+    assert "sql_dialect" in later and not later & set(config["required"])
 
 
 def test_the_manifest_schema_catches_extra_fields_and_unknown_materializations() -> None:
