@@ -21,7 +21,7 @@ PLACEHOLDERS: Final = ("project_dir", "manifest", "run_id")
 
 
 class _Closed(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
 
 class Relation(_Closed):
@@ -91,7 +91,9 @@ def _unit(plan: Plan, node: PlanNode, unit_id: str, parents: tuple[str, ...]) ->
     relation = None
     assets: tuple[str, ...] = ()
     if rel is not None:
-        relation = Relation(catalog=rel.catalog, schema_=rel.schema, name=rel.name)
+        relation = Relation.model_validate(
+            {"catalog": rel.catalog, "schema": rel.schema, "name": rel.name}
+        )
         if node.materialized != "intermediate":
             assets = (asset_uri(meta.project, meta.target, rel.relation_name),)
     return Unit(
@@ -148,10 +150,8 @@ def build_unit_graph(plan: Plan) -> UnitGraph:
         plan_hash=meta.plan_hash,
         selectors=Selectors(select=sel.select, exclude=sel.exclude),
         placeholders=PLACEHOLDERS,
-        units=tuple(
-            _unit(plan, plan.nodes[plan.units[u].nodes[-1]], u, parents[u]) for u in order
-        ),
-        edges=tuple(Edge(from_=p, to=u) for u in order for p in parents[u]),
+        units=tuple(_unit(plan, plan.nodes[plan.units[u].nodes[-1]], u, parents[u]) for u in order),
+        edges=tuple(Edge.model_validate({"from": p, "to": u}) for u in order for p in parents[u]),
         finalize=Finalize(
             argv=(
                 "pipeloom",

@@ -163,7 +163,8 @@ def graph(
         raise click.UsageError("--manifest needs --units")
     inv = Invocation("graph", log_format)
     if units:
-        _units(inv, project_dir, vars_, target, plugins, Selection(select, exclude), state, manifest)
+        chosen = Selection(select, exclude)
+        _units(inv, project_dir, vars_, target, plugins, chosen, state, manifest)
         return
     sel = resolve_selection(inv, project_dir, vars_, target, plugins, select, exclude, state)
     text = _render(sel, output)
