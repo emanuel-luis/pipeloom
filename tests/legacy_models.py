@@ -357,7 +357,13 @@ def migrate(files: dict[str, str]) -> dict[str, str]:
         groups[GROUP] = {"tables": tables}
         changes["sources"] = groups
     left = [p for p, v in new.items() if v is not None and p != "pipeloom.yml"]
-    model_paths = [r for r in model_paths if any(_under(p, r) is not None for p in left)]
+    # Drop a root that held files before and holds none now; a root that was empty stays.
+    model_paths = [
+        r
+        for r in model_paths
+        if any(_under(p, r) is not None for p in left)
+        or not any(_under(p, r) is not None for p in files if p != "pipeloom.yml")
+    ]
     if model_paths != list(project.get("model_paths", ["models"])):
         changes["model_paths"] = model_paths
     if python_paths != list(project.get("python_paths", ["."])):

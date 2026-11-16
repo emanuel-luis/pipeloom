@@ -209,13 +209,14 @@ def test_results_show_statuses_and_stale_plan_note(project: Path, tmp_path: Path
         "after_bad": "skipped",
     }.items():
         assert re.search(rf'class="node model st-{status}" data-id="model\.p\.{name}"', svg), name
-    assert 'class="node source st-none" data-id="source.p.raw"' in svg
+    assert 'class="node source st-none" data-id="source.p.raw.raw"' in svg
     assert "last run" in page and "failed" in page and "pipeloom explain " in page
     assert "The plan changed" not in page
     assert_balanced(page)
 
-    models = project / "models" / "m.yml"
-    models.write_text(MODELS + "  - {name: extra, sql: select 3 as y}\n", encoding="utf-8")
+    make_project(
+        project, {"pipeloom.yml": YML, "models/m.yml": MODELS + "  - {name: extra, sql: select 3 as y}\n"}
+    )
     assert cli("docs", "generate", "--project-dir", str(project), "--out", str(out)).exit_code == 0
     stale = page_of(out)
     assert "The plan changed" in stale

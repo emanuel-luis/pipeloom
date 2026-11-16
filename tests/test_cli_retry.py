@@ -37,7 +37,7 @@ def retry(root: Path, *args: str, target: str = "ci") -> Result:
 
 
 def fix(root: Path) -> None:
-    (root / "models" / "m.yml").write_text(FIXED, encoding="utf-8", newline="\n")
+    make_project(root, {"pipeloom.yml": YML, "models/m.yml": FIXED})
 
 
 def run_dirs(root: Path) -> set[str]:
@@ -201,12 +201,8 @@ def test_flags(root: Path, flags: list[str], check: Any) -> None:
 
 def test_plugin_option(root: Path) -> None:
     failed_parent(root)
-    (root / "pipeloom.yml").write_text(
-        YML.replace("catalog: {kind: memory}", "catalog: {kind: failing}", 1),
-        encoding="utf-8",
-        newline="\n",
-    )
-    fix(root)
+    failing = YML.replace("catalog: {kind: memory}", "catalog: {kind: failing}", 1)
+    make_project(root, {"pipeloom.yml": failing, "models/m.yml": FIXED})
     r = retry(root, "--from", "r1", "--plugin", "tests.runtime.fakes:FAILING")
     assert r.exit_code == 1 and "PLM201" in r.stderr
 
@@ -246,10 +242,8 @@ def test_a_retry_of_a_retry_keeps_the_chain(root: Path) -> None:
 
 def test_warn_error_turns_a_warning_into_exit_one(root: Path) -> None:
     failed_parent(root)
-    fix(root)
-    (root / "pipeloom.yml").write_text(
-        YML + "model_paths: [models, missing_dir]\n", encoding="utf-8", newline="\n"
-    )
+    paths = YML + "model_paths: [models, missing_dir]\n"
+    make_project(root, {"pipeloom.yml": paths, "models/m.yml": FIXED})
     assert retry(root, "--from", "r1", "--run-id", "r2").exit_code == 0
     r = retry(root, "--from", "r1", "--run-id", "r3", "--warn-error")
     assert r.exit_code == 1 and "PLR206" in codes(r)
@@ -291,17 +285,19 @@ def test_intermediate_parents_of_a_retried_unit_run_again(tmp_path: Path) -> Non
     fixed = INTERMEDIATE.replace("'select * from c, raw'", "select * from c").replace(
         ", raw: {source: raw}", ""
     )
-    (root / "models" / "m.yml").write_text(fixed, encoding="utf-8", newline="\n")
+    make_project(root, {"pipeloom.yml": YML, "models/m.yml": fixed})
     r = retry(root, "--from", "r1", "--run-id", "r2")
     assert r.exit_code == 0, r.stderr
     assert statuses(root, "r2") == {"a": "succeeded", "b": "succeeded", "c": "succeeded"}
 
 
+# `${var:x}` in a YAML model body is interpolated only on the legacy path, so the two var tests
+# keep legacy YAML models (convert=False) until the removal PR rewrites them with var().
 VAR_MODELS = MODELS + "  - {name: v, sql: 'select ${var:x} as x'}\n"
 
 
 def test_vars_of_the_parent_apply_before_the_project_loads(tmp_path: Path) -> None:
-    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": VAR_MODELS})
+    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": VAR_MODELS}, convert=False)
     failed_parent(root, "--vars", '{"x": 7}')
     (root / "models" / "m.yml").write_text(
         FIXED + "  - {name: v, sql: 'select ${var:x} as x'}\n", encoding="utf-8", newline="\n"
@@ -314,7 +310,7 @@ def test_vars_of_the_parent_apply_before_the_project_loads(tmp_path: Path) -> No
 
 
 def test_unknown_parent_keeps_the_load_errors_and_hints_at_vars(tmp_path: Path) -> None:
-    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": VAR_MODELS})
+    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": VAR_MODELS}, convert=False)
     r = retry(root, "--from", "nope")
     assert r.exit_code == 1 and "PLS106" in codes(r) and "--vars" in r.stderr
 

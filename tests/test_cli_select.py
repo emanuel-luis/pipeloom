@@ -67,7 +67,7 @@ def test_ls_json_rows_and_ascii(project: list[str]) -> None:
             "name": "stg_a",
             "materialized": "table",
             "tags": ["staging", "café"],
-            "path": "models/staging.yml",
+            "path": "models/staging.py",
         }
     ]
 
