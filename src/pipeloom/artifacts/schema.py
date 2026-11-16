@@ -1,4 +1,4 @@
-"""JSON Schemas of the run artifacts (ADR-0049): `run_results`, `event` and `unit_states`.
+"""JSON Schemas of the run artifacts (ADR-0049): `run_results`, `event`, `unit_states` and `unit_graph`.
 
 Events come from the pydantic models in `pipeloom.events.model`; run results and unit states are
 written here by hand, since their rows are plain dicts. The published schemas are open: a
@@ -14,6 +14,7 @@ from typing import Any, Final
 from pydantic import BaseModel
 
 from pipeloom.artifacts.results import RESULTS_SCHEMA
+from pipeloom.artifacts.unit_graph import UNIT_GRAPH_SCHEMA, UnitGraph
 from pipeloom.config.schema import DIALECT, SCHEMA_BASE_URL
 from pipeloom.events.model import EVENT_SCHEMA, ErrorInfo, Event, EventPayload
 
@@ -270,10 +271,24 @@ def unit_states_schema() -> dict[str, Any]:
     return _document("unit_states.json", UNIT_STATES_SCHEMA, "pipeloom unit states", body)
 
 
-# File name under schema/v1/ to builder. The manifest and the unit graph join with their PRs.
+def unit_graph_schema() -> dict[str, Any]:
+    """`pipeloom.unit_graph/1`: the output of `pipeloom graph --units --output json`."""
+    defs: dict[str, Any] = {}
+    top = _model(UnitGraph, defs)
+    body = {
+        "description": "The execution units of a plan, their edges and their command lines.",
+        "properties": top["properties"],
+        "required": top.get("required", []),
+        "$defs": dict(sorted(defs.items())),
+    }
+    return _document("unit_graph.json", UNIT_GRAPH_SCHEMA, "pipeloom unit graph", body)
+
+
+# File name under schema/v1/ to builder. The manifest joins with its PR.
 _BUILDERS: Final[Mapping[str, Callable[[], dict[str, Any]]]] = {
     "event.json": event_schema,
     "run_results.json": run_results_schema,
+    "unit_graph.json": unit_graph_schema,
     "unit_states.json": unit_states_schema,
 }
 
