@@ -1,9 +1,24 @@
-"""Silver: orders with their customer, nation and region; line items with their net revenue."""
+"""Silver: orders with their customer, nation and region; line items with their net revenue.
 
-from typing import Any
+Each parameter binds the bronze model of the same name.
+"""
+
+import pandas as pd
+
+from pipeloom import Expectation, model, not_null, unique
 
 
-def orders_enriched(ctx: Any, orders: Any, customer: Any, nation: Any, region: Any) -> Any:
+@model(
+    expectations=[
+        Expectation(
+            name="keys_present", check=not_null("order_key", "customer_key"), on_violation="fail"
+        ),
+        Expectation(name="order_key_unique", check=unique("order_key"), on_violation="fail"),
+    ],
+)
+def orders_enriched(
+    orders: pd.DataFrame, customer: pd.DataFrame, nation: pd.DataFrame, region: pd.DataFrame
+) -> pd.DataFrame:
     joined = (
         orders.merge(customer, left_on="o_custkey", right_on="c_custkey")
         .merge(nation, left_on="c_nationkey", right_on="n_nationkey")
@@ -36,7 +51,14 @@ def orders_enriched(ctx: Any, orders: Any, customer: Any, nation: Any, region: A
     ]
 
 
-def lineitem_revenue(ctx: Any, lineitem: Any) -> Any:
+@model(
+    expectations=[
+        Expectation(
+            name="keys_present", check=not_null("order_key", "line_number"), on_violation="fail"
+        ),
+    ],
+)
+def lineitem_revenue(lineitem: pd.DataFrame) -> pd.DataFrame:
     out = lineitem.rename(
         columns={
             "l_orderkey": "order_key",
