@@ -7,8 +7,10 @@ import pytest
 from pipeloom.diagnostics import Report
 from pipeloom.plugins import API_VERSION, GROUPS, PluginRegistry, PluginSpec, check_api
 from tests.plugins.fakes import (
-    API02,
-    API06,
+    API05,
+    API10,
+    API11,
+    API20,
     FakeDist,
     FakeEntryPoint,
     FakeOptions,
@@ -112,11 +114,18 @@ def test_unknown_kind_is_none_without_a_diagnostic() -> None:
 
 
 def test_plu001_api_mismatch(monkeypatch: pytest.MonkeyPatch) -> None:
-    install_entry_points(monkeypatch, [ep("engines", "future", "API06")])
+    install_entry_points(monkeypatch, [ep("engines", "future", "API11")])
     report = Report()
     assert PluginRegistry.discover(env={}).load("engines", "future", report) is None
     (d,) = report.sorted()
-    assert d.code == "PLU001" and "0.6" in d.message and "0.5" in d.message
+    assert d.code == "PLU001" and "1.1" in d.message and "1.0" in d.message
+
+
+def test_a_plugin_for_the_current_api_loads(monkeypatch: pytest.MonkeyPatch) -> None:
+    install_entry_points(monkeypatch, [ep("engines", "stable", "API10")])
+    report = Report()
+    spec = PluginRegistry.discover(env={}).load("engines", "stable", report)
+    assert spec is API10 and codes(report) == []
 
 
 def test_plu002_duplicate_kind(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -159,13 +168,13 @@ def test_check_api_rules() -> None:
     def spec(v: tuple[int, int]) -> PluginSpec[object]:
         return PluginSpec("x", "x", "engines", v, lambda o: o, FakeOptions)
 
+    assert API_VERSION == (1, 0)
     assert check_api(spec(API_VERSION)) is None
-    assert check_api(spec((0, 0))) is not None  # below the core is still a mismatch before 1.0
-    assert check_api(spec((0, 4))) is not None  # the previous API, before 0.9
-    assert check_api(spec((0, 6))) is not None
-    assert check_api(spec((1, 0))) is not None
-    assert check_api(API06) is not None
-    assert check_api(API02) is not None
+    assert check_api(API10) is None
+    assert check_api(API05) is not None  # built for 0.x: another major
+    assert check_api(spec((0, 0))) is not None
+    assert check_api(API11) is not None  # minor above the core's
+    assert check_api(API20) is not None  # another major
 
 
 def test_load_all_skips_duplicates_and_reports_failures(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -173,7 +182,7 @@ def test_load_all_skips_duplicates_and_reports_failures(monkeypatch: pytest.Monk
         monkeypatch,
         [
             ep("engines", "memory", "MEMORY_CLONE", "other"),
-            ep("engines", "future", "API06"),
+            ep("engines", "future", "API11"),
             ep("engines", "fake", "FAKE_ENGINE"),
         ],
     )

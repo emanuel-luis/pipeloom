@@ -66,17 +66,17 @@ Additive changes ship in a minor release: new commands, flags, optional fields, 
 
 The plugin API becomes `(1, 0)` with pipeloom 1.0. The core accepts a plugin with the same major and a minor not above its own, otherwise it raises PLU001. The exact match that ADR-0017 requires while the major is 0 ends with 1.0. `config_version: 1` is the only accepted value through 1.x.
 
-### Version check (planned)
+### Version check
 
-`tools/versions.py check` gains these checks, which land with the 1.0.0rc1 work and run in the CI lint job:
+`tools/versions.py check` runs these checks in the CI lint job and in the release workflow:
 
-- The root `[tool.pipeloom]` keys `config-version` and `plugin-api` equal `CONFIG_VERSION` and `API_VERSION` in the source (read with `ast`, no import).
-- Every member distribution declares the same `plugin-api`.
-- Every `PluginSpec` passes `API_VERSION`.
+- The root `[tool.pipeloom]` keys `config-version` and `plugin-api` equal `CONFIG_VERSION` (`pipeloom.config.types`) and `API_VERSION` (`pipeloom.plugins`) in the source (read with `ast`, no import).
+- Every member distribution declares the same `plugin-api` and `config-version` as the root.
+- Every `PluginSpec` passes `API_VERSION`, not a literal.
 
 ### Prereleases
 
-Prereleases such as `1.0.0rc1` are published to PyPI. Version pins between distributions must accept them (`pipeloom~=1.0.0` does not match `1.0.0rc1`), and the version check must accept the prerelease form.
+Prereleases such as `1.0.0rc1` are published to PyPI. Version pins between distributions must accept them (`pipeloom~=1.0.0` does not match `1.0.0rc1`), so for a prerelease the members depend on `pipeloom~=1.0.0rc1`, which accepts the rc and the final `1.0.0`. `tools/versions.py` accepts `X.Y.Z` and `X.Y.Z(a|b|rc)N` in `check`, `bump` and `--tag`, and `bump 1.0.0` after `bump 1.0.0rc1` restores the `~=X.Y.0` pins. The release workflow marks a prerelease tag as a GitHub prerelease.
 
 ## Status
 

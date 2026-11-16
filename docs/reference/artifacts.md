@@ -90,6 +90,7 @@ config schemas ([ADR-0049](../adr/0049-artifact-schemas-and-orchestrator-protoco
 
 | Document | Schema |
 |---|---|
+| `manifest.json` (`pipeloom.manifest/1`) | [manifest.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/manifest.json) |
 | `run_results.json` (`pipeloom.run_results/1`) | [run_results.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/run_results.json) |
 | an attempt file | `#/$defs/result` of run_results.json |
 | one event (`pipeloom.event/1`) | [event.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/event.json) |

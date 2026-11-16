@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Final
 
 from pydantic import (
     AfterValidator,
@@ -15,6 +15,9 @@ from pydantic import (
     ValidationInfo,
     WithJsonSchema,
 )
+
+CONFIG_VERSION: Final = 1
+"""The only `config_version` accepted through 1.x (ADR-0016). `tools/versions.py` reads it."""
 
 IDENTIFIER_PATTERN = r"^[A-Za-z_][A-Za-z0-9_]*$"
 

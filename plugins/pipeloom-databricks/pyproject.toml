@@ -49,6 +49,10 @@ pipeloom_databricks_task = "pipeloom_databricks.task:main"
 pipeloom = { workspace = true }
 pipeloom-spark = { workspace = true }
 
+[tool.pipeloom]
+config-version = 1
+plugin-api = "1.0"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/pipeloom_databricks"]
 

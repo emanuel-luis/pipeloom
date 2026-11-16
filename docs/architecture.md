@@ -434,7 +434,9 @@ Each entry point resolves to a `PluginSpec(name, kind, api_version: tuple[int, i
 - MINOR covers additive changes: new optional protocol methods with defaults, new capabilities.
 - MAJOR covers breaking protocol changes.
 - The core accepts plugins with the same MAJOR and MINOR ≤ its own. Otherwise it raises PLU001 naming the installed and required versions.
-- Before 1.0 the API is `0.x` and any minor may break. Plugin API 1.0 ships with pipeloom 1.0.
+- The plugin API is `(1, 0)`. Before 1.0 it was `0.x` with an exact match, so a plugin built for `(0, 5)` fails with PLU001.
+- `config_version: 1` is the only accepted value through 1.x (`CONFIG_VERSION` in `pipeloom.config.types`).
+- Every distribution declares `config-version` and `plugin-api` in a `[tool.pipeloom]` table. `tools/versions.py check` compares them with `CONFIG_VERSION` and `API_VERSION` in the source and requires every `PluginSpec` to pass `API_VERSION`.
 
 ## 7. Validation layers and error catalog
 
@@ -704,7 +706,7 @@ Long engine (JVM) traces are trimmed to the first user frame and the root cause.
   - A node `checksum` is the sha256 of its canonical config plus its body (the SQL text, or the callable and its file bytes), with CRLF read as LF.
   - From 0.9 ([ADR-0050](adr/0050-python-first-authoring.md)) the schema stays `pipeloom.manifest/1` with a breaking change before 1.0. Every node body is `{kind: "python", callable: "module:attr", file}`; `nodes[].file` is the `.py` file and `nodes[].line` the decorator line. The SQL body goes away with the legacy path, after which a manifest with `kind: sql` is PLX107. The checksum keeps its formula (resolved config, `callable`, NUL, module file bytes, plus `columns` without `description`), so editing any function in a module marks every model of that module modified. Dynamic decorator config must be deterministic, or the plan hash differs between compiles (PLX103).
 - `run_results.json` (`pipeloom.run_results/1`): `metadata`, `args`, `run`, `results[]`.
-- Each tagged artifact has a published JSON Schema under `schema/v1/` ([ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md)): `run_results.json` (an attempt file is its `#/$defs/result`), `event.json` and `unit_states.json`, with `manifest.json` and `unit_graph.json` to follow. Objects are open, so consumers ignore unknown fields; a new field is optional, and a new value of a closed enum (`status`, `level`, `materialized`) needs `/2`.
+- Each tagged artifact has a published JSON Schema under `schema/v1/` ([ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md)): `manifest.json`, `run_results.json` (an attempt file is its `#/$defs/result`), `event.json`, `unit_states.json` and `unit_graph.json`. Objects are open, so consumers ignore unknown fields; a new field is optional, and a new value of a closed enum (`status`, `level`, `materialized`) needs `/2`.
 - Finalize merges unit files and picks the latest attempt per unit. Run records also go to the state store for history.
 - `pipeloom finalize --run-id ID` (0.5, ADR-0034) closes a run that an orchestrator drove unit by unit. A unit takes its attempt file, else the state given with `--unit-states` (`pipeloom.unit_states/1`: `skipped`, `cancelled`, `failed` or `excluded`), else it is `skipped` with the reason `not_run`, which does not fail the run; `excluded` drops the unit. `orchestrator_ids` come from `--orchestrator-id KEY=VALUE`. It exits 0, 1 or 130 and rewrites the same results when repeated.
 
@@ -903,6 +905,8 @@ Catalog, state-store and sink contract suites follow the same pattern.
 
 **Release (ADR-0016):**
 - SemVer per distribution, with lockstep versions for first-party distributions during 0.x and one tag `vX.Y.Z`.
+- Prereleases (`vX.Y.ZrcN`, also `a` and `b`) use the same tag flow. Members pin `pipeloom~=X.Y.ZrcN`, which accepts the rc and the final version, and the GitHub release is marked as a prerelease.
+- `tools/versions.py check` runs in the CI lint job and in the tag workflow. Besides the lockstep it checks the `[tool.pipeloom]` declarations against `CONFIG_VERSION` and `API_VERSION` and that every `PluginSpec` passes `API_VERSION`.
 - The tag workflow checks that the tag equals the version, builds, then publishes to PyPI by trusted publishing through the protected `pypi` environment, then creates the GitHub release with notes from `CHANGELOG.md` (Keep a Changelog).
 - `config_version`, the manifest and event schema versions, and the plugin API version are versioned separately.
 
