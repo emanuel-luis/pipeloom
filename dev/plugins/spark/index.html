@@ -848,6 +848,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Capabilities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#csv-sample-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CSV sample data
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1448,6 +1465,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Capabilities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#csv-sample-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CSV sample data
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1775,6 +1809,26 @@ fails and tells you to use mode <code>active</code>. Classic and Connect cannot 
 </table>
 <p><code>csv</code> reads a header and infers types; <code>json</code> is one multi-line document and <code>ndjson</code> is one
 document per line. Reader options pass through as strings.</p>
+<h3 id="csv-sample-data">CSV sample data<a class="headerlink" href="#csv-sample-data" title="Permanent link">&para;</a></h3>
+<p>A small CSV committed with the project works as sample data, the way dbt seeds do, without a new
+materialization. Declare it as a source:</p>
+<pre><code class="language-yaml">sources:
+  samples:
+    format: csv
+    tables:
+      region:
+        location: ${var:region_csv}
+</code></pre>
+<p>The location can be a path relative to the project directory (<code>data/region.csv</code>), an absolute
+path, a <code>file:</code> URI or a Databricks volume path (<code>/Volumes/&lt;catalog&gt;/&lt;schema&gt;/&lt;volume&gt;/...</code> or
+<code>dbfs:/Volumes/...</code>). Only relative paths are resolved against the project directory; the others
+reach Spark as written. On Databricks the project files are not on the cluster, so copy the CSV to
+a volume and point the var at it, for example
+<code>--vars '{"region_csv": "/Volumes/main/ops/samples/region.csv"}'</code>.</p>
+<p>Options are Spark's own CSV options: <code>header</code> and <code>inferSchema</code> default to true, and <code>sep</code> sets the
+delimiter. The polars and pandas engines read the same file with their defaults; their option
+names differ (<code>separator</code> and <code>has_header</code> for polars, <code>sep</code> and <code>header</code> for pandas). The
+<code>tpch_spark</code> example reads its <code>region</code> table this way.</p>
 <h2 id="write-strategies">Write strategies<a class="headerlink" href="#write-strategies" title="Permanent link">&para;</a></h2>
 <p>Every write is a DataFrameWriter option or a SQL statement. No Spark conf is touched.</p>
 <table>
