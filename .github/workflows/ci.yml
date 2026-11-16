@@ -107,9 +107,11 @@ jobs:
         with:
           python-version: "3.12"
           enable-cache: true
+      # Spark 4 resolves --packages (the Delta jar) into ~/.ivy2.5.2, not ~/.ivy2; caching it
+      # spares every leg a Maven Central download that sometimes fails with "not found".
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.ivy2/cache
+          path: ~/.ivy2.5.2
           key: ivy-${{ runner.os }}-${{ hashFiles('uv.lock') }}
           restore-keys: ivy-${{ runner.os }}-
       - run: uv sync --locked --all-packages --group spark
