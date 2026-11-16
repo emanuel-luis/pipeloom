@@ -1,0 +1,271 @@
+{
+  "$defs": {
+    "Edge": {
+      "properties": {
+        "from": {
+          "title": "From",
+          "type": "string"
+        },
+        "to": {
+          "title": "To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "title": "Edge",
+      "type": "object"
+    },
+    "Finalize": {
+      "properties": {
+        "argv": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Argv",
+          "type": "array"
+        }
+      },
+      "required": [
+        "argv"
+      ],
+      "title": "Finalize",
+      "type": "object"
+    },
+    "Relation": {
+      "properties": {
+        "catalog": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Catalog"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "schema": {
+          "title": "Schema",
+          "type": "string"
+        }
+      },
+      "required": [
+        "catalog",
+        "schema",
+        "name"
+      ],
+      "title": "Relation",
+      "type": "object"
+    },
+    "Selectors": {
+      "properties": {
+        "exclude": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Exclude",
+          "type": "array"
+        },
+        "select": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Select",
+          "type": "array"
+        }
+      },
+      "required": [
+        "select",
+        "exclude"
+      ],
+      "title": "Selectors",
+      "type": "object"
+    },
+    "Unit": {
+      "properties": {
+        "argv": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Argv",
+          "type": "array"
+        },
+        "assets": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assets",
+          "type": "array"
+        },
+        "materialized": {
+          "title": "Materialized",
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Nodes",
+          "type": "array"
+        },
+        "parents": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Parents",
+          "type": "array"
+        },
+        "relation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Relation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "relation_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Relation Name"
+        },
+        "retries": {
+          "title": "Retries",
+          "type": "integer"
+        },
+        "retry_delay_s": {
+          "title": "Retry Delay S",
+          "type": "number"
+        },
+        "retry_on": {
+          "title": "Retry On",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "timeout_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Timeout S"
+        },
+        "unique_id": {
+          "title": "Unique Id",
+          "type": "string"
+        },
+        "unit_id": {
+          "title": "Unit Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "unit_id",
+        "unique_id",
+        "nodes",
+        "materialized",
+        "relation",
+        "relation_name",
+        "assets",
+        "parents",
+        "tags",
+        "retries",
+        "retry_delay_s",
+        "retry_on",
+        "timeout_s",
+        "argv"
+      ],
+      "title": "Unit",
+      "type": "object"
+    }
+  },
+  "$id": "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_graph.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The execution units of a plan, their edges and their command lines.",
+  "properties": {
+    "edges": {
+      "items": {
+        "$ref": "#/$defs/Edge"
+      },
+      "title": "Edges",
+      "type": "array"
+    },
+    "finalize": {
+      "$ref": "#/$defs/Finalize"
+    },
+    "pipeloom_version": {
+      "title": "Pipeloom Version",
+      "type": "string"
+    },
+    "placeholders": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Placeholders",
+      "type": "array"
+    },
+    "plan_hash": {
+      "title": "Plan Hash",
+      "type": "string"
+    },
+    "project": {
+      "title": "Project",
+      "type": "string"
+    },
+    "schema": {
+      "const": "pipeloom.unit_graph/1",
+      "description": "Schema name and version."
+    },
+    "selectors": {
+      "$ref": "#/$defs/Selectors"
+    },
+    "target": {
+      "title": "Target",
+      "type": "string"
+    },
+    "units": {
+      "items": {
+        "$ref": "#/$defs/Unit"
+      },
+      "title": "Units",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "pipeloom_version",
+    "project",
+    "target",
+    "plan_hash",
+    "selectors",
+    "placeholders",
+    "units",
+    "edges",
+    "finalize"
+  ],
+  "title": "pipeloom unit graph",
+  "type": "object"
+}
