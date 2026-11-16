@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The format follows
 ### Fixed
 
 - A missing, empty or unreadable source file on the polars engine now fails the unit at read with PLM204, as pandas does, instead of failing later with PLX101.
+- On Spark Connect, a missing source or table now fails the unit at read with PLM204 instead of failing later with PLX101, as on classic Spark. The reader asks for the schema right away, as classic Spark already does.
 - A `DataTest` relationships check now accepts `ref()` and `source()` in `to`, as `@model(inputs=...)` does.
 
 ## [0.9.0] - 2026-11-16
