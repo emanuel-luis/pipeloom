@@ -36,6 +36,7 @@ from pipeloom.config.models import (
     PropertiesEntry,
     ResolvedModelConfig,
     SourceConfig,
+    WriteConfig,
 )
 from pipeloom.config.yaml import LoadedDocument
 from pipeloom.diagnostics import Location, suggest
@@ -435,6 +436,10 @@ def resolve_project(
                     for a, b in inputs.items()
                 },
                 columns=entry_columns,
+                # PLP405 judges only the write options the model declares itself.
+                write=WriteConfig.model_validate(p.settings["write"])
+                if "write" in p.settings
+                else None,
             ),
             config=merge_settings([layer.settings for layer in layers]),
             inputs=inputs,
