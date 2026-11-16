@@ -42,6 +42,7 @@ def execute(op: Any, states: Mapping[str, str], try_number: int = 1) -> None:
     op.execute(make_context(ti, run_after=AFTER, params={}))
 
 
+@pytest.mark.timeout(300)  # four pipeloom children, about 20 s each on a slow WSL mount
 def test_a_failed_unit_fails_its_watcher_and_a_clear_reruns_only_it(
     af_project: Project, af_plan: Any
 ) -> None:
