@@ -1,7 +1,45 @@
 """pipeloom: declarative, engine-agnostic data pipelines in YAML."""
 
-from importlib.metadata import version
+from pipeloom._version import __version__
+from pipeloom.authoring import (
+    Column,
+    Deletes,
+    Expectation,
+    Incremental,
+    ModelContext,
+    Quality,
+    Write,
+    accepted_values,
+    between,
+    freshness,
+    model,
+    not_null,
+    ref,
+    regex,
+    row_count,
+    source,
+    unique,
+    var,
+)
 
-__version__ = version("pipeloom")
-
-__all__ = ["__version__"]
+__all__ = [
+    "Column",
+    "Deletes",
+    "Expectation",
+    "Incremental",
+    "ModelContext",
+    "Quality",
+    "Write",
+    "__version__",
+    "accepted_values",
+    "between",
+    "freshness",
+    "model",
+    "not_null",
+    "ref",
+    "regex",
+    "row_count",
+    "source",
+    "unique",
+    "var",
+]

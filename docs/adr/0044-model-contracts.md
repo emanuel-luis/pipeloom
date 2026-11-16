@@ -41,8 +41,12 @@ A model's output schema is whatever its body returns. `on_schema_change` ([ADR-0
 
 ## Status
 
-Accepted
+Accepted. Amended in 0.9 by [ADR-0050](0050-python-first-authoring.md).
 
 ## Date
 
 2026-11-06
+
+## Amendment 0.9 (ADR-0050)
+
+With Python-first authoring ([ADR-0050](0050-python-first-authoring.md)) `columns` comes from the `@model` decorator (a list of `Column(...)` or plain mappings) or from the `columns` of a properties entry. It stays a model key: the `models:` tree of `pipeloom.yml` cannot set it, as `_defaults.yml` and `defaults.models` could not. When both set it, the decorator's list replaces the properties list whole; the lists are never merged column by column. `ColumnConfig` gains an optional `description`, kept out of the node checksum and the plan hash, so editing a description neither marks a model modified nor makes a deployed job stale. Where descriptions appear in the manifest and on the docs site is settled later in 0.9, outside the plan hash. Every model is a Python function, so the line about Python and SQL models no longer applies. PLP414 does not change.

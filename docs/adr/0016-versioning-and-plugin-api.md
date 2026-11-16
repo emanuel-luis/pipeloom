@@ -26,9 +26,61 @@ Several distributions ship from one repository, and several contracts evolve at 
 - Lockstep versioning means plugin-only fixes bump every distribution during 0.x.
 - At 1.0, `config_version: 1`, the plugin API 1.0, and the manifest, event and run_results schemas v1 are declared stable.
 
+## Amendment (1.0): stability and deprecation policy
+
+From 1.0.0 pipeloom follows Semantic Versioning for the surfaces below. The user-facing summary is [Stability and deprecations](../reference/stability.md).
+
+### What is stable
+
+- CLI command names, flag names and their meanings, and the exit codes 0, 1, 2 and 130.
+- Every JSON output that carries a version tag.
+- `config_version: 1`. It is the only value accepted through 1.x.
+- The artifact schemas `pipeloom.manifest/1`, `pipeloom.run_results/1`, `pipeloom.event/1`, `pipeloom.unit_states/1` and `pipeloom.unit_graph/1`, and the event types, as defined in ADR-0049.
+- Plugin API 1.0: the protocols, `PluginSpec` and the capabilities. `pipeloom.testing` is part of the plugin API.
+- The meaning of each diagnostic code. Messages and hints are not stable.
+- The documented Python API: the `pipeloom` top-level exports and `pipeloom.api`.
+
+Not stable: console text (including log lines and table layout) and anything undocumented, such as private modules and names that start with an underscore.
+
+### What counts as breaking
+
+A breaking change needs a new major version. These are breaking:
+
+- Removing or renaming anything listed above.
+- Changing a type, a default or an exit code.
+- Adding a value to a closed enum.
+- Adding a required method to a plugin protocol.
+- Raising a warning to an error.
+- Rejecting configuration that was valid before. The exception is a rule that was letting wrong data through: that fix ships in a minor or patch release and is listed under Security or Fixed in the CHANGELOG.
+
+Additive changes ship in a minor release: new commands, flags, optional fields, event types, diagnostic codes and optional protocol members.
+
+### How deprecation works
+
+- The CHANGELOG lists the item under "Deprecated", and the Deprecations table on the stability page gets a row with the item, the version that deprecated it, the replacement and the earliest removal.
+- At use time pipeloom emits a warning diagnostic with a code in the new reserved prefix `PLV` (layer "Deprecations"). Python and plugin API members also raise a `DeprecationWarning`.
+- A deprecated item keeps working for the rest of the major. It is removed only in the next major, and only after at least one minor release that warned.
+- The `PLV` prefix is reserved by this amendment. No code is added now: the first `PLV` code and its case file (`tests/cases/<CODE>.yml`) arrive with the first real deprecation.
+
+### Plugin API and config version
+
+The plugin API becomes `(1, 0)` with pipeloom 1.0. The core accepts a plugin with the same major and a minor not above its own, otherwise it raises PLU001. The exact match that ADR-0017 requires while the major is 0 ends with 1.0. `config_version: 1` is the only accepted value through 1.x.
+
+### Version check (planned)
+
+`tools/versions.py check` gains these checks, which land with the 1.0.0rc1 work and run in the CI lint job:
+
+- The root `[tool.pipeloom]` keys `config-version` and `plugin-api` equal `CONFIG_VERSION` and `API_VERSION` in the source (read with `ast`, no import).
+- Every member distribution declares the same `plugin-api`.
+- Every `PluginSpec` passes `API_VERSION`.
+
+### Prereleases
+
+Prereleases such as `1.0.0rc1` are published to PyPI. Version pins between distributions must accept them (`pipeloom~=1.0.0` does not match `1.0.0rc1`), and the version check must accept the prerelease form.
+
 ## Status
 
-Accepted. Amended by [ADR-0017](0017-plugin-spec-and-builtins.md): while the plugin API major is 0 the versions must match exactly.
+Accepted. Amended by [ADR-0017](0017-plugin-spec-and-builtins.md): while the plugin API major is 0 the versions must match exactly. Amended in 1.0: stability and deprecation policy (see above).
 
 ## Date
 

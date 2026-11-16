@@ -40,8 +40,8 @@ Every document has a required `schema` property whose value is its tag (a `const
 **What stays within `/1`.**
 
 - A new field is optional and never enters `required`. It has a default or may be absent.
-- Event types and `skip_reason` are open strings: a consumer must accept a value it does not know.
-- `status` (results rows, the run, unit states), `level` (events) and `materialized` (manifest) are closed enums. A new value is a breaking change and needs `/2`.
+- Event types and skip reasons (the row `skip_reason` and the `unit.skipped` `data.reason`) are open strings: a consumer must accept a value it does not know.
+- Every other enumerated value is a closed enum, and a new value is a breaking change that needs `/2`: `status` of a results row, of the run, of `run.completed` and of a unit state; the event `level`; `materialized` (manifest); `ErrorInfo.category` (the row `error` and the `unit.failed` and `unit.retrying` events); `unit.cancelled` `reason`; `model.input_read` `kind`; `model.schema_changed` `action`; `run.started` `boundary`; `state.watermark_committed` `source`; `model.log` `level`.
 - Within `manifest/1` the plan hash and node checksum formulas are frozen. A field added to the manifest stays out of the hash and has a default, so an older manifest keeps its hash.
 - Anything a consumer must understand to act correctly needs `/2`.
 
