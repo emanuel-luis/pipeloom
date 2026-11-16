@@ -72,12 +72,16 @@ class DiscoveryFailure:
     kind: FailureKind
     message: str
     traceback: str | None = None
+    model: str | None = None
+    """The model's name, when the failure is one model with an invalid or unknown argument."""
 
 
 @dataclass(frozen=True, slots=True)
 class DiscoveryResult:
     models: tuple[DiscoveredModel, ...] = ()
     failures: tuple[DiscoveryFailure, ...] = field(default=())
+    skipped: frozenset[str] = frozenset()
+    """Decorated function names of dynamic files not imported because of a PLS101 failure."""
 
 
 def params_of(fn: Callable[..., Any]) -> tuple[Param, ...]:

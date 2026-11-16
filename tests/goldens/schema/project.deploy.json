@@ -1818,6 +1818,15 @@
       "$ref": "#/$defs/EventsConfig",
       "description": "Event sinks."
     },
+    "model_packages": {
+      "description": "Installed packages whose modules hold models, by dotted name.",
+      "items": {
+        "pattern": "^[A-Za-z_]\\w*(\\.[A-Za-z_]\\w*)*$",
+        "type": "string"
+      },
+      "title": "Model Packages",
+      "type": "array"
+    },
     "model_paths": {
       "description": "Directories that hold model files.",
       "items": {

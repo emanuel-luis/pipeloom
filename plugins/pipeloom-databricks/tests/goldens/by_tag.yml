@@ -5,8 +5,8 @@ resources:
       name: pipeloom_shop_main_ci
       tags:
         pipeloom_job: shop.main.ci
-        pipeloom_plan_hash: e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
-        pipeloom_settings_hash: 3b7e78a0ca57e699cc9719244d45756d6e73661705dfa8a0f7f12c0c91c4ba73
+        pipeloom_plan_hash: 2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
+        pipeloom_settings_hash: 55a032beeb002eac078c57d839e31639eb67a17c24b8f54611d1bca2348a878a
         pipeloom_version: 1.2.3
       parameters:
       - name: pipeloom_run_id
@@ -38,7 +38,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --group=tag_mart
-          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
+          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -60,7 +60,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --group=tag_staging
-          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
+          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -84,7 +84,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --group=tag_untagged
-          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
+          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -92,7 +92,8 @@ resources:
           - --task-key={{task.name}}
           - --task-run-id={{task.run_id}}
           - --start-ms={{job.start_time.timestamp_ms}}
-        max_retries: 0
+        max_retries: 1
+        min_retry_interval_millis: 1000
         disable_auto_optimization: true
       - task_key: pipeloom__finalize
         depends_on:
@@ -108,7 +109,7 @@ resources:
           - --manifest=/Workspace/pipeloom/shop/manifest.json
           - --target=ci
           - --pipeline=main
-          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
+          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}

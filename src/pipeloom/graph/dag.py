@@ -178,7 +178,7 @@ def build_graph(project: ResolvedProject, report: Report) -> Graph | None:
                 report.add(
                     "PLG302",
                     f"model '{m.name}' references itself through input '{alias}'",
-                    location=project.locate(m.file, f"{m.pointer}/inputs/{alias}/ref"),
+                    location=project.at(m, f"/inputs/{alias}/ref"),
                     hint="a model cannot read its own output",
                     context={"model": m.name, "input": alias},
                 )

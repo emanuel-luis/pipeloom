@@ -6,6 +6,7 @@ in the exported JSON Schema.
 
 from __future__ import annotations
 
+import json
 import keyword
 from typing import Annotated, Any, Literal
 
@@ -382,6 +383,45 @@ class ModelConfig(ModelSettings):
         return value
 
 
+class DecoratorArgs(ModelSettings):
+    """The arguments of `@model`, as plain data (ADR-0050 point 1)."""
+
+    name: Identifier | None = None
+    description: str | None = None
+    inputs: dict[Identifier, InputConfig | Identifier] = Field(default_factory=dict)
+    columns: list[ColumnConfig] | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _not_ctx(cls, value: str | None) -> str | None:
+        if value == "ctx":
+            raise ValueError("'ctx' is reserved for the model context")
+        return value
+
+    @field_validator("meta")
+    @classmethod
+    def _json_meta(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
+        """In YAML every value is JSON; a Python value may not be (ADR-0050 point 10)."""
+        try:
+            json.dumps(value, allow_nan=False)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"meta values must be JSON: {exc}") from None
+        return value
+
+    @field_validator("columns")
+    @classmethod
+    def _unique_columns(cls, value: list[ColumnConfig] | None) -> list[ColumnConfig] | None:
+        return _unique_columns(value)
+
+    @field_validator("inputs")
+    @classmethod
+    def _alias_names(cls, value: dict[str, InputConfig | str]) -> dict[str, InputConfig | str]:
+        for alias in value:
+            if alias == "ctx" or keyword.iskeyword(alias):
+                raise ValueError(f"'{alias}' cannot be an input alias")
+        return value
+
+
 class SourceConfig(_Model):
     name: Identifier
     """Unique source name."""
@@ -533,6 +573,10 @@ class ProjectConfig(RuntimeSettings):
     """Directories that hold model files."""
     python_paths: list[RelativePosixPath] = Field(default_factory=lambda: ["."])
     """Directories added to sys.path when models run."""
+    model_packages: list[Annotated[str, Field(pattern=r"^[A-Za-z_]\w*(\.[A-Za-z_]\w*)*$")]] = Field(
+        default_factory=list
+    )
+    """Installed packages whose modules hold models, by dotted name."""
     vars: dict[str, Any] = Field(default_factory=dict)
     """Variables for ${var:name}."""
     defaults: ProjectDefaults = Field(default_factory=ProjectDefaults)

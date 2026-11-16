@@ -11,6 +11,8 @@ from pipeloom.config.bind import BoundProject, bind_project
 from pipeloom.config.load import LoadedProject, ProjectOptions, load_project
 from pipeloom.config.resolve import resolve_project
 from pipeloom.diagnostics import Diagnostic, Outcome, Report
+from pipeloom.discovery import Discovery
+from pipeloom.discovery.project import python_models
 from pipeloom.events.bus import EventBus
 from pipeloom.graph.dag import ProjectGraph, build_graph
 from pipeloom.graph.selectors import Selection
@@ -54,6 +56,8 @@ class Project:
         self._loaded: Outcome[LoadedProject] | None = None
         self._bound: Outcome[BoundProject] | None = None
         self._resolved: Outcome[ProjectGraph] | None = None
+        self.discovery: Discovery | None = None
+        """The project's model discovery, kept so `docs serve` can refresh it."""
         self._validated: Outcome[ProjectGraph] | None = None
         self._plans: dict[tuple[Selection, str | None], Outcome[Plan]] = {}
         self.invocation_id = invocation_id or uuid.uuid4().hex
@@ -129,8 +133,17 @@ class Project:
             else:
                 report = Report()
                 report.extend(bound.diagnostics)
-                project = resolve_project(bound.value)
-                check_references(project, report)
+                loaded = bound.value.loaded
+                if self.discovery is None:
+                    self.discovery = Discovery(
+                        loaded.project_dir,
+                        loaded.config.model_paths,
+                        loaded.config.model_packages,
+                        loaded.config.python_paths,
+                    )
+                found = python_models(self.discovery.discover(), loaded.vars, report)
+                project = resolve_project(bound.value, found.models, found.broken)
+                check_references(project, report, models_incomplete=found.incomplete)
                 graph = None if report.has_errors else build_graph(project, report)
                 value = None if graph is None else ProjectGraph(project, graph)
                 self._resolved = Outcome(value, report.sorted())

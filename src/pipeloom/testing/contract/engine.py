@@ -34,6 +34,7 @@ from pipeloom.config.models import (
     RangeCheck,
     ResolvedModelConfig,
 )
+from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine.errors import WriteKeyError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
 from pipeloom.engine.types import (
@@ -63,7 +64,6 @@ from pipeloom.quality import quarantine_target
 from pipeloom.runtime.context import RuntimeContext
 from pipeloom.runtime.control import CancelToken
 from pipeloom.runtime.executors import UnitHandle
-from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.runner import ModelResult, ModelRunner
 from pipeloom.runtime.schema_policy import (
     SchemaRejected,
@@ -272,7 +272,7 @@ def _node(
     )
 
 
-class _FnLoader(CallableLoader):
+class _FnLoader(ModuleLoader):
     """Every `module:function` is the one function given."""
 
     def __init__(self, fn: Callable[..., Any]) -> None:
