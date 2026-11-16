@@ -190,10 +190,10 @@ models:
             - id: 1
             - id: 2
     data_tests:
-      - name: order_id_unique
+      - name: id_unique
         check:
           unique:
-            - order_id
+            - id
 ```
 
 `data_tests` also has a decorator keyword, which takes `DataTest` objects or plain dicts. The
@@ -206,15 +206,15 @@ from pipeloom import DataTest, model
 
 @model(
     data_tests=[
-        DataTest(name="order_id_unique", check={"unique": ["order_id"]}, on_violation="warn"),
+        DataTest(name="id_unique", check={"unique": ["id"]}, on_violation="warn"),
     ],
 )
 def orders(raw_orders):
     ...
 ```
 
-A model that sets `data_tests` in both places gets the decorator's list replaced by the
-properties list. `unit_tests` live only in properties.
+A model that sets `data_tests` in both places keeps the decorator's list, which replaces the
+properties list whole. `unit_tests` live only in properties.
 
 ## build
 
