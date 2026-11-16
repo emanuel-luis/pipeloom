@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Version check and `[tool.pipeloom]` ([ADR-0016](docs/adr/0016-versioning-and-plugin-api.md#version-check)): every distribution declares `config-version = 1` and `plugin-api = "1.0"`. `tools/versions.py check` compares the declarations with `CONFIG_VERSION` and `API_VERSION` in the source, requires every distribution to match the root, and requires every `PluginSpec` to pass `API_VERSION`. `check`, `bump` and `--tag` accept prereleases such as `1.0.0rc1`, with members pinned `pipeloom~=1.0.0rc1`; the lint job of CI runs the check, and the release workflow marks a prerelease tag as a GitHub prerelease.
+
+### Changed
+
+- Breaking for plugin authors: the plugin API is (1, 0). A plugin built for (0, 5) fails with PLU001. From now on the core accepts a plugin with the same major and a minor not above its own. `config_version: 1` stays the only accepted value, now named by `CONFIG_VERSION` in `pipeloom.config.types`.
+
 ### Fixed
 
 - A missing, empty or unreadable source file on the polars engine now fails the unit at read with PLM204, as pandas does, instead of failing later with PLX101.

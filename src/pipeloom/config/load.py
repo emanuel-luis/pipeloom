@@ -15,6 +15,7 @@ from pydantic import BaseModel, ValidationError
 from pipeloom.config.discover import PROJECT_FILE, find_model_files, read_file
 from pipeloom.config.errors import from_validation_error
 from pipeloom.config.models import ProjectConfig, PropertiesFile
+from pipeloom.config.types import CONFIG_VERSION
 from pipeloom.config.yaml import LoadedDocument, parse_yaml
 from pipeloom.diagnostics import Report
 from pipeloom.secrets.interpolation import InterpolationRecord, interpolate
@@ -144,12 +145,13 @@ def load_project(opts: ProjectOptions, report: Report) -> LoadedProject | None:
     if not isinstance(doc.data, dict):
         report.add("PLS102", "pipeloom.yml must be a mapping", location=doc.locate(""))
         return None
-    if doc.data.get("config_version") != 1 or isinstance(doc.data.get("config_version"), bool):
+    found = doc.data.get("config_version")
+    if found != CONFIG_VERSION or isinstance(found, bool):
         report.add(
             "PLS103",
-            "config_version is missing or not 1",
+            f"config_version is missing or not {CONFIG_VERSION}",
             location=doc.locate("/config_version", key=True),
-            hint="start the file with 'config_version: 1'",
+            hint=f"start the file with 'config_version: {CONFIG_VERSION}'",
         )
         return None
     _scan_secrets(doc, report)
