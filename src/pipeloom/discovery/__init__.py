@@ -102,7 +102,9 @@ class Discovery:
 
         if dynamic:
             known = {
-                sf.module for sf in files if sf.module and entries[sf.path].parsed.kind != "none"
+                sf.module
+                for sf in files
+                if sf.module and (e := entries.get(sf.path)) and e.parsed.kind != "none"
             }
             outside = [sf.abs.parent for sf in files if sf.path.startswith("../")]
             with ModuleLoader(self.project_dir, self.python_paths, outside) as loader:

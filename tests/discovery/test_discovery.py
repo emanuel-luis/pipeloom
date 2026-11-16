@@ -17,6 +17,7 @@ from pipeloom.config import models as cfg
 from pipeloom.discovery import Discovery, DiscoveryResult, ModuleLoader, discover
 from pipeloom.discovery import cache as cache_mod
 from pipeloom.discovery.ast_resolver import parse_file
+from pipeloom.discovery.files import SourceFile
 
 STATIC = """
 from pipeloom import Write, model, var
@@ -217,6 +218,24 @@ def test_load_one_callable(tmp_path: Path) -> None:
             loader.load("models.dyn:TAGS")
         assert str(tmp_path.resolve()) == sys.path[0]
     assert str(tmp_path.resolve()) not in sys.path and "models.dyn" not in sys.modules
+
+
+def test_file_removed_between_scan_and_resolve(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write(tmp_path, {"models/d.py": DYNAMIC, "models/s.py": STATIC})
+    real = disc.find_files
+
+    def scan(*args: Any) -> Any:
+        files, failures = real(*args)
+        ghost = SourceFile("models/ghost.py", tmp_path / "models/ghost.py", "models.ghost")
+        return [*files, ghost], failures
+
+    monkeypatch.setattr(disc, "find_files", scan)
+    d = Discovery(tmp_path, ["models"])
+    for result in (d.discover(), d.refresh()):
+        assert result.failures == ()
+        assert sorted(names(result)) == ["customers", "orders", "payments", "refunds"]
 
 
 # --- cache -------------------------------------------------------------------------------------
