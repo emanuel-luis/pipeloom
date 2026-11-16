@@ -1,6 +1,6 @@
 # pipeloom architecture
 
-> **Status:** 0.7 implements the versions listed in section 16: the scheduler, the polars, pandas and Spark engines, incremental models, merge and replace_partitions, expectations and quarantine, retries, timeouts and cancellation, the Databricks and Airflow integrations, and per-model catalogs. Planned work lives in the [roadmap](roadmap.md).
+> **Status:** the code implements the versions listed in section 16: the scheduler, the polars, pandas and Spark engines, incremental models, merge, replace_partitions and scd2, expectations and quarantine, retries, timeouts and cancellation, the Databricks and Airflow integrations, per-model catalogs and, from 0.9, Python-first authoring. Planned work lives in the [roadmap](roadmap.md).
 > Decisions are recorded as ADRs in [adr/](adr/README.md). Diagrams are D2 sources in [diagrams/](diagrams/) with committed SVGs.
 > From 0.9 models are decorated Python functions, and YAML keeps the project and properties files ([ADR-0050](adr/0050-python-first-authoring.md)). Through 0.8 every model was declared in a YAML model file ([ADR-0003](adr/0003-model-authoring.md), superseded); that path is removed, and [Migrating from 0.8](guide/migrate-0.9.md) maps it to the decorator.
 
@@ -29,7 +29,7 @@
 
 ## 2. Glossary
 
-- **Project:** a directory with `pipeloom.yml` and model files (from 0.9: Python model modules and properties YAML files).
+- **Project:** a directory with `pipeloom.yml`, Python model modules and properties YAML files (through 0.8: YAML model files).
 - **Model:** a named dataset built from declared inputs. From 0.9 it is a Python function marked with `@model`, whose parameters are its inputs; through 0.8 it is a YAML entry with a Python callable or a SQL body.
 - **Source:** an external dataset declared in YAML. From 0.9 sources are tables in named groups under `sources:` in `pipeloom.yml`, with the unique id `source.<project>.<group>.<table>`.
 - **Properties file:** (from 0.9) any `*.yml` or `*.yaml` under `model_paths` other than `pipeloom.yml`; it describes and configures models by name and never declares one.
@@ -97,7 +97,7 @@ Source: [02-packages.d2](diagrams/02-packages.d2).
 6. **Execute:** the scheduler runs units through an executor. Orchestrated tasks run `pipeloom run --manifest ... --select unit:<id> --expect-plan-hash <h>`.
 7. **Finalize:** merge per-invocation results, write `run_results.json`, commit run state, flush and close sinks.
 
-**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `new model` (add a model file and, for Python, its stub; from 0.9 one decorated `.py` file; ADR-0041 amendments), `validate`, `compile`, `ls`, `graph`, `run`, `retry` (run again what a finished run did not finish, ADR-0013 amendment), `finalize`, `docs generate|serve` (a read-only one-file site, [ADR-0043](adr/0043-docs-site.md)), `schema export`, `explain` (print a diagnostic code's catalog entry and docs link) and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
+**Commands.** `init` (scaffold a new project, [ADR-0041](adr/0041-pipeloom-init.md)), `new model` (add one decorated `.py` model file; ADR-0041 amendments), `validate`, `compile`, `ls`, `graph`, `run`, `retry` (run again what a finished run did not finish, ADR-0013 amendment), `finalize`, `docs generate|serve` (a read-only one-file site, [ADR-0043](adr/0043-docs-site.md)), `schema export`, `explain` (print a diagnostic code's catalog entry and docs link) and `plugins list`; plugins add their own through `pipeloom.commands` (for example `pipeloom databricks`).
 
 ![The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize.](diagrams/03-lifecycle.svg)
 
@@ -385,9 +385,9 @@ The engine protocols above omit `Writer`, `Catalog.apply_grants` and `Catalog.ma
 
 **0.9 contract additions (plugin API (0, 5), [ADR-0047](adr/0047-run-history-and-webhook.md)).**
 - `StateStore.list_runs(project, target, limit, before=None)` returns the runs of one project and target, newest first by `(started_at, run_id)`, at most `limit`; `before` is a run id to page from, and an unknown one raises `UnknownRun`. `pipeloom.state.types.page_runs` does the ordering and paging for any store. The core calls it through `pipeloom.state.types.list_runs`, which raises `ListRunsUnsupported` (PLX117) for a store that lacks the method.
-- `EngineCapabilities.sql_dialect` (planned for 0.9, [ADR-0050](adr/0050-python-first-authoring.md)) names the engine's sqlglot dialect, or `None`. It is part of (0, 5), which is unreleased, so the version does not change.
+- `EngineCapabilities.sql_dialect` (0.9, [ADR-0050](adr/0050-python-first-authoring.md)) names the engine's sqlglot dialect, or `None`. It is part of (0, 5), which is unreleased, so the version does not change.
 
-**`ModelContext.sql` (planned for 0.9, [ADR-0050](adr/0050-python-first-authoring.md)).** `ModelContext` keeps its fields and gains `sql(query, *, dialect=None, inputs=None)`, backed by a private callable the runner sets. The query sees the model's inputs by alias as read (after the incremental filter); `inputs=` adds or replaces frames by name. It returns the native frame, or a Narwhals frame under `frame_api: narwhals`. The dialect is the `dialect` argument, then the inheritable model setting `sql_dialect`, then the engine's own. Only when the chosen dialect differs from the engine's does `pipeloom.runtime.sql` translate the query with sqlglot `transpile`, imported lazily; without the sqlglot extra that is PLC513. pandas has no SQL and raises `SqlUnsupportedError` (PLX101 with a hint); L6 warns with PLK606 beforehand. In a `view` model the runner calls the function in view mode and `ctx.sql` returns a `ViewQuery` for `create_view`; any other return value is PLX120. The function is called by keyword: the input aliases, plus `ctx` when it is a parameter.
+**`ModelContext.sql` (0.9, [ADR-0050](adr/0050-python-first-authoring.md)).** `ModelContext` keeps its fields and gains `sql(query, *, dialect=None, inputs=None)`, backed by a private callable the runner sets. The query sees the model's inputs by alias as read (after the incremental filter); `inputs=` adds or replaces frames by name. It returns the native frame, or a Narwhals frame under `frame_api: narwhals`. The dialect is the `dialect` argument, then the inheritable model setting `sql_dialect`, then the engine's own. Only when the chosen dialect differs from the engine's does `pipeloom.runtime.sql` translate the query with sqlglot `transpile`, imported lazily; without the sqlglot extra that is PLC513. pandas has no SQL and raises `SqlUnsupportedError` (PLX101 with a hint); L6 warns with PLK606 beforehand. In a `view` model the runner calls the function in view mode and `ctx.sql` returns a `ViewQuery` for `create_view`; any other return value is PLX120. The function is called by keyword: the input aliases, plus `ctx` when it is a parameter.
 
 **ADR-0002: Engine abstraction.**
 - Context: the spec (section 4) lists coupling in the return type, reads, schema, temporary views, writes, merge, metrics and catalog SQL.
