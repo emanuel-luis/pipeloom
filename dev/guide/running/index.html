@@ -493,6 +493,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#inspecting-a-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspecting a project
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1473,6 +1484,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#inspecting-a-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspecting a project
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1656,6 +1678,28 @@ paths of the files written. See <a href="../../reference/artifacts/">Run artifac
 <p>Each failure block has an <code>explain:</code> line after the hint. <code>pipeloom explain &lt;CODE&gt;</code> (for example
 <code>pipeloom explain PLX101</code>, any case) prints what the code means and links to its entry on the
 <a href="../../reference/errors/">error codes</a> page.</p>
+<h2 id="inspecting-a-project">Inspecting a project<a class="headerlink" href="#inspecting-a-project" title="Permanent link">&para;</a></h2>
+<p>These commands write no data. The flags of each are in the
+<a href="../../reference/cli/">command line reference</a>.</p>
+<ul>
+<li><code>pipeloom validate</code> runs the checks from YAML syntax to engine capabilities (layers L0 to L6)
+  and prints each finding with its code. It exits 1 on an error, and with <code>--warn-error</code> on a
+  warning too.</li>
+<li><code>pipeloom compile</code> validates the same way, then writes the plan to a manifest (<code>--out</code>, default
+  <code>target/manifest.json</code>). <code>--stable</code> blanks the timestamp, the invocation id and the
+  selection, so the same project and target always give the same file.</li>
+<li><code>pipeloom ls</code> prints the names of the models that <code>-s/--select</code> and <code>--exclude</code> choose, one per
+  line, or a JSON list with <code>--output json</code>.</li>
+<li><code>pipeloom graph</code> prints the selected models in dependency order as text (<code>name &lt;- parents</code>),
+  Graphviz <code>dot</code>, Mermaid or JSON. <code>--units --output json</code> prints the execution units instead; see
+  the <a href="../orchestrators/">orchestrator protocol</a>.</li>
+<li><code>pipeloom plugins list</code> lists the installed plugins by group and kind from their metadata,
+  without importing them. <code>--group</code> keeps one group, <code>--output json</code> prints JSON, and <code>--check</code>
+  imports each plugin and adds its plugin API version and a status. A kind that two
+  distributions provide is PLU002 and exit 1.</li>
+<li><code>pipeloom schema export --out DIR</code> writes the JSON Schemas of <code>pipeloom.yml</code> and the
+  properties files; see <a href="../../reference/schema/">JSON Schema</a>.</li>
+</ul>
 
 
 

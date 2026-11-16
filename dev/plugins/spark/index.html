@@ -1810,7 +1810,7 @@ fails and tells you to use mode <code>active</code>. Classic and Connect cannot 
   metastore, and it works across processes. <code>root</code> may be a URI such as <code>s3://</code> or <code>abfss://</code>. It
   cannot hold views.</li>
 <li><code>spark_catalog</code>: tables and views by name through the session catalog (<code>catalog</code> option, else
-  the current catalog). It is the base the Unity Catalog support of a later release reuses. A view
+  the current catalog). The <code>unity</code> catalog of <a href="../databricks/">pipeloom-databricks</a> builds on it. A view
   is created with <code>CREATE OR REPLACE VIEW</code> over a table, <code>delta</code> or <code>parquet</code> input. A model's
   <code>catalog</code> setting wins over the <code>catalog</code> option. pipeloom creates schemas, never catalogs: the
   catalog must exist, and on a local session it must be registered in the Spark conf

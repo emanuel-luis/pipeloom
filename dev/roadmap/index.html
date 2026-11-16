@@ -1682,7 +1682,8 @@
 
 
 <h1 id="roadmap">Roadmap<a class="headerlink" href="#roadmap" title="Permanent link">&para;</a></h1>
-<p>Status: plan as of 2026-11-06, written against 0.7.0, and updated on 2026-11-15 for Python-first authoring. This
+<p>Status: plan as of 2026-11-06, written against 0.7.0, updated on 2026-11-15 for Python-first authoring and on
+2026-11-16 for 1.0, whose items are delivered (see <a href="#10-stable-contracts">1.0: stable contracts</a>). This
 page replaces the planned versions that section 16 of <a href="../architecture/#16-roadmap">architecture.md</a> used to list;
 section 16 keeps the record of what each delivered version contains. Items that change a decision name the ADR they
 need: ADRs up to 0050 exist and are accepted.</p>
@@ -1691,8 +1692,8 @@ need: ADRs up to 0050 exist and are accepted.</p>
 plus the ephemeral models inlined into it), and the artifacts root is the folder where each run writes its
 manifest, results, events and logs.</p>
 <h2 id="1-vision-and-principles">1. Vision and principles<a class="headerlink" href="#1-vision-and-principles" title="Permanent link">&para;</a></h2>
-<p>pipeloom should make a pipeline cheap to write, check and run anywhere: one YAML project, one compiled plan, any
-engine, any orchestrator, and every run observable without extra code. The roadmap borrows the developer
+<p>pipeloom should make a pipeline cheap to write, check and run anywhere: one project of Python models, one compiled
+plan, any engine, any orchestrator, and every run observable without extra code. The roadmap borrows the developer
 experience of dbt, the orchestrator integration of astronomer-cosmos and the plan and diff safety of SQLMesh. It
 leaves out the parts that would make pipeloom heavier: Jinja, a server process and a portable SQL dialect.</p>
 <p>The 13 principles in section 1 of the architecture still apply. These five guide the choices below:</p>
@@ -2098,6 +2099,22 @@ release (<a href="../guide/migrate-0.9/">migration guide</a>); WATCHER mode was 
 </tbody>
 </table>
 <h3 id="10-stable-contracts">1.0: stable contracts<a class="headerlink" href="#10-stable-contracts" title="Permanent link">&para;</a></h3>
+<p>Delivered for 1.0. The release ships as 1.0.0rc1 first, and 1.0.0 follows once the maintainer approves the
+release candidate. What each item became:</p>
+<ul>
+<li>JSON Schemas: <code>run_results</code>, <code>event</code> and <code>unit_states</code> were published in 0.9.0 and the manifest schema joins them
+  in 1.0, all under <code>schema/v1/</code> with the goldens validated in CI
+  (<a href="../adr/0049-artifact-schemas-and-orchestrator-protocol/">ADR-0049</a>).</li>
+<li>Orchestrator protocol: the <a href="../guide/orchestrators/">protocol page</a>, <code>graph --units --output json</code> and the
+  <a href="../guide/recipe-github-actions/">GitHub Actions recipe</a>, which runs the TPC-H polars example unit by unit in CI,
+  shipped in 0.9.0 (<a href="../adr/0049-artifact-schemas-and-orchestrator-protocol/">ADR-0049</a>).</li>
+<li>Stable versions: the <a href="../reference/stability/">stability and deprecation policy</a> is the
+  <a href="../adr/0016-versioning-and-plugin-api/#amendment-10-stability-and-deprecation-policy">ADR-0016 amendment</a>, and 1.0
+  moves the plugin API to (1, 0) with a <code>tools/versions.py check</code> step that guards the released versions.</li>
+<li>Hardening and complete docs: the <a href="../reference/cli/#where-each-command-is-explained">command line page</a> maps every
+  command to the page that explains it, and a test fails when a command is missing there or a command or option has
+  no help text.</li>
+</ul>
 <table>
 <thead>
 <tr>
@@ -2134,6 +2151,13 @@ release (<a href="../guide/migrate-0.9/">migration guide</a>); WATCHER mode was 
 source freshness and volume change checks, <code>pipeloom-dagster</code>, the Databricks <code>load_resources</code> hook, <code>pipeloom-lsp</code>
 with the VS Code extension, the Airflow DOCKER mode and the <code>airflow</code> secret provider, research on a Lakeflow export,
 and a Prefect recipe.</p>
+<p>Two follow-ups deferred from 1.0:</p>
+<ul>
+<li>Stable Airflow DAG parse-time budget tests. They are flaky when the machine is under load; they guard a budget,
+  not user-facing behavior.</li>
+<li>The <code>airflow</code> dependency group on Windows. It does not install there because openlineage-sql publishes no Windows
+  wheel, so Airflow plugin development and its mypy run happen on Linux, WSL or CI.</li>
+</ul>
 <h2 id="5-non-goals-and-risks">5. Non-goals and risks<a class="headerlink" href="#5-non-goals-and-risks" title="Permanent link">&para;</a></h2>
 <p>Non-goals through 1.0: streaming; a scheduler service; any UI that starts, schedules or edits runs; hosted or
 multi-user services; a portable SQL dialect; Jinja; user code at compile time (from 0.9 it runs only for modules with
