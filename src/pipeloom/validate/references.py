@@ -92,6 +92,8 @@ def check_references(
             name = rel.to.ref if is_ref else rel.to.source
             if name in (model_names if is_ref else source_names):
                 continue
+            if is_ref and name in project.broken_models:
+                continue  # its own PLS code is reported
             key = "ref" if is_ref else "source"
             report.add(
                 "PLR201" if is_ref else "PLR203",

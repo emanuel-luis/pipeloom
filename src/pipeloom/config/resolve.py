@@ -188,6 +188,8 @@ class ResolvedProject:
 
     def locate_data_test(self, model: ResolvedModel, index: int, leaf: str = "") -> Location:
         """Where the `index`th data test of `model` (plus `leaf`, such as `/check`) is written."""
+        if model.site is not None and model.data_tests_at is None:
+            return model.site.locate(f"/data_tests/{index}{leaf}")
         file, pointer = model.data_tests_at or (model.file, f"{model.pointer}/data_tests")
         return self.locate(file, f"{pointer}/{index}{leaf}")
 
@@ -469,6 +471,14 @@ def resolve_project(
         }
         if columns is not None:
             origins["columns"] = columns
+        # data_tests is a model key: the decorator's list replaces the properties one.
+        data_tests, tests_at = p.data_tests, None
+        if data_tests is not None:
+            origins["data_tests"] = Origin("decorator", p.site.locate("/data_tests"))
+        elif p.name in props and props[p.name][2].data_tests is not None:
+            pfile, ppointer, pe = props[p.name]
+            data_tests, tests_at = pe.data_tests, (pfile, f"{ppointer}/data_tests")
+            origins["data_tests"] = Origin("properties", locate(*tests_at))
         inputs = _bind(p, project, known, tables, binding)
         m = ResolvedModel(
             unique_id=model_id(project, p.name),
@@ -486,13 +496,21 @@ def resolve_project(
                     for a, b in inputs.items()
                 },
                 columns=entry_columns,
+                data_tests=data_tests,
             ),
             config=merge_settings([layer.settings for layer in layers]),
             inputs=inputs,
             own_fields=p.own_fields,
             origins=origins,
+            data_tests_at=tests_at,
             site=p.site,
         )
+        if p.name in props and m.unique_id not in models:
+            pfile, ppointer, pe = props[p.name]
+            for j, case in enumerate(pe.unit_tests or ()):
+                unit_tests.append(
+                    ResolvedUnitTest(p.name, case.name, pfile, f"{ppointer}/unit_tests/{j}", case)
+                )
         if m.unique_id in models:
             shadowed_models.append(m)
         else:

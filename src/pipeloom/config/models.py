@@ -461,6 +461,7 @@ class DecoratorArgs(ModelSettings):
     description: str | None = None
     inputs: dict[Identifier, InputConfig | Identifier] = Field(default_factory=dict)
     columns: list[ColumnConfig] | None = None
+    data_tests: list[DataTestConfig] | None = None
 
     @field_validator("name")
     @classmethod
