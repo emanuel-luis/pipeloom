@@ -107,7 +107,7 @@ def compile_plan(
             unique_id=uid,
             name=m.name,
             file=m.file,
-            line=m.site.line if m.site is not None else project.at(m, "/name").line,
+            line=m.site.line,
             materialized=m.config.materialized,
             body=body,
             inputs={alias: b.unique_id for alias, b in m.inputs.items()},
