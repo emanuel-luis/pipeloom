@@ -1,0 +1,23 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine:
+          kind: memory
+  models/m.yml: |
+    models:
+      - name: stg_orders
+        sql: select 1 as id
+  models/_properties.yml: |
+    models:
+      - name: stg_orders
+        description: One row per order.
+      - name: stg_ordrs
+        description: A typo.
+  models/more/_properties.yml: |
+    models:
+      - name: stg_orders
+        config:
+          retries: 2

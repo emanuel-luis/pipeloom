@@ -37,7 +37,7 @@ def test_codes_are_well_formed_and_sorted() -> None:
 def test_active_codes_and_others_reserved() -> None:
     active = {c for c, i in CATALOG.items() if i.status == "active"}
     assert active == (
-        {f"PLY00{n}" for n in range(1, 5)}
+        {f"PLY00{n}" for n in range(1, 6)}
         | {f"PLS10{n}" for n in range(1, 9)}
         | {"PLR201", "PLR202", "PLR203", "PLR204", "PLR205", "PLR206", "PLR207"}
         | {f"PLG30{n}" for n in range(1, 7)}
@@ -58,6 +58,8 @@ def test_active_codes_and_others_reserved() -> None:
         | {"PLM208", "PLP414"}
         | {"PLX117", "PLX118"}
         | {"PLP416"}
+        | {"PLC513", "PLK606", "PLX120"}
+        | {"PLR209", "PLR210"}
     )
     assert info("PLD002").status == "reserved"
     assert info("PLF701").status == "reserved"

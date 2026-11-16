@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+# Descriptions and settings of the models in this folder, next to their code.
+models:
+  - name: orders_clean
+    description: Typed orders with a positive amount, one row per order.

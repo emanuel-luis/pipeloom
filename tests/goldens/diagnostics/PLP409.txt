@@ -1,2 +1,2 @@
-error PLP409 models/m.yml:4:19 view 'a' is a Python model
-      hint: write the view as SQL, or materialize it as a table
+error PLP409 models/m.yml:7:19 view 'a' reads ephemeral model(s) e
+      hint: make those models tables, or materialize the view as a table

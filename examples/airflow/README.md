@@ -56,7 +56,9 @@ Stop with `astro dev stop`, or remove the containers and volumes with `astro dev
 
 `docker-compose.override.yml` mounts the whole `examples/` folder at
 `/usr/local/airflow/examples` in the scheduler, DAG processor, triggerer and API server. The DAGs
-compile each project at parse time (`LoadMode.PROJECT`), so no manifest is needed. The project
+compile each project at parse time (`LoadMode.PROJECT`), so no manifest is needed. Every
+`@model` decorator in the examples has only literal arguments, so compiling reads the model files
+without importing them; a unit task imports only the module of the model it runs. The project
 variable `tpch_dir` (`../data/tpch`) resolves to `examples/data/tpch`.
 
 `tpch_polars_watcher` loads the stable manifest from step 2 of "Run it" (`LoadMode.MANIFEST`, relative

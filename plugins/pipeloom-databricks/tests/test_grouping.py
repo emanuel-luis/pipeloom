@@ -31,6 +31,7 @@ def test_one_task_per_unit_by_default(shop: Plan) -> None:
         "stg_customers",
         "stg_orders",
         "stg_payments",
+        "top_customers",
     ]
     by_key = {t.key: t for t in tasks}
     assert by_key["rpt_revenue"].parents == ("fct_orders",)
@@ -44,7 +45,7 @@ def test_group_by_tag_uses_the_first_tag(shop: Plan) -> None:
     assert {t.key: t.units for t in tasks} == {
         "tag_mart": ("dim_customers", "fct_orders"),
         "tag_staging": ("stg_customers", "stg_orders", "stg_payments"),
-        "tag_untagged": ("rpt_revenue",),
+        "tag_untagged": ("rpt_revenue", "top_customers"),
     }
     by_key = {t.key: t for t in tasks}
     assert by_key["tag_untagged"].parents == ("tag_mart",)
@@ -54,7 +55,7 @@ def test_group_by_tag_uses_the_first_tag(shop: Plan) -> None:
 def test_group_by_folder_uses_the_parent_folder(shop: Plan) -> None:
     tasks = build_tasks(shop, _opts(task_grouping="by_folder"), "main", Report())
     assert {t.key: t.units for t in tasks} == {
-        "dir_models_marts": ("dim_customers", "fct_orders", "rpt_revenue"),
+        "dir_models_marts": ("dim_customers", "fct_orders", "rpt_revenue", "top_customers"),
         "dir_models_staging": ("stg_customers", "stg_orders", "stg_payments"),
     }
     assert tasks[0].parents == ("dir_models_staging",)
@@ -64,14 +65,14 @@ def test_task_key_map_names_the_task_of_each_unit(shop: Plan) -> None:
     mapping = task_key_map(shop, _opts(task_grouping="by_tag"), "main")
     assert mapping["fct_orders"] == "tag_mart"
     assert mapping["stg_orders"] == "tag_staging"
-    assert len(mapping) == 6
+    assert len(mapping) == 7
 
 
 def test_pipelines_select_their_units(shop: Plan) -> None:
     opts = _opts(pipelines={"main": {}, "marts": {"select": ["tag:mart"]}})
     report = Report()
     assert pipeline_units(shop, opts, "marts", report) == ("dim_customers", "fct_orders")
-    assert len(pipeline_units(shop, opts, "main", report)) == 6
+    assert len(pipeline_units(shop, opts, "main", report)) == 7
     assert _codes(report) == []
     tasks = build_tasks(shop, opts, "marts", report)
     # A parent outside the pipeline is not a dependency of its job.

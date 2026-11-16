@@ -40,7 +40,6 @@ def test_flags(tmp_path: Path) -> None:
     doc = project_yml(out)
     assert doc["name"] == "shop"
     assert doc["targets"]["dev"]["engine"]["kind"] == "pandas"
-    assert (out / "src" / "shop_models" / "silver.py").is_file()
     assert (out / ".gitignore").is_file()
     assert f"in {out.as_posix()}" in result.stdout
     assert "pipeloom validate" in result.stdout and "pipeloom run" in result.stdout
@@ -161,6 +160,26 @@ def test_existing_project_is_refused_even_with_force(tmp_path: Path) -> None:
 def test_interactive_is_stdin_isatty(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("sys.stdin.isatty", lambda: True, raising=False)
     assert init_module._interactive() is True
+
+
+@pytest.mark.parametrize("engine", ENGINES)
+def test_python_first_layout(engine: str) -> None:
+    values = {
+        "name": "shop",
+        "engine": engine,
+        "catalog": "main",
+        "version": "0",
+        "run_command": "",
+    }
+    files = render(engine, values)
+    for layer in ("bronze", "silver", "gold"):
+        assert "@model" in files[f"models/{layer}/{layer}.py"].decode("utf-8"), layer
+    assert "models/silver/_properties.yml" in files
+    assert not [p for p in files if p.endswith("_defaults.yml") or p.startswith("src/")]
+    tree = yaml.safe_load(files["pipeloom.yml"])["models"]
+    assert tree["+materialized"] == "table" and tree["gold"]["+schema"] == "gold"
+    sql = "ctx.sql(" in files["models/gold/gold.py"].decode("utf-8")
+    assert sql is (engine != "pandas")
 
 
 @pytest.mark.parametrize("engine", ENGINES)

@@ -3,9 +3,26 @@
 # volume must exist before the first deploy.
 config_version: 1
 name: tpch_databricks
-defaults:
-  models:
-    materialized: table
+models:
+  +materialized: table
+  bronze:
+    +catalog: pipeloom_bronze
+    +tags: [bronze]
+  silver:
+    +catalog: pipeloom_silver
+    +tags: [silver]
+  gold:
+    +catalog: pipeloom_gold
+    +tags: [gold]
+sources:
+  tpch:
+    schema: samples.tpch
+    tables:
+      orders:
+      lineitem:
+      customer:
+      nation:
+      region:
 targets:
   dev:
     engine:

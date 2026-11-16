@@ -1,7 +1,7 @@
 """Coverage must measure directories, not package names.
 
 For a package name, coverage.py imports the package inside `sys_modules_saved()` whenever
-`sys.path` changes and then deletes every module imported meanwhile. `CallableLoader` changes
+`sys.path` changes and then deletes every module imported meanwhile. `ModuleLoader` changes
 `sys.path` once per run, so on a threaded run a worker's import in flight (`m`, narwhals) lost its
 `sys.modules` entry: `KeyError: 'm'` in `importlib._bootstrap._load_unlocked` (CI only).
 """

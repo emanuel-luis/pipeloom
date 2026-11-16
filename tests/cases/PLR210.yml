@@ -1,0 +1,32 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    model_paths: [models]
+    python_paths: [models]
+    sources:
+      raw:
+        format: parquet
+        location: data
+        tables:
+          orders:
+            location: orders.parquet
+      archive:
+        format: parquet
+        location: old
+        tables:
+          orders:
+            location: orders.parquet
+          customers:
+            location: customers.parquet
+    targets:
+      dev:
+        engine:
+          kind: memory
+  models/staging.py: |
+    from pipeloom import model
+
+
+    @model
+    def stg_orders(ctx, orders, customers):
+        return orders

@@ -1,0 +1,19 @@
+"""Bronze: orders from the TPC-H sample that every workspace has, renamed to the project's
+columns. Replace the source in pipeloom.yml with your own table.
+
+A model never reads itself, so the `orders` parameter binds the source table `raw.orders`.
+"""
+
+from pipeloom import ModelContext, model
+
+
+@model
+def orders(ctx: ModelContext, orders):
+    return ctx.sql("""
+        select
+          o_orderkey as order_id,
+          o_custkey as customer_id,
+          o_orderdate as order_date,
+          o_totalprice as amount
+        from orders
+    """)

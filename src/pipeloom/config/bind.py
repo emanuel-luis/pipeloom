@@ -16,7 +16,14 @@ from pydantic import BaseModel, ValidationError
 
 from pipeloom.config.errors import from_validation_error
 from pipeloom.config.load import LoadedProject, ProjectOptions
-from pipeloom.config.models import ArtifactsConfig, PluginBlock
+from pipeloom.config.models import (
+    ArtifactsConfig,
+    PluginBlock,
+    RuntimeSettings,
+    SourceConfig,
+    SourceGroupConfig,
+    SourceTableConfig,
+)
 from pipeloom.diagnostics import Report, suggest
 from pipeloom.plugins import Group, PluginRegistry, PluginSpec
 from pipeloom.secrets.resolve import SecretError, SecretResolver
@@ -95,6 +102,17 @@ class RuntimeSettingsResolved:
 
 
 @dataclass(frozen=True)
+class BoundSource:
+    """A table of a source group, with the target's overrides applied."""
+
+    group: str
+    table: str
+    config: SourceConfig
+    pointer: str
+    """Where the table sits in pipeloom.yml, as a JSON pointer."""
+
+
+@dataclass(frozen=True)
 class BoundProject:
     loaded: LoadedProject
     target: str
@@ -103,6 +121,72 @@ class BoundProject:
     """Engine and catalog when set; naming and the state store always; `renderers` when the
     target has a deploy block (the core never calls its factory)."""
     sinks: tuple[BoundPlugin, ...]
+    sources: tuple[BoundSource, ...] = ()
+    """Tables of the source groups in pipeloom.yml, in file order."""
+
+
+def _override(low: Mapping[str, Any], high: Mapping[str, Any]) -> dict[str, Any]:
+    """Deep-merge `high` over `low`; an explicit None in `high` removes the key."""
+    out = dict(low)
+    for key, value in high.items():
+        if value is None:
+            out.pop(key, None)
+        elif isinstance(value, dict) and isinstance(out.get(key), dict):
+            out[key] = _override(out[key], value)
+        else:
+            out[key] = value
+    return out
+
+
+def _table_source(key: str, group: SourceGroupConfig, t: SourceTableConfig) -> SourceConfig:
+    """A table location is joined to the group location; a table name (its key when it sets
+    neither) is qualified by the schema unless it is already qualified."""
+    location = table = None
+    if t.location is not None:
+        base = group.location
+        # The same rule as `Runner._source_spec` in runtime/runner.py: a URL, a POSIX path or
+        # a Windows drive path is absolute.
+        loc = t.location
+        absolute = "://" in loc or loc.startswith("/") or ":" in loc[:2]
+        location = t.location if base is None or absolute else f"{base.rstrip('/')}/{t.location}"
+    else:
+        table = t.table or key
+        schema = t.schema_ or group.schema_
+        if schema and "." not in table:
+            table = f"{schema}.{table}"
+    return SourceConfig(
+        name=key,
+        description=t.description or group.description,
+        format=t.format or group.format,
+        location=location,
+        table=table,
+        options=_override(group.options, t.options or {}),
+        tags=list(dict.fromkeys([*group.tags, *(t.tags or ())])),
+        meta=_override(group.meta, t.meta or {}),
+    )
+
+
+def _bind_sources(loaded: LoadedProject, target: str, report: Report) -> list[BoundSource]:
+    """Merge `targets.<t>.sources.<group>` over each group, then flatten the tables."""
+    groups = loaded.config.sources
+    overrides = loaded.config.targets[target].sources or {}
+    out: list[BoundSource] = []
+    for name in [*groups, *(g for g in overrides if g not in groups)]:
+        group = groups.get(name)
+        if name in overrides:
+            base = group.model_dump(by_alias=True, exclude_unset=True) if group else {}
+            try:
+                group = SourceGroupConfig.model_validate(_override(base, overrides[name]))
+            except ValidationError as err:
+                pointer = f"/targets/{target}/sources/{name}"
+                doc = loaded.project_file.doc
+                from_validation_error(err, doc, SourceGroupConfig, report, base_pointer=pointer)
+                continue
+        assert group is not None
+        for key, t in group.tables.items():
+            config = _table_source(key, group, t or SourceTableConfig())
+            out.append(BoundSource(name, key, config, f"/sources/{name}/tables/{key}"))
+    return out
 
 
 def _select_target(
@@ -145,11 +229,11 @@ def _resolve_runtime(
     loaded: LoadedProject, target: str, opts: ProjectOptions
 ) -> RuntimeSettingsResolved:
     """Top-level keys, then targets.<t>, then CLI flags. A key set lower replaces it whole."""
-    top = loaded.config
-    tgt = loaded.config.targets[target]
+    top: RuntimeSettings = loaded.config
+    tgt: RuntimeSettings = loaded.config.targets[target]
     values: dict[str, Any] = {}
     pointers: dict[str, str] = {}
-    for key in type(top).model_fields.keys() & type(tgt).model_fields.keys():
+    for key in RuntimeSettings.model_fields:
         if getattr(tgt, key) is not None:
             values[key], pointers[key] = getattr(tgt, key), f"/targets/{target}/{key}"
         elif getattr(top, key, None) is not None:
@@ -220,6 +304,7 @@ def bind_project(
         return None
     runtime = _resolve_runtime(loaded, target, opts)
     before = report.error_count
+    sources = _bind_sources(loaded, target, report)
     plugins: dict[Group, BoundPlugin] = {}
     for key, group in _BLOCK_GROUPS.items():
         block: PluginBlock | None = getattr(runtime, key)
@@ -236,7 +321,7 @@ def bind_project(
             sinks.append(bound)
     if report.error_count > before:
         return None
-    return BoundProject(loaded, target, runtime, plugins, tuple(sinks))
+    return BoundProject(loaded, target, runtime, plugins, tuple(sinks), tuple(sources))
 
 
-__all__ = ["BoundPlugin", "BoundProject", "RuntimeSettingsResolved", "bind_project"]
+__all__ = ["BoundPlugin", "BoundProject", "BoundSource", "RuntimeSettingsResolved", "bind_project"]

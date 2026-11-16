@@ -52,7 +52,9 @@ def test_units_one_per_persisted_model() -> None:
         "stg_customers",
         "stg_orders",
         "stg_payments",
+        "top_customers",
     ]
+    assert plan.units["top_customers"].parents == ("rpt_revenue",)
     fct = plan.units["fct_orders"]
     assert fct.nodes == ("model.shop.orders_enriched", "model.shop.fct_orders")
     assert fct.parents == ("stg_customers", "stg_orders", "stg_payments")
@@ -71,7 +73,7 @@ def test_units_ignore_selection_and_boundary() -> None:
     assert part.parent_map == full.parent_map
     assert part.selection.selected == ("model.shop.rpt_revenue",)
     assert part.metadata.boundary == "task" and full.metadata.boundary == "process"
-    assert len(full.selection.selected) == 7
+    assert len(full.selection.selected) == 8
 
 
 def test_bodies_and_naming() -> None:

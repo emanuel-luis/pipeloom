@@ -2,7 +2,7 @@ files:
   pipeloom.yml: |
     config_version: 1
     name: shop
-    python_paths: [src]
+    python_paths: [src, models]
     targets:
       dev:
         engine:
@@ -18,4 +18,16 @@ files:
         sql: select 1
   src/m.py: |
     def a(ctx, y):
+        return None
+  models/p.py: |
+    from pipeloom import model
+
+
+    @model(inputs={"z": "b"})
+    def c(ctx, *rest, b):
+        return None
+
+
+    @model
+    def d(x, /, ctx):
         return None

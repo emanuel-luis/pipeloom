@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 from pipeloom.diagnostics import Report, Severity
+from pipeloom.plan.model import PythonBody
 from pipeloom.secrets.redaction import Redactor
 from pipeloom_databricks import upload as upload_module
 from pipeloom_databricks.bundle import Runtime
@@ -241,7 +242,16 @@ def test_render_errors_stop_before_any_upload(sim: Callable[..., Sim]) -> None:
 
 def test_collect_skips_caches_dot_entries_and_the_artifacts_root(sim: Callable[..., Sim]) -> None:
     s = sim()
-    for rel in ("__pycache__/x.pyc", ".hidden/a.txt", ".env", "out/run.json", "mod.py", "mod.pyc"):
+    for rel in (
+        "__pycache__/x.pyc",
+        ".hidden/a.txt",
+        ".env",
+        "out/run.json",
+        "mod.py",
+        "mod.pyc",
+        "models/marts/_properties.yml",
+        "models/notes.txt",
+    ):
         path = s.root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("x", encoding="utf-8")
@@ -251,6 +261,7 @@ def test_collect_skips_caches_dot_entries_and_the_artifacts_root(sim: Callable[.
         MANIFEST_PATH,
         "mod.py",
         "models/m.yml",
+        "models/marts/_properties.yml",
         "pipeloom.yml",
     ]
     again = collect(s.root, s.plan, (s.root / "out").as_posix(), Report())
@@ -318,6 +329,73 @@ def test_python_paths_take_only_py_files_and_skip_environments_and_build_folders
         "models/m.yml",
         "pipeloom.yml",
         "pkg/ok.py",
+    ]
+
+
+def test_properties_found_through_a_model_paths_glob_are_uploaded(
+    sim: Callable[..., Sim],
+) -> None:
+    s = sim()
+    config = s.root / "pipeloom.yml"
+    globbed = "model_paths:\n  - models\n  - domains/*/models\n  - extra/*.yml\n"
+    config.write_text(config.read_text(encoding="utf-8") + globbed, encoding="utf-8")
+    for rel in (
+        "domains/sales/models/_properties.yml",
+        "domains/sales/models/deep/more.yaml",
+        "domains/sales/notes.yml",
+        "extra/top.yml",
+        "extra/.hidden/x.yml",
+    ):
+        path = s.root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("models: []\n", encoding="utf-8")
+    report = Report()
+    payload = collect(s.root, s.plan, None, report)
+    assert payload is not None and not report.sorted()
+    assert [p for p, _ in payload.files] == [
+        MANIFEST_PATH,
+        "domains/sales/models/_properties.yml",
+        "domains/sales/models/deep/more.yaml",
+        "extra/top.yml",
+        "models/m.yml",
+        "pipeloom.yml",
+    ]
+
+
+def test_model_packages_compile_and_stay_out_of_the_upload(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, compile_project: Callable[..., Any]
+) -> None:
+    """A model package outside the project and its python_paths is installed on the job."""
+    project, ext = tmp_path / "proj", tmp_path / "ext"
+    files = {
+        project / "pipeloom.yml": (
+            "config_version: 1\nname: pk\nmodel_paths: [models]\npython_paths: [src]\n"
+            "model_packages: [pl_upload_pkg]\ntargets:\n  ci:\n    engine:\n      kind: memory\n"
+            "    catalog:\n      kind: memory\n"
+        ),
+        project / "models" / "_properties.yml": "models:\n  - name: ext_model\n",
+        project / "src" / "local.py": "X = 1\n",
+        ext / "pl_upload_pkg" / "__init__.py": "",
+        ext / "pl_upload_pkg" / "m.py": (
+            "from pipeloom import model\n\n\n@model\ndef ext_model(ctx):\n    return []\n"
+        ),
+    }
+    for path, text in files.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    monkeypatch.syspath_prepend(str(ext))
+    plan = compile_project(project)
+    node = plan.nodes["model.pk.ext_model"]
+    assert node.body == PythonBody(callable="pl_upload_pkg.m:ext_model", file=node.file)
+    assert node.file == "../ext/pl_upload_pkg/m.py"
+    report = Report()
+    payload = collect(project, plan, None, report)
+    assert payload is not None and not report.sorted()
+    assert [p for p, _ in payload.files] == [
+        MANIFEST_PATH,
+        "models/_properties.yml",
+        "pipeloom.yml",
+        "src/local.py",
     ]
 
 

@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+models:
+  - name: orders
+    description: TPC-H orders, as read.
+  - name: lineitem
+    description: TPC-H line items, as read.
+  - name: customer
+    description: TPC-H customers, as read.
+  - name: nation
+    description: TPC-H nations, as read.
+  - name: region
+    description: TPC-H regions, as read.

@@ -1,0 +1,4 @@
+error PLY005 extra/outside.py 'extra/outside.py' is not under any python_paths root
+      hint: add the folder that holds it to python_paths
+error PLY005 models/broken_syntax.py:5:6 '(' was never closed
+error PLY005 models/raises.py:3 RuntimeError: boom
