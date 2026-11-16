@@ -11,7 +11,9 @@ fixtures and case files in place. It is not a user-facing command. It converts:
   is `return ctx.sql(...)` and whose parameters are the input aliases;
 - each `python: module:function` model by decorating that function where it is defined;
 - flat `sources:` lists into one source group, `raw`, in `pipeloom.yml`;
-- `_defaults.yml` files and `defaults.models` into the `models:` tree with `+` keys.
+- `_defaults.yml` files and `defaults.models` into the `models:` tree with `+` keys;
+- `unit_tests` of a model entry, and a file's top-level `unit_tests` list (cases that name
+  their `model`), into the model's properties entry in the same file.
 
 Other model settings become decorator keywords. Properties entries stay in their YAML file.
 Anything it cannot convert raises `MigrationError` and nothing is written.
@@ -287,6 +289,16 @@ def migrate(files: dict[str, str]) -> dict[str, str]:
             if table in tables:
                 raise MigrationError(f"source '{table}' is declared twice")
             tables[table] = s
+        # Unit tests live only in properties entries: a model entry's own list and the file's
+        # top-level list (whose cases name their `model`) move there.
+        cases: dict[str, list[Any]] = {}
+        for entry in data.get("models") or []:
+            if isinstance(entry, dict) and {"sql", "python"} & entry.keys():
+                if "unit_tests" in entry:
+                    cases.setdefault(entry["name"], []).extend(entry.pop("unit_tests") or [])
+        for case in data.pop("unit_tests", None) or []:
+            case = dict(case)
+            cases.setdefault(case.pop("model"), []).append(case)
         kept, code, helpers = [], [], set()
         for entry in data.get("models") or []:
             if isinstance(entry, dict) and "sql" in entry and "python" not in entry:
@@ -303,7 +315,13 @@ def migrate(files: dict[str, str]) -> dict[str, str]:
                     model_paths.append(root)
             else:
                 kept.append(entry)
-        if not sources and not code and len(kept) == len(data.get("models") or []):
+        for name, tests in cases.items():
+            prop = next((e for e in kept if isinstance(e, dict) and e.get("name") == name), None)
+            if prop is None:
+                kept.append({"name": name, "unit_tests": tests})
+            else:
+                prop["unit_tests"] = [*(prop.get("unit_tests") or []), *tests]
+        if not sources and not code and not cases and len(kept) == len(data.get("models") or []):
             continue
         changed = True
         if code:
