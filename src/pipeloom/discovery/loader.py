@@ -75,12 +75,13 @@ class ModuleLoader:
         tb: TracebackType | None,
     ) -> None:
         try:
+            # Purge first: a namespace package recomputes `__path__` from `sys.path`.
+            self._purge_modules()
             for p in self._added:
                 if p in sys.path:
                     sys.path.remove(p)
             self._added.clear()
             self._cache.clear()
-            self._purge_modules()
             importlib.invalidate_caches()
         finally:
             _LOCK.release()
@@ -97,11 +98,18 @@ class ModuleLoader:
         )
 
     def _purge_modules(self) -> None:
-        for name, module in list(sys.modules.items()):
-            if name == "pipeloom" or name.startswith("pipeloom."):
-                continue
-            if module is not None and self._owned(module):
-                del sys.modules[name]
+        # Decide for every module before deleting any: a nested namespace package reads its
+        # parent's `__path__` from `sys.modules`.
+        owned = [
+            name
+            for name, module in list(sys.modules.items())
+            if name != "pipeloom"
+            and not name.startswith("pipeloom.")
+            and module is not None
+            and self._owned(module)
+        ]
+        for name in owned:
+            sys.modules.pop(name, None)
 
     def load(self, ref: str) -> Callable[..., Any]:
         """The callable named by `module:attr`; its module is imported once per loader."""
