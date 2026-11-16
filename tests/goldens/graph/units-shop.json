@@ -268,6 +268,47 @@
         "--expect-plan-hash",
         "<plan_hash>"
       ]
+    },
+    {
+      "unit_id": "top_customers",
+      "unique_id": "model.shop.top_customers",
+      "nodes": [
+        "model.shop.top_customers"
+      ],
+      "materialized": "table",
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "top_customers"
+      },
+      "relation_name": "main.top_customers",
+      "assets": [
+        "pipeloom://shop/ci/main.top_customers"
+      ],
+      "parents": [
+        "rpt_revenue"
+      ],
+      "tags": [],
+      "retries": 1,
+      "retry_delay_s": 1.0,
+      "retry_on": "transient",
+      "timeout_s": null,
+      "argv": [
+        "pipeloom",
+        "run",
+        "--project-dir",
+        "{project_dir}",
+        "--target",
+        "ci",
+        "--manifest",
+        "{manifest}",
+        "--select",
+        "unit:top_customers",
+        "--run-id",
+        "{run_id}",
+        "--expect-plan-hash",
+        "<plan_hash>"
+      ]
     }
   ],
   "edges": [
@@ -294,6 +335,10 @@
     {
       "from": "fct_orders",
       "to": "rpt_revenue"
+    },
+    {
+      "from": "rpt_revenue",
+      "to": "top_customers"
     }
   ],
   "finalize": {
