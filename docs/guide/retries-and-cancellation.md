@@ -5,21 +5,21 @@ with the run. pipeloom has a setting for each case.
 
 ## Retries
 
-```yaml
-sources:
-  - name: raw_orders
-    format: csv
-    location: raw/orders.csv
-models:
-  - name: orders
-    python: shop.flaky:load
-    inputs:
-      raw_orders:
-        source: raw_orders
-    retries: 2          # extra attempts after the first; the default is 0
-    retry_delay: 1s     # base delay; the default is 1s
-    retry_on: transient # or "any"
-    timeout: 5m
+```python
+from pipeloom import model
+from pipeloom.engine.errors import TransientError
+
+
+@model(
+    retries=2,  # extra attempts after the first; the default is 0
+    retry_delay="1s",  # base delay; the default is 1s
+    retry_on="transient",  # or "any"
+    timeout="5m",
+)
+def orders(ctx, raw_orders):
+    if ctx.attempt == 1:
+        raise TransientError("the first attempt fails")
+    return raw_orders
 ```
 
 The model above fails once with a `TransientError` and then succeeds:
@@ -36,7 +36,8 @@ row has `attempt: 2` and `retries_used: 1`. While a unit waits for its next atte
 worker slot, and every attempt emits `unit.retrying` with the attempt that failed, the next one and
 the delay.
 
-`retries`, `retry_delay`, `retry_on` and `timeout` can be set in `defaults` and in a model.
+`retries`, `retry_delay`, `retry_on` and `timeout` can be set in the decorator, in a properties
+entry's `config`, and as `+key` settings in the `models:` tree of `pipeloom.yml`.
 
 ### What is retried
 

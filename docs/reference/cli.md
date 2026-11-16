@@ -36,7 +36,9 @@ folder named after the project in the current directory.
   or source table it reads.
 - Exit codes: 0 on success, 1 when the project does not load, 2 on a usage error (bad name, a
   Python keyword or `ctx`, `model` or `ModelContext` as the name, a model or file that exists,
-  `--sql` with `--python`, a folder outside the model path).
+  `--sql` with `--python`, a folder outside the model path, a file outside every `python_paths`
+  root, or a name that is already a folder where the file would go, such as `bronze` in an `init`
+  project).
 
 ## Reference
 

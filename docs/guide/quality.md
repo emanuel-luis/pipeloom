@@ -16,51 +16,69 @@ id,amount,status,updated_at
 ,4.0,new,2026-01-02T10:00:00
 ```
 
-`models/orders.yml`:
+The source group in `pipeloom.yml`:
 
 ```yaml
 sources:
-  - name: raw_orders
+  raw:
     format: csv
-    location: raw/orders.csv
+    location: raw
     options:
       try_parse_dates: true
+    tables:
+      raw_orders:
+        location: orders.csv
+```
+
+`models/orders.py`:
+
+```python
+from pipeloom import model
+
+
+@model
+def orders(ctx, raw_orders):
+    return ctx.sql("select id, amount, status, updated_at from raw_orders")
+```
+
+`models/orders.yml`, its properties file:
+
+```yaml
 models:
   - name: orders
-    sql: select id, amount, status, updated_at from raw_orders
-    inputs:
-      raw_orders:
-        source: raw_orders
-    expectations:
-      - name: id_present
-        check:
-          not_null: [id]
-        on_violation: drop
-      - name: status_known
-        check:
-          accepted_values:
-            column: status
-            values: [new, paid, shipped]
-        on_violation: drop
-      - name: amount_non_negative
-        check:
-          range:
-            column: amount
-            min: 0
-        on_violation: warn
-      - name: unique_id
-        check:
-          unique: [id]
-        on_violation: fail
-      - name: not_empty
-        check:
-          row_count:
-            min: 1
-        on_violation: fail
-    quality:
-      quarantine: true
-      max_drop_ratio: 0.5
+    config:
+      expectations:
+        - name: id_present
+          check:
+            not_null: [id]
+          on_violation: drop
+        - name: status_known
+          check:
+            accepted_values:
+              column: status
+              values: [new, paid, shipped]
+          on_violation: drop
+        - name: amount_non_negative
+          check:
+            range:
+              column: amount
+              min: 0
+          on_violation: warn
+        - name: unique_id
+          check:
+            unique: [id]
+          on_violation: fail
+        - name: not_empty
+          check:
+            row_count:
+              min: 1
+          on_violation: fail
+      quality:
+        quarantine: true
+        max_drop_ratio: 0.5
 ```
+
+The same settings can go in `@model(expectations=[...], quality={...})` instead.
 
 ```console
 $ pipeloom run
@@ -143,17 +161,18 @@ A model can declare its exact output columns with `columns`. Each entry has a `n
 `dtype` (the type names engines report, such as `int64`, `string`, `decimal(18,2)` or
 `timestamp[us, UTC]`) and `nullable` (default true).
 
-```yaml
-models:
-  - name: fct_orders
-    sql: select order_id, amount from stg_orders
-    columns:
-      - name: order_id
-        dtype: int64
-        nullable: false
-      - name: amount
-        dtype: decimal(18,2)
+```python
+@model(
+    columns=[
+        {"name": "order_id", "dtype": "int64", "nullable": False},
+        {"name": "amount", "dtype": "decimal(18,2)"},
+    ],
+)
+def fct_orders(ctx, stg_orders):
+    return ctx.sql("select order_id, amount from stg_orders")
 ```
+
+A properties entry can declare the same `columns` in YAML; decorator `columns` replace them whole.
 
 Before every write, pipeloom compares the batch with the contract:
 
@@ -174,7 +193,7 @@ before the contract sees them. A mismatch fails the unit with PLM208, writes not
 retried under `retry_on: transient`. `on_schema_change` still compares the batch with the existing
 table as before.
 
-`columns` is a model key; defaults cannot set it. An unknown `dtype` or a repeated name is PLS102
+`columns` is a model key; the `models:` tree cannot set it. An unknown `dtype` or a repeated name is PLS102
 at validation, and a contract on a view or an ephemeral model is PLP414. Declared columns appear as
 `nodes[].columns` in `manifest.json` and on the docs site model page. See
 [ADR-0044](../adr/0044-model-contracts.md).
