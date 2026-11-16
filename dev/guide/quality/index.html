@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -680,6 +680,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1411,49 +1439,60 @@ pandas engines support all of it.</p>
 3,7.0,refunded,2026-01-02T09:00:00
 ,4.0,new,2026-01-02T10:00:00
 </code></pre>
-<p><code>models/orders.yml</code>:</p>
+<p>The source group in <code>pipeloom.yml</code>:</p>
 <pre><code class="language-yaml">sources:
-  - name: raw_orders
+  raw:
     format: csv
-    location: raw/orders.csv
+    location: raw
     options:
       try_parse_dates: true
-models:
-  - name: orders
-    sql: select id, amount, status, updated_at from raw_orders
-    inputs:
+    tables:
       raw_orders:
-        source: raw_orders
-    expectations:
-      - name: id_present
-        check:
-          not_null: [id]
-        on_violation: drop
-      - name: status_known
-        check:
-          accepted_values:
-            column: status
-            values: [new, paid, shipped]
-        on_violation: drop
-      - name: amount_non_negative
-        check:
-          range:
-            column: amount
-            min: 0
-        on_violation: warn
-      - name: unique_id
-        check:
-          unique: [id]
-        on_violation: fail
-      - name: not_empty
-        check:
-          row_count:
-            min: 1
-        on_violation: fail
-    quality:
-      quarantine: true
-      max_drop_ratio: 0.5
+        location: orders.csv
 </code></pre>
+<p><code>models/orders.py</code>:</p>
+<pre><code class="language-python">from pipeloom import model
+
+
+@model
+def orders(ctx, raw_orders):
+    return ctx.sql(&quot;select id, amount, status, updated_at from raw_orders&quot;)
+</code></pre>
+<p><code>models/orders.yml</code>, its properties file:</p>
+<pre><code class="language-yaml">models:
+  - name: orders
+    config:
+      expectations:
+        - name: id_present
+          check:
+            not_null: [id]
+          on_violation: drop
+        - name: status_known
+          check:
+            accepted_values:
+              column: status
+              values: [new, paid, shipped]
+          on_violation: drop
+        - name: amount_non_negative
+          check:
+            range:
+              column: amount
+              min: 0
+          on_violation: warn
+        - name: unique_id
+          check:
+            unique: [id]
+          on_violation: fail
+        - name: not_empty
+          check:
+            row_count:
+              min: 1
+          on_violation: fail
+      quality:
+        quarantine: true
+        max_drop_ratio: 0.5
+</code></pre>
+<p>The same settings can go in <code>@model(expectations=[...], quality={...})</code> instead.</p>
 <pre><code class="language-console">$ pipeloom run
 ... WARN   orders: id_present (not_null) dropped 1 of 4 rows
 ... WARN   orders: status_known (accepted_values) dropped 1 of 4 rows
@@ -1570,16 +1609,16 @@ capability is rejected with PLC510.</p>
 <p>A model can declare its exact output columns with <code>columns</code>. Each entry has a <code>name</code>, a logical
 <code>dtype</code> (the type names engines report, such as <code>int64</code>, <code>string</code>, <code>decimal(18,2)</code> or
 <code>timestamp[us, UTC]</code>) and <code>nullable</code> (default true).</p>
-<pre><code class="language-yaml">models:
-  - name: fct_orders
-    sql: select order_id, amount from stg_orders
-    columns:
-      - name: order_id
-        dtype: int64
-        nullable: false
-      - name: amount
-        dtype: decimal(18,2)
+<pre><code class="language-python">@model(
+    columns=[
+        {&quot;name&quot;: &quot;order_id&quot;, &quot;dtype&quot;: &quot;int64&quot;, &quot;nullable&quot;: False},
+        {&quot;name&quot;: &quot;amount&quot;, &quot;dtype&quot;: &quot;decimal(18,2)&quot;},
+    ],
+)
+def fct_orders(ctx, stg_orders):
+    return ctx.sql(&quot;select order_id, amount from stg_orders&quot;)
 </code></pre>
+<p>A properties entry can declare the same <code>columns</code> in YAML; decorator <code>columns</code> replace them whole.</p>
 <p>Before every write, pipeloom compares the batch with the contract:</p>
 <ul>
 <li>the column names must match exactly (case-sensitive, any order), with no column missing and none
@@ -1598,7 +1637,7 @@ the quarantine write and the table write. A <code>drop</code> expectation can th
 before the contract sees them. A mismatch fails the unit with PLM208, writes nothing and is never
 retried under <code>retry_on: transient</code>. <code>on_schema_change</code> still compares the batch with the existing
 table as before.</p>
-<p><code>columns</code> is a model key; defaults cannot set it. An unknown <code>dtype</code> or a repeated name is PLS102
+<p><code>columns</code> is a model key; the <code>models:</code> tree cannot set it. An unknown <code>dtype</code> or a repeated name is PLS102
 at validation, and a contract on a view or an ephemeral model is PLP414. Declared columns appear as
 <code>nodes[].columns</code> in <code>manifest.json</code> and on the docs site model page. See
 <a href="../../adr/0044-model-contracts/">ADR-0044</a>.</p>

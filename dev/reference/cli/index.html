@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -559,6 +559,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1968,7 +1996,9 @@ folder named after the project in the current directory.</p>
   or source table it reads.</li>
 <li>Exit codes: 0 on success, 1 when the project does not load, 2 on a usage error (bad name, a
   Python keyword or <code>ctx</code>, <code>model</code> or <code>ModelContext</code> as the name, a model or file that exists,
-  <code>--sql</code> with <code>--python</code>, a folder outside the model path).</li>
+  <code>--sql</code> with <code>--python</code>, a folder outside the model path, a file outside every <code>python_paths</code>
+  root, or a name that is already a folder where the file would go, such as <code>bronze</code> in an <code>init</code>
+  project).</li>
 </ul>
 <h2 id="reference">Reference<a class="headerlink" href="#reference" title="Permanent link">&para;</a></h2>
 <h3 id="pipeloom">pipeloom<a class="headerlink" href="#pipeloom" title="Permanent link">&para;</a></h3>
@@ -2531,9 +2561,8 @@ process executor uses it.</p>
 <pre><code class="language-text">pipeloom schema export [OPTIONS]
 </code></pre>
 <p><strong>Options:</strong></p>
-<pre><code class="language-text">  --out DIRECTORY                Directory to write project.json,
-                                 properties.json, models.json and
-                                 defaults.json into.  [required]
+<pre><code class="language-text">  --out DIRECTORY                Directory to write project.json and
+                                 properties.json into.  [required]
   --plugins [installed|builtin]  Plugins whose options appear in the schema;
                                  installed imports every plugin.  [default:
                                  installed]

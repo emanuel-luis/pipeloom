@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -680,6 +680,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1403,20 +1431,20 @@
 <p>A unit can fail for a reason that goes away on its own, run for too long, or be stopped together
 with the run. pipeloom has a setting for each case.</p>
 <h2 id="retries">Retries<a class="headerlink" href="#retries" title="Permanent link">&para;</a></h2>
-<pre><code class="language-yaml">sources:
-  - name: raw_orders
-    format: csv
-    location: raw/orders.csv
-models:
-  - name: orders
-    python: shop.flaky:load
-    inputs:
-      raw_orders:
-        source: raw_orders
-    retries: 2          # extra attempts after the first; the default is 0
-    retry_delay: 1s     # base delay; the default is 1s
-    retry_on: transient # or &quot;any&quot;
-    timeout: 5m
+<pre><code class="language-python">from pipeloom import model
+from pipeloom.engine.errors import TransientError
+
+
+@model(
+    retries=2,  # extra attempts after the first; the default is 0
+    retry_delay=&quot;1s&quot;,  # base delay; the default is 1s
+    retry_on=&quot;transient&quot;,  # or &quot;any&quot;
+    timeout=&quot;5m&quot;,
+)
+def orders(ctx, raw_orders):
+    if ctx.attempt == 1:
+        raise TransientError(&quot;the first attempt fails&quot;)
+    return raw_orders
 </code></pre>
 <p>The model above fails once with a <code>TransientError</code> and then succeeds:</p>
 <pre><code class="language-console">$ pipeloom run
@@ -1428,7 +1456,8 @@ models:
 row has <code>attempt: 2</code> and <code>retries_used: 1</code>. While a unit waits for its next attempt it holds no
 worker slot, and every attempt emits <code>unit.retrying</code> with the attempt that failed, the next one and
 the delay.</p>
-<p><code>retries</code>, <code>retry_delay</code>, <code>retry_on</code> and <code>timeout</code> can be set in <code>defaults</code> and in a model.</p>
+<p><code>retries</code>, <code>retry_delay</code>, <code>retry_on</code> and <code>timeout</code> can be set in the decorator, in a properties
+entry's <code>config</code>, and as <code>+key</code> settings in the <code>models:</code> tree of <code>pipeloom.yml</code>.</p>
 <h3 id="what-is-retried">What is retried<a class="headerlink" href="#what-is-retried" title="Permanent link">&para;</a></h3>
 <p>With <code>retry_on: transient</code> (the default) only transient failures are retried. A failure is
 transient when:</p>

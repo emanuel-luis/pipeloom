@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -559,6 +559,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1672,7 +1700,7 @@ are rendered with <code>disable_auto_optimization: true</code>: serverless auto-
 retry a failed task on top of <code>max_retries</code>, so a model with <code>retries: 0</code> would still run twice.</p>
 <h2 id="task-grouping">Task grouping<a class="headerlink" href="#task-grouping" title="Permanent link">&para;</a></h2>
 <p>With <code>task_grouping: none</code> every unit is one task, named by its unit id. <code>by_tag</code> groups models by
-their first tag (<code>tag_&lt;tag&gt;</code>, or <code>tag_untagged</code>) and <code>by_folder</code> by the folder of the model file
+their first tag (<code>tag_&lt;tag&gt;</code>, or <code>tag_untagged</code>) and <code>by_folder</code> by the folder of the model module
 (<code>dir_&lt;folder&gt;</code>, or <code>dir_root</code>). Grouping applies whenever it is set, so the job's shape does not
 change when the project grows. A group runs its models with the in-process scheduler. Groups that
 wait on each other in a cycle are PLD003. Task keys are sanitized to <code>[A-Za-z0-9_-]</code>; a key above
@@ -1687,7 +1715,9 @@ inside the bundle, next to <code>databricks.yml</code>, and the job files must b
 <p><strong>Direct deploy.</strong> <code>pipeloom databricks deploy --target prod</code> uploads the project and creates or
 resets one job per pipeline. The job is found by its <code>pipeloom_job</code> tag (two matches are PLD006).
 The upload is content addressed, under <code>&lt;workspace_root&gt;/&lt;project&gt;/&lt;pipeline&gt;/&lt;target&gt;/&lt;hash&gt;</code>,
-and holds <code>pipeloom.yml</code>, the model files and the <code>*.py</code> files below <code>python_paths</code>. Other files
+and holds <code>pipeloom.yml</code>, the properties files, the model modules and the <code>*.py</code> files below
+<code>python_paths</code>. Modules found through <code>model_packages</code> are not uploaded: install those packages
+in the job environment. Other files
 below <code>python_paths</code> are not uploaded, so a Python model that reads a file next to it works
 locally and not on Databricks; keep such data in a table or a volume. Notebooks and files above
 10 MB are refused (PLD012). When the settings hash tag already matches, deploy changes nothing.
@@ -1773,7 +1803,7 @@ naming the path and never the value.</p>
 <h2 id="unity-catalog">Unity Catalog<a class="headerlink" href="#unity-catalog" title="Permanent link">&para;</a></h2>
 <p>A <code>catalog</code> block with <code>kind: unity</code> and <code>catalog: main</code> works with the Spark engine only. Tables and views are
 addressed as <code>`catalog`.`schema`.`name`</code>; the option fills in the catalog when the target's
-naming leaves it empty. A model's <code>catalog</code> setting (or a folder <code>_defaults.yml</code>) wins over both,
+naming leaves it empty. A model's <code>catalog</code> setting (or a folder's <code>+catalog</code> in the <code>models:</code> tree) wins over both,
 so each layer can write to its own catalog. pipeloom never creates a catalog: every catalog a
 model names must exist, and the principal needs <code>USE CATALOG</code> on it. A schema is created only when it does not exist yet, so a principal
 without <code>CREATE SCHEMA</code> can write to an existing one.</p>

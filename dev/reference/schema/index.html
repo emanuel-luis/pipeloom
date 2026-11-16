@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -559,6 +559,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1315,15 +1343,14 @@ flag mistakes before you run anything.</p>
 <td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json">project.json</a></td>
 </tr>
 <tr>
-<td>model files under <code>model_paths</code></td>
-<td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json">models.json</a></td>
-</tr>
-<tr>
-<td><code>_defaults.yml</code></td>
-<td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/defaults.json">defaults.json</a></td>
+<td>properties files under <code>model_paths</code></td>
+<td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json">properties.json</a></td>
 </tr>
 </tbody>
 </table>
+<p>Models themselves are Python functions, so the <code>@model</code> signature gives completion and type
+checking in the editor. <code>models.json</code> and <code>defaults.json</code> were removed in 0.9 with YAML model
+files; the version folders of 0.8 and earlier keep them.</p>
 <h2 id="use-it-in-an-editor">Use it in an editor<a class="headerlink" href="#use-it-in-an-editor" title="Permanent link">&para;</a></h2>
 <p>Put a modeline on the first line of the file. Editors that run the YAML language server (VS Code
 with the Red Hat YAML extension, for example) pick it up:</p>
@@ -1331,7 +1358,7 @@ with the Red Hat YAML extension, for example) pick it up:</p>
 config_version: 1
 name: shop
 </code></pre>
-<p>Use <code>models.json</code> in model files and <code>defaults.json</code> in <code>_defaults.yml</code>.</p>
+<p>Use <code>properties.json</code> in properties files.</p>
 <h2 id="include-plugin-options">Include plugin options<a class="headerlink" href="#include-plugin-options" title="Permanent link">&para;</a></h2>
 <p>The published schemas describe the built-in plugins. To get the options of the plugins you have
 installed, export your own copy and point the modeline at it:</p>

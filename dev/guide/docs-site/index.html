@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -652,6 +652,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1434,7 +1462,7 @@ bytes.</p>
 </tr>
 </tbody>
 </table>
-<p>When a model file changes, the next request for the page compiles the project again and rewrites <code>index.html</code>.
+<p>When a model module, a properties file or <code>pipeloom.yml</code> changes, the next request for the page compiles the project again and rewrites <code>index.html</code>.
 If the project does not resolve when the command starts, it prints one line on stderr and serves the page as it
 is. If <code>index.html</code> is missing, the command exits 2 and asks you to run <code>pipeloom docs generate</code> first. Press
 Ctrl+C to stop it; it exits 0.</p>

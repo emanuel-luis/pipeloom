@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -559,6 +559,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1717,9 +1745,9 @@
 
 <h1 id="pipeloom-architecture">pipeloom architecture<a class="headerlink" href="#pipeloom-architecture" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p><strong>Status:</strong> 0.7 implements the versions listed in section 16: the scheduler, the polars, pandas and Spark engines, incremental models, merge and replace_partitions, expectations and quarantine, retries, timeouts and cancellation, the Databricks and Airflow integrations, and per-model catalogs. Planned work lives in the <a href="../roadmap/">roadmap</a>.
+<p><strong>Status:</strong> the code implements the versions listed in section 16: the scheduler, the polars, pandas and Spark engines, incremental models, merge, replace_partitions and scd2, expectations and quarantine, retries, timeouts and cancellation, the Databricks and Airflow integrations, per-model catalogs and, from 0.9, Python-first authoring. Planned work lives in the <a href="../roadmap/">roadmap</a>.
 Decisions are recorded as ADRs in <a href="../adr/">adr/</a>. Diagrams are D2 sources in <a href="diagrams/">diagrams/</a> with committed SVGs.
-Model authoring changes in 0.9 (<a href="../adr/0050-python-first-authoring/">ADR-0050</a>): models become decorated Python functions, and YAML keeps the project and properties files. Text marked "from 0.9" describes that planned design; through 0.8 every model is declared in a YAML model file (<a href="../adr/0003-model-authoring/">ADR-0003</a>, superseded), and that legacy path keeps working on main until it is removed before 0.9.0.</p>
+From 0.9 models are decorated Python functions, and YAML keeps the project and properties files (<a href="../adr/0050-python-first-authoring/">ADR-0050</a>). Through 0.8 every model was declared in a YAML model file (<a href="../adr/0003-model-authoring/">ADR-0003</a>, superseded); that path is removed, and <a href="../guide/migrate-0.9/">Migrating from 0.8</a> maps it to the decorator.</p>
 </blockquote>
 <h2 id="1-vision-goals-non-goals-principles">1. Vision, goals, non-goals, principles<a class="headerlink" href="#1-vision-goals-non-goals-principles" title="Permanent link">&para;</a></h2>
 <p><strong>Vision.</strong> A small, typed framework. Models are written in Python and the project and properties in YAML (from 0.9; through 0.8 pipelines are declared in YAML), then compiled into an immutable plan. That plan runs the same way on pandas, polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG. Every run produces a single event stream and artifacts you can query.</p>
@@ -1741,7 +1769,7 @@ Model authoring changes in 0.9 (<a href="../adr/0050-python-first-authoring/">AD
 13. Python-first models, YAML with JSON Schema for the project and properties (L14; from 0.9, <a href="../adr/0050-python-first-authoring/">ADR-0050</a>; through 0.8 YAML first).</p>
 <h2 id="2-glossary">2. Glossary<a class="headerlink" href="#2-glossary" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Project:</strong> a directory with <code>pipeloom.yml</code> and model files (from 0.9: Python model modules and properties YAML files).</li>
+<li><strong>Project:</strong> a directory with <code>pipeloom.yml</code>, Python model modules and properties YAML files (through 0.8: YAML model files).</li>
 <li><strong>Model:</strong> a named dataset built from declared inputs. From 0.9 it is a Python function marked with <code>@model</code>, whose parameters are its inputs; through 0.8 it is a YAML entry with a Python callable or a SQL body.</li>
 <li><strong>Source:</strong> an external dataset declared in YAML. From 0.9 sources are tables in named groups under <code>sources:</code> in <code>pipeloom.yml</code>, with the unique id <code>source.&lt;project&gt;.&lt;group&gt;.&lt;table&gt;</code>.</li>
 <li><strong>Properties file:</strong> (from 0.9) any <code>*.yml</code> or <code>*.yaml</code> under <code>model_paths</code> other than <code>pipeloom.yml</code>; it describes and configures models by name and never declares one.</li>
@@ -1800,11 +1828,11 @@ Plugins: pipeloom-pandas | -polars | -spark (0.4) | planned: -databricks | -airf
 <li><strong>Execute:</strong> the scheduler runs units through an executor. Orchestrated tasks run <code>pipeloom run --manifest ... --select unit:&lt;id&gt; --expect-plan-hash &lt;h&gt;</code>.</li>
 <li><strong>Finalize:</strong> merge per-invocation results, write <code>run_results.json</code>, commit run state, flush and close sinks.</li>
 </ol>
-<p><strong>Commands.</strong> <code>init</code> (scaffold a new project, <a href="../adr/0041-pipeloom-init/">ADR-0041</a>), <code>new model</code> (add a model file and, for Python, its stub; from 0.9 one decorated <code>.py</code> file; ADR-0041 amendments), <code>validate</code>, <code>compile</code>, <code>ls</code>, <code>graph</code>, <code>run</code>, <code>retry</code> (run again what a finished run did not finish, ADR-0013 amendment), <code>finalize</code>, <code>docs generate|serve</code> (a read-only one-file site, <a href="../adr/0043-docs-site/">ADR-0043</a>), <code>schema export</code>, <code>explain</code> (print a diagnostic code's catalog entry and docs link) and <code>plugins list</code>; plugins add their own through <code>pipeloom.commands</code> (for example <code>pipeloom databricks</code>).</p>
+<p><strong>Commands.</strong> <code>init</code> (scaffold a new project, <a href="../adr/0041-pipeloom-init/">ADR-0041</a>), <code>new model</code> (add one decorated <code>.py</code> model file; ADR-0041 amendments), <code>validate</code>, <code>compile</code>, <code>ls</code>, <code>graph</code>, <code>run</code>, <code>retry</code> (run again what a finished run did not finish, ADR-0013 amendment), <code>finalize</code>, <code>docs generate|serve</code> (a read-only one-file site, <a href="../adr/0043-docs-site/">ADR-0043</a>), <code>schema export</code>, <code>explain</code> (print a diagnostic code's catalog entry and docs link) and <code>plugins list</code>; plugins add their own through <code>pipeloom.commands</code> (for example <code>pipeloom databricks</code>).</p>
 <p><img alt="The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize." src="../diagrams/03-lifecycle.svg" /></p>
 <p>Source: <a href="../diagrams/03-lifecycle.d2">03-lifecycle.d2</a>.</p>
 <h2 id="4-configuration">4. Configuration<a class="headerlink" href="#4-configuration" title="Permanent link">&para;</a></h2>
-<p>From 0.9 (<a href="../adr/0050-python-first-authoring/">ADR-0050</a>) a project is one <code>pipeloom.yml</code>, Python model modules and optional properties files. This section describes that planned design; the YAML model files of 0.8 are summarized under "Legacy model files" below.</p>
+<p>From 0.9 (<a href="../adr/0050-python-first-authoring/">ADR-0050</a>) a project is one <code>pipeloom.yml</code>, Python model modules and optional properties files. The YAML model files of 0.8 are gone; see "YAML model files" below.</p>
 <p><strong>Project file.</strong></p>
 <pre><code class="language-yaml"># yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
 config_version: 1
@@ -1913,59 +1941,20 @@ models:
 - <code>&lt;project&gt;/.pipeloom/cache/discovery.json</code> caches static results per file, keyed by path, <code>mtime_ns</code>, size and the pipeloom and Python versions. Dynamic modules are always imported again. The cache is never part of the manifest or the plan hash, and a failed write is ignored.
 - <code>Discovery.refresh()</code> re-reads changed files and re-imports dynamic modules for long-lived processes such as <code>docs serve</code>.
 - An executor running a unit from a manifest never runs discovery: it imports the one module named by its node's <code>callable</code>. Any invocation that compiles runs discovery, including <code>pipeloom run</code> without <code>--manifest</code> and every unit task in Airflow PROJECT mode, so dynamic modules are imported there too.</p>
-<p><strong>Legacy model files (through 0.8, removed before 0.9.0).</strong> Any <code>*.yml</code> under <code>model_paths</code> with <code>sources:</code> and <code>models:</code> lists, each model with a SQL body or a <code>python: module:function</code> pointer and an <code>inputs</code> map. Both paths coexist on main, with no warning, until the removal; one project may mix them.</p>
-<pre><code class="language-yaml">sources:
-  - name: raw_orders
-    format: parquet
-    location: data/raw/orders/
-models:
-  - name: stg_orders
-    sql: |
-      select order_id, customer_id, amount, updated_at from raw_orders
-    inputs:
-      raw_orders:
-        source: raw_orders
-  - name: fct_orders
-    python: shop.marts.orders:build          # module:function
-    inputs:
-      orders:
-        ref: stg_orders
-      customers:
-        ref: dim_customers
-    materialized: incremental
-    incremental:
-      input: orders
-      column: updated_at
-      lookback: 2d
-    write:
-      strategy: merge
-      unique_key: [order_id]
-      on_schema_change: append_new_columns
-    partition_by: [order_date]
-    expectations:
-      - name: amount_non_negative
-        check:
-          range:
-            column: amount
-            min: 0
-        on_violation: drop
-    tags: [finance, daily]
-</code></pre>
-<p>Model-only keys (0.9, <a href="../adr/0045-unit-and-data-tests/">ADR-0045</a>), which the <code>models:</code> tree and defaults cannot set: <code>unit_tests</code> (cases <code>{name, given, expect}</code>, <code>given</code> keyed by input alias, the parameter name of a decorated function), set in the model's properties entry; and <code>data_tests</code> (<code>{name, check: {not_null | unique | relationships: {column, to: {ref | source}, field}}, on_violation: warn | fail}</code>), set by the decorator's <code>data_tests=</code> or by properties, where the decorator list replaces the properties list. On the legacy YAML path a model entry may also set both, and a top-level <code>unit_tests</code> list whose entries name a <code>model</code> is accepted. Unit tests stay out of the manifest; <code>data_tests</code> appears as <code>nodes[].data_tests</code> and enters the node checksum only when declared.</p>
-<p>Legacy <code>_defaults.yml</code> files set folder-level defaults. They cascade from the model's own folder up to its <code>model_paths</code> root, nearest first; mappings merge deeply, lists replace and <code>tags</code> is an ordered union without duplicates. From 0.9 they and <code>defaults.models</code> map onto the folder and project layers of the <code>models:</code> tree until they are removed.</p>
+<p>Model-only keys (0.9, <a href="../adr/0045-unit-and-data-tests/">ADR-0045</a>), which the <code>models:</code> tree cannot set: <code>unit_tests</code> (cases <code>{name, given, expect}</code>, <code>given</code> keyed by input alias, the parameter name of a decorated function), set in the model's properties entry; and <code>data_tests</code> (<code>{name, check: {not_null | unique | relationships: {column, to: {ref | source}, field}}, on_violation: warn | fail}</code>), set by the decorator's <code>data_tests=</code> or by properties, where the decorator list replaces the properties list. Unit tests stay out of the manifest; <code>data_tests</code> appears as <code>nodes[].data_tests</code> and enters the node checksum only when declared.</p>
+<p><strong>YAML model files (0.8 and earlier).</strong> Model entries with <code>sql:</code> or <code>python:</code>, flat <code>sources:</code> lists, <code>_defaults.yml</code> and <code>defaults.models</code> were removed in 0.9 with no deprecation release; their keys are PLS101 with a hint to the <a href="../guide/migrate-0.9/">migration guide</a>, and PLK601, PLK604, PLC502 and PLR205 are retired.</p>
 <p><strong>ADR-0050: Python-first model authoring</strong> (supersedes ADR-0003, which made YAML declare every model).
 - Context: a YAML-declared Python model was written twice, once in YAML and once as a function whose parameters had to match (PLK602). A benchmark of 1,000 models measured about 11 s to import every module and 1.4 s to parse them with <code>ast</code>.
 - Options: keep YAML-first; Python-first with static discovery only (no computed config); Python-first importing every module (slow, runs user code on every compile); Python-first with hybrid discovery.
 - Choice: hybrid. Every model is a decorated Python function; YAML holds the project, folder config, sources, targets and properties. The compiler resolves static decorators from the AST and imports only dynamic modules, with a per-file cache. SQL runs through <code>ctx.sql</code>. Dependencies stay declared through parameters and <code>inputs=</code>, never traced.
 - Consequences: a model is written once, with typed completion. Most compiles run no user code; a dynamic module runs its code at compile time. Every project is rewritten once, with no deprecation release, and plan hashes change once.</p>
-<p><strong>JSON Schema.</strong> <code>pipeloom schema export --out schemas/</code> writes <code>project.json</code>, <code>models.json</code> and <code>defaults.json</code> (draft 2020-12) from the pydantic models. From 0.9 it writes <code>project.json</code> and <code>properties.json</code>; <code>models.json</code> and <code>defaults.json</code> stop being published under <code>latest/</code> with the removal of the legacy path (older version folders keep them).
+<p><strong>JSON Schema.</strong> <code>pipeloom schema export --out schemas/</code> writes <code>project.json</code> and <code>properties.json</code> (draft 2020-12) from the pydantic models. <code>models.json</code> and <code>defaults.json</code> are no longer published under <code>latest/</code> since 0.9 (older version folders keep them).
 - Plugin option models (engine, catalog, sink, state) are composed as <code>oneOf</code> branches on <code>kind</code>, using the plugins that are installed (<code>--plugins builtin</code> limits it to the built-ins).
 - The docs site publishes the schemas of the built-in plugins under <code>latest/schema/v1/</code> (and under each version folder).
 - The modeline above enables completion in editors that use yaml-language-server.</p>
 <p><strong>Precedence.</strong>
 - Runtime settings (highest first): CLI flags; <code>PIPELOOM_*</code> environment variables (for example <code>PIPELOOM_TARGET</code>, <code>PIPELOOM_WORKERS</code>); an optional git-ignored user file <code>~/.pipeloom/profiles.yml</code> with per-target overrides; the <code>targets.&lt;t&gt;</code> block; then top-level project keys.
-- Model config, from 0.9: the <code>@model</code> decorator; then the <code>config</code> of the model's properties entry; then the <code>models:</code> tree from the folder nearest the model up to the root; then the root <code>+keys</code>; then built-in defaults. Mappings deep-merge, lists replace, <code>tags</code> is an ordered union and an explicit <code>null</code> removes a key (YAML only). <code>columns</code> is a model key that the folder tree cannot set, and decorator columns replace properties columns whole. <code>ResolvedModel.origins</code> records the layer and location of each top-level key, so a diagnostic points at the layer that set the value; origins are not in the manifest.
-- Model config, through 0.8: the model entry; <code>_defaults.yml</code> files from the nearest folder up to the <code>model_paths</code> root; then <code>defaults.models</code>; then built-in defaults.
+- Model config: the <code>@model</code> decorator; then the <code>config</code> of the model's properties entry; then the <code>models:</code> tree from the folder nearest the model up to the root; then the root <code>+keys</code>; then built-in defaults. Mappings deep-merge, lists replace, <code>tags</code> is an ordered union and an explicit <code>null</code> removes a key (YAML only). <code>columns</code> is a model key that the folder tree cannot set, and decorator columns replace properties columns whole. <code>ResolvedModel.origins</code> records the layer and location of each top-level key, so a diagnostic points at the layer that set the value; origins are not in the manifest.
 - Targets may change runtime keys (engine options, catalog, naming, state, workers, artifacts, deploy) and, from 0.9, override source groups (<code>targets.&lt;t&gt;.sources</code>: format, location, schema, options, tables). <code>deploy</code> is a runtime key like the others: the target block wins over the top-level one. The core validates its options with the <code>config_model</code> of the <code>renderers</code> plugin it names (the factory is never called), records them in the manifest as <code>metadata.deploy</code> (not part of the plan hash) and resolves nothing in them at runtime except <code>${secret:...}</code> references in plugin options. They may not change model semantics, so plans differ across targets only in physical names, source relations and runtime settings.
 - Interpolation: <code>${env:NAME}</code>, <code>${env:NAME:-default}</code> and <code>${var:name}</code> resolve at compile time and are recorded in the manifest. <code>${secret:provider/path}</code> resolves only at runtime (section 14).</p>
 <h2 id="5-core-protocols">5. Core protocols<a class="headerlink" href="#5-core-protocols" title="Permanent link">&para;</a></h2>
@@ -2103,8 +2092,8 @@ class SecretProvider(Protocol):
 <p><strong>0.9 contract additions (plugin API (0, 5), <a href="../adr/0047-run-history-and-webhook/">ADR-0047</a>).</strong>
 - <code>StateStore.list_runs(project, target, limit, before=None)</code> returns the runs of one project and target, newest first by <code>(started_at, run_id)</code>, at most <code>limit</code>; <code>before</code> is a run id to page from, and an unknown one raises <code>UnknownRun</code>. <code>pipeloom.state.types.page_runs</code> does the ordering and paging for any store. The core calls it through <code>pipeloom.state.types.list_runs</code>, which raises <code>ListRunsUnsupported</code> (PLX117) for a store that lacks the method.
 - <code>EngineSession.from_rows(rows, schema) -&gt; Relation</code>, <code>to_rows(rel) -&gt; list[dict]</code> (plain Python values) and <code>orphans(rel, column, parent, field) -&gt; int</code> (child rows whose non-null key has no parent row; NaN is null, parent nulls never match) serve unit tests and relationships data tests (<a href="../adr/0045-unit-and-data-tests/">ADR-0045</a>). <code>pipeloom.engine.portable</code> has <code>to_rows</code> and an anti-join <code>orphans</code> for narwhals engines; Spark counts orphans with a <code>left_anti</code> join. An engine without them fails only when a test uses them (PLX115).
-- <code>EngineCapabilities.sql_dialect</code> (planned for 0.9, <a href="../adr/0050-python-first-authoring/">ADR-0050</a>) names the engine's sqlglot dialect, or <code>None</code>. It is part of (0, 5), which is unreleased, so the version does not change.</p>
-<p><strong><code>ModelContext.sql</code> (planned for 0.9, <a href="../adr/0050-python-first-authoring/">ADR-0050</a>).</strong> <code>ModelContext</code> keeps its fields and gains <code>sql(query, *, dialect=None, inputs=None)</code>, backed by a private callable the runner sets. The query sees the model's inputs by alias as read (after the incremental filter); <code>inputs=</code> adds or replaces frames by name. It returns the native frame, or a Narwhals frame under <code>frame_api: narwhals</code>. The dialect is the <code>dialect</code> argument, then the inheritable model setting <code>sql_dialect</code>, then the engine's own. Only when the chosen dialect differs from the engine's does <code>pipeloom.runtime.sql</code> translate the query with sqlglot <code>transpile</code>, imported lazily; without the sqlglot extra that is PLC513. pandas has no SQL and raises <code>SqlUnsupportedError</code> (PLX101 with a hint); L6 warns with PLK606 beforehand. In a <code>view</code> model the runner calls the function in view mode and <code>ctx.sql</code> returns a <code>ViewQuery</code> for <code>create_view</code>; any other return value is PLX120. The function is called by keyword: the input aliases, plus <code>ctx</code> when it is a parameter.</p>
+- <code>EngineCapabilities.sql_dialect</code> (0.9, <a href="../adr/0050-python-first-authoring/">ADR-0050</a>) names the engine's sqlglot dialect, or <code>None</code>. It is part of (0, 5), which is unreleased, so the version does not change.</p>
+<p><strong><code>ModelContext.sql</code> (0.9, <a href="../adr/0050-python-first-authoring/">ADR-0050</a>).</strong> <code>ModelContext</code> keeps its fields and gains <code>sql(query, *, dialect=None, inputs=None)</code>, backed by a private callable the runner sets. The query sees the model's inputs by alias as read (after the incremental filter); <code>inputs=</code> adds or replaces frames by name. It returns the native frame, or a Narwhals frame under <code>frame_api: narwhals</code>. The dialect is the <code>dialect</code> argument, then the inheritable model setting <code>sql_dialect</code>, then the engine's own. Only when the chosen dialect differs from the engine's does <code>pipeloom.runtime.sql</code> translate the query with sqlglot <code>transpile</code>, imported lazily; without the sqlglot extra that is PLC513. pandas has no SQL and raises <code>SqlUnsupportedError</code> (PLX101 with a hint); L6 warns with PLK606 beforehand. In a <code>view</code> model the runner calls the function in view mode and <code>ctx.sql</code> returns a <code>ViewQuery</code> for <code>create_view</code>; any other return value is PLX120. The function is called by keyword: the input aliases, plus <code>ctx</code> when it is a parameter.</p>
 <p><strong>ADR-0002: Engine abstraction.</strong>
 - Context: the spec (section 4) lists coupling in the return type, reads, schema, temporary views, writes, merge, metrics and catalog SQL.
 - Options:
@@ -2166,7 +2155,7 @@ class SecretProvider(Protocol):
 <tr>
 <td>L2 references</td>
 <td>PLR</td>
-<td>PLR201 unknown ref (fuzzy suggestion); PLR202 duplicate model name; PLR203 unknown source; PLR204 unknown target or plugin kind; PLR205 duplicate source; PLR206 a <code>model_paths</code> entry does not exist (warning); PLR207 no target selected; PLR208 a unit test names an unknown model, a wrong set of inputs or a duplicate case name (0.9); a relationships data test's <code>to</code> reuses PLR201 and PLR203 (0.9); PLR209 properties entry names no model, or describes one twice (0.9); PLR210 input name matches a table in several source groups (0.9). From 0.9 PLR201, PLR202 and PLR203 are also located on a decorator or parameter in Python</td>
+<td>PLR201 unknown ref (fuzzy suggestion); PLR202 duplicate model name; PLR203 unknown source; PLR204 unknown target or plugin kind; PLR205 duplicate source (retired in 0.9); PLR206 a <code>model_paths</code> entry does not exist (warning); PLR207 no target selected; PLR208 a unit test gives a wrong set of inputs or a duplicate case name (0.9); a relationships data test's <code>to</code> reuses PLR201 and PLR203 (0.9); PLR209 properties entry names no model, or describes one twice (0.9); PLR210 input name matches a table in several source groups (0.9). From 0.9 PLR201, PLR202 and PLR203 are also located on a decorator or parameter in Python</td>
 </tr>
 <tr>
 <td>L3 graph</td>

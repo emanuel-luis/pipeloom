@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -559,6 +559,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1875,8 +1903,11 @@ arguments the pipeloom operators set themselves; that is PLA002.</p>
 <h2 id="load-methods">Load methods<a class="headerlink" href="#load-methods" title="Permanent link">&para;</a></h2>
 <ul>
 <li><code>MANIFEST</code> (recommended) reads a stable manifest written by <code>pipeloom compile --stable</code>. Parsing
-  reads one JSON file and imports no engine. The manifest must be for the same target (PLX107).</li>
-<li><code>PROJECT</code> compiles the YAML project on the parse path. No user code runs (ADR-0003). The result is
+  reads one JSON file, imports no engine and runs no user code. The manifest must be for the same
+  target (PLX107).</li>
+<li><code>PROJECT</code> discovers the models on the parse path (ADR-0050): an AST pass resolves static <code>@model</code>
+  decorators without importing, and only modules whose decorators have dynamic arguments are
+  imported. The result is
   cached on disk, keyed by a hash of the installed pipeloom versions, the target, the variables and
   the path, size and modification time of <code>pipeloom.yml</code> and every file under <code>model_paths</code> and
   <code>python_paths</code>. An entry also stores a fingerprint of the environment variables the plan read, so

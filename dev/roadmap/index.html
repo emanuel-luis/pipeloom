@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -559,6 +559,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1834,13 +1862,13 @@ paths, listens on localhost by default and ships as a separate distribution, so 
   inputs, SQL runs through <code>ctx.sql</code>, and YAML keeps the project file (a <code>models:</code> folder tree with <code>+keys</code>, source
   groups, vars, targets) and properties files that describe and configure models. The compiler reads static
   decorators with <code>ast</code> and imports only modules with dynamic arguments, with a per-file cache. YAML model files are
-  removed before 0.9.0, with no deprecation release. Decided in
-  <a href="../adr/0050-python-first-authoring/">ADR-0050</a> (accepted).</li>
+  removed in 0.9, with no deprecation release, and <a href="../guide/migrate-0.9/">Migrating from 0.8</a> maps them to the
+  decorator. Decided in <a href="../adr/0050-python-first-authoring/">ADR-0050</a> (accepted) and done.</li>
 <li><code>pipeloom init</code> (0.8). Every generated project runs with one command on local engines, with a small CSV under
   <code>data/</code>. Templates also write the schema modeline in every YAML file and a <code>.vscode/settings.json</code> that maps
   <code>yaml.schemas</code> to the published schema URLs, so completion works without an extension.</li>
-<li><code>pipeloom new model &lt;name&gt; [--sql|--python] [--folder]</code> (0.8). Writes the YAML entry and, for Python, a
-  <code>build(ctx, **inputs)</code> stub whose parameters satisfy PLK602. A few scaffold templates are enough; no generator
+<li><code>pipeloom new model &lt;name&gt; [--sql|--python] [--folder]</code> (0.8). From 0.9 it writes one <code>.py</code> file with a
+  decorated function: a <code>ctx.sql(...)</code> body or a frame stub. A few scaffold templates are enough; no generator
   framework.</li>
 <li><code>pipeloom explain &lt;CODE&gt;</code> (0.8). Prints the catalog entry, the hint and the docs URL from
   <code>pipeloom.diagnostics.codes</code>. The console failure block links to it.</li>
@@ -2021,7 +2049,7 @@ so the first step is to publish it as a contract.</p>
 </thead>
 <tbody>
 <tr>
-<td>Python-first authoring</td>
+<td>Python-first authoring (done)</td>
 <td><a href="../adr/0050-python-first-authoring/">ADR-0050</a></td>
 <td>the four TPC-H examples run from decorated models, and cold discovery of 1,000 static models takes under 2 s</td>
 </tr>

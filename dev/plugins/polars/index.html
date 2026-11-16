@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -559,6 +559,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1383,7 +1411,7 @@
 <p>The engine needs the <code>filesystem</code> catalog: tables are directories of part files committed through
 <code>_pipeloom/commit.json</code> (<a href="../../adr/0022-filesystem-table-format/">ADR-0022</a>). Any other catalog is
 rejected when the session opens.</p>
-<p>A model can set <code>catalog</code> (and a <code>_defaults.yml</code> folder default can set it for a layer). The
+<p>A model can set <code>catalog</code> (and a <code>+catalog</code> key in the <code>models:</code> tree can set it for a layer). The
 catalog becomes a leading directory: <code>&lt;root&gt;/&lt;catalog&gt;/&lt;schema&gt;/&lt;name&gt;/</code>. A table with no
 catalog keeps <code>&lt;root&gt;/&lt;schema&gt;/&lt;name&gt;/</code>.</p>
 <h2 id="capabilities">Capabilities<a class="headerlink" href="#capabilities" title="Permanent link">&para;</a></h2>

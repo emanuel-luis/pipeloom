@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -567,6 +567,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1207,10 +1235,11 @@
 
 
 <h1 id="pipeloom">pipeloom<a class="headerlink" href="#pipeloom" title="Permanent link">&para;</a></h1>
-<p>Declarative, engine-agnostic data pipelines in YAML.</p>
-<p>pipeloom 0.3 reads a YAML project, checks it in layers, builds the dependency graph, writes the
-execution plan as a manifest and runs it on polars or pandas, with incremental models, merge and
-partition writes, data-quality expectations, retries, timeouts and cancellation.</p>
+<p>Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.</p>
+<p>pipeloom discovers the <code>@model</code> functions of a project, checks it in layers, builds the
+dependency graph, writes the execution plan as a manifest and runs it on polars, pandas or Spark,
+with incremental models, merge, partition and scd2 writes, contracts, data-quality expectations,
+unit and data tests, retries, timeouts and cancellation.</p>
 <ul>
 <li><a href="quickstart/">Quickstart</a></li>
 <li>Guides: <a href="guide/running/">running a pipeline</a>, <a href="guide/incremental/">incremental models</a>,

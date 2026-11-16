@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -555,6 +555,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1441,7 +1469,8 @@
 </ol>
 <p><strong>Migration and scope decisions.</strong></p>
 <ul>
-<li>There is no user-facing <code>pipeloom migrate</code> command. An internal, committed converter, <code>tools/migrate_yaml_models.py</code>, migrates the repository's own fixtures, cases and examples and is always called with the same command line. The migration guide shows the mapping from YAML to the decorator by hand. The tool is deleted once nothing in the repository is declared in YAML.</li>
+<li>There is no user-facing <code>pipeloom migrate</code> command. The migration guide shows the mapping from YAML to the decorator by hand. The repository's own fixtures, cases and examples were migrated by an internal converter, described in the amendment below.</li>
+<li>Amendment (migration work): the converter becomes a test support utility, <code>tests/legacy_models.py</code>, kept after the legacy path is removed. The shared test project builders use it to turn compact YAML-style models written by tests into Python-first projects on write; it stays out of the package, so there is still no user-facing <code>pipeloom migrate</code>.</li>
 <li>0.9.0 drops YAML models with no deprecation release. Removal before 1.0 is allowed by pre-1.0 SemVer and by <a href="../0016-versioning-and-plugin-api/">ADR-0016</a>.</li>
 <li><code>ctx.sql</code> translates only when a dialect is declared (<code>dialect=</code> or <code>sql_dialect</code>) and differs from the engine's (point 8).</li>
 <li><a href="../0019-yaml-dialect/">ADR-0019</a> does not change; its YAML dialect now covers the project file and properties files only.</li>

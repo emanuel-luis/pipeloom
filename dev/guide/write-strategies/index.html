@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -663,6 +663,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1372,25 +1400,21 @@ columns differ from the table. The polars and pandas engines support all of it o
 tables. 0.9 adds <code>scd2</code> on polars, pandas and Spark.</p>
 <h2 id="merge">merge<a class="headerlink" href="#merge" title="Permanent link">&para;</a></h2>
 <p>Rows are matched on <code>unique_key</code>. Matched rows are updated, unmatched rows are inserted.</p>
-<pre><code class="language-yaml">models:
-  - name: orders
-    python: shop.orders:build
-    inputs:
-      raw_orders:
-        source: raw_orders
-    materialized: incremental
-    incremental:
-      input: raw_orders
-      column: updated_at
-      lookback: 2h
-    write:
-      strategy: merge
-      unique_key: [id]
-      update_condition: &quot;source.updated_at &gt; target.updated_at&quot;
-      deletes:
-        column: status
-        value: cancelled
-        mode: hard
+<pre><code class="language-python">from pipeloom import model
+
+
+@model(
+    materialized=&quot;incremental&quot;,
+    incremental={&quot;input&quot;: &quot;raw_orders&quot;, &quot;column&quot;: &quot;updated_at&quot;, &quot;lookback&quot;: &quot;2h&quot;},
+    write={
+        &quot;strategy&quot;: &quot;merge&quot;,
+        &quot;unique_key&quot;: [&quot;id&quot;],
+        &quot;update_condition&quot;: &quot;source.updated_at &gt; target.updated_at&quot;,
+        &quot;deletes&quot;: {&quot;column&quot;: &quot;status&quot;, &quot;value&quot;: &quot;cancelled&quot;, &quot;mode&quot;: &quot;hard&quot;},
+    },
+)
+def orders(raw_orders):
+    return raw_orders
 </code></pre>
 <ul>
 <li><code>update_condition</code> is optional and written in the engine's dialect (a SQL expression on
@@ -1411,16 +1435,12 @@ table. Row order is not preserved.</p>
 <h2 id="replace_partitions">replace_partitions<a class="headerlink" href="#replace_partitions" title="Permanent link">&para;</a></h2>
 <p><code>replace_partitions</code> swaps the partitions present in the batch and leaves the others alone.
 It needs <code>partition_by</code>; without it <code>pipeloom validate</code> reports PLP407.</p>
-<pre><code class="language-yaml">models:
-  - name: daily_clicks
-    sql: select event_date, user_id, clicks from raw_events
-    inputs:
-      raw_events:
-        source: raw_events
-    partition_by: [event_date]
-    write:
-      strategy: replace_partitions
-      on_schema_change: append_new_columns
+<pre><code class="language-python">@model(
+    partition_by=[&quot;event_date&quot;],
+    write={&quot;strategy&quot;: &quot;replace_partitions&quot;, &quot;on_schema_change&quot;: &quot;append_new_columns&quot;},
+)
+def daily_clicks(ctx, raw_events):
+    return ctx.sql(&quot;select event_date, user_id, clicks from raw_events&quot;)
 </code></pre>
 <p>With <code>partition_by</code> every strategy writes one part file per distinct partition value. A
 <code>replace_partitions</code> write drops the files of the partitions in the batch and adds the new ones
@@ -1431,24 +1451,18 @@ those files once. An empty batch changes no files. A null is a partition value l
 <p><code>scd2</code> keeps the history of each key as a type 2 slowly changing dimension. The table holds the
 model's columns followed by three system columns: <code>valid_from</code> and <code>valid_to</code>
 (<code>timestamp[us, UTC]</code>) and <code>is_current</code> (<code>boolean</code>).</p>
-<pre><code class="language-yaml">models:
-  - name: customers_history
-    sql: select id, name, tier, status from raw_customers
-    inputs:
-      raw_customers:
-        source: raw_customers
-    write:
-      strategy: scd2
-      unique_key:
-        - id
-      tracked_columns:
-        - name
-        - tier
-      deletes:
-        column: status
-        value: closed
-        mode: hard
+<pre><code class="language-python">@model(
+    write={
+        &quot;strategy&quot;: &quot;scd2&quot;,
+        &quot;unique_key&quot;: [&quot;id&quot;],
+        &quot;tracked_columns&quot;: [&quot;name&quot;, &quot;tier&quot;],
+        &quot;deletes&quot;: {&quot;column&quot;: &quot;status&quot;, &quot;value&quot;: &quot;closed&quot;, &quot;mode&quot;: &quot;hard&quot;},
+    },
+)
+def customers_history(ctx, raw_customers):
+    return ctx.sql(&quot;select id, name, tier, status from raw_customers&quot;)
 </code></pre>
+<p>The same settings can live in the model's properties entry under <code>config:</code>, as block YAML.</p>
 <ul>
 <li>The first load, and every <code>--full-refresh</code>, writes each batch row as the current version and
   drops any earlier history.</li>

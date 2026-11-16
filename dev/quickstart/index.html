@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -700,6 +700,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1483,6 +1511,13 @@ named like the model or source table it reads, then fill in the body. See
 <pre><code class="language-yaml"># yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
 config_version: 1
 name: shop
+sources:
+  raw:
+    format: csv
+    location: raw
+    tables:
+      orders:
+        location: orders.csv
 targets:
   dev:
     engine:
@@ -1500,25 +1535,27 @@ targets:
 2,10,2.5
 3,11,7.0
 </code></pre>
-<p><code>models/orders.yml</code>:</p>
-<pre><code class="language-yaml"># yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json
-sources:
-  - name: raw_orders
-    format: csv
-    location: raw/orders.csv
-models:
-  - name: stg_orders
-    sql: select id, customer_id, amount from raw_orders
-    inputs:
-      raw_orders:
-        source: raw_orders
-    tags: [staging]
-  - name: orders_by_customer
-    sql: select customer_id, sum(amount) as total from stg_orders group by customer_id
-    inputs:
-      stg_orders:
-        ref: stg_orders
+<p><code>models/orders.py</code>:</p>
+<pre><code class="language-python">from pipeloom import ModelContext, model
+
+
+@model(tags=[&quot;staging&quot;])
+def stg_orders(ctx: ModelContext, orders):
+    return ctx.sql(&quot;select id, customer_id, amount from orders&quot;)
+
+
+@model
+def orders_by_customer(ctx: ModelContext, stg_orders):
+    return ctx.sql(
+        &quot;select customer_id, sum(amount) as total from stg_orders group by customer_id&quot;
+    )
 </code></pre>
+<p>A model is a function marked with <code>@model</code>. Its parameters are its inputs: <code>orders</code> binds to the
+source table <code>raw.orders</code>, and <code>stg_orders</code> to the model of that name. <code>ctx.sql</code> runs a query over
+the inputs by parameter name and returns the engine's frame; a model may also build and return a
+frame itself. Settings such as <code>tags</code> are <code>@model</code> keywords, or folder defaults in a <code>models:</code>
+tree in <code>pipeloom.yml</code>. Coming from 0.8 and YAML models? See
+<a href="../guide/migrate-0.9/">Migrating from 0.8</a>.</p>
 <h2 id="check-it">Check it<a class="headerlink" href="#check-it" title="Permanent link">&para;</a></h2>
 <pre><code class="language-console">$ pipeloom validate
 Project 'shop' is valid.

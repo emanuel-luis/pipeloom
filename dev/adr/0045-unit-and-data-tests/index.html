@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -555,6 +555,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1402,6 +1430,7 @@
 <ol>
 <li>The Airflow and Databricks renderers do not pass <code>--data-tests</code> yet. <code>pipeloom test</code> does not run data tests against existing tables. <code>init</code> templates are unchanged.</li>
 </ol>
+<p>Since the legacy model path was removed in 0.9 (ADR-0050), cases come only from properties entries of resolved models, so a properties entry for an unknown model is PLR209 and PLR208 covers the case itself (a missing or unknown input alias, a duplicate case name). There are no SQL bodies: a model that calls <code>ctx.sql</code> runs it through the same translate and <code>session.sql</code> path as <code>pipeloom run</code> (point 7).</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
 <li>A body is testable on a laptop in milliseconds, on every engine, with the same properties file. A plain pytest call on the decorated function also works. The contract suite runs one passing and one failing case per engine.</li>

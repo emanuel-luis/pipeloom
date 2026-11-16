@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -578,10 +578,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#python-first-forms" class="md-nav__link">
+  <a href="#data-tests-on-the-decorator" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Python-first forms
+        Data tests on the decorator
       
     </span>
   </a>
@@ -718,6 +718,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -1423,10 +1451,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#python-first-forms" class="md-nav__link">
+  <a href="#data-tests-on-the-decorator" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Python-first forms
+        Data tests on the decorator
       
     </span>
   </a>
@@ -1478,17 +1506,22 @@
 <h1 id="testing-models">Testing models<a class="headerlink" href="#testing-models" title="Permanent link">&para;</a></h1>
 <p>A unit test runs a model body on rows you give it and compares the output with rows you expect.
 It needs no warehouse and writes nothing: <code>pipeloom test</code> builds the inputs in memory on the
-target's engine, runs the SQL or Python body, and reads the result back. The design is in
+target's engine, runs the model function, and reads the result back. The design is in
 <a href="../../adr/0045-unit-and-data-tests/">ADR-0045</a>.</p>
 <h2 id="a-first-case">A first case<a class="headerlink" href="#a-first-case" title="Permanent link">&para;</a></h2>
-<p>Put <code>unit_tests</code> on the model. Every input alias needs <code>given</code> rows, and <code>expect</code> lists the rows
-the body should return.</p>
+<p>Take a model:</p>
+<pre><code class="language-python">from pipeloom import model, ref
+
+
+@model(inputs={&quot;orders&quot;: ref(&quot;stg_orders&quot;)})
+def orders_enriched(ctx, orders):
+    return ctx.sql(&quot;select o.id, o.amount * 2 as doubled from orders o&quot;)
+</code></pre>
+<p>Its cases live in its properties entry, in any YAML file under <code>model_paths</code>. Rows are data, so
+they never go on the decorator. Every input alias (a parameter name of the function) needs
+<code>given</code> rows, and <code>expect</code> lists the rows the function should return.</p>
 <pre><code class="language-yaml">models:
   - name: orders_enriched
-    sql: select o.id, o.amount * 2 as doubled from orders o
-    inputs:
-      orders:
-        ref: stg_orders
     unit_tests:
       - name: doubles_the_amount
         given:
@@ -1554,18 +1587,19 @@ string ids:</p>
 </code></pre>
 <p>A column that holds only nulls and declares no type cannot be typed; the case fails with PLX115.</p>
 <h2 id="keeping-cases-in-their-own-files">Keeping cases in their own files<a class="headerlink" href="#keeping-cases-in-their-own-files" title="Permanent link">&para;</a></h2>
-<p>Any YAML file under <code>model_paths</code> may hold a top-level <code>unit_tests</code> list. Each entry names its
-model:</p>
-<pre><code class="language-yaml">unit_tests:
-  - name: doubles_the_amount
-    model: orders_enriched
-    given:
-      orders:
-        csv: tests/data/orders.csv
-    expect:
-      csv: tests/data/doubled.csv
+<p>A properties file can live anywhere under <code>model_paths</code>, and each model has one properties entry.
+To keep cases in a <code>tests</code> folder, add it to <code>model_paths</code> in <code>pipeloom.yml</code> and put the model's
+properties entry there:</p>
+<pre><code class="language-yaml">models:
+  - name: orders_enriched
+    unit_tests:
+      - name: doubles_the_amount
+        given:
+          orders:
+            csv: tests/data/orders.csv
+        expect:
+          csv: tests/data/doubled.csv
 </code></pre>
-<p>To keep such files in a <code>tests</code> folder, add it to <code>model_paths</code> in <code>pipeloom.yml</code>.</p>
 <h2 id="running-them">Running them<a class="headerlink" href="#running-them" title="Permanent link">&para;</a></h2>
 <p><code>pipeloom test</code> takes <code>--select</code>, <code>--exclude</code>, <code>--state</code>, <code>--target</code>, <code>--vars</code>, <code>--plugin</code>,
 <code>--project-dir</code> and <code>--log-format</code>, like <code>compile</code>. It takes no lock, records no run and writes no
@@ -1575,13 +1609,10 @@ validate, 2 for a usage error, 130 when interrupted.</p>
 <code>state:modified</code>.</p>
 <h2 id="data-tests">Data tests<a class="headerlink" href="#data-tests" title="Permanent link">&para;</a></h2>
 <p>Expectations judge each batch before it is written. Data tests judge the whole written table
-afterwards, which is where a foreign key check belongs:</p>
+afterwards, which is where a foreign key check belongs. Like unit tests, they go in the model's
+properties entry:</p>
 <pre><code class="language-yaml">models:
   - name: orders
-    sql: select * from raw_orders
-    inputs:
-      raw_orders:
-        source: raw_orders
     data_tests:
       - name: customer_exists
         check:
@@ -1611,28 +1642,7 @@ fails, its descendants are skipped and the run exits 1, but the data stays writt
 PLP415, as is a relationships parent that is the model itself, one of its descendants, an
 ephemeral model, an intermediate model, or a model that closes a cycle among input and
 relationship edges.</p>
-<h2 id="python-first-forms">Python-first forms<a class="headerlink" href="#python-first-forms" title="Permanent link">&para;</a></h2>
-<p>When a model is a decorated Python function, <code>unit_tests</code> and <code>data_tests</code> go in a properties
-file next to it. The entry names the model; the SQL or Python body stays in the function:</p>
-<pre><code class="language-yaml">models:
-  - name: orders
-    unit_tests:
-      - name: two_rows
-        given:
-          raw_orders:
-            rows:
-              - id: 1
-              - id: 2
-        expect:
-          rows:
-            - id: 1
-            - id: 2
-    data_tests:
-      - name: id_unique
-        check:
-          unique:
-            - id
-</code></pre>
+<h2 id="data-tests-on-the-decorator">Data tests on the decorator<a class="headerlink" href="#data-tests-on-the-decorator" title="Permanent link">&para;</a></h2>
 <p><code>data_tests</code> also has a decorator keyword, which takes <code>DataTest</code> objects or plain dicts. The
 <code>check</code> is one of <code>not_null</code>, <code>unique</code> or <code>relationships</code>, as in YAML. It is not an expectation
 check, so helpers such as <code>not_null()</code> from <code>pipeloom</code> do not apply there:</p>
@@ -1673,7 +1683,7 @@ runs the selection with data tests on, ordering each model after its relationshi
 </tr>
 <tr>
 <td>PLR208</td>
-<td>A case names an unknown model, gives an alias that is not an input, leaves an input without rows, or reuses a case name</td>
+<td>A case gives an alias that is not an input, leaves an input without rows, or reuses a case name</td>
 </tr>
 <tr>
 <td>PLX114</td>

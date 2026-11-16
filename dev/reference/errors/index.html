@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
       
       
       
@@ -559,6 +559,34 @@
     
   
     Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
   
 
     
@@ -4401,7 +4429,7 @@
 <p>The file is not valid UTF-8 (a UTF-8 BOM is accepted) or has characters YAML forbids.</p>
 <h3 id="ply004">PLY004<a class="headerlink" href="#ply004" title="Permanent link">&para;</a></h3>
 <p>File missing or unreadable. Severity: error. Status: active. Since: 0.1.</p>
-<p>pipeloom.yml or a model file does not exist or cannot be read.</p>
+<p>pipeloom.yml or a properties file does not exist or cannot be read.</p>
 <h3 id="ply005">PLY005<a class="headerlink" href="#ply005" title="Permanent link">&para;</a></h3>
 <p>Model module cannot be loaded. Severity: error. Status: active. Since: 0.9.</p>
 <p>A Python file under model_paths or model_packages has a syntax error, raised an exception while it was imported, lies outside every python_paths root, or resolves to another file under its module name (an installed package or another module shadows it, or its top-level name is a standard library module). Every such file is reported; the location is the innermost traceback frame in that file, or the syntax error. While any is reported, PLR209 is not, since the missing models may be the ones a properties entry describes.</p>
@@ -4429,7 +4457,7 @@
 <p>A ${env:...} or ${var:...} expression is malformed.</p>
 <h3 id="pls108">PLS108<a class="headerlink" href="#pls108" title="Permanent link">&para;</a></h3>
 <p>Exactly one of several fields required. Severity: error. Status: active. Since: 0.1.</p>
-<p>Exactly one of a set of fields must be given, for example sql or python.</p>
+<p>At most one, or exactly one, of a set of fields may be given, for example location or table on a source table.</p>
 <h2 id="l2-references">L2 references<a class="headerlink" href="#l2-references" title="Permanent link">&para;</a></h2>
 <h3 id="plr201">PLR201<a class="headerlink" href="#plr201" title="Permanent link">&para;</a></h3>
 <p>Unknown ref. Severity: error. Status: active. Since: 0.1.</p>
@@ -4439,12 +4467,13 @@
 <p>Two models share a name. Names are unique per project.</p>
 <h3 id="plr203">PLR203<a class="headerlink" href="#plr203" title="Permanent link">&para;</a></h3>
 <p>Unknown source. Severity: error. Status: active. Since: 0.1.</p>
-<p>An input names a source that no model file declares.</p>
+<p>An input names a source table that no source group in pipeloom.yml declares.</p>
 <h3 id="plr204">PLR204<a class="headerlink" href="#plr204" title="Permanent link">&para;</a></h3>
 <p>Unknown target or plugin kind. Severity: error. Status: active. Since: 0.1.</p>
 <p>The selected target is not in targets, or an engine, catalog, naming or sink block names a kind that no installed plugin provides.</p>
 <h3 id="plr205">PLR205<a class="headerlink" href="#plr205" title="Permanent link">&para;</a></h3>
-<p>Duplicate source. Severity: error. Status: active. Since: 0.1.</p>
+<p>Duplicate source. Severity: error. Status: retired. Since: 0.1.</p>
+<p>Retired in 0.9: no longer emitted.</p>
 <p>Two sources share a name. Names are unique per project.</p>
 <h3 id="plr206">PLR206<a class="headerlink" href="#plr206" title="Permanent link">&para;</a></h3>
 <p>model_paths entry does not exist. Severity: warning. Status: active. Since: 0.1.</p>
@@ -4454,10 +4483,10 @@
 <p>Several targets exist and none was chosen. Use --target, PIPELOOM_TARGET or default_target.</p>
 <h3 id="plr208">PLR208<a class="headerlink" href="#plr208" title="Permanent link">&para;</a></h3>
 <p>Unit test reference. Severity: error. Status: active. Since: 0.9.</p>
-<p>A unit test names a model that does not exist, gives rows for an alias that is not an input of the model, leaves an input alias without rows, or reuses a case name of its model.</p>
+<p>A unit test in a properties entry gives rows for an alias that is not an input of the model, leaves an input alias without rows, or reuses a case name of its model.</p>
 <h3 id="plr209">PLR209<a class="headerlink" href="#plr209" title="Permanent link">&para;</a></h3>
 <p>Properties entry names no model, or describes one twice. Severity: error. Status: active. Since: 0.9.</p>
-<p>An entry of a properties file (a models entry without sql or python) names a model that does not exist, or a model that another properties entry already describes. Each model has at most one properties entry. The hint suggests the closest model name, or points at the first entry.</p>
+<p>An entry of a properties file names a model that does not exist, or a model that another properties entry already describes. Each model has at most one properties entry. The hint suggests the closest model name, or points at the first entry.</p>
 <h3 id="plr210">PLR210<a class="headerlink" href="#plr210" title="Permanent link">&para;</a></h3>
 <p>Input name matches a table in several source groups. Severity: error. Status: active. Since: 0.9.</p>
 <p>A parameter of a Python model binds by name to a source table, and tables with that name exist in more than one source group. Bind it explicitly with inputs={'name': source('group', 'table')}.</p>
@@ -4513,7 +4542,7 @@
 <p>No persisted model reads this ephemeral model, directly or through other ephemeral models, so it never runs.</p>
 <h3 id="plp409">PLP409<a class="headerlink" href="#plp409" title="Permanent link">&para;</a></h3>
 <p>View inlines an ephemeral model. Severity: error. Status: active. Since: 0.2.</p>
-<p>A view cannot read an ephemeral model, because its query is stored in the catalog and an ephemeral model has no relation to name. A view may be a SQL model or a Python function that returns ctx.sql(...).</p>
+<p>A view cannot read an ephemeral model, because its query is stored in the catalog and an ephemeral model has no relation to name. A view is a model function that returns ctx.sql(...).</p>
 <h3 id="plp410">PLP410<a class="headerlink" href="#plp410" title="Permanent link">&para;</a></h3>
 <p>append with lookback reloads rows. Severity: warning. Status: active. Since: 0.3.</p>
 <p>An incremental model appends with a lookback above zero, so rows inside the window are written again. Use merge with a unique_key.</p>
@@ -4540,7 +4569,8 @@
 <p>Strategy unsupported by engine. Severity: error. Status: active. Since: 0.1.</p>
 <p>The write strategy is not in the selected engine's capabilities.</p>
 <h3 id="plc502">PLC502<a class="headerlink" href="#plc502" title="Permanent link">&para;</a></h3>
-<p>SQL model on an engine without SQL. Severity: error. Status: active. Since: 0.1.</p>
+<p>SQL model on an engine without SQL. Severity: error. Status: retired. Since: 0.1.</p>
+<p>Retired in 0.9: no longer emitted.</p>
 <p>A SQL model targets an engine that cannot run SQL.</p>
 <h3 id="plc503">PLC503<a class="headerlink" href="#plc503" title="Permanent link">&para;</a></h3>
 <p>boundary task with a non-shared state store. Severity: error. Status: active. Since: 0.1.</p>
@@ -4571,16 +4601,18 @@
 <p>The model's sql_dialect differs from the dialect of the target engine, so its ctx.sql queries must be translated, and sqlglot is not installed. Install pipeloom[sqlglot], or remove sql_dialect and write the queries in the engine's dialect.</p>
 <h2 id="l6-static-code">L6 static code<a class="headerlink" href="#l6-static-code" title="Permanent link">&para;</a></h2>
 <h3 id="plk601">PLK601<a class="headerlink" href="#plk601" title="Permanent link">&para;</a></h3>
-<p>Callable file or function not found. Severity: error. Status: active. Since: 0.1.</p>
+<p>Callable file or function not found. Severity: error. Status: retired. Since: 0.1.</p>
+<p>Retired in 0.9: no longer emitted.</p>
 <p>The Python module is not under python_paths, cannot be parsed, or does not define the function.</p>
 <h3 id="plk602">PLK602<a class="headerlink" href="#plk602" title="Permanent link">&para;</a></h3>
 <p>Callable parameters do not match inputs. Severity: error. Status: active. Since: 0.1.</p>
-<p>The function's parameters must be ctx followed by one parameter per input alias (any alias is accepted with **kwargs).</p>
+<p>Inputs are passed by keyword, so a model function cannot take *args or positional-only parameters, and every inputs= key must name a parameter (any key is accepted with **kwargs).</p>
 <h3 id="plk603">PLK603<a class="headerlink" href="#plk603" title="Permanent link">&para;</a></h3>
 <p>SQL references undeclared table. Severity: warning. Status: active. Since: 0.2.</p>
 <p>A model's SQL reads a table that is neither an input alias nor a CTE. Checked only when sqlglot is installed (extra: sqlglot).</p>
 <h3 id="plk604">PLK604<a class="headerlink" href="#plk604" title="Permanent link">&para;</a></h3>
-<p>Name bound at module level by something other than a def. Severity: warning. Status: active. Since: 0.1.</p>
+<p>Name bound at module level by something other than a def. Severity: warning. Status: retired. Since: 0.1.</p>
+<p>Retired in 0.9: no longer emitted.</p>
 <p>The callable's name is bound by an assignment, import or class, so its parameters cannot be checked.</p>
 <h3 id="plk605">PLK605<a class="headerlink" href="#plk605" title="Permanent link">&para;</a></h3>
 <p>SQL not parseable. Severity: warning. Status: active. Since: 0.2.</p>
