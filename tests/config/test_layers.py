@@ -252,6 +252,15 @@ def test_source_groups_and_target_overrides(project_factory: Factory, target: st
     assert loc.line == line_of({"p": SOURCES}, "p", "tags: [small]")
 
 
+@pytest.mark.parametrize("location", ["D:/data/orders.parquet", "C:\\\\data\\\\x.parquet"])
+def test_absolute_table_location_ignores_the_group_location(
+    project_factory: Factory, location: str
+) -> None:
+    text = SOURCES.replace("location: orders.parquet", f'location: "{location}"')
+    p = resolve(project_factory, {"pipeloom.yml": text, "models/m.yml": SOURCE_MODEL})
+    assert p.sources["source.shop.tpch.orders"].config.location == location.replace("\\\\", "\\")
+
+
 def test_source_table_with_both_location_and_table_is_pls108(project_factory: Factory) -> None:
     text = SOURCES.replace("tags: [small]", "location: n.parquet\n        table: nation")
     root = project_factory({"pipeloom.yml": text})

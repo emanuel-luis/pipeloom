@@ -144,7 +144,10 @@ def _table_source(key: str, group: SourceGroupConfig, t: SourceTableConfig) -> S
     location = table = None
     if t.location is not None:
         base = group.location
-        absolute = "://" in t.location or t.location.startswith("/")
+        # The same rule as `Runner._source_spec` in runtime/runner.py: a URL, a POSIX path or
+        # a Windows drive path is absolute.
+        loc = t.location
+        absolute = "://" in loc or loc.startswith("/") or ":" in loc[:2]
         location = t.location if base is None or absolute else f"{base.rstrip('/')}/{t.location}"
     else:
         table = t.table or key
