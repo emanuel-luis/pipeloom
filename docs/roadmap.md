@@ -251,8 +251,8 @@ Delivered in 0.8.0. The docs site lays its graph out in Python instead of a vend
 
 | Item | ADR | Acceptance |
 |---|---|---|
-| Published JSON Schemas for the manifest, run results, events and unit states | ADR-0049 (proposed) | the docs publish them under `schema/v1/`, and the goldens validate against them in CI |
-| Orchestrator protocol page and `graph --units --output json` | ADR-0049 (proposed) | a Kestra or GitHub Actions recipe in the docs runs the TPC-H example end to end |
+| Published JSON Schemas for the manifest, run results, events and unit states | [ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md) | the docs publish them under `schema/v1/`, and the goldens validate against them in CI |
+| Orchestrator protocol page and `graph --units --output json` | [ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md) | a Kestra or GitHub Actions recipe in the docs runs the TPC-H example end to end |
 | `config_version: 1`, plugin API 1.0 and a deprecation policy | [ADR-0016](adr/0016-versioning-and-plugin-api.md) follow-up | a new `tools/versions.py check` step fails when a distribution declares a config version or plugin API other than the released one, and the changelog lists no breaking change after rc1 |
 | Hardening and complete docs | none | `mkdocs build --strict` passes and every command and flag has a guide page |
 
