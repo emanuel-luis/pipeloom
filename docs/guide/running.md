@@ -190,3 +190,26 @@ paths of the files written. See [Run artifacts](../reference/artifacts.md) for t
 Each failure block has an `explain:` line after the hint. `pipeloom explain <CODE>` (for example
 `pipeloom explain PLX101`, any case) prints what the code means and links to its entry on the
 [error codes](../reference/errors.md) page.
+
+## Inspecting a project
+
+These commands write no data. The flags of each are in the
+[command line reference](../reference/cli.md).
+
+- `pipeloom validate` runs the checks from YAML syntax to engine capabilities (layers L0 to L6)
+  and prints each finding with its code. It exits 1 on an error, and with `--warn-error` on a
+  warning too.
+- `pipeloom compile` validates the same way, then writes the plan to a manifest (`--out`, default
+  `target/manifest.json`). `--stable` blanks the timestamp, the invocation id and the
+  selection, so the same project and target always give the same file.
+- `pipeloom ls` prints the names of the models that `-s/--select` and `--exclude` choose, one per
+  line, or a JSON list with `--output json`.
+- `pipeloom graph` prints the selected models in dependency order as text (`name <- parents`),
+  Graphviz `dot`, Mermaid or JSON. `--units --output json` prints the execution units instead; see
+  the [orchestrator protocol](orchestrators.md).
+- `pipeloom plugins list` lists the installed plugins by group and kind from their metadata,
+  without importing them. `--group` keeps one group, `--output json` prints JSON, and `--check`
+  imports each plugin and adds its plugin API version and a status. A kind that two
+  distributions provide is PLU002 and exit 1.
+- `pipeloom schema export --out DIR` writes the JSON Schemas of `pipeloom.yml` and the
+  properties files; see [JSON Schema](../reference/schema.md).
