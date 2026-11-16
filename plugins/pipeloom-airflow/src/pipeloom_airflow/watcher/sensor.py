@@ -143,8 +143,7 @@ class PipeloomWatcherSensor(PipeloomRunOperator):
             with log.open(encoding="utf-8", errors="replace") as f:
                 tail = deque(f, LOG_TAIL_LINES)
         except OSError:
-            # Only the process executor writes a log per unit; otherwise the output is the
-            # producer's.
+            # Only `boundary: task` writes a log per unit; otherwise the output is the producer's.
             self.log.info(
                 "unit %s has no log of its own; its output is in the log of task %s",
                 self.unit_id,

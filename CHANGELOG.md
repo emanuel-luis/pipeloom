@@ -8,7 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
-- Airflow WATCHER mode: a watcher whose unit has no log file of its own (every executor but the process executor) no longer logs "no log at <path>". It says that the unit's output is in the log of the producer task, and still shows the last 200 lines when the unit's log exists.
+- Airflow WATCHER mode: a watcher whose unit has no log file of its own (any boundary but `task`) no longer logs "no log at <path>". It says that the unit's output is in the log of the producer task, and still shows the last 200 lines when the unit's log exists.
 
 ## [0.9.0] - 2026-11-16
 
