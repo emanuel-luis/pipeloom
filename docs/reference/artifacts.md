@@ -117,7 +117,8 @@ when its persisted model is selected; `parents` and `edges` only name units in s
 | `edges` | `{"from": parent, "to": child}`. |
 | `finalize.argv` | The command line that closes the run. |
 
-An `argv` starts with `pipeloom`; the unit id, target and plan hash are literal. Assets are
+An `argv` starts with `pipeloom`; the unit id, target and plan hash are literal, and every
+`--plugin` given to `graph` is repeated at the end, so each process can load the same kinds. Assets are
 `pipeloom://{project}/{target}/{relation_name}` with each part percent-encoded; intermediates and
 models without a relation have none. The schema is
 [unit_graph.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_graph.json).
