@@ -10,10 +10,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final, Literal
 
-import yaml
-
 from pipeloom.artifacts.layout import RunPaths
 from pipeloom.artifacts.reference import RESULTS_FILE
+from pipeloom.config.yaml import parse_yaml
 from pipeloom.diagnostics import Report
 from pipeloom.runtime.retry import Category, UnitPolicy, should_retry
 from pipeloom.runtime.run import DEFAULT_ARTIFACTS_ROOT
@@ -44,11 +43,19 @@ def resolve_artifacts_root(
     if override:
         return override
     hint = "set execution.watcher_artifacts_root to the absolute artifacts root"
+    name = f"{project_dir}/pipeloom.yml"
     try:
-        doc = yaml.safe_load((Path(project_dir) / "pipeloom.yml").read_bytes())
-    except (OSError, yaml.YAMLError) as err:
+        data = (Path(project_dir) / "pipeloom.yml").read_bytes()
+    except OSError as err:
         report.add("PLA008", f"cannot read pipeloom.yml under '{project_dir}': {err}", hint=hint)
         return None
+    problems = Report()
+    loaded = parse_yaml(data, name, problems)  # the core's YAML 1.2 loader, merge keys included
+    if loaded is None:
+        why = "; ".join(d.message for d in problems.sorted())
+        report.add("PLA008", f"cannot read pipeloom.yml under '{project_dir}': {why}", hint=hint)
+        return None
+    doc = loaded.data
     if not isinstance(doc, dict):
         report.add("PLA008", f"pipeloom.yml under '{project_dir}' is not a mapping", hint=hint)
         return None

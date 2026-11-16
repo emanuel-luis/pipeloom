@@ -211,6 +211,25 @@ def test_a_relative_root_joins_a_windows_or_posix_exec_dir(tmp_path: Path) -> No
     assert resolve_artifacts_root(p, "C:\\p", "ci", None, Report()) == "C:\\p\\out/a"
 
 
+def test_the_root_is_read_with_the_core_yaml_rules(tmp_path: Path) -> None:
+    # YAML 1.2 core: 1_000 is a string (PyYAML's safe_load would make it the int 1000)
+    (tmp_path / "pipeloom.yml").write_text(
+        HEAD + "artifacts:\n  root: 1_000\ntargets:\n  ci: {}\n", encoding="utf-8"
+    )
+    bound = Project(ProjectOptions(project_dir=tmp_path, target="ci", env={})).bind()
+    assert bound.value is not None, [d.message for d in bound.diagnostics]
+    got = resolve_artifacts_root(tmp_path.as_posix(), "/x", "ci", None, Report())
+    assert got == "/x/1_000"
+    assert Path(got) == artifacts_root(bound.value, Path("/x"))
+
+
+def test_invalid_yaml_is_pla008(tmp_path: Path) -> None:
+    (tmp_path / "pipeloom.yml").write_text("a: [", encoding="utf-8")
+    report = Report()
+    assert resolve_artifacts_root(tmp_path.as_posix(), "/x", "ci", None, report) is None
+    assert [d.code for d in report.sorted()] == ["PLA008"]
+
+
 def test_the_override_wins_without_reading(tmp_path: Path) -> None:
     report = Report()
     assert resolve_artifacts_root("/nowhere", "/x", "ci", "/root", report) == "/root"
