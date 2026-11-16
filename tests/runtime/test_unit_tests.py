@@ -143,9 +143,8 @@ def test_selection_limits_the_cases(tmp_path: Path) -> None:
 
 def test_an_invalid_project_runs_nothing(tmp_path: Path) -> None:
     root = _project(tmp_path)
-    (root / "tests" / "cases.yml").write_text(
-        FILE_CASES.replace("model: b", "model: nope"), encoding="utf-8"
-    )
+    cases = root / "tests" / "cases.yml"
+    cases.write_text(cases.read_text(encoding="utf-8").replace("src:", "nope:"), encoding="utf-8")
     outcome = _test(root)
     assert outcome.exit_code == 1 and outcome.events == ()
     assert "PLR208" in {d.code for d in outcome.diagnostics}
@@ -179,16 +178,11 @@ def test_an_engine_without_from_rows_cannot_run(tmp_path: Path) -> None:
 def test_an_untyped_null_column_cannot_run(tmp_path: Path) -> None:
     root = _project(tmp_path)
     (root / "tests" / "raw.csv").write_text("id,amount\n1,\n", encoding="utf-8")
-    (root / "models" / "m.yml").write_text(
-        MODELS.replace("      - name: amount\n        dtype: float64\n", ""), encoding="utf-8"
-    )
-    # the contract no longer types amount, which holds only nulls
-    root.joinpath("models/m.yml").write_text(
-        root.joinpath("models/m.yml")
-        .read_text(encoding="utf-8")
-        .replace("    columns:\n      - name: id\n        dtype: string\n", ""),
-        encoding="utf-8",
-    )
+    # drop the contract of b (a `columns=` decorator keyword), so nothing types amount, which
+    # holds only nulls
+    (module,) = [p for p in (root / "models").glob("*.py") if "columns=" in p.read_text("utf-8")]
+    lines = module.read_text(encoding="utf-8").splitlines(keepends=True)
+    module.write_text("".join(ln for ln in lines if "columns=" not in ln), encoding="utf-8")
     outcome = _test(root, ("b",))
     failed = [e for e in outcome.events if e.TYPE == "unit_test.failed"]
     assert failed[0].code == "PLX115"
@@ -201,17 +195,18 @@ def test_unit_tests_leave_manifests_byte_identical(tmp_path: Path) -> None:
     shutil.copytree(fixture, before)
     shutil.copytree(fixture, after)
     (after / "models" / "staging" / "cases.yml").write_text(
-        "unit_tests:\n"
-        "  - name: lower_emails\n"
-        "    model: stg_customers\n"
-        "    given:\n"
-        "      raw_customers:\n"
-        "        rows:\n"
-        "          - id: 1\n"
-        "            email: A@X.IO\n"
-        "    expect:\n"
-        "      rows:\n"
-        "        - email: a@x.io\n",
+        "models:\n"
+        "  - name: stg_customers\n"
+        "    unit_tests:\n"
+        "      - name: lower_emails\n"
+        "        given:\n"
+        "          raw_customers:\n"
+        "            rows:\n"
+        "              - id: 1\n"
+        "                email: A@X.IO\n"
+        "        expect:\n"
+        "          rows:\n"
+        "            - email: a@x.io\n",
         encoding="utf-8",
     )
     plans = []

@@ -3,18 +3,20 @@ files:
     config_version: 1
     name: shop
     python_paths: [src]
+    model_paths:
+    - src
     targets:
       dev:
         engine:
           kind: memory
         catalog:
           kind: memory
-  models/m.yml: |
-    models:
-      - name: a
-        python: "m:a"
-        materialized: view
   src/m.py: |
+    from pipeloom import model
+
+    @model(
+        materialized="view",
+    )
     def a(ctx):
         return []
 run: true

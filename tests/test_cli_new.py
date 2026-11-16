@@ -134,10 +134,26 @@ def test_existing_decorated_model_name(polars: Path) -> None:
     assert not (polars / "models" / "x").exists()
 
 
-def test_existing_yaml_model_name(polars: Path) -> None:
-    legacy = "models:\n  - name: legacy\n    sql: select 1 as id\n"
-    (polars / "models" / "legacy.yml").write_text(legacy, encoding="utf-8")
-    usage_error(cli("new", "model", "legacy", "--project-dir", str(polars)), "already exists")
+def test_name_of_an_existing_folder(polars: Path) -> None:
+    usage_error(
+        cli("new", "model", "bronze", "--project-dir", str(polars)),
+        "'bronze' is already a folder in models",
+    )
+    assert not (polars / "models" / "bronze.py").exists()
+
+
+def test_file_outside_every_python_paths_root(polars: Path) -> None:
+    project = polars / "pipeloom.yml"
+    text = read(project)
+    project.write_text(
+        text.replace("name: shop\n", "name: shop\npython_paths:\n  - lib\n"), encoding="utf-8"
+    )
+    assert "python_paths:\n  - lib\n" in read(project)
+    usage_error(
+        cli("new", "model", "a", "--project-dir", str(polars)),
+        "models/a.py is outside every python_paths root (lib)",
+    )
+    assert not (polars / "models" / "a.py").exists()
 
 
 def test_existing_target_file(polars: Path) -> None:

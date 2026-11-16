@@ -6,7 +6,10 @@ files:
       dev:
         engine:
           kind: memory
-  models/m.yml: |
-    models:
-      - name: a
-        sql: "select * from ("
+  models/m.py: |
+    from pipeloom import model
+
+
+    @model
+    def a(ctx):
+        return ctx.sql("select * from (")

@@ -109,7 +109,7 @@ def test_a_successful_run(tmp_path: Path) -> None:
     assert [f.name for f in fields] == ["id", "customer_id", "amount"]
     assert facet(out.outputFacets, "outputStatistics").rowCount == 3
     location = facet(done.job.facets, "sourceCodeLocation")
-    assert (location.type, location.path) == ("file", "models/staging/stg.yml")
+    assert (location.type, location.path) == ("file", "models/staging/stg_orders.py")
 
 
 def test_an_ephemeral_model_passes_its_inputs_to_the_unit(tmp_path: Path) -> None:
@@ -123,10 +123,10 @@ def test_an_ephemeral_model_passes_its_inputs_to_the_unit(tmp_path: Path) -> Non
 
 def test_a_failed_run(tmp_path: Path) -> None:
     root = shop(tmp_path)
-    marts = root / "src" / "shop" / "marts.py"
-    marts.write_text(
-        marts.read_text(encoding="utf-8").replace(
-            "    return enriched\n\n\ndef dim", "    raise ValueError('boom')\n\n\ndef dim"
+    fct = root / "models" / "marts" / "fct_orders.py"
+    fct.write_text(
+        fct.read_text(encoding="utf-8").replace(
+            "    return enriched\n", "    raise ValueError('boom')\n"
         ),
         encoding="utf-8",
     )

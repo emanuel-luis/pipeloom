@@ -15,8 +15,8 @@
       "message": "unit test 'upper_labels' of model 'a' failed: 1 expected row(s) missing: {\"id\": 2, \"label\": \"Z\"}; 1 unexpected row(s): {\"id\": 2, \"label\": \"Y\"}",
       "location": {
         "file": "models/m.yml",
-        "line": 11,
-        "col": 15,
+        "line": 4,
+        "col": 11,
         "json_pointer": "/models/0/unit_tests/0/name"
       },
       "missing": [

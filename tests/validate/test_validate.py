@@ -13,9 +13,13 @@ A = "  - {name: a, sql: select 1}\n"
 
 
 def codes(
-    tmp_path: Path, models: str, extra: dict[str, str] | None = None, base: str = BASE
+    tmp_path: Path,
+    models: str,
+    extra: dict[str, str] | None = None,
+    base: str = BASE,
 ) -> set[str]:
-    make_project(tmp_path, {"pipeloom.yml": base, "models/m.yml": models, **(extra or {})})
+    files = {"pipeloom.yml": base, "models/m.yml": models, **(extra or {})}
+    make_project(tmp_path, files)
     out = Project(ProjectOptions(project_dir=tmp_path, env={})).validate()
     return {d.code for d in out.diagnostics}
 
@@ -37,9 +41,9 @@ def test_l4_to_l6_run_together(tmp_path: Path) -> None:
     models = (
         "models:\n"
         "  - {name: a, sql: select 1, write: {strategy: replace_partitions}}\n"
-        "  - {name: b, python: 'm:b'}\n"
+        "  - {name: b, python: 'm:b', inputs: {a: {ref: a}}}\n"
     )
-    assert codes(tmp_path, models, {"src/m.py": "def b(): ...\n"}) == {
+    assert codes(tmp_path, models, {"src/m.py": "def b(ctx): ...\n"}) == {
         "PLP407",
         "PLK602",
     }
@@ -56,19 +60,14 @@ def test_package_module_is_found(tmp_path: Path) -> None:
     assert codes(tmp_path, models, {"src/pkg/m/__init__.py": "def b(ctx): ...\n"}) == set()
 
 
-def test_syntax_error_is_plk601(tmp_path: Path) -> None:
-    models = "models:\n  - {name: b, python: 'm:b'}\n"
-    assert codes(tmp_path, models, {"src/m.py": "def b(:\n"}) == {"PLK601"}
+def test_syntax_error_in_a_model_module_is_ply005(tmp_path: Path) -> None:
+    extra = {"models/b.py": "from pipeloom import model\n\n\n@model\ndef b(:\n"}
+    assert codes(tmp_path, "models: []\n", extra) == {"PLY005"}
 
 
 def test_async_def_is_accepted(tmp_path: Path) -> None:
     models = "models:\n" + A + "  - {name: b, python: 'm:b', inputs: {a: {ref: a}}}\n"
     assert codes(tmp_path, models, {"src/m.py": "async def b(ctx, a): ...\n"}) == set()
-
-
-def test_missing_function_is_plk601(tmp_path: Path) -> None:
-    models = "models:\n  - {name: b, python: 'm:b'}\n"
-    assert codes(tmp_path, models, {"src/m.py": "def other(ctx): ...\n"}) == {"PLK601"}
 
 
 def test_defaults_do_not_trip_plp405_on_matching_strategy(tmp_path: Path) -> None:

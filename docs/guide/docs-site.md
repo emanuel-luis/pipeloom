@@ -63,7 +63,7 @@ bytes.
 | `--host HOST` | Address to listen on. Default `127.0.0.1`. |
 | `--port N` | Port. Default 8000; 0 picks a free one. |
 
-When a model file changes, the next request for the page compiles the project again and rewrites `index.html`.
+When a model module, a properties file or `pipeloom.yml` changes, the next request for the page compiles the project again and rewrites `index.html`.
 If the project does not resolve when the command starts, it prints one line on stderr and serves the page as it
 is. If `index.html` is missing, the command exits 2 and asks you to run `pipeloom docs generate` first. Press
 Ctrl+C to stop it; it exits 0.

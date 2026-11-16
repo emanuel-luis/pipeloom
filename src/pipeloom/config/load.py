@@ -1,4 +1,4 @@
-"""Load a project: L0 (parse) and L1 (schema) for pipeloom.yml, model files and defaults."""
+"""Load a project: L0 (parse) and L1 (schema) for pipeloom.yml and properties files."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from pydantic import BaseModel, ValidationError
 
 from pipeloom.config.discover import PROJECT_FILE, find_model_files, read_file
 from pipeloom.config.errors import from_validation_error
-from pipeloom.config.models import DefaultsFile, ModelFile, ProjectConfig
+from pipeloom.config.models import ProjectConfig, PropertiesFile
 from pipeloom.config.yaml import LoadedDocument, parse_yaml
 from pipeloom.diagnostics import Report
 from pipeloom.secrets.interpolation import InterpolationRecord, interpolate
@@ -67,8 +67,8 @@ class LoadedProject:
     project_dir: Path
     config: ProjectConfig
     project_file: LoadedFile[ProjectConfig]
-    model_files: tuple[LoadedFile[ModelFile], ...]
-    defaults_files: tuple[LoadedFile[DefaultsFile], ...]
+    model_files: tuple[LoadedFile[PropertiesFile], ...]
+    """The properties files under model_paths."""
     vars: Mapping[str, Any]
     interpolations: tuple[InterpolationRecord, ...]
 
@@ -179,24 +179,17 @@ def load_project(opts: ProjectOptions, report: Report) -> LoadedProject | None:
         return None
     config = project_file.config
 
-    files = find_model_files(project_dir, config.model_paths, doc, report)
-    model_files: list[LoadedFile[ModelFile]] = []
-    defaults_files: list[LoadedFile[DefaultsFile]] = []
-    for rel in sorted(files.models + files.defaults):
+    model_files: list[LoadedFile[PropertiesFile]] = []
+    for rel in find_model_files(project_dir, config.model_paths, doc, report):
         mdoc = _read(project_dir, rel, report)
         if mdoc is None:
             continue
         _scan_secrets(mdoc, report)
         mdata, mrecords = interpolate(mdoc, env=env, vars=merged, report=report, skip=skip_secret)
         records += mrecords
-        if rel in files.defaults:
-            d = _validate(DefaultsFile, mdata, mdoc, report)
-            if d is not None:
-                defaults_files.append(d)
-        else:
-            m = _validate(ModelFile, mdata, mdoc, report)
-            if m is not None:
-                model_files.append(m)
+        m = _validate(PropertiesFile, mdata, mdoc, report)
+        if m is not None:
+            model_files.append(m)
 
     if report.error_count > before:
         return None
@@ -205,7 +198,6 @@ def load_project(opts: ProjectOptions, report: Report) -> LoadedProject | None:
         config=config,
         project_file=project_file,
         model_files=tuple(model_files),
-        defaults_files=tuple(defaults_files),
         vars=merged,
         interpolations=tuple(records),
     )

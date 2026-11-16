@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "pipeloom"
 version = "0.8.0"
-description = "Declarative, engine-agnostic data pipelines in YAML."
+description = "Engine-agnostic data pipelines: Python models marked with @model, YAML for the project."
 readme = "README.pypi.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"

@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from tests.conftest import make_project
+
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.events.bus import EventBus
 from pipeloom.runtime.run import RunOptions
@@ -27,9 +29,7 @@ MODELS = """models:
 
 
 def test_model_catalog_is_a_leading_directory(tmp_path: Path) -> None:
-    (tmp_path / "models").mkdir()
-    (tmp_path / "pipeloom.yml").write_text(PROJECT, encoding="utf-8", newline="\n")
-    (tmp_path / "models" / "m.yml").write_text(MODELS, encoding="utf-8", newline="\n")
+    make_project(tmp_path, {"pipeloom.yml": PROJECT, "models/m.yml": MODELS})
     clock = FakeClock(datetime(2026, 1, 1, tzinfo=UTC), step=timedelta(0))
     sink = RecordingSink()
     proj = Project(ProjectOptions(project_dir=tmp_path, env={}), clock=clock, invocation_id="i")

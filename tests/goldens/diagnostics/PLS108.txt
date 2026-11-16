@@ -1,1 +1,1 @@
-error PLS108 models/m.yml:2:5 exactly one of sql, python is required
+error PLS108 pipeloom.yml:8:9 at most one of location, table is allowed

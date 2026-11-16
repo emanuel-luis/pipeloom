@@ -5,10 +5,10 @@
     "message": "model 'a' uses replace_partitions without partition_by",
     "hint": "set partition_by to the partition columns",
     "location": {
-      "file": "models/m.yml",
-      "line": 2,
-      "col": 11,
-      "json_pointer": "/models/0/name"
+      "file": "models/m.py",
+      "line": 4,
+      "col": 2,
+      "json_pointer": "/@model"
     },
     "context": {
       "model": "a"

@@ -1,12 +1,12 @@
-error PLP415 models/m.yml:6:9 ephemeral model 'a' cannot have data tests
+error PLP415 models/m.py:6:5 ephemeral model 'a' cannot have data tests
       hint: move the data tests to a table that reads it
-error PLP415 models/m.yml:16:9 data test 'b_in_c' of model 'b' relates it to descendant 'c'
+error PLP415 models/m.py:13:5 data test 'b_in_c' of model 'b' relates it to descendant 'c'
       hint: test the relationship on a table that is not upstream of the parent
-error PLP415 models/m.yml:31:9 data test 'd_in_d' of model 'd' relates the model to itself
+error PLP415 models/m.py:25:5 data test 'd_in_d' of model 'd' relates the model to itself
       hint: test the relationship on a table that is not upstream of the parent
-error PLP415 models/m.yml:44:9 data test 'e_in_i' of model 'e' relates it to intermediate model 'i'
+error PLP415 models/m.py:39:5 data test 'e_in_i' of model 'e' relates it to intermediate model 'i'
       hint: test the relationship on a table that is not upstream of the parent
-error PLP415 models/m.yml:54:9 data test 'g_in_h' of model 'g' closes a cycle through 'h'
+error PLP415 models/m.py:46:5 data test 'g_in_h' of model 'g' closes a cycle through 'h'
       hint: test the relationship on a table that is not upstream of the parent
-error PLP415 models/m.yml:64:9 data test 'h_in_k' of model 'h' closes a cycle through 'k'
+error PLP415 models/m.py:53:5 data test 'h_in_k' of model 'h' closes a cycle through 'k'
       hint: test the relationship on a table that is not upstream of the parent

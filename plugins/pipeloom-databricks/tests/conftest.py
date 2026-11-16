@@ -11,6 +11,7 @@ from urllib.parse import quote
 
 import pytest
 from pydantic import JsonValue
+from tests.conftest import make_project
 
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.diagnostics import Report
@@ -125,15 +126,11 @@ def models_plan(tmp_path: Path) -> Callable[[Mapping[str, str]], Plan]:
     """
 
     def make(files: Mapping[str, str]) -> Plan:
-        for rel, text in files.items():
-            target = tmp_path / rel
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(text, encoding="utf-8")
-        (tmp_path / "pipeloom.yml").write_text(
+        project = (
             "config_version: 1\nname: gen\nengine: {kind: memory}\ncatalog: {kind: memory}\n"
-            "defaults:\n  models: {materialized: table}\ntargets:\n  ci:\n    naming: {kind: none}\n",
-            encoding="utf-8",
+            "defaults:\n  models: {materialized: table}\ntargets:\n  ci:\n    naming: {kind: none}\n"
         )
+        make_project(tmp_path, {**files, "pipeloom.yml": project})
         return compile_dir(tmp_path)
 
     return make
@@ -227,10 +224,7 @@ def sim(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[..., Sim]:
             ),
             "models/m.yml": SIM_MODELS,
         }
-        for rel, text in files.items():
-            path = root / rel
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(text.encode("utf-8"))
+        make_project(root, files)
         plan = compile_dir(root, "prod")
         manifest = tmp_path / "manifest.json"
         manifest.write_bytes(manifest_bytes(plan, stable=True))

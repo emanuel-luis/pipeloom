@@ -5,6 +5,8 @@ files:
     config_version: 1
     name: shop
     python_paths: [src]
+    model_paths:
+    - src
     targets:
       dev:
         engine:
@@ -16,11 +18,12 @@ files:
         state:
           kind: json
           path: state
-  models/m.yml: |
-    models:
-      - name: a
-        python: "m:die"
   src/m.py: |
+    from pipeloom import model
+
+    @model(
+        name="a",
+    )
     def die(ctx):
         import os
 

@@ -112,6 +112,8 @@ def test_an_unknown_policy_is_a_bug() -> None:
 
 
 def _project(tmp_path: Path, policy: str, sql: str, strategy: str = "append") -> Path:
+    key = "unique_key: [id], " if strategy == "merge" else ""
+    part = "    partition_by: [id]\n" if strategy == "replace_partitions" else ""
     return make_project(
         tmp_path,
         {
@@ -124,8 +126,8 @@ def _project(tmp_path: Path, policy: str, sql: str, strategy: str = "append") ->
             ),
             "models/m.yml": (
                 "models:\n"
-                f"  - name: a\n    sql: {sql}\n"
-                f"    write: {{strategy: {strategy}, on_schema_change: {policy}}}\n"
+                f"  - name: a\n    sql: {sql}\n{part}"
+                f"    write: {{strategy: {strategy}, {key}on_schema_change: {policy}}}\n"
             ),
         },
     )
@@ -225,13 +227,6 @@ def test_full_refresh_replaces_the_table_whatever_the_strategy(
     tmp_path: Path, strategy: str
 ) -> None:
     root = _project(tmp_path, "fail", "select 2 as id, 'n' as extra", strategy)
-    yml = root / "models" / "m.yml"
-    text = yml.read_text(encoding="utf-8")
-    if strategy == "merge":
-        text = text.replace("on_schema_change", "unique_key: [id], on_schema_change")
-    if strategy == "replace_partitions":
-        text = text.replace("    write:", "    partition_by: [id]\n    write:")
-    yml.write_text(text, encoding="utf-8")
     clock = FakeClock(datetime(2026, 1, 1, tzinfo=UTC), step=timedelta(0))
     project = Project(ProjectOptions(project_dir=root, env={}), clock=clock, invocation_id="inv")
     sink = RecordingSink()
@@ -247,13 +242,6 @@ def test_full_refresh_replaces_the_table_whatever_the_strategy(
 @pytest.mark.parametrize("policy", ["ignore", "append_new_columns", "sync_all_columns"])
 def test_a_batch_without_the_merge_key_is_a_write_key_error(tmp_path: Path, policy: str) -> None:
     root = _project(tmp_path, policy, "select 'n' as extra, 20 as v", "merge")
-    yml = root / "models" / "m.yml"
-    yml.write_text(
-        yml.read_text(encoding="utf-8").replace(
-            "on_schema_change", "unique_key: [id], on_schema_change"
-        ),
-        encoding="utf-8",
-    )
     assert _run(root).exit_code == 1
     assert _row(root)["error"]["code"] == "PLM206"
     assert list(JsonTableStore(root / "store")["main.a"]) == [{"id": 1, "v": 10}]

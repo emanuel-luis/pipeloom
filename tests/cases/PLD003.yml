@@ -14,19 +14,22 @@ files:
       task_grouping: by_folder
     targets:
       dev: {}
-  models/a/a.yml: |
-    models:
-      - name: a1
-        sql: select 1 as x
-      - name: a2
-        sql: select x from b1
-        inputs:
-          b1:
-            ref: b1
-  models/b/b.yml: |
-    models:
-      - name: b1
-        sql: select x from a1
-        inputs:
-          a1:
-            ref: a1
+  models/a/a.py: |
+    from pipeloom import model
+
+
+    @model
+    def a1(ctx):
+        return ctx.sql("select 1 as x")
+
+
+    @model
+    def a2(ctx, b1):
+        return ctx.sql("select x from b1")
+  models/b/b.py: |
+    from pipeloom import model
+
+
+    @model
+    def b1(ctx, a1):
+        return ctx.sql("select x from a1")

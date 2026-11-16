@@ -25,6 +25,11 @@ models:
         check:
           row_count:
             min: 1
+"""
+# In properties, where `${var:...}` interpolates (a decorator keyword cannot).
+PROPS = """\
+models:
+  - name: c
     data_tests:
       - name: id_in_p
         check:
@@ -50,7 +55,10 @@ def _root(tmp_path: Path, seed: dict[str, Any] | None = None) -> Path:
         "  prod:\n    naming:\n      kind: none\n"
         "  dev:\n    naming:\n      kind: prefix\n      schema_prefix: dev_\n"
     )
-    return make_project(tmp_path, {"pipeloom.yml": project, "models/m.yml": MODELS})
+    return make_project(
+        tmp_path,
+        {"pipeloom.yml": project, "models/m.yml": MODELS, "models/_props.yml": PROPS},
+    )
 
 
 def _run(

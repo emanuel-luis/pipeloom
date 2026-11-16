@@ -2,21 +2,29 @@
 
 A unit test runs a model body on rows you give it and compares the output with rows you expect.
 It needs no warehouse and writes nothing: `pipeloom test` builds the inputs in memory on the
-target's engine, runs the SQL or Python body, and reads the result back. The design is in
+target's engine, runs the model function, and reads the result back. The design is in
 [ADR-0045](../adr/0045-unit-and-data-tests.md).
 
 ## A first case
 
-Put `unit_tests` on the model. Every input alias needs `given` rows, and `expect` lists the rows
-the body should return.
+Take a model:
+
+```python
+from pipeloom import model, ref
+
+
+@model(inputs={"orders": ref("stg_orders")})
+def orders_enriched(ctx, orders):
+    return ctx.sql("select o.id, o.amount * 2 as doubled from orders o")
+```
+
+Its cases live in its properties entry, in any YAML file under `model_paths`. Rows are data, so
+they never go on the decorator. Every input alias (a parameter name of the function) needs
+`given` rows, and `expect` lists the rows the function should return.
 
 ```yaml
 models:
   - name: orders_enriched
-    sql: select o.id, o.amount * 2 as doubled from orders o
-    inputs:
-      orders:
-        ref: stg_orders
     unit_tests:
       - name: doubles_the_amount
         given:
@@ -99,21 +107,21 @@ A column that holds only nulls and declares no type cannot be typed; the case fa
 
 ## Keeping cases in their own files
 
-Any YAML file under `model_paths` may hold a top-level `unit_tests` list. Each entry names its
-model:
+A properties file can live anywhere under `model_paths`, and each model has one properties entry.
+To keep cases in a `tests` folder, add it to `model_paths` in `pipeloom.yml` and put the model's
+properties entry there:
 
 ```yaml
-unit_tests:
-  - name: doubles_the_amount
-    model: orders_enriched
-    given:
-      orders:
-        csv: tests/data/orders.csv
-    expect:
-      csv: tests/data/doubled.csv
+models:
+  - name: orders_enriched
+    unit_tests:
+      - name: doubles_the_amount
+        given:
+          orders:
+            csv: tests/data/orders.csv
+        expect:
+          csv: tests/data/doubled.csv
 ```
-
-To keep such files in a `tests` folder, add it to `model_paths` in `pipeloom.yml`.
 
 ## Running them
 
@@ -128,15 +136,12 @@ Unit tests never change the manifest or the plan hash, so adding one selects not
 ## Data tests
 
 Expectations judge each batch before it is written. Data tests judge the whole written table
-afterwards, which is where a foreign key check belongs:
+afterwards, which is where a foreign key check belongs. Like unit tests, they go in the model's
+properties entry:
 
 ```yaml
 models:
   - name: orders
-    sql: select * from raw_orders
-    inputs:
-      raw_orders:
-        source: raw_orders
     data_tests:
       - name: customer_exists
         check:
@@ -170,31 +175,7 @@ PLP415, as is a relationships parent that is the model itself, one of its descen
 ephemeral model, an intermediate model, or a model that closes a cycle among input and
 relationship edges.
 
-## Python-first forms
-
-When a model is a decorated Python function, `unit_tests` and `data_tests` go in a properties
-file next to it. The entry names the model; the SQL or Python body stays in the function:
-
-```yaml
-models:
-  - name: orders
-    unit_tests:
-      - name: two_rows
-        given:
-          raw_orders:
-            rows:
-              - id: 1
-              - id: 2
-        expect:
-          rows:
-            - id: 1
-            - id: 2
-    data_tests:
-      - name: id_unique
-        check:
-          unique:
-            - id
-```
+## Data tests on the decorator
 
 `data_tests` also has a decorator keyword, which takes `DataTest` objects or plain dicts. The
 `check` is one of `not_null`, `unique` or `relationships`, as in YAML. It is not an expectation
@@ -229,6 +210,6 @@ runs the selection with data tests on, ordering each model after its relationshi
 | --- | --- |
 | PLP415 | Data tests on an ephemeral model, or a relationships parent that is the model itself, a descendant, an ephemeral model, an intermediate model, or closes a cycle among input and relationship edges |
 | PLQ303 | A data test with `on_violation: fail` found violations; the data stays written |
-| PLR208 | A case names an unknown model, gives an alias that is not an input, leaves an input without rows, or reuses a case name |
+| PLR208 | A case gives an alias that is not an input, leaves an input without rows, or reuses a case name |
 | PLX114 | The output differs from `expect` |
 | PLX115 | The case cannot run: a CSV is missing, a value does not cast, an untyped all-null column, the body raised, or the engine has no `from_rows` or `to_rows` |

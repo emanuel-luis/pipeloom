@@ -29,15 +29,21 @@ targets:
     naming:
       kind: none
 """
-MODEL = """\
-models:
-  - name: a
-    sql: select 1 as id, 'x' as label union all select null as id, 'y' as label
+MODEL = """from pipeloom import model
+
+
+@model
+def a(ctx):
+    return ctx.sql("select 1 as id, 'x' as label union all select null as id, 'y' as label")
 """
 
 
-def _project(tmp_path: Path, extra: str = "") -> Path:
-    return make_project(tmp_path, {"pipeloom.yml": PROJECT, "models/m.yml": MODEL + extra})
+def _project(tmp_path: Path, extra: str = "", project: str = PROJECT) -> Path:
+    """Model `a`, plus `extra` lines in its properties entry."""
+    files = {"pipeloom.yml": project, "models/m.py": MODEL}
+    if extra:
+        files["models/m.yml"] = "models:\n  - name: a\n" + extra
+    return make_project(tmp_path, files)
 
 
 def _options(root: Path) -> ProjectOptions:
@@ -70,12 +76,13 @@ CONTRACT = """\
         dtype: string
 """
 DROP_NULL_IDS = """\
-    expectations:
-      - name: id_set
-        check:
-          not_null:
-            - id
-        on_violation: drop
+    config:
+      expectations:
+        - name: id_set
+          check:
+            not_null:
+              - id
+          on_violation: drop
 """
 
 
@@ -138,7 +145,7 @@ def test_an_engine_error_in_the_contract_check_keeps_its_transient_category(
     tmp_path: Path,
 ) -> None:
     flaky = PROJECT.replace("kind: memory", "kind: flaky").replace("      root: store\n", "")
-    root = make_project(tmp_path, {"pipeloom.yml": flaky, "models/m.yml": MODEL + CONTRACT})
+    root = _project(tmp_path, CONTRACT, flaky)
     options = ProjectOptions(
         project_dir=root,
         env={"PIPELOOM_USER": "tester"},

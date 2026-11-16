@@ -2,14 +2,20 @@ files:
   pipeloom.yml: |
     config_version: 1
     name: shop
-    python_paths: [src]
+    python_paths:
+    - src
+    - .
     targets:
       dev:
         engine:
           kind: nosql
-  models/m.yml: |
-    models:
-      - name: a
-        sql: select 1
-        materialized: view
+  models/m.py: |
+    from pipeloom import model
+
+
+    @model(
+        materialized="view",
+    )
+    def a(ctx):
+        return ctx.sql("select 1")
 plugins: ["tests.plugins.fakes:NOSQL"]

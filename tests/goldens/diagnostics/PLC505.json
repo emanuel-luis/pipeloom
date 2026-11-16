@@ -5,10 +5,10 @@
     "message": "model 'a' appends with retries on an engine without idempotent writes",
     "hint": "set retries to 0 or use another strategy",
     "location": {
-      "file": "models/m.yml",
+      "file": "src/m.py",
       "line": 4,
-      "col": 14,
-      "json_pointer": "/models/0/retries"
+      "col": 5,
+      "json_pointer": "/@model/retries"
     },
     "context": {
       "model": "a",

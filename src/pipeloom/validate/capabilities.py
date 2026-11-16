@@ -40,13 +40,6 @@ def _check_model(
             f"supported: {', '.join(sorted(caps.strategies)) or 'none'}",
             "/strategy",
         )
-    if m.entry.sql is not None and not caps.sql_models:
-        err(
-            "PLC502",
-            f"engine '{engine.kind}' cannot run SQL, but model '{m.name}' is SQL",
-            "sql",
-            "write the model in Python or choose an engine with SQL",
-        )
     if strategy == "append" and c.retries > 0 and not caps.idempotent_writes:
         err(
             "PLC505",
@@ -97,10 +90,8 @@ def _check_model(
             checked,
             f"remove the {what} or use an engine with the quality capability",
         )
-    # Only Python models translate: a SQL body is stored and run as written.
     if (
-        m.entry.python is not None
-        and c.sql_dialect is not None
+        c.sql_dialect is not None
         and caps.sql_dialect is not None
         and c.sql_dialect != caps.sql_dialect
         and not sqlglot_installed()
@@ -113,7 +104,7 @@ def _check_model(
             "install pipeloom[sqlglot], or remove sql_dialect and write the queries in "
             f"'{caps.sql_dialect}'",
         )
-    if m.entry.python is not None and c.frame_api == "narwhals" and not caps.portable:
+    if c.frame_api == "narwhals" and not caps.portable:
         err(
             "PLC508",
             f"frame_api narwhals needs a portable engine, not '{engine.kind}' (model '{m.name}')",

@@ -15,8 +15,8 @@
       "message": "unit test 'from_csv' of model 'a' cannot run: given 'src': cannot read CSV 'data/missing.csv': No such file or directory",
       "location": {
         "file": "models/m.yml",
-        "line": 11,
-        "col": 15,
+        "line": 4,
+        "col": 11,
         "json_pointer": "/models/0/unit_tests/0/name"
       },
       "missing": [],

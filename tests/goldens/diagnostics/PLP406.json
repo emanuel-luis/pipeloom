@@ -5,10 +5,10 @@
     "message": "ephemeral model 'e' is inlined in 4 units (limit 3)",
     "hint": "make it 'intermediate' to compute it once",
     "location": {
-      "file": "models/m.yml",
-      "line": 4,
-      "col": 19,
-      "json_pointer": "/models/0/materialized"
+      "file": "models/m.py",
+      "line": 5,
+      "col": 5,
+      "json_pointer": "/@model/materialized"
     },
     "context": {
       "model": "e",

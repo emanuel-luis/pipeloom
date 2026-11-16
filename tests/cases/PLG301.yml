@@ -6,22 +6,25 @@ files:
       dev:
         engine:
           kind: memory
-  models/m.yml: |
-    models:
-      - name: a
-        sql: select * from b
-        inputs:
-          b:
-            ref: b
-      - name: b
-        sql: select * from c
-        inputs:
-          c:
-            ref: c
-      - name: c
-        sql: select * from a
-        inputs:
-          a:
-            ref: a
-      - name: d
-        sql: select 1
+  models/m.py: |
+    from pipeloom import model
+
+
+    @model
+    def a(ctx, b):
+        return ctx.sql("select * from b")
+
+
+    @model
+    def b(ctx, c):
+        return ctx.sql("select * from c")
+
+
+    @model
+    def c(ctx, a):
+        return ctx.sql("select * from a")
+
+
+    @model
+    def d(ctx):
+        return ctx.sql("select 1")

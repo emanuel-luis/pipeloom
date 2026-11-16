@@ -5,10 +5,10 @@
     "message": "engine 'nosql' cannot materialize 'intermediate' (model 'a')",
     "hint": "supported: ephemeral, table",
     "location": {
-      "file": "models/m.yml",
+      "file": "src/m.py",
       "line": 4,
-      "col": 19,
-      "json_pointer": "/models/0/materialized"
+      "col": 5,
+      "json_pointer": "/@model/materialized"
     },
     "context": {
       "model": "a",

@@ -41,7 +41,9 @@ root = pathlib.Path(tempfile.mkdtemp())
 (root / "pipeloom.yml").write_text(
     "config_version: 1\\nname: p\\nengine: {kind: memory}\\ncatalog: {kind: memory}\\n"
     "deploy: {kind: databricks}\\ntargets:\\n  ci: {}\\n", encoding="utf-8")
-(root / "models" / "m.yml").write_text("models:\\n  - {name: a, sql: select 1 as x}\\n", encoding="utf-8")
+(root / "models" / "m.py").write_text(
+    "from pipeloom import model\\n\\n\\n@model\\ndef a(ctx):\\n    return ctx.sql('select 1 as x')\\n",
+    encoding="utf-8")
 plan = Project(ProjectOptions(project_dir=root, target="ci", env={})).compile().value
 loaded = LoadedPlan(plan, plan.metadata.plan_hash, None, "project")
 tasks = render_plan(loaded, "ci", RenderConfig(), ExecutionConfig(mode=ExecutionMode.DATABRICKS), Report())

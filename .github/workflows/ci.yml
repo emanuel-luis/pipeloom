@@ -169,7 +169,7 @@ jobs:
             -e plugins/pipeloom-openlineage \
             "apache-airflow==3.2.2" "apache-airflow-providers-cncf-kubernetes>=10.25,<11" \
             "apache-airflow-providers-openlineage>=2.8,<3" \
-            pytest pytest-timeout
+            pytest pytest-timeout hypothesis
           "$RUNNER_TEMP/af-floor/bin/python" -m pytest -q -p no:cacheprovider \
             plugins/pipeloom-airflow/tests -m "not airflow_e2e"
 

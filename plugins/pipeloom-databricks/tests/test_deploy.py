@@ -21,6 +21,11 @@ from pipeloom_databricks.upload import MANIFEST_PATH, MARKER_PATH, collect
 Sim = Any
 PARENT = "/Workspace/Users/me@example.com/.pipeloom/sim/main/prod"
 VERSIONS = {"pipeloom": "1.2.3", "pipeloom-databricks": "1.2.3"}
+CHANGED_MODELS = (
+    "from pipeloom import model\n\n\n"
+    '@model\ndef a(ctx):\n    return ctx.sql("select 2 as x")\n\n\n'
+    '@model\ndef e(ctx):\n    return ctx.sql("select 3 as x")\n'
+)
 
 
 def run(
@@ -70,10 +75,10 @@ def test_first_deploy_creates_the_job_and_uploads_the_project(sim: Callable[...,
     assert f"--manifest={result.root}/{MANIFEST_PATH}" in params
 
     uploaded = sorted(p[len(result.root) + 1 :] for p in fake.files if p.startswith(result.root))
-    assert uploaded == sorted(["pipeloom.yml", "models/m.yml", MANIFEST_PATH, MARKER_PATH])
+    assert uploaded == sorted(["pipeloom.yml", "models/m.py", MANIFEST_PATH, MARKER_PATH])
     order = [a for m, a in fake.calls if m == "upload"]
     assert order[-1] == f"{result.root}/{MARKER_PATH}"
-    assert fake.files[f"{result.root}/models/m.yml"] == (s.root / "models" / "m.yml").read_bytes()
+    assert fake.files[f"{result.root}/models/m.py"] == (s.root / "models" / "m.py").read_bytes()
     assert fake.called("current_user") == [""]
 
 
@@ -94,10 +99,7 @@ def test_a_changed_project_resets_the_job_to_a_new_folder(
 ) -> None:
     s, fake = sim(), FakeDatabricks()
     first, _ = run(s, fake)
-    (s.root / "models" / "m.yml").write_text(
-        "models:\n  - {name: a, sql: select 2 as x}\n  - {name: e, sql: select 3 as x}\n",
-        encoding="utf-8",
-    )
+    (s.root / "models" / "m.py").write_text(CHANGED_MODELS, encoding="utf-8")
     second, _ = run(s, fake, plan=compile_project(s.root, "prod"))
     assert second is not None and second.action == "updated"
     assert second.job_id == first.job_id and second.root != first.root
@@ -260,7 +262,7 @@ def test_collect_skips_caches_dot_entries_and_the_artifacts_root(sim: Callable[.
     assert [p for p, _ in payload.files] == [
         MANIFEST_PATH,
         "mod.py",
-        "models/m.yml",
+        "models/m.py",
         "models/marts/_properties.yml",
         "pipeloom.yml",
     ]
@@ -281,7 +283,7 @@ def test_unuploadable_files_are_pld012(
     (s.root / "x.ipynb").write_text("{}", encoding="utf-8")
     (s.root / "data.csv").write_bytes(b"0" * 6000)
     # a model file keeps its rule: it is always uploaded, so its size counts
-    models = s.root / "models" / "m.yml"
+    models = s.root / "models" / "m.py"
     models.write_text(
         models.read_text(encoding="utf-8") + "# " + "x" * 6000 + "\n", encoding="utf-8"
     )
@@ -291,7 +293,7 @@ def test_unuploadable_files_are_pld012(
     found = report.sorted()
     assert {d.code for d in found} == {"PLD012"}
     files = sorted(d.location.file for d in found if d.location and d.location.file)
-    assert files == ["models/m.yml", "nb.py"]
+    assert files == ["models/m.py", "nb.py"]
     assert fake.calls == []
 
 
@@ -326,7 +328,7 @@ def test_python_paths_take_only_py_files_and_skip_environments_and_build_folders
     assert payload is not None and not report.sorted()
     assert [p for p, _ in payload.files] == [
         MANIFEST_PATH,
-        "models/m.yml",
+        "models/m.py",
         "pipeloom.yml",
         "pkg/ok.py",
     ]
@@ -357,7 +359,7 @@ def test_properties_found_through_a_model_paths_glob_are_uploaded(
         "domains/sales/models/_properties.yml",
         "domains/sales/models/deep/more.yaml",
         "extra/top.yml",
-        "models/m.yml",
+        "models/m.py",
         "pipeloom.yml",
     ]
 

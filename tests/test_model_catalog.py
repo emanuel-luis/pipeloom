@@ -35,7 +35,8 @@ def relations(root: Path) -> dict[str, str | None]:
 
 
 def test_config_parses_catalog() -> None:
-    assert ModelConfig.model_validate({"name": "m", "sql": "x", "catalog": "c"}).catalog == "c"
+    doc = {"name": "m", "python": "mod:fn", "catalog": "c"}
+    assert ModelConfig.model_validate(doc).catalog == "c"
 
 
 def test_cascade_and_naming_fallback(project_factory: Factory) -> None:

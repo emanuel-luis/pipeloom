@@ -1,6 +1,6 @@
 # pipeloom
 
-Declarative, engine-agnostic data pipelines in YAML. 0.2 validates, compiles and runs projects on polars or pandas.
+Engine-agnostic data pipelines: models are Python functions marked with `@model`; YAML holds the project (`pipeloom.yml`) and properties files. pipeloom validates, compiles and runs projects on polars, pandas or Spark.
 
 ## Rules
 
@@ -14,7 +14,7 @@ Declarative, engine-agnostic data pipelines in YAML. 0.2 validates, compiles and
 
 ## Layout
 
-- `src/pipeloom/`: `diagnostics/` (catalog), `config/` (YAML loader, models, bind, resolve, schema), `secrets/`, `plugins/` and `builtins/` (memory, filesystem catalog, fs_table), `engine/` (protocols, types, portable), `graph/` (DAG, selectors), `validate/` (L2, L4-L6; PLK603 and PLK605 need sqlglot), `plan/` (units, manifest), `runtime/` (scheduler, executors, runner, run), `state/` (sqlite and json stores, lock lease), `artifacts/` (layout, run_results, finalize), `events/` (bus, sinks), `cli/`, `testing/` (MemoryEngine, RecordingSink, FakeClock, contract suites), `api.py`, `platform.py`
+- `src/pipeloom/`: `diagnostics/` (catalog), `config/` (YAML loader for the project and properties files, models, bind, resolve, schema), `discovery/` (`@model` discovery: AST resolver, module loader, cache), `secrets/`, `plugins/` and `builtins/` (memory, filesystem catalog, fs_table), `engine/` (protocols, types, portable), `graph/` (DAG, selectors), `validate/` (L2, L4-L6; PLK603 and PLK605 need sqlglot), `plan/` (units, manifest), `runtime/` (scheduler, executors, runner, run), `state/` (sqlite and json stores, lock lease), `artifacts/` (layout, run_results, finalize), `events/` (bus, sinks), `cli/`, `testing/` (MemoryEngine, RecordingSink, FakeClock, contract suites), `api.py`, `platform.py`
 - `plugins/pipeloom-polars/` and `plugins/pipeloom-pandas/`: engine distributions (uv workspace members, sources under `src/`, tests under `tests/`)
 - `tests/`: pytest; `cases/` and `goldens/`; `fixtures/shop` is the reference project
 - `tools/docs_hooks.py`: generates the error-code page and the JSON Schemas for the docs site; `tools/versions.py`: `check [--tag vX.Y.Z]` and `bump X.Y.Z` keep every distribution on one version

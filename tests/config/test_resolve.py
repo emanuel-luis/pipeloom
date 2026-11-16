@@ -14,80 +14,82 @@ name: shop
 targets:
   dev:
     engine: {kind: memory}
-defaults:
-  models:
-    retries: 1
-    tags: [all, shared]
-    partition_by: [a]
-    write: {options: {x: 1, y: 1}, on_schema_change: ignore}
+models:
+  +retries: 1
+  +tags: [all, shared]
+  +partition_by: [a]
+  +write: {options: {x: 1, y: 1}, on_schema_change: ignore}
 """
 
 
-def resolve(factory: Factory, files: Mapping[str, str]) -> ResolvedProject:
-    root = factory({"pipeloom.yml": PROJECT, **files})
+def py(name: str, decorator: str = "@model") -> str:
+    return f"from pipeloom import model, source\n\n\n{decorator}\ndef {name}():\n    return None\n"
+
+
+def resolve(factory: Factory, files: Mapping[str, str], project: str = PROJECT) -> ResolvedProject:
+    root = factory({"pipeloom.yml": project, **files})
     outcome = Project(ProjectOptions(project_dir=root, env={})).resolve()
     assert outcome.value is not None, outcome.diagnostics
     return outcome.value.project
 
 
 def test_precedence_and_merge(project_factory: Factory) -> None:
+    tree = (
+        "  mart:\n    +tags: [mart, all]\n    +partition_by: [b]\n"
+        "    +write: {options: {y: 2}}\n    +timeout: 60\n"
+    )
     p = resolve(
         project_factory,
         {
-            "models/_defaults.yml": "models: {retries: 2, tags: [root], timeout: 60}\n",
-            "models/mart/_defaults.yml": (
-                "models: {tags: [mart, all], partition_by: [b], write: {options: {y: 2}}}\n"
+            "models/mart/m.py": py(
+                "m", '@model(tags=["own"], write={"options": {"z": 3}}, retries=2)'
             ),
-            "models/mart/m.yml": (
-                "models:\n  - name: m\n    sql: select 1\n    tags: [own]\n"
-                "    write: {options: {z: 3}}\n    timeout: null\n"
-            ),
-            "models/other.yml": "models:\n  - {name: o, sql: select 1}\n",
+            "models/other.py": py("o"),
         },
+        PROJECT + tree,
     )
     m = p.models["model.shop.m"].config
-    assert m.retries == 2  # folder default beats project default
-    assert m.tags == ["all", "shared", "root", "mart", "own"]  # ordered union, deduplicated
+    assert m.retries == 2  # the decorator beats the tree
+    assert m.tags == ["all", "shared", "mart", "own"]  # ordered union, deduplicated
     assert m.partition_by == ["b"]  # lists replace
     assert m.write.options == {"x": 1, "y": 2, "z": 3}  # mappings merge deeply
     assert m.write.on_schema_change == "ignore"
-    assert m.timeout is None  # explicit null masks the 60 below
+    assert m.timeout == 60
     o = p.models["model.shop.o"].config
-    assert (o.retries, o.timeout, o.partition_by) == (2, 60, ["a"])
-    assert o.tags == ["all", "shared", "root"]  # mart defaults do not leak across folders
+    assert (o.retries, o.partition_by) == (1, ["a"])
+    assert o.tags == ["all", "shared"]  # mart settings do not leak across folders
     assert o.materialized == "table"  # built-in default
 
 
-def test_defaults_above_model_path_root_are_not_used(project_factory: Factory) -> None:
-    root = project_factory(
-        {
-            "pipeloom.yml": PROJECT.replace("name: shop", "name: shop\nmodel_paths: [models/core]"),
-            "models/_defaults.yml": "models: {retries: 9}\n",
-            "models/core/m.yml": "models:\n  - {name: m, sql: select 1}\n",
-        }
+def test_tree_folders_count_from_the_model_path_root(project_factory: Factory) -> None:
+    project = PROJECT.replace("name: shop", "name: shop\nmodel_paths: [models/core]")
+    p = resolve(
+        project_factory,
+        {"models/core/m.py": py("m")},
+        project + "  core:\n    +retries: 9\n  sub:\n    +retries: 7\n",
     )
-    value = Project(ProjectOptions(project_dir=root, env={})).resolve().value
-    assert value is not None
-    assert value.project.models["model.shop.m"].config.retries == 1
+    assert p.models["model.shop.m"].config.retries == 1  # `core` is the root, not a folder
 
 
 def test_ids_inputs_and_locations(project_factory: Factory) -> None:
+    project = PROJECT + "sources:\n  raw:\n    format: memory\n    tables:\n      r: {}\n"
     p = resolve(
         project_factory,
         {
-            "models/m.yml": (
-                "sources:\n  - {name: raw, format: memory, location: r}\n"
-                "models:\n  - name: a\n    sql: select 1\n    retries: 3\n"
-                "    inputs: {r: {source: raw}}\n"
+            "models/m.py": (
+                "from pipeloom import model, source\n\n\n"
+                '@model(\n    retries=3,\n    inputs={"x": source("raw", "r")},\n)\n'
+                "def a(x):\n    return x\n"
             ),
         },
+        project,
     )
-    assert list(p.sources) == ["source.shop.raw"]
+    assert list(p.sources) == ["source.shop.raw.r"]
     a = p.models["model.shop.a"]
-    assert a.inputs["r"].unique_id == "source.shop.raw"
-    assert a.inputs["r"].name == "raw"
-    assert p.locate_model(a, "retries").line == 6
-    assert p.locate_model(a, "timeout").line == 4  # not set: the name mark
+    assert a.inputs["x"].unique_id == "source.shop.raw.r"
+    assert a.inputs["x"].name == "raw.r"
+    assert p.locate_model(a, "retries").line == 5
+    assert p.locate_model(a, "timeout").line == 4  # not set: the decorator
 
 
 def test_merge_settings_tags_ignore_null() -> None:
@@ -96,18 +98,12 @@ def test_merge_settings_tags_ignore_null() -> None:
 
 
 def test_project_dir_as_model_root(project_factory: Factory) -> None:
-    root = project_factory(
-        {
-            "pipeloom.yml": PROJECT.replace("name: shop", "name: shop\nmodel_paths: ['.']"),
-            "_defaults.yml": "models: {retries: 5, tags: [top]}\n",
-            "sub/_defaults.yml": "models: {timeout: 30}\n",
-            "m.yml": "models:\n  - {name: m, sql: select 1}\n",
-            "sub/n.yml": "models:\n  - {name: n, sql: select 1}\n",
-        }
+    project = PROJECT.replace("name: shop", "name: shop\nmodel_paths: ['.']")
+    p = resolve(
+        project_factory,
+        {"m.py": py("m"), "sub/n.py": py("n")},
+        project + "  sub:\n    +timeout: 30\n",
     )
-    value = Project(ProjectOptions(project_dir=root, env={})).resolve().value
-    assert value is not None
-    m = value.project.models["model.shop.m"].config
-    n = value.project.models["model.shop.n"].config
-    assert (m.retries, m.timeout, m.tags) == (5, None, ["all", "shared", "top"])
-    assert (n.retries, n.timeout) == (5, 30)
+    m, n = p.models["model.shop.m"].config, p.models["model.shop.n"].config
+    assert (m.retries, m.timeout, m.tags) == (1, None, ["all", "shared"])
+    assert (n.retries, n.timeout) == (1, 30)

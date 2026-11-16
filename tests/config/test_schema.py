@@ -16,7 +16,7 @@ from tests.conftest import FIXTURES
 from tests.plugins.fakes import FAKE_ENGINE, FAKE_SINK
 
 MINIMAL = FIXTURES / "minimal"
-FILES = ("project.json", "properties.json", "models.json", "defaults.json")
+FILES = ("project.json", "properties.json")
 
 
 def builtin_schemas() -> dict[str, dict[str, Any]]:
@@ -63,10 +63,6 @@ def test_ids_use_the_public_base_url() -> None:
 def test_the_fixture_project_validates_against_the_exported_schemas() -> None:
     schemas = builtin_schemas()
     validator(schemas["project.json"]).validate(load_yaml(MINIMAL / "pipeloom.yml"))
-    validator(schemas["defaults.json"]).validate(load_yaml(MINIMAL / "models" / "_defaults.yml"))
-    validator(schemas["models.json"]).validate(
-        load_yaml(MINIMAL / "models" / "staging" / "orders.yml")
-    )
 
 
 def project(**overrides: Any) -> dict[str, Any]:
@@ -126,9 +122,9 @@ def test_without_plugins_a_block_stays_open() -> None:
     [
         project(workers="${env:WORKERS}"),
         project(workers=2, ephemeral_fanout_warn="${var:n}"),
-        project(defaults={"models": {"timeout": "1h30m", "retries": "${env:R}"}}),
-        project(defaults={"models": {"timeout": 90, "retry_delay": "${env:D}"}}),
-        project(defaults={"models": {"quality": {"max_drop_ratio": "${var:r}"}}}),
+        project(models={"+timeout": "1h30m", "+retries": "${env:R}"}),
+        project(models={"+timeout": 90, "+retry_delay": "${env:D}"}),
+        project(models={"+quality": {"max_drop_ratio": "${var:r}"}}),
     ],
 )
 def test_numbers_and_booleans_accept_interpolation(doc: dict[str, Any]) -> None:
@@ -140,8 +136,8 @@ def test_numbers_and_booleans_accept_interpolation(doc: dict[str, Any]) -> None:
     [
         project(workers="many"),
         project(workers=0),
-        project(defaults={"models": {"timeout": "soon"}}),
-        project(defaults={"models": {"timeout": ""}}),
+        project(models={"+timeout": "soon"}),
+        project(models={"+timeout": ""}),
     ],
 )
 def test_other_strings_are_still_rejected(doc: dict[str, Any]) -> None:
@@ -177,10 +173,5 @@ def test_properties_schema() -> None:
     assert errors(schema, {"models": [{"name": "m", "sql": "select 1"}]})
 
 
-def test_model_file_schema_checks_exclusive_shape() -> None:
-    schema = builtin_schemas()["models.json"]
-    good = {"models": [{"name": "m", "sql": "select 1", "retries": 1}]}
-    assert errors(schema, good) == []
-    assert errors(schema, {"models": [{"name": "m", "bogus": 1}]})
-    assert errors(schema, {"models": [{"name": "m", "description": "d"}]}) == []  # properties
-    assert errors(schema, {"models": [{"name": "1bad", "sql": "x"}]})
+def test_only_the_project_and_properties_schemas_are_exported() -> None:
+    assert sorted(builtin_schemas()) == sorted(FILES)

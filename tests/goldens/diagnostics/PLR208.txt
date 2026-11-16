@@ -1,5 +1,5 @@
-error PLR208 models/m.yml:11:15 unit test 'wrong_alias' does not give input 'src' of model 'a'
+error PLR208 models/m.yml:4:11 unit test 'wrong_alias' does not give input 'src' of model 'a'
       hint: every input alias of the model needs given rows
-error PLR208 models/m.yml:14:13 unit test 'wrong_alias' gives 'source', which is not an input of model 'a'
+error PLR208 models/m.yml:7:9 unit test 'wrong_alias' gives 'source', which is not an input of model 'a'
       hint: did you mean 'src'?
-error PLR208 models/m.yml:21:12 unit test 'unknown_model' names unknown model 'b'
+error PLR208 models/m.yml:12:11 duplicate unit test name 'wrong_alias' for model 'a'

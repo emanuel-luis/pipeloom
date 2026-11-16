@@ -5,10 +5,10 @@
     "message": "view model 'a' cannot have expectations",
     "hint": "move the expectations to a table that reads it",
     "location": {
-      "file": "models/m.yml",
+      "file": "models/m.py",
       "line": 6,
-      "col": 7,
-      "json_pointer": "/models/0/expectations"
+      "col": 5,
+      "json_pointer": "/@model/expectations"
     },
     "context": {
       "model": "a"

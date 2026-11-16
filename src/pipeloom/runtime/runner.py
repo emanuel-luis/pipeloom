@@ -48,7 +48,7 @@ from pipeloom.events.model import (
     UnitStarted,
     UnitSucceeded,
 )
-from pipeloom.plan.model import Plan, PlanNode, PlanSource, PythonBody, SqlBody, default_strategy
+from pipeloom.plan.model import Plan, PlanNode, PlanSource, PythonBody, default_strategy
 from pipeloom.platform import is_absolute_location
 from pipeloom.quality import (
     QualityReport,
@@ -559,11 +559,7 @@ class ModelRunner:
         target = node.relation
         if node.materialized == "view":
             assert target is not None
-            view = (
-                ViewQuery(node.body.sql, self._view_inputs(node))
-                if isinstance(node.body, SqlBody)
-                else self._python_view(node, unit_id, attempt, started)
-            )
+            view = self._python_view(node, unit_id, attempt, started)
             result = self._create_view(node, target, view)
         elif node.materialized == "intermediate":
             result = self._execute_intermediate(unit_id, node, attempt, started, row)
@@ -736,10 +732,6 @@ class ModelRunner:
         )
         failed = f"model '{node.name}' raised"
         try:
-            if isinstance(node.body, SqlBody):
-                sql_out = self._session.sql(node.body.sql, inputs)
-                self._check()
-                return sql_out
             out = self._call(
                 node.body, ctx, {a: portable.to_frame_api(r.native, api) for a, r in inputs.items()}
             )
@@ -811,8 +803,8 @@ class ModelRunner:
 
     def _call(self, body: PythonBody, ctx: ModelContext, args: Mapping[str, Any]) -> Any:
         """Call the body with the input aliases by keyword. `ctx` goes first and positional when
-        it is the first parameter and may be passed by position, or the function takes `*args`
-        (legacy models always got it first); by name when it is keyword-only or elsewhere; and
+        it is the first parameter and may be passed by position, or the function takes `*args`;
+        by name when it is keyword-only or elsewhere; and
         it is left out when the function has no such parameter."""
         return call_model(self._loader.load(body.callable), ctx, args)
 
@@ -821,7 +813,6 @@ class ModelRunner:
     ) -> ViewQuery:
         """Call a Python view model in view mode: its inputs are placeholders and `ctx.sql`
         returns the query the catalog stores."""
-        assert isinstance(node.body, PythonBody)
         specs = self._view_inputs(node)
 
         def view_sql(query: str, dialect: str | None, extra: Mapping[str, Any] | None) -> Any:

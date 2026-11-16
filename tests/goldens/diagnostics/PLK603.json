@@ -5,10 +5,10 @@
     "message": "SQL of model 'a' reads 'customers', which is not an input alias",
     "hint": "declare it under inputs, or ignore this warning for an external table",
     "location": {
-      "file": "models/m.yml",
-      "line": 7,
-      "col": 10,
-      "json_pointer": "/models/0/sql"
+      "file": "models/m.py",
+      "line": 8,
+      "col": 20,
+      "json_pointer": null
     },
     "context": {
       "model": "a",

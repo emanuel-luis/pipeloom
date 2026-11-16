@@ -1,5 +1,5 @@
 site_name: pipeloom
-site_description: Declarative, engine-agnostic data pipelines in YAML.
+site_description: "Engine-agnostic data pipelines: Python models marked with @model, YAML for the project."
 site_url: https://emanuel-luis.github.io/pipeloom/
 repo_url: https://github.com/emanuel-luis/pipeloom
 docs_dir: docs
@@ -36,6 +36,7 @@ nav:
       - Docs site: guide/docs-site.md
       - Run history: guide/run-history.md
       - Alerts with the webhook sink: guide/alerts.md
+      - Migrating from 0.8: guide/migrate-0.9.md
       - Lineage with OpenLineage: guide/openlineage.md
       - Orchestrator protocol: guide/orchestrators.md
       - "Recipe: GitHub Actions": guide/recipe-github-actions.md

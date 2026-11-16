@@ -25,7 +25,11 @@ def explain(code: str) -> None:
     click.echo(f"{entry.code}  {entry.title}")
     click.echo(f"Layer: {entry.layer.value}")
     click.echo(f"Severity: {entry.severity.value}")
-    click.echo(f"Status: {entry.status}")
+    click.echo(
+        f"Status: retired in {entry.retired}, no longer emitted"
+        if entry.retired is not None
+        else f"Status: {entry.status}"
+    )
     click.echo(f"Since: {entry.since}")
     click.echo("")
     click.echo(entry.explanation)

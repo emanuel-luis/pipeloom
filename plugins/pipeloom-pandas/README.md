@@ -20,7 +20,8 @@ targets:
 
 - Relations are eager `DataFrame`s. Python models receive `DataFrame` inputs, or Narwhals frames
   with `frame_api: narwhals`.
-- No SQL models and no views: validation rejects them (PLC502, PLC507).
+- No SQL and no views: validation warns about a model that calls `ctx.sql` (PLK606) and rejects
+  a view (PLC507).
 - Reads `parquet`, `csv`, `json` and `ndjson` sources. Writes tables through the `filesystem`
   catalog with the `append`, `overwrite`, `merge` and `replace_partitions` strategies, and an
   idempotency token makes a repeated write a no-op.

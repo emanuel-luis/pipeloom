@@ -1,2 +1,2 @@
-error PLR202 models/b.yml:2:11 duplicate model name 'orders'
-      hint: first defined in models/a.yml:2
+error PLR202 models/b.py:4:2 duplicate model name 'orders'
+      hint: first defined in models/a.py:4

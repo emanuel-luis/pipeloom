@@ -5,10 +5,10 @@
     "message": "incremental.input 'orders' is not an input of 'a'",
     "hint": "inputs: none",
     "location": {
-      "file": "models/m.yml",
+      "file": "models/m.py",
       "line": 6,
-      "col": 14,
-      "json_pointer": "/models/0/incremental/input"
+      "col": 5,
+      "json_pointer": "/@model/incremental/input"
     },
     "context": {
       "model": "a"

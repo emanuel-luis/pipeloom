@@ -26,6 +26,16 @@ ENV = {"PIPELOOM_USER": "tester"}
 SEEDED = {"main.parent": [{"x": 5}], "main.mid": [{"z": 9}]}
 
 
+def sql_model(name: str, inputs: str, sql: str, kwargs: str = "") -> str:
+    """A module with one model `name` that runs `sql` over its `inputs` (comma-separated)."""
+    params = ", ".join(["ctx", *filter(None, inputs.split(","))])
+    deco = f"@model({kwargs})" if kwargs else "@model"
+    return (
+        f"from pipeloom import model\n\n\n{deco}\ndef {name}({params}):\n"
+        f"    return ctx.sql({sql!r})\n"
+    )
+
+
 def build(tmp_path: Path, *, seed: bool = True) -> Path:
     """Targets prod (relations `main.<name>`) and dev (`dev_main.<name>`) share one store."""
     make_project(
@@ -39,14 +49,11 @@ def build(tmp_path: Path, *, seed: bool = True) -> Path:
                 "  prod:\n    naming: {kind: none}\n"
                 "  dev:\n    naming: {kind: prefix, schema_prefix: dev_}\n"
             ),
-            "models/m.yml": (
-                "models:\n"
-                "  - {name: parent, sql: select 1 as x}\n"
-                "  - {name: child, sql: select x + 1 as y from parent, "
-                "inputs: {parent: {ref: parent}}}\n"
-                "  - {name: mid, materialized: intermediate, sql: select 2 as z}\n"
-                "  - {name: top, sql: select z from mid, inputs: {mid: {ref: mid}}}\n"
-            ),
+            # One module per model: a module's bytes are in the checksum of its models.
+            "models/parent.py": sql_model("parent", "", "select 1 as x"),
+            "models/child.py": sql_model("child", "parent", "select x + 1 as y from parent"),
+            "models/mid.py": sql_model("mid", "", "select 2 as z", "materialized='intermediate'"),
+            "models/top.py": sql_model("top", "mid", "select z from mid"),
         },
     )
     return tmp_path
@@ -139,8 +146,8 @@ def test_defer_never_changes_the_plan_hash(tmp_path: Path) -> None:
 def test_state_selection_and_defer_together(tmp_path: Path) -> None:
     root = build(tmp_path)
     reference(root)
-    (root / "models" / "m.yml").write_text(
-        (root / "models" / "m.yml").read_text(encoding="utf-8").replace("x + 1", "x + 2"),
+    (root / "models" / "child.py").write_text(
+        (root / "models" / "child.py").read_text(encoding="utf-8").replace("x + 1", "x + 2"),
         encoding="utf-8",
         newline="\n",
     )

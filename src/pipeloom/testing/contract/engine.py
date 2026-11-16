@@ -65,7 +65,6 @@ from pipeloom.plan.model import (
     PlanSelection,
     PlanSource,
     PythonBody,
-    SqlBody,
 )
 from pipeloom.platform import Identity
 from pipeloom.quality import quarantine_target
@@ -1153,11 +1152,9 @@ class EngineContract:
             assert s.to_rows(rel) == [dict(r) for r in TYPED_ROWS]
 
     def unit_case(
-        self, h: EngineHarness, tmp_path: Path, kind: str, expect: list[dict[str, Any]]
+        self, h: EngineHarness, tmp_path: Path, expect: list[dict[str, Any]]
     ) -> TestOutcome:
-        """`v2 = v * 2` over KV_ROWS, as a SQL or a Python body, through `run_unit_test`."""
-        if kind == "sql":
-            requires(h, "sql_models")
+        """`v2 = v * 2` over KV_ROWS, as a Python body, through `run_unit_test`."""
         out_schema = (Column("id", "int64"), Column("v2", "int64"))
 
         def build(ctx: Any, src: Any) -> Any:
@@ -1167,12 +1164,10 @@ class EngineContract:
         node = PlanNode(
             unique_id="model.contract.u",
             name="u",
-            file="models/m.yml",
+            file="models/m.py",
             line=1,
             materialized="table",
-            body=SqlBody(sql="select id, v * 2 as v2 from src")
-            if kind == "sql"
-            else PythonBody(callable="m:build", file="src/m.py"),
+            body=PythonBody(callable="m:build", file="models/m.py"),
             inputs={"src": "source.contract.raw"},
             relation=_target("u"),
             unit_ids=("u",),
@@ -1205,16 +1200,14 @@ class EngineContract:
                 sql_dialect=h.engine.capabilities.sql_dialect,
             )
 
-    @pytest.mark.parametrize("kind", ["python", "sql"])
-    def test_unit_case_passes(self, h: EngineHarness, tmp_path: Path, kind: str) -> None:
-        out = self.unit_case(h, tmp_path, kind, [{"v2": 40, "id": 2}, {"id": 1, "v2": 20}])
+    def test_unit_case_passes(self, h: EngineHarness, tmp_path: Path) -> None:
+        out = self.unit_case(h, tmp_path, [{"v2": 40, "id": 2}, {"id": 1, "v2": 20}])
         assert out.passed, out.message
 
-    @pytest.mark.parametrize("kind", ["python", "sql"])
     def test_unit_case_one_wrong_row_fails_with_diff(
-        self, h: EngineHarness, tmp_path: Path, kind: str
+        self, h: EngineHarness, tmp_path: Path
     ) -> None:
-        out = self.unit_case(h, tmp_path, kind, [{"id": 1, "v2": 20}, {"id": 2, "v2": 41}])
+        out = self.unit_case(h, tmp_path, [{"id": 1, "v2": 20}, {"id": 2, "v2": 41}])
         assert out.code == "PLX114", out.message
         assert out.missing == [{"id": 2, "v2": 41}]
         assert out.unexpected == [{"id": 2, "v2": 40}]

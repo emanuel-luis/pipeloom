@@ -91,7 +91,8 @@ Python-first authoring with hybrid discovery. Every numbered point below is part
 
 **Migration and scope decisions.**
 
-- There is no user-facing `pipeloom migrate` command. An internal, committed converter, `tools/migrate_yaml_models.py`, migrates the repository's own fixtures, cases and examples and is always called with the same command line. The migration guide shows the mapping from YAML to the decorator by hand. The tool is deleted once nothing in the repository is declared in YAML.
+- There is no user-facing `pipeloom migrate` command. The migration guide shows the mapping from YAML to the decorator by hand. The repository's own fixtures, cases and examples were migrated by an internal converter, described in the amendment below.
+- Amendment (migration work): the converter becomes a test support utility, `tests/legacy_models.py`, kept after the legacy path is removed. The shared test project builders use it to turn compact YAML-style models written by tests into Python-first projects on write; it stays out of the package, so there is still no user-facing `pipeloom migrate`.
 - 0.9.0 drops YAML models with no deprecation release. Removal before 1.0 is allowed by pre-1.0 SemVer and by [ADR-0016](0016-versioning-and-plugin-api.md).
 - `ctx.sql` translates only when a dialect is declared (`dialect=` or `sql_dialect`) and differs from the engine's (point 8).
 - [ADR-0019](0019-yaml-dialect.md) does not change; its YAML dialect now covers the project file and properties files only.

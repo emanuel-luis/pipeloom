@@ -133,7 +133,7 @@ class Project:
         return other
 
     def load(self) -> Outcome[LoadedProject]:
-        """Read and check pipeloom.yml, model files and defaults (layers L0 and L1)."""
+        """Read and check pipeloom.yml and properties files (layers L0 and L1)."""
         if self._loaded is None:
             report = Report()
             value = load_project(self.options, report)

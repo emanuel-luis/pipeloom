@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from pipeloom.config.models import ColumnConfig, DataTestConfig, ResolvedModelConfig
 from pipeloom.engine.types import TargetRef
@@ -20,20 +20,15 @@ class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid", protected_namespaces=())
 
 
-class SqlBody(_Frozen):
-    kind: Literal["sql"] = "sql"
-    sql: str
-
-
 class PythonBody(_Frozen):
+    """A model body. Manifests from before 0.9 may hold `kind: sql`, which no longer loads
+    (PLX107)."""
+
     kind: Literal["python"] = "python"
     callable: str
     """`module:function`."""
     file: str
     """The module's file, POSIX and relative to the project dir."""
-
-
-Body = Annotated[SqlBody | PythonBody, Field(discriminator="kind")]
 
 
 class PlanNode(_Frozen):
@@ -42,7 +37,7 @@ class PlanNode(_Frozen):
     file: str
     line: int | None
     materialized: str
-    body: Body
+    body: PythonBody
     inputs: dict[str, str]
     """Alias to the unique id of the model or source it reads."""
     relation: TargetRef | None

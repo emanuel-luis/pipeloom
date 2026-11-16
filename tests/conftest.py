@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import os
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -11,6 +12,12 @@ from hypothesis import settings
 
 GOLDENS = Path(__file__).parent / "goldens"
 FIXTURES = Path(__file__).parent / "fixtures"
+
+# sqlglot binds importlib.metadata.entry_points when its dialect module is imported. Import it
+# before any test patches entry_points (tests.plugins.fakes), or a later dialect lookup calls
+# the fake.
+with contextlib.suppress(ImportError):
+    import sqlglot.dialects.dialect  # noqa: F401
 
 settings.register_profile("dev", deadline=None)
 settings.register_profile("ci", deadline=None, derandomize=True)
@@ -23,8 +30,15 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
-def make_project(tmp_path: Path, files: Mapping[str, Any]) -> Path:
-    """Write files into tmp_path. A value is text, or {'base64': ...} for raw bytes. LF only."""
+def make_project(tmp_path: Path, files: Mapping[str, Any], *, convert: bool = True) -> Path:
+    """Write files into tmp_path. A value is text, or {'base64': ...} for raw bytes. LF only.
+
+    Legacy YAML models (`sql:`, `python:`, flat sources, `_defaults.yml`) are converted to
+    Python-first models on write, unless `convert` is False (case files keep what they say)."""
+    from tests.legacy_models import migrate
+
+    if convert:
+        files = migrate(dict(files))
     for rel, content in files.items():
         target = tmp_path / rel
         target.parent.mkdir(parents=True, exist_ok=True)

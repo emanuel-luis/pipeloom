@@ -37,7 +37,7 @@ def test_case(
 ) -> None:
     code = case_file.stem
     spec: dict[str, Any] = yaml.safe_load(case_file.read_text(encoding="utf-8"))
-    project_dir = make_project(tmp_path, spec.get("files", {}))
+    project_dir = make_project(tmp_path, spec.get("files", {}), convert=False)
     install_entry_points(
         monkeypatch,
         [

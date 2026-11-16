@@ -6,11 +6,17 @@ files:
       dev:
         engine:
           kind: memory
-  models/a.yml: |
-    models:
-      - name: orders
-        sql: select 1
-  models/b.yml: |
-    models:
-      - name: orders
-        sql: select 2
+  models/a.py: |
+    from pipeloom import model
+
+
+    @model
+    def orders(ctx):
+        return ctx.sql("select 1")
+  models/b.py: |
+    from pipeloom import model
+
+
+    @model
+    def orders(ctx):
+        return ctx.sql("select 2")

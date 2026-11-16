@@ -40,6 +40,20 @@ def _flagged(lines: Iterator[tuple[int, str]]) -> Iterator[int]:
             yield number
 
 
+PY_BLOCK = re.compile(r"^(\s*)\S+\.py:\s*\|")
+
+
+def _yaml_lines(text: str) -> Iterator[tuple[int, str]]:
+    """The lines of a YAML file, without the Python files a case embeds in block scalars."""
+    indent: int | None = None
+    for number, line in enumerate(text.splitlines(), 1):
+        if indent is not None and (not line.strip() or len(line) - len(line.lstrip()) > indent):
+            continue
+        match = PY_BLOCK.match(line)
+        indent = len(match.group(1)) if match else None
+        yield number, line
+
+
 def _yaml_blocks(text: str) -> Iterator[tuple[int, str]]:
     fence = ""
     for number, line in enumerate(text.splitlines(), 1):
@@ -63,7 +77,7 @@ def test_no_flow_mappings() -> None:
         if suffix not in {".yml", ".yaml", ".md"}:
             continue
         text = path.read_text(encoding="utf-8")
-        lines = _yaml_blocks(text) if suffix == ".md" else enumerate(text.splitlines(), 1)
+        lines = _yaml_blocks(text) if suffix == ".md" else _yaml_lines(text)
         problems += [f"{rel}:{n}: flow mapping" for n in _flagged(lines)]
     assert not problems, "YAML must be block style (decision 81):\n" + "\n".join(problems)
 

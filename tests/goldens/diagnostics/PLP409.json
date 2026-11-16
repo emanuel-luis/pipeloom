@@ -5,10 +5,10 @@
     "message": "view 'a' reads ephemeral model(s) e",
     "hint": "make those models tables, or materialize the view as a table",
     "location": {
-      "file": "models/m.yml",
-      "line": 7,
-      "col": 19,
-      "json_pointer": "/models/1/materialized"
+      "file": "src/m.py",
+      "line": 4,
+      "col": 5,
+      "json_pointer": "/@model/materialized"
     },
     "context": {
       "model": "a"

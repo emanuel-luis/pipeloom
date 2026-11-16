@@ -125,7 +125,7 @@ retry a failed task on top of `max_retries`, so a model with `retries: 0` would 
 ## Task grouping
 
 With `task_grouping: none` every unit is one task, named by its unit id. `by_tag` groups models by
-their first tag (`tag_<tag>`, or `tag_untagged`) and `by_folder` by the folder of the model file
+their first tag (`tag_<tag>`, or `tag_untagged`) and `by_folder` by the folder of the model module
 (`dir_<folder>`, or `dir_root`). Grouping applies whenever it is set, so the job's shape does not
 change when the project grows. A group runs its models with the in-process scheduler. Groups that
 wait on each other in a cycle are PLD003. Task keys are sanitized to `[A-Za-z0-9_-]`; a key above
@@ -144,7 +144,9 @@ inside the bundle, next to `databricks.yml`, and the job files must be in its `i
 **Direct deploy.** `pipeloom databricks deploy --target prod` uploads the project and creates or
 resets one job per pipeline. The job is found by its `pipeloom_job` tag (two matches are PLD006).
 The upload is content addressed, under `<workspace_root>/<project>/<pipeline>/<target>/<hash>`,
-and holds `pipeloom.yml`, the model files and the `*.py` files below `python_paths`. Other files
+and holds `pipeloom.yml`, the properties files, the model modules and the `*.py` files below
+`python_paths`. Modules found through `model_packages` are not uploaded: install those packages
+in the job environment. Other files
 below `python_paths` are not uploaded, so a Python model that reads a file next to it works
 locally and not on Databricks; keep such data in a table or a volume. Notebooks and files above
 10 MB are refused (PLD012). When the settings hash tag already matches, deploy changes nothing.
@@ -228,7 +230,7 @@ naming the path and never the value.
 
 A `catalog` block with `kind: unity` and `catalog: main` works with the Spark engine only. Tables and views are
 addressed as `` `catalog`.`schema`.`name` ``; the option fills in the catalog when the target's
-naming leaves it empty. A model's `catalog` setting (or a folder `_defaults.yml`) wins over both,
+naming leaves it empty. A model's `catalog` setting (or a folder's `+catalog` in the `models:` tree) wins over both,
 so each layer can write to its own catalog. pipeloom never creates a catalog: every catalog a
 model names must exist, and the principal needs `USE CATALOG` on it. A schema is created only when it does not exist yet, so a principal
 without `CREATE SCHEMA` can write to an existing one.

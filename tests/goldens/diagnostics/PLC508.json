@@ -5,10 +5,10 @@
     "message": "frame_api narwhals needs a portable engine, not 'memory' (model 'a')",
     "hint": "use frame_api: native",
     "location": {
-      "file": "models/m.yml",
+      "file": "src/m.py",
       "line": 4,
-      "col": 16,
-      "json_pointer": "/models/0/frame_api"
+      "col": 5,
+      "json_pointer": "/@model/frame_api"
     },
     "context": {
       "model": "a",

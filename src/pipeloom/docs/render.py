@@ -281,10 +281,7 @@ def _model_section(node: PlanNode, plan: Plan, rows: Mapping[str, Mapping[str, A
         parts.append("<h3>Expectations</h3><ul>" + "".join(items) + "</ul>")
     parts.append("<h3>Resolved config</h3>")
     parts.append(_pre(_json(node.config.model_dump(mode="json", by_alias=True))))
-    if node.body.kind == "sql":
-        parts.append("<h3>SQL</h3>" + _pre(node.body.sql, code=True))
-    else:
-        parts.append(f"<h3>Python</h3><p><code>{_e(node.body.callable)}</code> in {_e(node.body.file)}</p>")
+    parts.append(f"<h3>Python</h3><p><code>{_e(node.body.callable)}</code> in {_e(node.body.file)}</p>")
     if uid in rows:
         parts.append(_result(rows[uid]))
     parts.append("</section>")

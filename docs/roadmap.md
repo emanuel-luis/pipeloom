@@ -95,13 +95,13 @@ paths, listens on localhost by default and ships as a separate distribution, so 
   inputs, SQL runs through `ctx.sql`, and YAML keeps the project file (a `models:` folder tree with `+keys`, source
   groups, vars, targets) and properties files that describe and configure models. The compiler reads static
   decorators with `ast` and imports only modules with dynamic arguments, with a per-file cache. YAML model files are
-  removed before 0.9.0, with no deprecation release. Decided in
-  [ADR-0050](adr/0050-python-first-authoring.md) (accepted).
+  removed in 0.9, with no deprecation release, and [Migrating from 0.8](guide/migrate-0.9.md) maps them to the
+  decorator. Decided in [ADR-0050](adr/0050-python-first-authoring.md) (accepted) and done.
 - `pipeloom init` (0.8). Every generated project runs with one command on local engines, with a small CSV under
   `data/`. Templates also write the schema modeline in every YAML file and a `.vscode/settings.json` that maps
   `yaml.schemas` to the published schema URLs, so completion works without an extension.
-- `pipeloom new model <name> [--sql|--python] [--folder]` (0.8). Writes the YAML entry and, for Python, a
-  `build(ctx, **inputs)` stub whose parameters satisfy PLK602. A few scaffold templates are enough; no generator
+- `pipeloom new model <name> [--sql|--python] [--folder]` (0.8). From 0.9 it writes one `.py` file with a
+  decorated function: a `ctx.sql(...)` body or a frame stub. A few scaffold templates are enough; no generator
   framework.
 - `pipeloom explain <CODE>` (0.8). Prints the catalog entry, the hint and the docs URL from
   `pipeloom.diagnostics.codes`. The console failure block links to it.
@@ -249,7 +249,7 @@ Python-first authoring comes first; contracts and the test and build work are th
 
 | Item | ADR | Acceptance |
 |---|---|---|
-| Python-first authoring | [ADR-0050](adr/0050-python-first-authoring.md) | the four TPC-H examples run from decorated models, and cold discovery of 1,000 static models takes under 2 s |
+| Python-first authoring (done) | [ADR-0050](adr/0050-python-first-authoring.md) | the four TPC-H examples run from decorated models, and cold discovery of 1,000 static models takes under 2 s |
 | Model contracts (`columns`) | [ADR-0044](adr/0044-model-contracts.md) | a type mismatch fails before the write with a new PLM code on polars, pandas and Spark (the shared engine contract suite) |
 | `pipeloom test` and `pipeloom build` | [ADR-0045](adr/0045-unit-and-data-tests.md) | a case whose expected rows match passes, and a case with one wrong row fails with a row diff, on polars, pandas and Spark |
 | Post-write data tests with `relationships` | [ADR-0045](adr/0045-unit-and-data-tests.md) | results appear in `run_results` with `scope: table` |

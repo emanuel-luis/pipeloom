@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tests.conftest import make_project
+
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.runtime.run import RunOptions
 from pipeloom.testing.clock import FakeClock
@@ -32,9 +34,7 @@ FILES = {
 
 
 def test_ctx_sql_under_narwhals(tmp_path: Path) -> None:
-    for name, text in FILES.items():
-        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / name).write_text(text, encoding="utf-8")
+    make_project(tmp_path, FILES)
     project = Project(ProjectOptions(project_dir=tmp_path, env={}), clock=FakeClock())
     outcome = project.run(RunOptions(run_id="r", workers=1))
     assert outcome.exit_code == 0, [d.message for d in outcome.diagnostics]

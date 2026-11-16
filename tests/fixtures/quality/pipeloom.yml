@@ -1,9 +1,16 @@
 config_version: 1
 name: quality
 python_paths: [src]
-defaults:
-  models:
-    materialized: table
+models:
+  +materialized: table
+sources:
+  raw:
+    tables:
+      raw_orders:
+        format: csv
+        location: raw/orders.csv
+model_paths:
+- src
 targets:
   polars:
     engine:

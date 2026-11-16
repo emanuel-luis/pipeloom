@@ -5,8 +5,8 @@ resources:
       name: pipeloom_shop_main_ci
       tags:
         pipeloom_job: shop.main.ci
-        pipeloom_plan_hash: 2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
-        pipeloom_settings_hash: 45986b42d201a3e84d73a7389e2f01ed1a306a31dd77e9e90cbd6c36d60a4366
+        pipeloom_plan_hash: f05fee053db88c1a06b6b4bcd2b2732330c5b703fb2c4a4678480edb542cc7a0
+        pipeloom_settings_hash: abd9ed0306f90b72ca440370f077ff92ed0c2e85a60f9b39d5d364bffb1e50b7
         pipeloom_version: 1.2.3
         team: data
       parameters:
@@ -51,7 +51,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --unit=dim_customers
-          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
+          - --plan-hash=f05fee053db88c1a06b6b4bcd2b2732330c5b703fb2c4a4678480edb542cc7a0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -81,7 +81,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --unit=fct_orders
-          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
+          - --plan-hash=f05fee053db88c1a06b6b4bcd2b2732330c5b703fb2c4a4678480edb542cc7a0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -104,7 +104,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --unit=rpt_revenue
-          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
+          - --plan-hash=f05fee053db88c1a06b6b4bcd2b2732330c5b703fb2c4a4678480edb542cc7a0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -126,7 +126,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --unit=stg_customers
-          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
+          - --plan-hash=f05fee053db88c1a06b6b4bcd2b2732330c5b703fb2c4a4678480edb542cc7a0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -148,7 +148,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --unit=stg_orders
-          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
+          - --plan-hash=f05fee053db88c1a06b6b4bcd2b2732330c5b703fb2c4a4678480edb542cc7a0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -170,7 +170,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --unit=stg_payments
-          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
+          - --plan-hash=f05fee053db88c1a06b6b4bcd2b2732330c5b703fb2c4a4678480edb542cc7a0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -194,7 +194,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --unit=top_customers
-          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
+          - --plan-hash=f05fee053db88c1a06b6b4bcd2b2732330c5b703fb2c4a4678480edb542cc7a0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -220,7 +220,7 @@ resources:
           - --manifest=/Workspace/pipeloom/shop/manifest.json
           - --target=ci
           - --pipeline=main
-          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
+          - --plan-hash=f05fee053db88c1a06b6b4bcd2b2732330c5b703fb2c4a4678480edb542cc7a0
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}

@@ -2,15 +2,24 @@ files:
   pipeloom.yml: |
     config_version: 1
     name: shop
-    python_paths: [src]
+    python_paths:
+    - src
+    - .
     targets:
       dev:
         engine:
           kind: memory
-  models/m.yml: |
-    models:
-      - name: e
-        sql: select 1
-        materialized: ephemeral
-      - name: a
-        sql: select 1
+  models/m.py: |
+    from pipeloom import model
+
+
+    @model(
+        materialized="ephemeral",
+    )
+    def e(ctx):
+        return ctx.sql("select 1")
+
+
+    @model
+    def a(ctx):
+        return ctx.sql("select 1")

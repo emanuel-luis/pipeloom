@@ -68,12 +68,12 @@ def test_log_format_on_plugins_list_and_schema_export(tmp_path: Path) -> None:
         ["schema", "export", "--out", str(out), "--plugins", "builtin", "--log-format", "json"]
     )
     got = events(exported)
-    assert [e.type for e in got] == ["invocation.started"] + ["artifact.written"] * 4 + [
+    assert [e.type for e in got] == ["invocation.started"] + ["artifact.written"] * 2 + [
         "invocation.completed"
     ]
     first = got[1].data
     assert (
-        first["kind"] == "json_schema" and first["bytes"] == (out / "defaults.json").stat().st_size
+        first["kind"] == "json_schema" and first["bytes"] == (out / "project.json").stat().st_size
     )
     assert len(str(first["sha256"])) == 64
     env_var = run(["plugins", "list"], env={"PIPELOOM_LOG_FORMAT": "json"})

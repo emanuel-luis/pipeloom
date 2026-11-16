@@ -7,7 +7,10 @@ files:
         engine:
           kind: memory
     model_paths: [models, missing_dir]
-  models/m.yml: |
-    models:
-      - name: m
-        sql: select 1
+  models/m.py: |
+    from pipeloom import model
+
+
+    @model
+    def m(ctx):
+        return ctx.sql("select 1")

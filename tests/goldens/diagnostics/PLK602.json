@@ -2,22 +2,6 @@
   {
     "code": "PLK602",
     "severity": "error",
-    "message": "parameters of 'm:a' do not match the inputs of 'a': missing ['x'], unexpected ['y']",
-    "hint": "expected (ctx, x)",
-    "location": {
-      "file": "models/m.yml",
-      "line": 3,
-      "col": 13,
-      "json_pointer": "/models/0/python"
-    },
-    "context": {
-      "model": "a",
-      "callable": "m:a"
-    }
-  },
-  {
-    "code": "PLK602",
-    "severity": "error",
     "message": "parameters of 'p:c' cannot take *args ('rest')",
     "hint": "inputs are passed by keyword",
     "location": {

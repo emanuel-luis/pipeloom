@@ -1,2 +1,2 @@
-error PLC510 models/m.yml:5:7 engine 'nosql' cannot evaluate expectations (model 'a')
+error PLC510 src/m.py:4:5 engine 'nosql' cannot evaluate expectations (model 'a')
       hint: remove the expectations or use an engine with the quality capability

@@ -25,15 +25,19 @@ SCALE = float(os.environ.get("PIPELOOM_TEST_PARSE_BUDGET_SCALE", "1"))
 
 @pytest.fixture
 def wide(tmp_path: Path) -> tuple[Path, Path]:
-    project = tmp_path / "wide"
-    (project / "models").mkdir(parents=True)
-    (project / "pipeloom.yml").write_text(
-        "config_version: 1\nname: wide\nengine: {kind: memory}\ncatalog: {kind: memory}\n"
-        "targets:\n  ci:\n    naming: {kind: none}\n",
-        encoding="utf-8",
-    )
+    from tests.conftest import make_project
+
     lines = ["models:"] + [f"  - {{name: m{i:03d}, sql: select 1 as x}}" for i in range(500)]
-    (project / "models" / "m.yml").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    project = make_project(
+        tmp_path / "wide",
+        {
+            "pipeloom.yml": (
+                "config_version: 1\nname: wide\nengine: {kind: memory}\ncatalog: {kind: memory}\n"
+                "targets:\n  ci:\n    naming: {kind: none}\n"
+            ),
+            "models/m.yml": "\n".join(lines) + "\n",
+        },
+    )
     outcome = Project(ProjectOptions(project_dir=project, target="ci", env={})).compile()
     assert outcome.value is not None
     manifest = project / "manifest.json"

@@ -2,20 +2,24 @@ files:
   pipeloom.yml: |
     config_version: 1
     name: shop
+    sources:
+      raw:
+        tables:
+          raw:
+            format: memory
+            location: raw/orders
     targets:
       dev:
         engine:
           kind: memory
-  models/m.yml: |
-    sources:
-      - name: raw
-        format: memory
-        location: raw/orders
-    models:
-      - name: a
-        sql: |
-          with recent as (select * from orders)
-          select r.id from recent r join customers c on c.id = r.customer_id
-        inputs:
-          orders:
-            source: raw
+  models/m.py: |
+    from pipeloom import model, source
+
+
+    @model(
+        inputs={"orders": source("raw", "raw")},
+    )
+    def a(ctx, orders):
+        return ctx.sql("""with recent as (select * from orders)
+    select r.id from recent r join customers c on c.id = r.customer_id
+    """)

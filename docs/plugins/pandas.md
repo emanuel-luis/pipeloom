@@ -23,7 +23,7 @@ The engine needs the `filesystem` catalog: tables are directories of part files 
 `_pipeloom/commit.json` ([ADR-0022](../adr/0022-filesystem-table-format.md)). Any other catalog is
 rejected when the session opens.
 
-A model can set `catalog` (and a `_defaults.yml` folder default can set it for a layer). The
+A model can set `catalog` (and a `+catalog` key in the `models:` tree can set it for a layer). The
 catalog becomes a leading directory: `<root>/<catalog>/<schema>/<name>/`. A table with no
 catalog keeps `<root>/<schema>/<name>/`.
 
@@ -40,7 +40,7 @@ catalog keeps `<root>/<schema>/<name>/`.
 | Portable frames (`frame_api: narwhals`) | yes |
 | Cancel | no |
 
-A SQL model on this engine is rejected with PLC502 and a view with PLC507. An `intermediate`
+A model that calls `ctx.sql` gets a PLK606 warning at validate and fails at run time with PLX101; a view is rejected with PLC507. An `intermediate`
 materialization is supported (files under the artifacts root). `incremental` is supported. SQL on pandas is deferred past 0.2. The supported
 versions are `pandas>=2.3.3,<4` and `pyarrow>=22`.
 

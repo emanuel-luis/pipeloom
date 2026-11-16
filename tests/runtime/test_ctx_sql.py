@@ -1,4 +1,4 @@
-"""ctx.sql, keyword calls and Python views on legacy YAML-declared Python models (memory)."""
+"""ctx.sql, keyword calls and Python views on Python models (memory)."""
 
 from __future__ import annotations
 

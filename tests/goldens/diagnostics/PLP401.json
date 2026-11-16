@@ -5,10 +5,10 @@
     "message": "model 'a' uses merge without write.unique_key",
     "hint": "set write.unique_key to the columns that identify a row",
     "location": {
-      "file": "models/m.yml",
+      "file": "models/m.py",
       "line": 5,
-      "col": 7,
-      "json_pointer": "/models/0/write/unique_key"
+      "col": 5,
+      "json_pointer": "/@model/write/unique_key"
     },
     "context": {
       "model": "a"

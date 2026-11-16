@@ -11,7 +11,7 @@ import pytest
 from pydantic import ValidationError
 
 from pipeloom.api import Project, ProjectOptions
-from pipeloom.config.models import ModelConfig
+from pipeloom.config.models import ModelSettings
 from pipeloom.plan.manifest import manifest_bytes
 
 Factory = Callable[[Mapping[str, Any]], Path]
@@ -48,24 +48,13 @@ def test_cascade_project_folder_model(project_factory: Factory) -> None:
 def test_unknown_dialect_is_rejected_when_sqlglot_is_installed() -> None:
     pytest.importorskip("sqlglot")
     with pytest.raises(ValidationError, match="unknown sql_dialect 'nosuch'"):
-        ModelConfig.model_validate({"name": "m", "sql": "x", "sql_dialect": "nosuch"})
+        ModelSettings.model_validate({"sql_dialect": "nosuch"})
 
 
 def test_any_dialect_is_accepted_without_sqlglot(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(sys.modules, "sqlglot.dialects.dialect", None)
-    m = ModelConfig.model_validate({"name": "m", "sql": "x", "sql_dialect": "nosuch"})
+    m = ModelSettings.model_validate({"sql_dialect": "nosuch"})
     assert m.sql_dialect == "nosuch"
-
-
-def test_plc513_ignores_a_sql_model_with_an_inherited_dialect(
-    project_factory: Factory, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr("pipeloom.validate.capabilities.sqlglot_installed", lambda: False)
-    root = project_factory(
-        {"pipeloom.yml": PROJECT, "models/a.yml": "models:\n  - name: a\n    sql: select 1\n"}
-    )
-    out = Project(ProjectOptions(project_dir=root, env={})).validate()
-    assert "PLC513" not in {d.code for d in out.diagnostics}
 
 
 def test_unset_dialect_stays_out_of_the_manifest(project_factory: Factory) -> None:

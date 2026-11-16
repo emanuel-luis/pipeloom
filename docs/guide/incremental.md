@@ -21,6 +21,15 @@ targets:
     state:
       kind: json
       path: .pipeloom/state
+sources:
+  raw:
+    format: csv
+    location: raw
+    options:
+      try_parse_dates: true   # read updated_at as a timestamp, not text
+    tables:
+      raw_orders:
+        location: orders.csv
 ```
 
 `raw/orders.csv`:
@@ -32,32 +41,22 @@ id,customer_id,amount,status,updated_at
 3,11,7.0,paid,2026-01-02T09:00:00
 ```
 
-`models/orders.yml`:
+`models/orders.py`:
 
-```yaml
-sources:
-  - name: raw_orders
-    format: csv
-    location: raw/orders.csv
-    options:
-      try_parse_dates: true   # read updated_at as a timestamp, not text
-models:
-  - name: orders
-    sql: select id, customer_id, amount, status, updated_at from raw_orders
-    inputs:
-      raw_orders:
-        source: raw_orders
-    materialized: incremental
-    incremental:
-      input: raw_orders
-      column: updated_at
-      lookback: 2h
-    write:
-      strategy: merge
-      unique_key: [id]
+```python
+from pipeloom import model
+
+
+@model(
+    materialized="incremental",
+    incremental={"input": "raw_orders", "column": "updated_at", "lookback": "2h"},
+    write={"strategy": "merge", "unique_key": ["id"]},
+)
+def orders(ctx, raw_orders):
+    return ctx.sql("select id, customer_id, amount, status, updated_at from raw_orders")
 ```
 
-The `incremental` block names the input to filter (it must be one of the model's `inputs`), the
+The `incremental` block names the input to filter (it must be one of the model's inputs), the
 column that moves forward, an optional `lookback` and where the watermark lives. Run it twice,
 adding rows to the CSV in between:
 

@@ -114,8 +114,11 @@ arguments the pipeloom operators set themselves; that is PLA002.
 ## Load methods
 
 - `MANIFEST` (recommended) reads a stable manifest written by `pipeloom compile --stable`. Parsing
-  reads one JSON file and imports no engine. The manifest must be for the same target (PLX107).
-- `PROJECT` compiles the YAML project on the parse path. No user code runs (ADR-0003). The result is
+  reads one JSON file, imports no engine and runs no user code. The manifest must be for the same
+  target (PLX107).
+- `PROJECT` discovers the models on the parse path (ADR-0050): an AST pass resolves static `@model`
+  decorators without importing, and only modules whose decorators have dynamic arguments are
+  imported. The result is
   cached on disk, keyed by a hash of the installed pipeloom versions, the target, the variables and
   the path, size and modification time of `pipeloom.yml` and every file under `model_paths` and
   `python_paths`. An entry also stores a fingerprint of the environment variables the plan read, so

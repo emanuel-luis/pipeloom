@@ -104,13 +104,14 @@ DBX_MODELS = """models:
 def dbx_project(tmp_path: Path) -> tuple[Path, Path, str]:
     """A project with a databricks deploy block (models a -> b, and c) and its stable manifest:
     (project dir, manifest, plan hash). Target `prod`."""
+    from tests.conftest import make_project
+
     from pipeloom.api import Project, ProjectOptions
     from pipeloom.plan.manifest import write_manifest
 
-    project = tmp_path / "dbx"
-    (project / "models").mkdir(parents=True)
-    (project / "pipeloom.yml").write_text(DBX_PROJECT, encoding="utf-8")
-    (project / "models" / "m.yml").write_text(DBX_MODELS, encoding="utf-8")
+    project = make_project(
+        tmp_path / "dbx", {"pipeloom.yml": DBX_PROJECT, "models/m.yml": DBX_MODELS}
+    )
     outcome = Project(ProjectOptions(project_dir=project, target="prod", env={})).compile()
     assert outcome.value is not None, [d.message for d in outcome.diagnostics]
     manifest = tmp_path / "dbx-manifest.json"

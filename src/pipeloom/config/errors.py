@@ -12,6 +12,18 @@ from pipeloom.config.decorator import DecoratorSite
 from pipeloom.config.yaml import LoadedDocument
 from pipeloom.diagnostics import Report, suggest
 
+MIGRATION_GUIDE = "https://emanuel-luis.github.io/pipeloom/latest/guide/migrate-0.9/"
+# Keys of the YAML model path that 0.9 removed (ADR-0050 point 19), by the model that rejects them.
+_REMOVED_IN_0_9 = frozenset(
+    {
+        ("PropertiesEntry", "sql"),
+        ("PropertiesEntry", "python"),
+        ("PropertiesEntry", "inputs"),
+        ("PropertiesFile", "sources"),
+        ("ProjectConfig", "defaults"),
+    }
+)
+
 
 def _escape(segment: str) -> str:
     return segment.replace("~", "~0").replace("/", "~1")
@@ -48,6 +60,15 @@ def _field_annotation(model: type[BaseModel], name: str) -> tuple[bool, Any]:
 
 def _field_names(model: type[BaseModel]) -> list[str]:
     return [info.alias or name for name, info in model.model_fields.items()]
+
+
+def _is_setting(name: Any) -> bool:
+    """True when `name` is a field of the model that `PropertiesEntry.config` validates against."""
+    from pipeloom.config.models import PropertiesEntry
+
+    found, ann = _field_annotation(PropertiesEntry, "config")
+    settings = _resolve(ann)[0] if found else None
+    return settings is not None and name in _field_names(settings)
 
 
 def _get(data: Any, pointer: str) -> Any:
@@ -95,8 +116,17 @@ def from_validation_error(
                 node = node[seg]
         kind = item["type"]
         last = loc[-1] if loc else ""
+        hint: str | None
         if kind == "extra_forbidden":
-            hint = suggest(str(last), _field_names(before)) if before is not None else None
+            if before is not None and (before.__name__, last) in _REMOVED_IN_0_9:
+                hint = f"removed in 0.9: see {MIGRATION_GUIDE}"
+            elif before is not None and before.__name__ == "PropertiesEntry" and _is_setting(last):
+                hint = (
+                    "move it under config: (model settings in a properties entry "
+                    "sit under config since 0.9)"
+                )
+            else:
+                hint = suggest(str(last), _field_names(before)) if before is not None else None
             code, message, location = (
                 "PLS101",
                 f"unknown field '{last}'",

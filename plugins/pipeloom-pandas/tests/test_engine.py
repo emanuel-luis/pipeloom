@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from tests.conftest import make_project
 
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.builtins.filesystem import FilesystemCatalog
@@ -100,18 +101,16 @@ PANDAS_PROJECT = {
 }
 
 
-def codes(tmp_path: Path, model: str) -> set[str]:
+def codes(tmp_path: Path, model: str, *, convert: bool = True) -> set[str]:
     files = {**PANDAS_PROJECT, "models/m.yml": f"models:\n  - {model}\n"}
-    for rel, content in files.items():
-        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / rel).write_bytes(content.encode("utf-8"))
-    root = tmp_path
+    root = make_project(tmp_path, files, convert=convert)
     outcome = Project(ProjectOptions(project_dir=root, target="dev", env={})).validate()
     return {d.code for d in outcome.diagnostics}
 
 
-def test_a_sql_model_on_pandas_is_plc502(tmp_path: Path) -> None:
-    assert "PLC502" in codes(tmp_path, "{name: a, sql: select 1}")
+def test_a_legacy_sql_entry_is_pls101_not_the_retired_plc502(tmp_path: Path) -> None:
+    # the legacy `sql:` entry itself, not converted: the key is unknown since 0.9
+    assert codes(tmp_path, "{name: a, sql: select 1}", convert=False) == {"PLS101"}
 
 
 def test_a_view_on_pandas_is_plc507(tmp_path: Path) -> None:

@@ -4,6 +4,11 @@ files:
   pipeloom.yml: |
     config_version: 1
     name: shop
+    sources:
+      raw:
+        tables:
+          raw:
+            location: raw
     targets:
       dev:
         engine:
@@ -11,20 +16,22 @@ files:
         catalog:
           kind: memory
   models/m.yml: |
-    sources:
-      - name: raw
-        location: raw
     models:
-      - name: a
-        sql: select id from src
-        inputs:
+    - name: a
+      unit_tests:
+      - name: from_csv
+        given:
           src:
-            source: raw
-        unit_tests:
-          - name: from_csv
-            given:
-              src:
-                csv: data/missing.csv
-            expect:
-              rows:
-                - id: 1
+            csv: data/missing.csv
+        expect:
+          rows:
+          - id: 1
+  models/m.py: |
+    from pipeloom import model, source
+
+
+    @model(
+        inputs={"src": source("raw", "raw")},
+    )
+    def a(ctx, src):
+        return ctx.sql("select id from src")

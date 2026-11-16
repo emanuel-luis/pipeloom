@@ -8,6 +8,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.events.bus import EventBus
 from pipeloom.graph.selectors import Selection
@@ -25,7 +27,7 @@ from tests.conftest import make_project
 from tests.runtime import test_process
 from tests.runtime.test_runner import results, run_project
 
-HEAD = "config_version: 1\nname: p\npython_paths: [src]\ntargets:\n  ci:\n"
+HEAD = "config_version: 1\nname: p\nmodel_paths: [src]\npython_paths: [src]\ntargets:\n  ci:\n"
 ENGINE = "    engine: {kind: memory}\n    catalog: {kind: memory}\n"
 FLAKY = """from pipeloom.engine.errors import TransientError
 
@@ -43,10 +45,17 @@ def broken(ctx):
 """
 
 
+def decorate(src: str, fn: str, cfg: str = "", name: str = "a") -> str:
+    """`src` with function `fn` decorated as model `name`; `cfg` holds `key: value` settings."""
+    kwargs = {"name": name, **(yaml.safe_load("{" + cfg + "}") or {})}
+    args = ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
+    decorated = src.replace(f"def {fn}(", f"@model({args})\ndef {fn}(", 1)
+    return "from pipeloom import model\n" + decorated
+
+
 def flaky_project(tmp_path: Path, cfg: str, fn: str = "flaky") -> Path:
-    models = f'models:\n  - {{name: a, python: "m:{fn}", {cfg}}}\n'
     return make_project(
-        tmp_path, {"pipeloom.yml": HEAD + ENGINE, "models/m.yml": models, "src/m.py": FLAKY}
+        tmp_path, {"pipeloom.yml": HEAD + ENGINE, "src/m.py": decorate(FLAKY, fn, cfg)}
     )
 
 
@@ -121,8 +130,7 @@ def test_a_timed_out_attempt_file_survives_the_late_thread(tmp_path: Path) -> No
         tmp_path,
         {
             "pipeloom.yml": HEAD + ENGINE,
-            "models/m.yml": 'models:\n  - {name: a, python: "m:hang", timeout: 1, retries: 2}\n',
-            "src/m.py": src,
+            "src/m.py": decorate(src, "hang", "timeout: 1, retries: 2"),
         },
     )
     outcome, sink = run_real_clock(root)
@@ -175,8 +183,7 @@ def test_retries_are_used_up(tmp_path: Path) -> None:
         tmp_path,
         {
             "pipeloom.yml": HEAD + ENGINE,
-            "models/m.yml": 'models:\n  - {name: a, python: "m:always", retries: 1, retry_delay: 0}\n',
-            "src/m.py": src,
+            "src/m.py": decorate(src, "always", "retries: 1, retry_delay: 0"),
         },
     )
     outcome, _ = run_project(root)
@@ -187,10 +194,8 @@ def test_retries_are_used_up(tmp_path: Path) -> None:
 # -- the process executor --------------------------------------------------------------------
 
 SLEEP = "def slow(ctx):\n    import time\n\n    time.sleep(60)\n"
-MODELS = (
-    "models:\n"
-    '  - {name: slow, python: "m:slow", timeout: 1}\n'
-    "  - {name: after, sql: select * from slow, inputs: {slow: {ref: slow}}}\n"
+MODELS = decorate(SLEEP, "slow", "timeout: 1", name="slow") + (
+    "\n\n@model\ndef after(ctx, slow):\n    return ctx.sql('select * from slow')\n"
 )
 
 
@@ -203,7 +208,7 @@ def test_a_sleeping_child_is_stopped_and_leaves_no_orphan(tmp_path: Path, monkey
         made.append(self)
 
     monkeypatch.setattr(ProcessExecutor, "__init__", spy)
-    root = test_process.project_dir(tmp_path, MODELS, SLEEP)
+    root = test_process.project_dir(tmp_path, MODELS)
     started = time.monotonic()
     outcome, sink = test_process.run(root, RunOptions(run_id="r1", workers=1, cancel_grace=1.0))
     assert time.monotonic() - started < 10
@@ -226,8 +231,8 @@ TRANSIENT = (
 
 
 def test_the_parent_retries_a_transient_child_failure(tmp_path: Path) -> None:
-    models = 'models:\n  - {name: a, python: "m:flaky", retries: 1, retry_delay: 0}\n'
-    root = test_process.project_dir(tmp_path, models, TRANSIENT)
+    models = decorate(TRANSIENT, "flaky", "retries: 1, retry_delay: 0")
+    root = test_process.project_dir(tmp_path, models)
     outcome, sink = test_process.run(root, RunOptions(run_id="r1", workers=1))
     assert outcome.exit_code == 0
     folder = root / "target/runs/r1/units/a"
@@ -237,8 +242,8 @@ def test_the_parent_retries_a_transient_child_failure(tmp_path: Path) -> None:
 
 
 def test_unit_mode_never_retries(tmp_path: Path) -> None:
-    models = 'models:\n  - {name: a, python: "m:flaky", retries: 3, retry_delay: 0}\n'
-    root = test_process.project_dir(tmp_path, models, TRANSIENT)
+    models = decorate(TRANSIENT, "flaky", "retries: 3, retry_delay: 0")
+    root = test_process.project_dir(tmp_path, models)
     outcome, _ = test_process.run(root, RunOptions(Selection(("unit:a",)), run_id="u1"))
     assert outcome.exit_code == 1
     folder = root / "target/runs/u1/units/a"
@@ -352,8 +357,7 @@ def stubborn(ctx):
 
 
 def test_a_grandchild_does_not_survive_or_hold_up_the_run(tmp_path: Path) -> None:
-    models = 'models:\n  - {name: slow, python: "m:stubborn", timeout: 1}\n'
-    root = test_process.project_dir(tmp_path, models, STUBBORN)
+    root = test_process.project_dir(tmp_path, decorate(STUBBORN, "stubborn", "timeout: 1", "slow"))
     started = time.monotonic()
     outcome, _ = test_process.run(root, RunOptions(run_id="r1", workers=1, cancel_grace=1.0))
     assert time.monotonic() - started < 20
@@ -365,7 +369,7 @@ def test_a_grandchild_does_not_survive_or_hold_up_the_run(tmp_path: Path) -> Non
 
 def _assert_no_beat(root: Path) -> None:
     """A live grandchild rewrites beat.txt every 0.1 s: the file must stay unchanged."""
-    beat = root / "src" / "beat.txt"
+    beat = root / "models" / "beat.txt"
     time.sleep(0.5)  # a live grandchild would have written by now
     before = beat.read_text(encoding="utf-8") if beat.exists() else ""
     time.sleep(0.5)
@@ -393,12 +397,13 @@ def leaves(ctx):
 
 
 def test_a_grandchild_of_a_child_that_exits_does_not_survive_the_run(tmp_path: Path) -> None:
-    models = 'models:\n  - {name: leaves, python: "m:leaves"}\n'
-    root = test_process.project_dir(tmp_path, models, LEAVES_A_GRANDCHILD)
+    root = test_process.project_dir(
+        tmp_path, decorate(LEAVES_A_GRANDCHILD, "leaves", name="leaves")
+    )
     outcome, _ = test_process.run(root, RunOptions(run_id="r1", workers=1))
     assert outcome.run_results is not None, outcome.diagnostics
     assert {r["status"] for r in test_process.results(root, "r1")["results"]} == {"failed"}
-    assert (root / "src" / "beat.txt").exists()  # the grandchild did start
+    assert (root / "models" / "beat.txt").exists()  # the grandchild did start
     _assert_no_beat(root)
 
 

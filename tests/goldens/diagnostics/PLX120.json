@@ -5,8 +5,8 @@
     "message": "view model 'a' returned list, not the result of ctx.sql(...): pipeloom.runtime.sql.ViewModeError: returned list",
     "hint": "return ctx.sql(...) over the input aliases, or materialize the model as a table",
     "location": {
-      "file": "models/m.yml",
-      "line": 2,
+      "file": "src/m.py",
+      "line": 3,
       "col": null,
       "json_pointer": null
     },

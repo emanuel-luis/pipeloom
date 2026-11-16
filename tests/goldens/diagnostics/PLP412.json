@@ -5,10 +5,10 @@
     "message": "the quarantine table of 'a' collides with model 'a__quarantine'",
     "hint": "rename model 'a__quarantine' or turn quality.quarantine off",
     "location": {
-      "file": "models/m.yml",
+      "file": "models/m.py",
       "line": 5,
-      "col": 7,
-      "json_pointer": "/models/0/quality"
+      "col": 5,
+      "json_pointer": "/@model/quality"
     },
     "context": {
       "model": "a"

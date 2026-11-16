@@ -5,10 +5,10 @@
     "message": "engine 'memory' does not support strategy 'scd2' (model 'a')",
     "hint": "supported: append, merge, overwrite, replace_partitions",
     "location": {
-      "file": "models/m.yml",
+      "file": "models/m.py",
       "line": 5,
-      "col": 17,
-      "json_pointer": "/models/0/write/strategy"
+      "col": 5,
+      "json_pointer": "/@model/write/strategy"
     },
     "context": {
       "model": "a",

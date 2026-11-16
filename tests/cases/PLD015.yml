@@ -26,11 +26,19 @@ files:
       task_grouping: by_tag
     targets:
       prod: {}
-  models/m.yml: |
-    models:
-      - name: a
-        sql: select 1 as x
-        tags: [g]
-      - name: b
-        sql: select 2 as x
-        tags: [g]
+  models/m.py: |
+    from pipeloom import model
+
+
+    @model(
+        tags=["g"],
+    )
+    def a(ctx):
+        return ctx.sql("select 1 as x")
+
+
+    @model(
+        tags=["g"],
+    )
+    def b(ctx):
+        return ctx.sql("select 2 as x")

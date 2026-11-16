@@ -24,7 +24,6 @@ from tests.conftest import make_project
 
 PIPELOOM_YML = """config_version: 1
 name: p
-python_paths: [src]
 boundary: task
 targets:
   ci:
@@ -33,24 +32,46 @@ targets:
     state: {kind: json, path: state}
     naming: {kind: none}
 """
-CHAIN = """models:
-  - {name: a, sql: select 1 as x}
-  - {name: b, sql: select * from a, inputs: {a: {ref: a}}}
-  - {name: c, sql: select * from b, inputs: {b: {ref: b}}}
-"""
-CRASH = """models:
-  - {name: a, sql: select 1 as x}
-  - {name: boom, python: "m:die", inputs: {a: {ref: a}}}
-  - {name: after, sql: select * from boom, inputs: {boom: {ref: boom}}}
-"""
-DIE = "def die(ctx, a):\n    import os\n\n    os._exit(3)\n"
+CHAIN = """from pipeloom import model
 
 
-def project_dir(tmp_path: Path, models: str = CHAIN, src: str | None = None) -> Path:
-    files: dict[str, Any] = {"pipeloom.yml": PIPELOOM_YML, "models/m.yml": models}
-    if src is not None:
-        files["src/m.py"] = src
-    return make_project(tmp_path, files)
+@model
+def a(ctx):
+    return ctx.sql("select 1 as x")
+
+
+@model
+def b(ctx, a):
+    return ctx.sql("select * from a")
+
+
+@model
+def c(ctx, b):
+    return ctx.sql("select * from b")
+"""
+CRASH = """import os
+
+from pipeloom import model
+
+
+@model
+def a(ctx):
+    return ctx.sql("select 1 as x")
+
+
+@model
+def boom(ctx, a):
+    os._exit(3)
+
+
+@model
+def after(ctx, boom):
+    return ctx.sql("select * from boom")
+"""
+
+
+def project_dir(tmp_path: Path, models: str = CHAIN) -> Path:
+    return make_project(tmp_path, {"pipeloom.yml": PIPELOOM_YML, "models/m.py": models})
 
 
 def run(
@@ -161,7 +182,7 @@ def test_children_write_their_own_event_files_and_logs(tmp_path: Path) -> None:
 
 
 def test_a_child_that_dies_without_a_result_is_plx106(tmp_path: Path) -> None:
-    root = project_dir(tmp_path, CRASH, DIE)
+    root = project_dir(tmp_path, CRASH)
     outcome, sink = run(root, RunOptions(run_id="r1", workers=1))
     assert outcome.exit_code == 1
     plx106 = [d for d in outcome.diagnostics if d.code == "PLX106"]
@@ -265,7 +286,7 @@ def test_a_bad_manifest_is_plx107(tmp_path: Path, edit: str) -> None:
         data["metadata"]["project"] = "other"
         text = json.dumps(data)
     else:
-        text = text.replace('"select 1 as x"', '"select 2 as x"')
+        text = text.replace('"models.m:a"', '"models.m:b"')
         assert text != path.read_text(encoding="utf-8")
     path.write_text(text, encoding="utf-8", newline="\n")
     outcome, _ = run(root, RunOptions(manifest=path))

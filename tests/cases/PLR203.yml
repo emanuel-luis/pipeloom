@@ -2,18 +2,22 @@ files:
   pipeloom.yml: |
     config_version: 1
     name: shop
+    sources:
+      raw:
+        tables:
+          raw_orders:
+            format: memory
+            location: raw/orders
     targets:
       dev:
         engine:
           kind: memory
-  models/m.yml: |
-    sources:
-      - name: raw_orders
-        format: memory
-        location: raw/orders
-    models:
-      - name: stg_orders
-        sql: select * from o
-        inputs:
-          o:
-            source: raw_ordrs
+  models/m.py: |
+    from pipeloom import model, source
+
+
+    @model(
+        inputs={"o": source("raw", "raw_ordrs")},
+    )
+    def stg_orders(ctx, o):
+        return ctx.sql("select * from o")

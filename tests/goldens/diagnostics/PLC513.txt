@@ -1,2 +1,2 @@
-error PLC513 models/m.yml:4:18 model 'a' declares sql_dialect 'spark', which engine 'memory' runs as 'sqlite', and sqlglot is not installed
+error PLC513 src/m.py:4:5 model 'a' declares sql_dialect 'spark', which engine 'memory' runs as 'sqlite', and sqlglot is not installed
       hint: install pipeloom[sqlglot], or remove sql_dialect and write the queries in 'sqlite'

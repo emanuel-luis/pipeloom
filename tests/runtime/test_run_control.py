@@ -14,8 +14,9 @@ from pipeloom.state.sqlite import SqliteStore
 from tests.conftest import make_project
 from tests.runtime.test_runner import results, run_project, shop
 
-HEAD = "config_version: 1\nname: p\npython_paths: [src]\ntargets:\n  ci:\n"
+HEAD = "config_version: 1\nname: p\ntargets:\n  ci:\n"
 ENGINE = "    engine: {kind: memory}\n    catalog: {kind: memory}\n"
+IMPORT = "from pipeloom import model\n\n\n"
 
 
 def chain(tmp_path: Path) -> Path:
@@ -23,10 +24,8 @@ def chain(tmp_path: Path) -> Path:
         tmp_path,
         {
             "pipeloom.yml": HEAD + ENGINE,
-            "models/m.yml": (
-                "models:\n  - {name: a, sql: select 1 as x}\n"
-                "  - {name: b, sql: select * from a, inputs: {a: {ref: a}}}\n"
-            ),
+            "models/m.py": IMPORT + "@model\ndef a(ctx):\n    return ctx.sql('select 1 as x')\n\n\n"
+            "@model\ndef b(ctx, a):\n    return ctx.sql('select * from a')\n",
         },
     )
     return tmp_path
@@ -117,8 +116,7 @@ def test_a_relative_project_dir_does_not_leak_paths(
         tmp_path,
         {
             "pipeloom.yml": HEAD + ENGINE,
-            "models/m.yml": "models:\n  - {name: m, python: 'm:m'}\n",
-            "src/m.py": "def m(ctx):\n    raise ValueError('boom')\n",
+            "models/m.py": IMPORT + "@model\ndef m(ctx):\n    raise ValueError('boom')\n",
         },
     )
     monkeypatch.chdir(tmp_path)
@@ -127,7 +125,7 @@ def test_a_relative_project_dir_does_not_leak_paths(
     (failed,) = [e for e in sink.events if e.type == "unit.failed"]
     trace = str(failed.data["traceback"])
     flat = trace.replace("\\", "/")
-    assert "ValueError: boom" in trace and "src/m.py" in flat
+    assert "ValueError: boom" in trace and "models/m.py" in flat
     assert tmp_path.as_posix() not in flat and str(tmp_path) not in trace
     location = outcome.diagnostics[0].location
-    assert location is not None and location.file == "src/m.py"
+    assert location is not None and location.file == "models/m.py"

@@ -6,8 +6,8 @@
     "hint": "every input alias of the model needs given rows",
     "location": {
       "file": "models/m.yml",
-      "line": 11,
-      "col": 15,
+      "line": 4,
+      "col": 11,
       "json_pointer": "/models/0/unit_tests/0/name"
     },
     "context": {
@@ -22,8 +22,8 @@
     "hint": "did you mean 'src'?",
     "location": {
       "file": "models/m.yml",
-      "line": 14,
-      "col": 13,
+      "line": 7,
+      "col": 9,
       "json_pointer": "/models/0/unit_tests/0/given/source"
     },
     "context": {
@@ -34,17 +34,17 @@
   {
     "code": "PLR208",
     "severity": "error",
-    "message": "unit test 'unknown_model' names unknown model 'b'",
+    "message": "duplicate unit test name 'wrong_alias' for model 'a'",
     "hint": null,
     "location": {
       "file": "models/m.yml",
-      "line": 21,
-      "col": 12,
-      "json_pointer": "/unit_tests/0/model"
+      "line": 12,
+      "col": 11,
+      "json_pointer": "/models/0/unit_tests/1/name"
     },
     "context": {
-      "model": "b",
-      "unit_test": "unknown_model"
+      "model": "a",
+      "unit_test": "wrong_alias"
     }
   }
 ]

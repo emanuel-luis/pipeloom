@@ -1,4 +1,5 @@
-"""Decorated models next to YAML models: resolve, compile and run on memory (ADR-0050)."""
+"""Decorated models with properties and the `models:` tree: resolve, compile and run on memory
+(ADR-0050)."""
 
 from __future__ import annotations
 
@@ -29,11 +30,6 @@ targets:
     catalog:
       kind: memory
 """,
-    "models/legacy.yml": """\
-models:
-  - name: src
-    python: "shop_models:src"
-""",
     "models/_properties.yml": """\
 models:
   - name: big
@@ -44,7 +40,7 @@ models:
     "models/shop_models.py": """\
 from pipeloom import model, var
 
-
+@model
 def src(ctx):
     return [{"id": 1}, {"id": 2}, {"id": 3}]
 
@@ -94,7 +90,7 @@ def test_invalid_arguments_are_located_and_keep_the_name_known(tmp_path: Path) -
     code = """\
 from pipeloom import model
 
-
+@model
 def src(ctx):
     return []
 
@@ -122,7 +118,7 @@ import datetime
 
 from pipeloom import model
 
-
+@model
 def src(ctx):
     return []
 
@@ -144,7 +140,7 @@ def test_literal_ctx_sql_is_checked(tmp_path: Path) -> None:
     code = """\
 from pipeloom import model
 
-
+@model
 def src(ctx):
     return []
 
@@ -166,7 +162,7 @@ def big(ctx, src):
 LOOP = """\
 from pipeloom import model
 
-
+@model
 def src(ctx):
     return [{"id": 1}]
 
@@ -182,7 +178,7 @@ for _n in ("big", "check"):
 FACTORY = """\
 from pipeloom import model
 
-
+@model
 def src(ctx):
     return [{"id": 1}]
 
@@ -204,15 +200,13 @@ check = make("check")
 def test_models_built_in_a_loop_or_factory_validate(tmp_path: Path, code: str) -> None:
     root = make_project(tmp_path, {**FILES, "models/shop_models.py": code})
     outcome = Project(ProjectOptions(project_dir=root, env={})).validate()
-    codes = [d.code for d in outcome.diagnostics]
-    assert not {"PLK601", "PLK604"} & set(codes), outcome.diagnostics
     assert [d for d in outcome.diagnostics if d.severity == "error"] == []
 
 
 TYPO = """\
 from pipeloom import model
 
-
+@model
 def src(ctx):
     return []
 
@@ -253,11 +247,11 @@ def test_a_model_module_named_like_the_standard_library_is_ply005(tmp_path: Path
     assert "shadows the standard library module 'calendar'" in found[0].message
 
 
-def test_python_and_yaml_models_with_one_name(tmp_path: Path) -> None:
+def test_two_models_with_one_name(tmp_path: Path) -> None:
     code = """\
 from pipeloom import model
 
-
+@model
 def src(ctx):
     return []
 

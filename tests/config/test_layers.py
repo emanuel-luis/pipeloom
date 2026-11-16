@@ -18,16 +18,19 @@ BASE = "config_version: 1\nname: shop\ntargets:\n  dev:\n    engine: {kind: memo
 
 # Highest precedence first: (name, origin layer, file that sets it).
 LAYERS = [
-    ("model", "model", "models/a/b/m.yml"),
+    ("decorator", "decorator", "models/a/b/m.py"),
     ("properties", "properties", "models/a/props.yml"),
     ("folder_b", "folder", "pipeloom.yml"),
-    ("defaults_b", "defaults_file", "models/a/b/_defaults.yml"),
     ("folder_a", "folder", "pipeloom.yml"),
-    ("defaults_root", "defaults_file", "models/_defaults.yml"),
     ("root", "project", "pipeloom.yml"),
-    ("project_defaults", "project_defaults", "pipeloom.yml"),
 ]
 TREE = {"folder_b", "folder_a", "root"}
+
+
+def py(*names: str, decorator: str = "@model") -> str:
+    """A module of decorated models without inputs, all with the same decorator."""
+    defs = "".join(f"\n\n{decorator}\ndef {n}():\n    return None\n" for n in names)
+    return "from pipeloom import model, source\n" + defs
 
 
 def _settings(layer: str, indent: int, on: set[str]) -> str:
@@ -44,19 +47,20 @@ def _settings(layer: str, indent: int, on: set[str]) -> str:
 def layered_files(on: set[str]) -> dict[str, str]:
     tree = _settings("root", 2, on) + "  a:\n" + _settings("folder_a", 4, on)
     tree += ("    b:\n" + _settings("folder_b", 6, on)) if "folder_b" in on else "    b: {}\n"
+    decorator = (
+        "@model(\n"
+        '    write={"options": {"winner": "decorator", "decorator": 1}},\n'
+        '    partition_by=["decorator"],\n'
+        '    tags=["decorator"],\n'
+        ")"
+        if "decorator" in on
+        else "@model"
+    )
     return {
-        "pipeloom.yml": BASE
-        + "defaults:\n  models:\n"
-        + (_settings("project_defaults", 4, on) or "    retries: 0\n")
-        + "models:\n"
-        + tree,
-        "models/_defaults.yml": "models:\n"
-        + (_settings("defaults_root", 2, on) or "  retries: 0\n"),
-        "models/a/b/_defaults.yml": "models:\n"
-        + (_settings("defaults_b", 2, on) or "  retries: 0\n"),
+        "pipeloom.yml": BASE + "models:\n" + tree,
         "models/a/props.yml": "models:\n  - name: m\n    config:\n"
         + (_settings("properties", 6, on) or "      retries: 0\n"),
-        "models/a/b/m.yml": "models:\n  - name: m\n    sql: select 1\n" + _settings("model", 4, on),
+        "models/a/b/m.py": py("m", decorator=decorator),
     }
 
 
@@ -67,8 +71,9 @@ def resolve(factory: Factory, files: Mapping[str, str], **kw: Any) -> ResolvedPr
     return outcome.value.project
 
 
-def line_of(files: Mapping[str, str], file: str, needle: str) -> int:
-    return next(i for i, ln in enumerate(files[file].splitlines(), 1) if needle in ln)
+def line_of(files: Mapping[str, str], file: str, *needles: str) -> int:
+    lines = enumerate(files[file].splitlines(), 1)
+    return next(i for i, ln in lines if all(n in ln for n in needles))
 
 
 @pytest.mark.parametrize("top", range(len(LAYERS)), ids=[n for n, _, _ in LAYERS])
@@ -84,15 +89,15 @@ def test_each_layer_wins_over_the_ones_below(project_factory: Factory, top: int)
     assert m.config.tags == below  # ordered union, lowest layer first
     origin = m.origins["partition_by"]
     assert (origin.layer, origin.location.file) == (layer, file)
-    assert origin.location.line == line_of(files, file, f"partition_by: [{winner}]")
+    assert origin.location.line == line_of(files, file, "partition_by", winner)
     assert p.locate_model(m, "partition_by") == origin.location
 
 
 def test_explicit_null_in_the_tree_removes_a_lower_setting(project_factory: Factory) -> None:
     files = {
         "pipeloom.yml": BASE + "models:\n  +timeout: 60\n  +retries: 2\n  a:\n    +timeout: null\n",
-        "models/a/m.yml": "models:\n  - name: m\n    sql: select 1\n",
-        "models/n.yml": "models:\n  - name: n\n    sql: select 1\n",
+        "models/a/m.py": py("m"),
+        "models/n.py": py("n"),
     }
     p = resolve(project_factory, files)
     m, n = p.models["model.shop.m"], p.models["model.shop.n"]
@@ -103,34 +108,32 @@ def test_explicit_null_in_the_tree_removes_a_lower_setting(project_factory: Fact
     assert m.origins["retries"].location.json_pointer == "/models/+retries"
 
 
-def test_defaults_files_interleave_with_the_tree(project_factory: Factory) -> None:
-    """`_defaults.yml` and `defaults.models` map onto the folder and project layers."""
+def test_nearer_folders_win_and_stop_where_the_tree_ends(project_factory: Factory) -> None:
     files = {
         "pipeloom.yml": BASE
-        + "defaults:\n  models:\n    retries: 1\n    timeout: 5\n"
         + "models:\n  +retries: 3\n  a:\n    +retries: 4\n    +timeout: 6\n    b:\n"
         + "      +timeout: 8\n",
-        "models/a/b/_defaults.yml": "models:\n  retries: 5\n  timeout: 7\n",
-        "models/a/b/m.yml": "models:\n  - name: m\n    sql: select 1\n",
-        "models/n.yml": "models:\n  - name: n\n    sql: select 1\n",
+        "models/a/b/m.py": py("m"),
+        "models/a/c/k.py": py("k"),
+        "models/n.py": py("n"),
     }
     p = resolve(project_factory, files)
-    m, n = p.models["model.shop.m"], p.models["model.shop.n"]
-    # A nearer `_defaults.yml` beats a farther tree folder and the root `+key`.
-    assert (m.config.retries, m.origins["retries"].layer) == (5, "defaults_file")
-    # The tree beats `_defaults.yml` at the same folder.
-    assert (m.config.timeout, m.origins["timeout"].layer) == (8, "folder")
-    # The root `+key` beats `defaults.models`.
+    m, k, n = (p.models[f"model.shop.{x}"] for x in "mkn")
+    assert (m.config.retries, m.origins["retries"].layer) == (4, "folder")
+    assert (m.config.timeout, m.origins["timeout"].location.json_pointer) == (
+        8,
+        "/models/a/b/+timeout",
+    )
+    assert (k.config.timeout, k.config.retries) == (6, 4)  # no `c` entry: `a` applies
     assert (n.config.retries, n.origins["retries"].layer) == (3, "project")
-    assert (n.config.timeout, n.origins["timeout"].layer) == (5, "project_defaults")
 
 
-def test_folder_defaults_beat_the_root_tree_key(project_factory: Factory) -> None:
+def test_a_folder_key_beats_the_root_tree_key(project_factory: Factory) -> None:
     files = {
-        "pipeloom.yml": BASE + "models:\n  +materialized: table\n",
-        "models/staging/_defaults.yml": "models:\n  materialized: view\n",
-        "models/staging/s.yml": "models:\n  - name: s\n    sql: select 1\n",
-        "models/m.yml": "models:\n  - name: m\n    sql: select 1\n",
+        "pipeloom.yml": BASE
+        + "models:\n  +materialized: table\n  staging:\n    +materialized: view\n",
+        "models/staging/s.py": py("s"),
+        "models/m.py": py("m"),
     }
     p = resolve(project_factory, files)
     assert p.models["model.shop.s"].config.materialized == "view"
@@ -140,11 +143,11 @@ def test_folder_defaults_beat_the_root_tree_key(project_factory: Factory) -> Non
 def test_properties_description_and_columns(project_factory: Factory) -> None:
     files = {
         "pipeloom.yml": BASE,
-        "models/m.yml": (
-            "models:\n  - name: m\n    sql: select 1 as id\n"
-            "  - name: n\n    sql: select 1 as id\n    description: own\n"
-            "    columns:\n      - name: id\n        dtype: int64\n"
-        ),
+        "models/m.py": py("m")
+        + py(
+            "n",
+            decorator='@model(description="own", columns=[{"name": "id", "dtype": "int64"}])',
+        ).split("\n", 1)[1],
         "models/_properties.yml": (
             "models:\n"
             "  - name: m\n    description: From properties.\n"
@@ -161,9 +164,9 @@ def test_properties_description_and_columns(project_factory: Factory) -> None:
     assert m.origins["columns"].layer == "properties"
     assert m.origins["columns"].location.file == "models/_properties.yml"
     assert "columns" not in m.own_fields
-    assert n.config.description == "own"  # the model entry wins
-    assert [c.name for c in n.entry.columns or ()] == ["id"]  # entry columns replace whole
-    assert n.origins["columns"].layer == "model"
+    assert n.config.description == "own"  # the decorator wins
+    assert [c.name for c in n.entry.columns or ()] == ["id"]  # its columns replace whole
+    assert n.origins["columns"].layer == "decorator"
 
 
 def test_properties_data_tests_and_unit_tests(project_factory: Factory) -> None:
@@ -193,8 +196,8 @@ def test_properties_data_tests_and_unit_tests(project_factory: Factory) -> None:
     loc = p.locate_data_test(m, 0)
     assert (loc.file, loc.json_pointer) == ("models/_properties.yml", "/models/0/data_tests/0")
     assert [t.name for t in n.entry.data_tests or ()] == ["own"]
-    assert n.origins["data_tests"].layer == "model"
-    assert p.locate_data_test(n, 0).file == "models/m.yml"
+    assert n.origins["data_tests"].layer == "decorator"
+    assert p.locate_data_test(n, 0).file == n.site.file
     (case,) = p.unit_tests
     assert (case.model, case.name, case.file, case.pointer) == (
         "m",
@@ -276,7 +279,7 @@ def test_unknown_tree_key_is_pls101_with_a_hint(project_factory: Factory) -> Non
 
 PLR209_FILES = {
     "pipeloom.yml": BASE,
-    "models/m.yml": "models:\n  - name: m\n    sql: select 1\n",
+    "models/m.py": py("m"),
     "models/a.yml": "models:\n  - name: m\n  - name: x\n",
     "models/b.yml": "models:\n  - name: m\n",
 }
@@ -306,7 +309,8 @@ SOURCES = (
     "      nation:\n        tags: [small]\n"
 )
 SOURCE_MODEL = (
-    "models:\n  - name: m\n    sql: select 1\n    inputs:\n      o:\n        source: tpch.orders\n"
+    'from pipeloom import model, source\n\n\n@model(inputs={"o": source("tpch", "orders")})\n'
+    "def m(o):\n    return o\n"
 )
 
 
@@ -314,7 +318,7 @@ SOURCE_MODEL = (
 def test_source_groups_and_target_overrides(project_factory: Factory, target: str) -> None:
     p = resolve(
         project_factory,
-        {"pipeloom.yml": SOURCES, "models/m.yml": SOURCE_MODEL},
+        {"pipeloom.yml": SOURCES, "models/m.py": SOURCE_MODEL},
         target=target,
     )
     assert list(p.sources) == [
@@ -355,7 +359,7 @@ def test_absolute_table_location_ignores_the_group_location(
     project_factory: Factory, location: str
 ) -> None:
     text = SOURCES.replace("location: orders.parquet", f'location: "{location}"')
-    p = resolve(project_factory, {"pipeloom.yml": text, "models/m.yml": SOURCE_MODEL})
+    p = resolve(project_factory, {"pipeloom.yml": text, "models/m.py": SOURCE_MODEL})
     assert p.sources["source.shop.tpch.orders"].config.location == location.replace("\\\\", "\\")
 
 
@@ -373,19 +377,8 @@ def test_target_override_leaving_both_is_pls108(project_factory: Factory) -> Non
         "          orders:\n            location: null\n",
         "          orders:\n            table: o\n",
     )
-    root = project_factory({"pipeloom.yml": text, "models/m.yml": SOURCE_MODEL})
+    root = project_factory({"pipeloom.yml": text, "models/m.py": SOURCE_MODEL})
     outcome = Project(ProjectOptions(project_dir=root, env={}, target="prod")).bind()
     assert outcome.value is None
     found = [(d.code, d.location.json_pointer if d.location else None) for d in outcome.diagnostics]
     assert found == [("PLS108", "/targets/prod/sources/tpch/tables/orders")]
-
-
-def test_legacy_flat_sources_keep_their_ids(project_factory: Factory) -> None:
-    p = resolve(
-        project_factory,
-        {
-            "pipeloom.yml": BASE,
-            "models/m.yml": "sources:\n  - {name: raw, format: memory, location: r}\n",
-        },
-    )
-    assert list(p.sources) == ["source.shop.raw"]

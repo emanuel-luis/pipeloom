@@ -8,9 +8,10 @@ import pytest
 
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.config.discover import find_model_files, read_file
+from pipeloom.config.errors import MIGRATION_GUIDE
 from pipeloom.config.yaml import parse_yaml
 from pipeloom.diagnostics import Report
-from tests.conftest import FIXTURES
+from tests.conftest import FIXTURES, make_project
 
 BASE = "config_version: 1\nname: shop\ntargets:\n  dev:\n    engine: {kind: memory}\n"
 Factory = Callable[[Mapping[str, Any]], Path]
@@ -30,9 +31,8 @@ def test_fixture_project_loads() -> None:
     assert outcome.value is not None and outcome.diagnostics == ()
     project = outcome.value
     assert project.config.name == "minimal"
-    assert [f.path for f in project.model_files] == ["models/staging/orders.yml"]
-    assert [f.path for f in project.defaults_files] == ["models/_defaults.yml"]
-    assert project.config.defaults.models.timeout == 1800
+    assert project.model_files == ()
+    assert project.config.models.timeout == 1800
 
 
 def test_load_is_memoized(project_factory: Factory) -> None:
@@ -83,7 +83,7 @@ def test_vars_order_block_then_cli_then_project(project_factory: Factory) -> Non
         BASE
         + "vars:\n  a: '${env:A}'\n  b: one\n"
         + "    \n".replace("    \n", "")
-        + "defaults:\n  models: {meta: {x: '${var:a}', y: '${var:b}'}}\n"
+        + "models:\n  +meta: {x: '${var:a}', y: '${var:b}'}\n"
     )
     outcome = load(
         project_factory({"pipeloom.yml": text, "models/.keep": ""}),
@@ -93,7 +93,7 @@ def test_vars_order_block_then_cli_then_project(project_factory: Factory) -> Non
     project = outcome.value
     assert project is not None
     assert project.vars == {"a": "from-env", "b": "cli"}
-    assert project.config.defaults.models.meta == {"x": "from-env", "y": "cli"}
+    assert project.config.models.meta == {"x": "from-env", "y": "cli"}
     assert {(r.kind, r.name) for r in project.interpolations} == {
         ("env", "A"),
         ("var", "a"),
@@ -106,23 +106,54 @@ def test_vars_block_cannot_use_vars(project_factory: Factory) -> None:
     assert codes(load(project_factory({"pipeloom.yml": text}))) == ["PLR206", "PLS106"]
 
 
-def test_models_collected_and_errors_reported_per_file(project_factory: Factory) -> None:
+def test_properties_collected_and_errors_reported_per_file(tmp_path: Path) -> None:
     files = {
         "pipeloom.yml": BASE,
-        "models/a.yml": "models: [{name: a, sql: select 1}]\n",
-        "models/z/_defaults.yml": "models: {retries: 2}\n",
-        "models/z/b.yaml": "models: [{name: b, sql: select 1, python: 'm:f'}]\n",
+        "models/a.yml": "models: [{name: a, description: x}]\n",
+        "models/z/b.yaml": "models: [{name: b, sql: select 1}]\n",
         "models/.hidden/c.yml": "not: valid: yaml: [",
     }
-    outcome = load(project_factory(files))
+    outcome = load(make_project(tmp_path, files, convert=False))
     assert outcome.value is None
-    assert codes(outcome) == ["PLS108"]
-    assert outcome.diagnostics[0].location is not None
-    assert outcome.diagnostics[0].location.file == "models/z/b.yaml"
+    (d,) = outcome.diagnostics
+    assert d.code == "PLS101" and d.location is not None and d.location.file == "models/z/b.yaml"
+    assert d.hint is not None and "migrate-0.9" in d.hint
 
 
-def test_discovery_sorted_posix_skips_dot_dirs_and_symlink_free(project_factory: Factory) -> None:
-    root = project_factory(
+@pytest.mark.parametrize(
+    ("files", "key"),
+    [
+        ({"models/m.yml": "models: [{name: m, python: 'a:b'}]\n"}, "python"),
+        ({"models/m.yml": "models: [{name: m, inputs: {x: {ref: y}}}]\n"}, "inputs"),
+        ({"models/m.yml": "sources: [{name: s, table: t}]\n"}, "sources"),
+        ({"pipeloom.yml": BASE + "defaults:\n  models: {retries: 1}\n"}, "defaults"),
+    ],
+)
+def test_removed_yaml_model_keys_point_to_the_migration_guide(
+    tmp_path: Path, files: dict[str, str], key: str
+) -> None:
+    outcome = load(make_project(tmp_path, {"pipeloom.yml": BASE, **files}, convert=False))
+    (d,) = outcome.diagnostics
+    assert (d.code, d.message) == ("PLS101", f"unknown field '{key}'")
+    assert d.hint == f"removed in 0.9: see {MIGRATION_GUIDE}"
+
+
+def test_a_setting_at_the_top_of_a_properties_entry_hints_at_config(tmp_path: Path) -> None:
+    files = {"pipeloom.yml": BASE, "models/m.yml": "models: [{name: m, materialized: table}]\n"}
+    outcome = load(make_project(tmp_path, files, convert=False))
+    (d,) = outcome.diagnostics
+    assert (d.code, d.message) == ("PLS101", "unknown field 'materialized'")
+    assert d.hint is not None and "move it under config:" in d.hint
+
+
+def test_a_defaults_file_is_a_properties_file(tmp_path: Path) -> None:
+    files = {"pipeloom.yml": BASE, "models/_defaults.yml": "models: {retries: 2}\n"}
+    assert codes(load(make_project(tmp_path, files, convert=False))) == ["PLS102"]
+
+
+def test_discovery_sorted_posix_skips_dot_dirs_and_symlink_free(tmp_path: Path) -> None:
+    root = make_project(
+        tmp_path,
         {
             "pipeloom.yml": BASE,
             "models/b.yml": "{}",
@@ -130,19 +161,19 @@ def test_discovery_sorted_posix_skips_dot_dirs_and_symlink_free(project_factory:
             "models/a/_defaults.yaml": "{}",
             "models/.git/x.yml": "{}",
             "models/readme.md": "",
-        }
+        },
+        convert=False,
     )
     report = Report()
     doc = parse_yaml(BASE.encode(), "pipeloom.yml", report)
     assert doc is not None
     files = find_model_files(root, ["models", "models"], doc, report)
-    assert files.models == ("models/a/z.yml", "models/b.yml")
-    assert files.defaults == ("models/a/_defaults.yaml",)
+    assert files == ("models/a/_defaults.yaml", "models/a/z.yml", "models/b.yml")
 
 
 @pytest.mark.parametrize("rel", ["models/ü.yml"])
 def test_utf8_file_names_and_content(project_factory: Factory, rel: str) -> None:
-    files = {"pipeloom.yml": BASE, rel: "models: [{name: m, sql: select 1, description: café}]\n"}
+    files = {"pipeloom.yml": BASE, rel: "models: [{name: m, description: café}]\n"}
     outcome = load(project_factory(files))
     assert outcome.value is not None
     assert outcome.value.model_files[0].config.models[0].description == "café"

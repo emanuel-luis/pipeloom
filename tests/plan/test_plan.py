@@ -13,7 +13,7 @@ from pipeloom.api import Project, ProjectOptions
 from pipeloom.diagnostics import Report
 from pipeloom.graph.selectors import Selection
 from pipeloom.plan.manifest import compute_plan_hash, manifest_bytes, read_manifest, write_manifest
-from pipeloom.plan.model import Plan, PythonBody, SqlBody
+from pipeloom.plan.model import Plan, PythonBody
 from pipeloom.platform import Identity
 from tests.conftest import FIXTURES
 
@@ -78,9 +78,10 @@ def test_units_ignore_selection_and_boundary() -> None:
 
 def test_bodies_and_naming() -> None:
     plan = compile_shop(target="dev", user="Ana.Silva")
-    assert isinstance(plan.nodes["model.shop.stg_orders"].body, SqlBody)
+    body = plan.nodes["model.shop.stg_orders"].body
+    assert isinstance(body, PythonBody) and body.file == "models/staging/stg_orders.py"
     body = plan.nodes["model.shop.fct_orders"].body
-    assert isinstance(body, PythonBody) and body.file == "src/shop/marts.py"
+    assert isinstance(body, PythonBody) and body.file == "models/marts/fct_orders.py"
     rel = plan.nodes["model.shop.fct_orders"].relation
     assert rel is not None and rel.relation_name == "main_ana_silva.fct_orders"
     ci = compile_shop(target="ci").nodes["model.shop.fct_orders"].relation
@@ -95,7 +96,7 @@ def test_plan_hash_stable_and_sensitive(tmp_path: Path) -> None:
     assert compile_shop(target="dev").metadata.plan_hash != a.metadata.plan_hash
     copy = copy_shop(tmp_path)
     assert compile_shop(copy).metadata.plan_hash == a.metadata.plan_hash
-    sql = copy / "models/staging/stg.yml"
+    sql = copy / "models/staging/stg_customers.py"
     sql.write_bytes(sql.read_bytes().replace(b"lower(email)", b"upper(email)"))
     changed = compile_shop(copy)
     assert changed.metadata.plan_hash != a.metadata.plan_hash
@@ -109,7 +110,7 @@ def test_python_edit_changes_checksum_but_crlf_does_not(tmp_path: Path) -> None:
     uid = "model.shop.dim_customers"
     base = compile_shop().nodes[uid].checksum
     copy = copy_shop(tmp_path)
-    py = copy / "src/shop/marts.py"
+    py = copy / "models/marts/dim_customers.py"
     py.write_bytes(py.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
     assert compile_shop(copy).nodes[uid].checksum == base
     py.write_bytes(py.read_bytes() + b"# edit\r\n")
@@ -190,7 +191,11 @@ def test_compile_is_memoized_and_stops_on_errors(tmp_path: Path) -> None:
     assert project.compile() is not project.compile(boundary="task")
     assert project.validate() is project.validate()
     bad = copy_shop(tmp_path)
-    (bad / "src/shop/marts.py").write_text("def fct_orders(ctx): ...\n", encoding="utf-8")
+    (bad / "models/marts/fct_orders.py").write_text(
+        'from pipeloom import model\n\n\n@model(inputs={"x": "stg_orders"})\n'
+        "def fct_orders(ctx): ...\n",
+        encoding="utf-8",
+    )
     outcome = Project(ProjectOptions(project_dir=bad, target="ci", env={})).compile()
     assert outcome.value is None and "PLK602" in {d.code for d in outcome.diagnostics}
 

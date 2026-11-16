@@ -16,7 +16,7 @@ from pipeloom.config.models import ColumnConfig, GivenConfig, UnitTestConfig
 from pipeloom.engine import portable
 from pipeloom.engine.protocols import EngineSession
 from pipeloom.engine.types import Column, Relation, Schema
-from pipeloom.plan.model import PlanNode, SqlBody
+from pipeloom.plan.model import PlanNode
 from pipeloom.quality.rows import coerce, diff_rows, infer_dtype, read_csv_rows
 from pipeloom.runtime.context import ModelContext, RuntimeContext
 from pipeloom.runtime.runner import call_model
@@ -115,8 +115,6 @@ def _body(
     rt: RuntimeContext,
     sql_dialect: str | None,
 ) -> Relation:
-    if isinstance(node.body, SqlBody):
-        return session.sql(node.body.sql, inputs)
     api = node.config.frame_api
     ctx = ModelContext(
         run_id=rt.run_id,

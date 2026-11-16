@@ -347,11 +347,8 @@ def test_project_dir_env(root: Path) -> None:
 
 
 def test_plugin_option(root: Path) -> None:
-    (root / "pipeloom.yml").write_text(
-        YML.replace("catalog: {kind: memory}", "catalog: {kind: failing}", 1),
-        encoding="utf-8",
-        newline="\n",
-    )
+    failing = YML.replace("catalog: {kind: memory}", "catalog: {kind: failing}", 1)
+    make_project(root, {"pipeloom.yml": failing, "models/m.yml": MODELS})
     argv = ["--plugin", "tests.runtime.fakes:FAILING"]
     r = pipeloom(root, "-s", "a", *argv)
     assert r.exit_code == 1 and "PLM201" in r.stderr
@@ -383,11 +380,8 @@ def test_ctrl_c_exits_130(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_a_child_reports_to_its_parent_only(root: Path) -> None:
-    (root / "pipeloom.yml").write_text(
-        YML + "events:\n  sinks:\n    - {kind: jsonl, path: out/events.jsonl}\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    sinks = YML + "events:\n  sinks:\n    - {kind: jsonl, path: out/events.jsonl}\n"
+    make_project(root, {"pipeloom.yml": sinks, "models/m.yml": MODELS})
     r = pipeloom(
         root, "-s", "unit:a", "--run-id", "r1", env={"PIPELOOM_PARENT_INVOCATION_ID": "up"}
     )
