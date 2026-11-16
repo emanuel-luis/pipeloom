@@ -138,6 +138,14 @@ def test_removed_yaml_model_keys_point_to_the_migration_guide(
     assert d.hint == f"removed in 0.9: see {MIGRATION_GUIDE}"
 
 
+def test_a_setting_at_the_top_of_a_properties_entry_hints_at_config(tmp_path: Path) -> None:
+    files = {"pipeloom.yml": BASE, "models/m.yml": "models: [{name: m, materialized: table}]\n"}
+    outcome = load(make_project(tmp_path, files, convert=False))
+    (d,) = outcome.diagnostics
+    assert (d.code, d.message) == ("PLS101", "unknown field 'materialized'")
+    assert d.hint is not None and "move it under config:" in d.hint
+
+
 def test_a_defaults_file_is_a_properties_file(tmp_path: Path) -> None:
     files = {"pipeloom.yml": BASE, "models/_defaults.yml": "models: {retries: 2}\n"}
     assert codes(load(make_project(tmp_path, files, convert=False))) == ["PLS102"]
