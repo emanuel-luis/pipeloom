@@ -142,8 +142,9 @@ def test_producer_argv() -> None:
         "4",
     ]
     bare = command(None).producer_argv(["py"], c, select=[], exclude=[], workers=None)
-    assert not {"--manifest", "--select", "--exclude", "--workers", "--vars"} & set(bare)
+    assert not {"--manifest", "--exclude", "--workers", "--vars"} & set(bare)
     assert "--expect-plan-hash" in bare
+    assert bare[bare.index("--select") + 1] == "name:*"
 
 
 def test_finalize_argv() -> None:
