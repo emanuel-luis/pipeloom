@@ -26,13 +26,14 @@ Project = tuple[Path, Path, str]
 
 def plan_for(af_project: Project, execution: ExecutionConfig | None = None) -> tuple[TaskPlan, Any]:
     project, manifest, _ = af_project
-    return _plan(
+    plan, command, _ = _plan(
         ProjectConfig(project.as_posix(), manifest_path=manifest.as_posix()),
         "dev",
         RenderConfig(),
         execution or ExecutionConfig(),
         {},
     )
+    return plan, command
 
 
 def operator(

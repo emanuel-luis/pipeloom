@@ -71,7 +71,9 @@ class PipeloomWatcherSensor(PipeloomRunOperator):
         paths, view, active = self._read(context)
         try_number = context["ti"].try_number
         if try_number > 1 and not in_progress(view, self._policy(), producer_active=active):
-            self.log.info("try %s: the producer is done with unit %s; running it", try_number, self.unit_id)
+            self.log.info(
+                "try %s: the producer is done with unit %s; running it", try_number, self.unit_id
+            )
             super().execute(context)
             return
         self._settle(context, paths, view, active, time.time() + self.watch_timeout_s, False)

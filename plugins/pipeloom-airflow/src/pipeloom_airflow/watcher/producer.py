@@ -78,4 +78,6 @@ class PipeloomWatcherProducerOperator(_ChildOperator):
                     "visible; set execution.watcher_artifacts_root to the root the run writes to"
                 )
             time.sleep(1.0)
-        self.log.info("pipeloom run %s exited with %s; the watchers report the units", ctx.run_id, code)
+        self.log.info(
+            "pipeloom run %s exited with %s; the watchers report the units", ctx.run_id, code
+        )

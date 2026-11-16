@@ -125,10 +125,11 @@ def af_plan(af_project: tuple[Path, Path, str]) -> tuple[Any, Any]:
     from pipeloom_airflow.dag import _plan
 
     project, manifest, _ = af_project
-    return _plan(
+    plan, command, _ = _plan(
         ProjectConfig(project.as_posix(), manifest_path=manifest.as_posix()),
         "dev",
         RenderConfig(),
         ExecutionConfig(),
         {},
     )
+    return plan, command

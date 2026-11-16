@@ -6,7 +6,7 @@ import importlib.util
 import json
 import logging
 import os
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import timedelta
 from typing import Any
 
@@ -27,6 +27,7 @@ from pipeloom_airflow.load import load_plan
 from pipeloom_airflow.operators.local import PipeloomFinalizeOperator, PipeloomRunOperator
 from pipeloom_airflow.render import TaskPlan, render_plan
 from pipeloom_airflow.version import check_airflow_version
+from pipeloom_airflow.watcher.state import resolve_artifacts_root
 
 logger = logging.getLogger("pipeloom_airflow")
 
@@ -64,11 +65,13 @@ def _plan(
     render: RenderConfig,
     execution: ExecutionConfig,
     operator_args: Mapping[str, Any],
-) -> tuple[TaskPlan, CoreCommand]:
-    """Version check, configs, plan, tasks. Errors raise `PipeloomAirflowError`, which Airflow
-    shows as the DAG file's import error; warnings go to the `pipeloom_airflow` logger."""
+) -> tuple[TaskPlan, CoreCommand, str | None]:
+    """Version check, configs, plan, tasks, and in WATCHER mode the artifacts root the run writes
+    to (None in other modes). Errors raise `PipeloomAirflowError`, which Airflow shows as the DAG
+    file's import error; warnings go to the `pipeloom_airflow` logger."""
     report = Report()
     task_plan = None
+    run_root = None
     if check_airflow_version(airflow_version(), report):
         validate_configs(project, render, execution, operator_args, report)
         if execution.mode is ExecutionMode.KUBERNETES and not _k8s_provider_installed():
@@ -76,6 +79,14 @@ def _plan(
                 "PLA001",
                 "execution mode 'kubernetes' needs the cncf-kubernetes provider",
                 hint="install pipeloom-airflow[kubernetes]",
+            )
+        if execution.mode is ExecutionMode.WATCHER:
+            run_root = resolve_artifacts_root(
+                project.project_dir,
+                execution.project_dir or project.project_dir,
+                target,
+                execution.watcher_artifacts_root,
+                report,
             )
     if not report.has_errors:
         loaded = load_plan(project, render, target, report, env=os.environ)
@@ -96,7 +107,23 @@ def _plan(
         plan_hash=task_plan.plan_hash,
         vars_json=json.dumps(dict(project.vars), sort_keys=True) if project.vars else None,
     )
-    return task_plan, command
+    return task_plan, command, run_root
+
+
+def _grouper() -> Callable[[tuple[str, ...]], Any]:
+    """Visual group path -> TaskGroup, created once in the current context; () is no group."""
+    groups: dict[tuple[str, ...], Any] = {}
+
+    def group(path: tuple[str, ...]) -> Any:
+        if not path:
+            return None
+        if path not in groups:
+            # no parent_group for a top-level group: the default is the enclosing group
+            parent = {"parent_group": group(path[:-1])} if len(path) > 1 else {}
+            groups[path] = TaskGroup(group_id=path[-1], **parent)
+        return groups[path]
+
+    return group
 
 
 def build_tasks(
@@ -106,12 +133,19 @@ def build_tasks(
     *,
     group_id: str | None,
     operator_args: Mapping[str, Any],
+    run_root: str | None = None,
 ) -> dict[str, BaseOperator]:
     """Create the operators in the current DAG (and task group) context: rendered task id ->
-    operator, plus `pipeloom_finalize`. Visual groups nest as `UnitTask.group` says."""
+    operator, plus `pipeloom_finalize`. Visual groups nest as `UnitTask.group` says. `run_root`
+    is the artifacts root `_plan` resolved in WATCHER mode."""
     if execution.mode is ExecutionMode.DATABRICKS:
         return _build_databricks(
             plan, execution, command, group_id=group_id, operator_args=operator_args
+        )
+    if execution.mode is ExecutionMode.WATCHER:
+        assert run_root is not None  # _plan reports PLA008 otherwise
+        return _build_watcher(
+            plan, execution, command, run_root, group_id=group_id, operator_args=operator_args
         )
     venv = execution.virtualenv_dir if execution.mode is ExecutionMode.VIRTUALENV else None
     pod: dict[str, Any] | None = None
@@ -126,17 +160,7 @@ def build_tasks(
         pod = _pod_kwargs(execution, plan)
         assert execution.kubernetes is not None
         python = execution.kubernetes.python
-    groups: dict[tuple[str, ...], Any] = {}
-
-    def group(path: tuple[str, ...]) -> Any:
-        if not path:
-            return None
-        if path not in groups:
-            # no parent_group for a top-level group: the default is the enclosing group
-            parent = {"parent_group": group(path[:-1])} if len(path) > 1 else {}
-            groups[path] = TaskGroup(group_id=path[-1], **parent)
-        return groups[path]
-
+    group = _grouper()
     ops: dict[str, BaseOperator] = {}
     for t in plan.tasks:
         timeout = None
@@ -286,6 +310,89 @@ def _build_databricks(
     return ops
 
 
+def _build_watcher(
+    plan: TaskPlan,
+    execution: ExecutionConfig,
+    command: CoreCommand,
+    run_root: str,
+    *,
+    group_id: str | None,
+    operator_args: Mapping[str, Any],
+) -> dict[str, BaseOperator]:
+    """`pipeloom_run` (the producer, a root task with no edge to the watchers), one watcher per
+    unit on the plan edges, and `pipeloom_finalize` after the producer and every leaf."""
+    from pipeloom_airflow.watcher.producer import PipeloomWatcherProducerOperator
+    from pipeloom_airflow.watcher.sensor import PipeloomWatcherSensor
+
+    venv = execution.virtualenv_dir
+    producer = PipeloomWatcherProducerOperator(
+        task_id=naming.PRODUCER_ID,
+        command=command,
+        venv_dir=venv,
+        env=execution.env,
+        select=plan.select,
+        exclude=plan.exclude,
+        workers=execution.watcher_workers,
+        run_root=run_root,
+        cancel_grace_s=plan.cancel_grace_s,
+        group_id=group_id,
+        **{
+            **operator_args,
+            "retries": 0,
+            "execution_timeout": timedelta(seconds=execution.watcher_timeout),
+            # it starts before the watchers, which wait on it
+            "priority_weight": len(plan.tasks) + 2,
+            "weight_rule": "absolute",
+        },
+    )
+    group = _grouper()
+    ops: dict[str, BaseOperator] = {naming.PRODUCER_ID: producer}
+    for t in plan.tasks:
+        extra: dict[str, Any] = {}
+        if t.assets:
+            extra["outlets"] = [Asset(name=uri, uri=uri) for uri in t.assets]
+        if t.group:
+            extra["task_group"] = group(t.group)
+        ops[t.task_id] = PipeloomWatcherSensor(
+            task_id=t.task_id,
+            unit_id=t.unit_id,
+            command=command,
+            venv_dir=venv,
+            env=execution.env,
+            retry_on=t.retry_on,
+            cancel_grace_s=plan.cancel_grace_s,
+            group_id=group_id,
+            producer_task_id=producer.task_id,
+            run_root=run_root,
+            poll_interval=execution.watcher_poll_interval,
+            watch_timeout_s=execution.watcher_timeout,
+            retries=t.retries,
+            retry_delay=timedelta(seconds=t.retry_delay_s),
+            **extra,
+            **operator_args,
+        )
+    for t in plan.tasks:
+        for up in t.upstream:
+            ops[up] >> ops[t.task_id]
+    finalize = PipeloomFinalizeOperator(
+        task_id=naming.FINALIZE_ID,
+        command=command,
+        venv_dir=venv,
+        env=execution.env,
+        task_units={ops[t.task_id].task_id: t.units for t in plan.tasks},
+        select=plan.select,
+        exclude=plan.exclude,
+        group_id=group_id,
+        cancel_grace_s=plan.cancel_grace_s,
+        **operator_args,
+    )
+    producer >> finalize
+    for leaf in plan.leaves:
+        ops[leaf] >> finalize
+    ops[naming.FINALIZE_ID] = finalize
+    return ops
+
+
 class PipeloomDag(DAG):
     """A DAG built from a pipeloom project. Adds the param `full_refresh` (False) unless the
     caller defines it; every other keyword goes to `DAG`."""
@@ -301,12 +408,21 @@ class PipeloomDag(DAG):
         **dag_kwargs: Any,
     ) -> None:
         args = dict(operator_args or {})
-        plan, command = _plan(project_config, target, render_config, execution_config, args)
+        plan, command, run_root = _plan(
+            project_config, target, render_config, execution_config, args
+        )
         params = dict(dag_kwargs.pop("params", None) or {})
         params.setdefault("full_refresh", Param(False, type="boolean"))
         super().__init__(params=params, **dag_kwargs)
         with self:
-            build_tasks(plan, execution_config, command, group_id=None, operator_args=args)
+            build_tasks(
+                plan,
+                execution_config,
+                command,
+                group_id=None,
+                operator_args=args,
+                run_root=run_root,
+            )
 
 
 class PipeloomTaskGroup(TaskGroup):
@@ -325,7 +441,16 @@ class PipeloomTaskGroup(TaskGroup):
         **group_kwargs: Any,
     ) -> None:
         args = dict(operator_args or {})
-        plan, command = _plan(project_config, target, render_config, execution_config, args)
+        plan, command, run_root = _plan(
+            project_config, target, render_config, execution_config, args
+        )
         super().__init__(group_id=group_id, **group_kwargs)
         with self:
-            build_tasks(plan, execution_config, command, group_id=self.group_id, operator_args=args)
+            build_tasks(
+                plan,
+                execution_config,
+                command,
+                group_id=self.group_id,
+                operator_args=args,
+                run_root=run_root,
+            )
