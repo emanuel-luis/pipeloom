@@ -4,11 +4,14 @@ Settings precedence, highest first:
 
 1. the model's own entry (YAML today; the decorator layer of ADR-0050 replaces it);
 2. its properties entry: `config`, plus `description` and `columns`;
-3. the `models:` tree in pipeloom.yml, from the model's folder up to its model_paths root;
-4. the root `+key` settings of that tree;
-5. legacy `_defaults.yml` files, nearest folder first, then legacy `defaults.models`. They stay
-   below the new layers until the change that removes them;
-6. the built-in defaults of `ResolvedModelConfig`.
+3. for each folder from the model's own up to its model_paths root, the `models:` tree entry
+   for that folder, then that folder's `_defaults.yml` (the tree wins within one folder);
+4. the root `+key` settings of the tree, then `defaults.models` (the tree wins within the
+   project level);
+5. the built-in defaults of `ResolvedModelConfig`.
+
+`_defaults.yml` and `defaults.models` map onto the folder and project layers of the tree
+(docs/architecture.md section 4).
 
 Mappings merge deeply, lists replace, and `tags` is an ordered union without duplicates. An
 explicit `null` removes a scalar or mapping set by a lower layer; `tags: null` is ignored. A model
@@ -182,36 +185,36 @@ def _folders(file: str, roots: Sequence[str]) -> tuple[str, list[str]] | None:
     return root, [p for p in posixpath.dirname(file)[len(root) :].split("/") if p]
 
 
-def _defaults_chain(
-    file: str, roots: Sequence[str], defaults: Mapping[str, Sequence[tuple[str, DefaultsFile]]]
+def _inherited(
+    bound: BoundProject,
+    file: str,
+    roots: Sequence[str],
+    defaults: Mapping[str, Sequence[tuple[str, DefaultsFile]]],
+    base: _Layer,
 ) -> list[_Layer]:
-    """Defaults files that apply to a model file, root folder first, nearest last."""
+    """The layers a model file inherits, lowest first: `defaults.models`, the root `+keys`,
+    then each folder from the model_paths root down to the file's own: its `_defaults.yml`,
+    then its `models:` tree entry."""
+    tree = bound.loaded.config.models
+    out = [base, _layer("project", PROJECT_FILE, "/models", _dump(tree), "+")]
     found = _folders(file, roots)
     if found is None:
-        return []
-    root, parts = found
-    folders = [root]
-    for part in parts:
-        folders.append(f"{folders[-1]}/{part}" if folders[-1] else part)
-    return [
-        _layer("defaults_file", path, "/models", _dump(d.models))
-        for folder in folders
-        for path, d in defaults.get(folder, ())
-    ]
-
-
-def _tree_chain(bound: BoundProject, file: str, roots: Sequence[str]) -> list[_Layer]:
-    """The `models:` tree: root `+keys` first, then each folder down to the file's own."""
-    tree = bound.loaded.config.models
-    out = [_layer("project", PROJECT_FILE, "/models", _dump(tree), "+")]
-    found = _folders(file, roots)
-    pointer = "/models"
-    for part in found[1] if found else ():
-        sub = tree.folders.get(part)
-        if sub is None:
-            break
-        tree, pointer = sub, f"{pointer}/{part}"
-        out.append(_layer("folder", PROJECT_FILE, pointer, _dump(tree), "+"))
+        return out
+    folder, parts = found
+    pointer, in_tree = "/models", True
+    for part in ["", *parts]:
+        folder = f"{folder}/{part}" if folder and part else folder or part
+        out += [
+            _layer("defaults_file", p, "/models", _dump(d.models))
+            for p, d in defaults.get(folder, ())
+        ]
+        if not part:
+            continue  # the model_paths root: its tree entry is the root `+keys` above
+        sub = tree.folders.get(part) if in_tree else None
+        in_tree = sub is not None
+        if sub is not None:
+            tree, pointer = sub, f"{pointer}/{part}"
+            out.append(_layer("folder", PROJECT_FILE, pointer, _dump(tree), "+"))
     return out
 
 
@@ -276,11 +279,7 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
         )
     fields = ModelConfig.model_fields
     for lf in loaded.model_files:
-        inherited = [
-            base,
-            *_defaults_chain(lf.path, roots, defaults),
-            *_tree_chain(bound, lf.path, roots),
-        ]
+        inherited = _inherited(bound, lf.path, roots, defaults, base)
         for i, entry in enumerate(lf.config.models):
             if not isinstance(entry, ModelConfig):
                 continue

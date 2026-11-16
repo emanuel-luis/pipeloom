@@ -21,10 +21,10 @@ LAYERS = [
     ("model", "model", "models/a/b/m.yml"),
     ("properties", "properties", "models/a/props.yml"),
     ("folder_b", "folder", "pipeloom.yml"),
-    ("folder_a", "folder", "pipeloom.yml"),
-    ("root", "project", "pipeloom.yml"),
     ("defaults_b", "defaults_file", "models/a/b/_defaults.yml"),
+    ("folder_a", "folder", "pipeloom.yml"),
     ("defaults_root", "defaults_file", "models/_defaults.yml"),
+    ("root", "project", "pipeloom.yml"),
     ("project_defaults", "project_defaults", "pipeloom.yml"),
 ]
 TREE = {"folder_b", "folder_a", "root"}
@@ -103,14 +103,38 @@ def test_explicit_null_in_the_tree_removes_a_lower_setting(project_factory: Fact
     assert m.origins["retries"].location.json_pointer == "/models/+retries"
 
 
-def test_tree_sits_above_legacy_defaults(project_factory: Factory) -> None:
-    """The new tree sits above the legacy `_defaults.yml` and `defaults.models` layers."""
+def test_defaults_files_interleave_with_the_tree(project_factory: Factory) -> None:
+    """`_defaults.yml` and `defaults.models` map onto the folder and project layers."""
     files = {
-        "pipeloom.yml": BASE + "defaults:\n  models:\n    retries: 1\nmodels:\n  +retries: 3\n",
-        "models/_defaults.yml": "models:\n  retries: 2\n",
+        "pipeloom.yml": BASE
+        + "defaults:\n  models:\n    retries: 1\n    timeout: 5\n"
+        + "models:\n  +retries: 3\n  a:\n    +retries: 4\n    +timeout: 6\n    b:\n"
+        + "      +timeout: 8\n",
+        "models/a/b/_defaults.yml": "models:\n  retries: 5\n  timeout: 7\n",
+        "models/a/b/m.yml": "models:\n  - name: m\n    sql: select 1\n",
+        "models/n.yml": "models:\n  - name: n\n    sql: select 1\n",
+    }
+    p = resolve(project_factory, files)
+    m, n = p.models["model.shop.m"], p.models["model.shop.n"]
+    # A nearer `_defaults.yml` beats a farther tree folder and the root `+key`.
+    assert (m.config.retries, m.origins["retries"].layer) == (5, "defaults_file")
+    # The tree beats `_defaults.yml` at the same folder.
+    assert (m.config.timeout, m.origins["timeout"].layer) == (8, "folder")
+    # The root `+key` beats `defaults.models`.
+    assert (n.config.retries, n.origins["retries"].layer) == (3, "project")
+    assert (n.config.timeout, n.origins["timeout"].layer) == (5, "project_defaults")
+
+
+def test_folder_defaults_beat_the_root_tree_key(project_factory: Factory) -> None:
+    files = {
+        "pipeloom.yml": BASE + "models:\n  +materialized: table\n",
+        "models/staging/_defaults.yml": "models:\n  materialized: view\n",
+        "models/staging/s.yml": "models:\n  - name: s\n    sql: select 1\n",
         "models/m.yml": "models:\n  - name: m\n    sql: select 1\n",
     }
-    assert resolve(project_factory, files).models["model.shop.m"].config.retries == 3
+    p = resolve(project_factory, files)
+    assert p.models["model.shop.s"].config.materialized == "view"
+    assert p.models["model.shop.m"].config.materialized == "table"
 
 
 def test_properties_description_and_columns(project_factory: Factory) -> None:
