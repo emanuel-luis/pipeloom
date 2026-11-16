@@ -1,9 +1,9 @@
 # Roadmap
 
-Status: plan as of 2026-11-06, written against 0.7.0. This page replaces the planned versions that section 16 of
-[architecture.md](architecture.md#16-roadmap) used to list; section 16 keeps the record of what each delivered
-version contains. Items that change a decision name the ADR they need: ADRs up to 0043 exist, and 0044 to 0049
-are proposed.
+Status: plan as of 2026-11-06, written against 0.7.0, and updated on 2026-11-16 for Python-first authoring. This
+page replaces the planned versions that section 16 of [architecture.md](architecture.md#16-roadmap) used to list;
+section 16 keeps the record of what each delivered version contains. Items that change a decision name the ADR they
+need: ADRs up to 0044, 0047 and 0050 exist, and 0045, 0046, 0048 and 0049 are proposed.
 
 Terms such as unit, run, boundary and artifacts root are defined in the
 [glossary](architecture.md#2-glossary). In short, a unit is one schedulable node of the plan (a persisted model
@@ -47,7 +47,9 @@ paths, listens on localhost by default and ships as a separate distribution, so 
 - Authoring: YAML projects with `_defaults.yml` cascades, SQL or Python models with declared `inputs`, sources, five
   materializations, write strategies (append, overwrite, replace_partitions, merge with deletes; `scd2` is in the
   config literal but no engine implements it), a per-model `catalog`
-  ([ADR-0040](adr/0040-per-model-catalog.md)), and `${env}`, `${var}` and `${secret}` interpolation.
+  ([ADR-0040](adr/0040-per-model-catalog.md)), and `${env}`, `${var}` and `${secret}` interpolation. This is the 0.7
+  state; 0.9 replaces model declarations in YAML with Python-first authoring
+  ([ADR-0050](adr/0050-python-first-authoring.md)).
 - Validation: layers L0 to L6 with file, line and column diagnostics and a generated error catalog. JSON Schemas are
   published under `latest/schema/v1/`, and the `yaml-language-server` modeline gives completion in editors.
 - CLI: `validate`, `compile` (with `--stable`), `ls`, `run`, `finalize`, `graph` (text, dot, mermaid, json),
@@ -67,6 +69,7 @@ paths, listens on localhost by default and ships as a separate distribution, so 
 
 | Feature | pipeloom 0.7 | Gap | Target |
 |---|---|---|---|
+| Model authoring | YAML model entries with a SQL body or a Python callable | a Python model is declared twice (YAML entry and function); dbt Python models and the author's earlier prototype define the model in code | 0.9 ([ADR-0050](adr/0050-python-first-authoring.md)) |
 | Scaffold and first run | `init` in 0.8 | no sample data on Spark targets, no `new model` | 0.8, 0.9 |
 | Editor support | JSON Schema and modeline | no workspace setup, no ref navigation, no live diagnostics; dbt ships a language server and a VS Code extension ([dbt Fusion](https://docs.getdbt.com/docs/fusion/about-fusion)) | 0.8 (setup), 1.x (language server) |
 | State-based selection and defer | node `checksum` and stable manifests exist | no `state:modified`, no `--defer` | 0.8 |
@@ -88,6 +91,12 @@ paths, listens on localhost by default and ships as a separate distribution, so 
 
 ### Authoring simplicity and developer experience
 
+- Python-first authoring (0.9), the 0.9 headline. A model is a function marked with `@model`; its parameters are its
+  inputs, SQL runs through `ctx.sql`, and YAML keeps the project file (a `models:` folder tree with `+keys`, source
+  groups, vars, targets) and properties files that describe and configure models. The compiler reads static
+  decorators with `ast` and imports only modules with dynamic arguments, with a per-file cache. YAML model files are
+  removed before 0.9.0, with no deprecation release. Decided in
+  [ADR-0050](adr/0050-python-first-authoring.md) (accepted).
 - `pipeloom init` (0.8). Every generated project runs with one command on local engines, with a small CSV under
   `data/`. Templates also write the schema modeline in every YAML file and a `.vscode/settings.json` that maps
   `yaml.schemas` to the published schema URLs, so completion works without an extension.
@@ -125,13 +134,13 @@ paths, listens on localhost by default and ships as a separate distribution, so 
   `nullable`. At write time the core compares it with `EngineSession.schema` before `align`, and a mismatch is a new
   permanent PLM code. Declared columns also feed lineage and the docs site. Decided in
   [ADR-0044](adr/0044-model-contracts.md) (accepted).
-- Unit tests (0.9). A `tests` block per model, or files under `tests/`, with `given` (rows per input alias, inline
-  or from a CSV) and `expect` (rows, compared without regard to order). `pipeloom test` runs the model body on the
-  target's engine with no catalog writes and compares with the semantics in `pipeloom.testing.reference`, the same
-  way for SQL and Python models.
-- Post-write data tests (0.9). Expectations judge the batch before the write. A model-level `tests` list with
-  `unique`, `not_null` and a new `relationships` test (keys `column`, `to` and `field`) runs against the written
-  table. It reuses `evaluate` and `quality.judge`, and results go to `run_results.results[].expectations` with
+- Unit tests (0.9). `unit_tests` entries in a model's properties file, with `given` (rows per input alias, which is
+  the parameter name, inline or from a CSV) and `expect` (rows, compared without regard to order). `pipeloom test`
+  runs the model function on the target's engine with no catalog writes and compares with the semantics in
+  `pipeloom.testing.reference`. A plain pytest call on the decorated function also works.
+- Post-write data tests (0.9). Expectations judge the batch before the write. A `data_tests` list, set in properties
+  or by the decorator, with `unique`, `not_null` and a new `relationships` test (keys `column`, `to` and `field`)
+  runs against the written table. It reuses `evaluate` and `quality.judge`, and results go to `run_results.results[].expectations` with
   `scope: table`.
 - Source freshness (1.x). A `freshness` block on sources (keys `column`, `warn_after` and `error_after`), checked by
   `pipeloom sources freshness`. It reuses the freshness logic in `quality/judge.py` and emits
@@ -236,8 +245,11 @@ Delivered in 0.8.0. The docs site lays its graph out in Python instead of a vend
 
 ### 0.9: test it, see it, run it faster
 
+Python-first authoring comes first; contracts and the test and build work are then written against the decorator.
+
 | Item | ADR | Acceptance |
 |---|---|---|
+| Python-first authoring | [ADR-0050](adr/0050-python-first-authoring.md) | the four TPC-H examples run from decorated models, and cold discovery of 1,000 static models takes under 2 s |
 | Model contracts (`columns`) | [ADR-0044](adr/0044-model-contracts.md) | a type mismatch fails before the write with a new PLM code on polars, pandas and Spark (the shared engine contract suite) |
 | `pipeloom test` and `pipeloom build` | ADR-0045 (proposed) | a case whose expected rows match passes, and a case with one wrong row fails with a row diff, on polars, pandas and Spark |
 | Post-write data tests with `relationships` | ADR-0045 (proposed) | results appear in `run_results` with `scope: table` |
@@ -266,7 +278,8 @@ and a Prefect recipe.
 ## 5. Non-goals and risks
 
 Non-goals through 1.0: streaming; a scheduler service; any UI that starts, schedules or edits runs; hosted or
-multi-user services; a portable SQL dialect; Jinja; user code at compile time; Airflow 2; SQLMesh-style virtual
+multi-user services; a portable SQL dialect; Jinja; user code at compile time (from 0.9 it runs only for modules with
+dynamic decorator arguments, [ADR-0050](adr/0050-python-first-authoring.md)); Airflow 2; SQLMesh-style virtual
 environments with zero-copy promotion (pipeloom offers `per_user` naming plus `--defer`); a Snowflake target before a
 Snowflake engine exists.
 
@@ -283,5 +296,7 @@ Risks:
 - UI dependency weight. ADR-0043 (accepted) avoids it for the docs site: the graph is an inline SVG laid out in
   Python, with no vendored JavaScript library. `pipeloom ui` (1.1) ships separately, so any library it needs stays
   out of the core wheel; keep exactly one and pin it.
+- The Python-first rewrite. Every case file, fixture and example moves from YAML models to decorated functions in
+  0.9, and plan hashes change once. The legacy path stays on main until the last of them has moved.
 - Defer correctness. Reading production relations from a dev run needs read grants and the same schema. A missing
   relation must fail with a clear PLM204 hint.
