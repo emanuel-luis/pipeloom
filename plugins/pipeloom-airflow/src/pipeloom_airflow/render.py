@@ -148,7 +148,8 @@ def render_plan(
             (),
             DEFAULT_CANCEL_GRACE,
         )
-    ids = naming.task_ids([r[0] for r in raw], reserved={naming.FINALIZE_ID, naming.LAUNCH_ID, naming.PRODUCER_ID}
+    ids = naming.task_ids(
+        [r[0] for r in raw], reserved={naming.FINALIZE_ID, naming.LAUNCH_ID, naming.PRODUCER_ID}
     )
     groups = _groups(plan, sorted({u for _, m, _ in raw for u in m}), render.group_by)
     tasks = [

@@ -72,7 +72,10 @@ def test_a_watcher_selection_of_unit_atoms_only_is_pla002() -> None:
     watcher = ExecutionConfig(mode=ExecutionMode.WATCHER)
     units = RenderConfig(select=("unit:a", "unit:b"))
     assert check(render=units, execution=watcher) == [
-        ("PLA002", "a WATCHER selection made only of unit: selectors runs the producer in unit mode")
+        (
+            "PLA002",
+            "a WATCHER selection made only of unit: selectors runs the producer in unit mode",
+        )
     ]
     assert check(render=RenderConfig(select=("unit:a", "tag:x")), execution=watcher) == []
     assert check(render=units) == []

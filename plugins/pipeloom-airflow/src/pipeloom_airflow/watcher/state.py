@@ -64,8 +64,9 @@ def resolve_artifacts_root(
         return None
     if _absolute(root):
         return root
-    nt = ntpath.isabs(exec_project_dir) and not posixpath.isabs(exec_project_dir)
-    return (ntpath if nt else posixpath).join(exec_project_dir, root)
+    if ntpath.isabs(exec_project_dir) and not posixpath.isabs(exec_project_dir):
+        return ntpath.join(exec_project_dir, root)
+    return posixpath.join(exec_project_dir, root)
 
 
 @dataclass(frozen=True)
@@ -95,6 +96,11 @@ def _json(path: Path) -> dict[str, Any] | None:
     return doc if isinstance(doc, dict) else None
 
 
+def _error(row: dict[str, Any]) -> dict[str, Any]:
+    error = row.get("error")
+    return error if isinstance(error, dict) else {}
+
+
 def read_unit(run_dir: Path, unit_id: str, *, probe: int) -> UnitView:
     """The unit's attempt files and results row. The folder is listed, and `attempt-1` up to
     `attempt-<probe>` are also opened by name: an NFS directory listing can lag behind a file."""
@@ -109,7 +115,7 @@ def read_unit(run_dir: Path, unit_id: str, *, probe: int) -> UnitView:
         row = _json(paths.attempt(unit_id, n))
         if row is None:
             continue
-        error = row.get("error") if isinstance(row.get("error"), dict) else {}
+        error = _error(row)
         category = error.get("category")
         attempts.append(
             AttemptView(
@@ -169,7 +175,7 @@ def decide(view: UnitView, policy: UnitPolicy, *, producer_ended: bool) -> Decis
         if status == "skipped":
             return Decision("run")
         if status == "cancelled":
-            error = row.get("error") if isinstance(row.get("error"), dict) else {}
+            error = _error(row)
             return Decision(
                 "failed",
                 code=error.get("code"),

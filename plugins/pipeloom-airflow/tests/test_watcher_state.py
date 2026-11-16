@@ -42,7 +42,9 @@ def run_dir(tmp_path: Path) -> Path:
 def attempt(
     tmp_path: Path, n: int, status: str, *, category: str | None = None, code: str = "PLM204"
 ) -> None:
-    error = None if status == "succeeded" else {"code": code, "message": "boom", "category": category}
+    error = (
+        None if status == "succeeded" else {"code": code, "message": "boom", "category": category}
+    )
     path = run_dir(tmp_path) / "units" / "u" / f"attempt-{n}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     row = {"unit_id": "u", "status": status, "attempt": n, "retries_used": n - 1, "error": error}
@@ -230,7 +232,9 @@ def units_run(manifest: Path, render: RenderConfig) -> list[str]:
         return tuple(argv[i + 1] for i, a in enumerate(argv) if a == flag)
 
     project = Project(ProjectOptions(project_dir=SHOP, target="ci", env={}))
-    opts = RunOptions(selection=Selection(values("--select"), values("--exclude")), manifest=manifest)
+    opts = RunOptions(
+        selection=Selection(values("--select"), values("--exclude")), manifest=manifest
+    )
     plan, _ = _plan_from_manifest(project, opts, Report())
     assert plan is not None
     chosen = set(plan.selection.selected)
