@@ -91,12 +91,12 @@ def test_a_successful_run(tmp_path: Path) -> None:
     assert {e.job.namespace for e in events} == {"pipeloom.ci"}
 
     parent = by_job(events, "shop", RunState.START)
-    assert parent.run.runId == run_uuid("run1")
+    assert parent.run.runId == run_uuid("shop", "run1")
     assert facet(parent.job.facets, "jobType").jobType == "JOB"
 
     done = by_job(events, "shop.stg_orders", RunState.COMPLETE)
-    assert done.run.runId == unit_uuid("run1", "stg_orders", 1)
-    assert facet(done.run.facets, "parent").run.runId == run_uuid("run1")
+    assert done.run.runId == unit_uuid("shop", "run1", "stg_orders", 1)
+    assert facet(done.run.facets, "parent").run.runId == run_uuid("shop", "run1")
     assert facet(done.run.facets, "parent").job.name == "shop"
     assert done.inputs is not None and done.outputs is not None
     [source] = done.inputs
@@ -147,6 +147,11 @@ def test_ids_are_stable_across_invocations(tmp_path: Path) -> None:
     ids = [(e.job.name, e.run.runId) for e in first.events]
     assert ids == [(e.job.name, e.run.runId) for e in second.events]
     assert all(uuid.UUID(i).version == 5 for _, i in ids)
+
+
+def test_the_project_scopes_custom_run_ids() -> None:
+    assert run_uuid("a", "nightly") != run_uuid("b", "nightly")
+    assert unit_uuid("a", "nightly", "m", 1) != unit_uuid("b", "nightly", "m", 1)
 
 
 def test_silent_inside_airflow_unless_told(tmp_path: Path) -> None:
@@ -224,7 +229,7 @@ def test_quality_contract_schema_and_naming_from_the_manifest() -> None:
         bus.plan_ready(PlanInfo(MANIFEST, Path("/p")))
         emit_unit(bus)
     start, done = transport.events
-    assert done.run.runId == unit_uuid("r", "m", 2)
+    assert done.run.runId == unit_uuid("p", "r", "m", 2)
     assert (done.job.namespace, done.job.name) == ("p-t", "p.m")
     assert done.inputs is not None and done.outputs is not None
     assert [(i.namespace, i.name) for i in done.inputs] == [("s3://bucket", "/raw/s")]

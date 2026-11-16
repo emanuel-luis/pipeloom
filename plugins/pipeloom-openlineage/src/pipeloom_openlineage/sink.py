@@ -58,14 +58,14 @@ _RUN_END: Final = {
 }
 
 
-def run_uuid(run_id: str) -> str:
-    """The OpenLineage run id of a pipeloom run."""
-    return str(uuid.uuid5(_ID_SPACE, f"run:{run_id}"))
+def run_uuid(project: str, run_id: str) -> str:
+    """The OpenLineage run id of a pipeloom run. The project scopes custom run ids."""
+    return str(uuid.uuid5(_ID_SPACE, f"run:{project}:{run_id}"))
 
 
-def unit_uuid(run_id: str, unit_id: str, attempt: int) -> str:
+def unit_uuid(project: str, run_id: str, unit_id: str, attempt: int) -> str:
     """The OpenLineage run id of one attempt of one unit."""
-    return str(uuid.uuid5(_ID_SPACE, f"unit:{run_id}:{unit_id}:{attempt}"))
+    return str(uuid.uuid5(_ID_SPACE, f"unit:{project}:{run_id}:{unit_id}:{attempt}"))
 
 
 # -- manifest accessors: the only code that knows the manifest's field names ------------------
@@ -222,7 +222,7 @@ class OpenLineageSink:
             RunEvent(
                 eventType=RunState.START,
                 eventTime=_ts(event),
-                run=Run(runId=run_uuid(event.run_id)),
+                run=Run(runId=run_uuid(project, event.run_id)),
                 job=Job(namespace=ns, name=project, facets=_job_type("JOB")),
                 producer=PRODUCER,
             )
@@ -249,7 +249,7 @@ class OpenLineageSink:
             RunEvent(
                 eventType=state,
                 eventTime=_ts(event),
-                run=Run(runId=run_uuid(event.run_id), facets=facets),
+                run=Run(runId=run_uuid(project, event.run_id), facets=facets),
                 job=Job(
                     namespace=self._job_namespace(project, target),
                     name=project,
@@ -264,12 +264,13 @@ class OpenLineageSink:
         unit_id = event.unit_id
         project, target = self._names(event)
         ns = self._job_namespace(project, target)
+        parent_id = run_uuid(project, event.run_id)
         run_facets: dict[str, RunFacet] = {
             "parent": parent_run.ParentRunFacet(
-                run=parent_run.Run(runId=run_uuid(event.run_id)),
+                run=parent_run.Run(runId=parent_id),
                 job=parent_run.Job(namespace=ns, name=project),
                 root=parent_run.Root(
-                    run=parent_run.RootRun(runId=run_uuid(event.run_id)),
+                    run=parent_run.RootRun(runId=parent_id),
                     job=parent_run.RootJob(namespace=ns, name=project),
                 ),
             )
@@ -293,7 +294,7 @@ class OpenLineageSink:
         return RunEvent(
             eventType=state,
             eventTime=_ts(event),
-            run=Run(runId=unit_uuid(event.run_id, unit_id, attempt), facets=run_facets),
+            run=Run(runId=unit_uuid(project, event.run_id, unit_id, attempt), facets=run_facets),
             job=Job(namespace=ns, name=f"{project}.{unit_id}", facets=job_facets),
             inputs=inputs,
             outputs=outputs,
