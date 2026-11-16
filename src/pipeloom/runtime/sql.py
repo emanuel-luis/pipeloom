@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from typing import NoReturn
 
 from pipeloom.engine.types import ReadSpec
 
@@ -27,6 +28,39 @@ class ViewQuery:
 
     query: str
     inputs: Mapping[str, ReadSpec] = field(default_factory=dict)
+
+
+class ViewInput:
+    """An input parameter of a view model. Its rows are never read: the view names the input in
+    `ctx.sql`, so any other use raises."""
+
+    __slots__ = ("_alias",)
+
+    def __init__(self, alias: str) -> None:
+        self._alias = alias
+
+    def _refuse(self, what: str) -> NoReturn:
+        raise ViewModeError(
+            f"used input '{self._alias}' as a frame ({what}); a view names it in ctx.sql only"
+        )
+
+    def __getattr__(self, name: str) -> NoReturn:
+        self._refuse(f".{name}")
+
+    def __getitem__(self, key: object) -> NoReturn:
+        self._refuse("[...]")
+
+    def __iter__(self) -> NoReturn:
+        self._refuse("iteration")
+
+    def __len__(self) -> NoReturn:
+        self._refuse("len()")
+
+    def __bool__(self) -> NoReturn:
+        self._refuse("truth test")
+
+    def __call__(self, *args: object, **kwargs: object) -> NoReturn:
+        self._refuse("call")
 
 
 def translate(query: str, dialect: str | None, engine: str | None) -> str:

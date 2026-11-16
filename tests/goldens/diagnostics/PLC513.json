@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLC513",
+    "severity": "error",
+    "message": "model 'a' declares sql_dialect 'spark', which engine 'memory' runs as 'sqlite', and sqlglot is not installed",
+    "hint": "install pipeloom[sqlglot], or remove sql_dialect and write the queries in 'sqlite'",
+    "location": {
+      "file": "models/m.yml",
+      "line": 4,
+      "col": 18,
+      "json_pointer": "/models/0/sql_dialect"
+    },
+    "context": {
+      "model": "a",
+      "engine": "memory"
+    }
+  }
+]
