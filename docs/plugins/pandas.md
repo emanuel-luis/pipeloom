@@ -40,7 +40,7 @@ catalog keeps `<root>/<schema>/<name>/`.
 | Portable frames (`frame_api: narwhals`) | yes |
 | Cancel | no |
 
-A SQL model on this engine is rejected with PLC502 and a view with PLC507. An `intermediate`
+A model that calls `ctx.sql` gets a PLK606 warning at validate and fails at run time with PLX101; a view is rejected with PLC507. An `intermediate`
 materialization is supported (files under the artifacts root). `incremental` is supported. SQL on pandas is deferred past 0.2. The supported
 versions are `pandas>=2.3.3,<4` and `pyarrow>=22`.
 

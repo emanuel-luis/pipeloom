@@ -13,7 +13,7 @@ each model once, by hand, with the mapping below. The decision is
 | A model entry with `sql:` in a model file | A function that returns `ctx.sql(...)` |
 | A model entry with `python: module:function` | The same function, decorated with `@model` |
 | `inputs:` on the model entry | The function's parameters, bound by name, or `inputs=` |
-| Model settings on the model entry | `@model(...)` keywords |
+| Model settings on the model entry | `@model(...)` keywords, or `config:` in a properties entry |
 | `description:` and `columns:` on the model entry | `@model(...)` keywords, or a properties entry |
 | A flat `sources:` list in a model file | Source groups under `sources:` in `pipeloom.yml` |
 | `_defaults.yml` in a folder | `+key` settings for that folder in the `models:` tree |
@@ -25,6 +25,9 @@ What fails, and how:
 
 - A properties entry with `sql`, `python` or `inputs`, a `sources:` list in a properties file and
   a `defaults:` block in `pipeloom.yml` are PLS101 (unknown field), with a hint to this page.
+- A model setting left at the top of a properties entry (`materialized`, `tags`, `retries` and the
+  like) is PLS101 too. A properties entry takes only `name`, `description`, `config`, `columns`,
+  `data_tests` and `unit_tests`, so the setting moves under `config:`.
 - A `_defaults.yml` file is now read as a properties file, so its `models:` mapping is PLS102.
 - A manifest written by 0.8 does not load (PLX107). Compile it again with 0.9.
 - PLK601, PLK604, PLC502 and PLR205 are retired: the checks they made have no subject left.
@@ -64,7 +67,9 @@ values. Nested settings take a plain dict with the YAML keys, or the typed class
    settings to `@model(...)`. A `python:` model keeps its function; add the decorator where it
    is defined and make sure the file lies under `model_paths` and a `python_paths` root.
 4. Keep `description`, `columns` and other documentation in a properties file if you prefer
-   YAML for them, as a `models:` list of entries without `sql`, `python` or `inputs`.
+   YAML for them, as a `models:` list of entries without `sql`, `python` or `inputs`. Settings such
+   as `materialized` or `tags` go under `config:` in the entry; at the top of an entry they are
+   PLS101.
 5. Update the schema modelines: properties files use `properties.json`; drop `models.json` and
    `defaults.json`.
 6. Run `pipeloom validate`, then `pipeloom compile` to write a new manifest.
