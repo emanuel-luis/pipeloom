@@ -14,6 +14,7 @@ from pipeloom.diagnostics import Report
 from pipeloom.validate.references import check_references
 
 Factory = Callable[[Mapping[str, Any]], Path]
+LEGACY_YAML = True  # tests the legacy loader's layers; goes with the removal change
 BASE = "config_version: 1\nname: shop\ntargets:\n  dev:\n    engine: {kind: memory}\n"
 
 # Highest precedence first: (name, origin layer, file that sets it).

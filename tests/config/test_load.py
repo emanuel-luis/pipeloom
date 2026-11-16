@@ -12,6 +12,7 @@ from pipeloom.config.yaml import parse_yaml
 from pipeloom.diagnostics import Report
 from tests.conftest import FIXTURES
 
+LEGACY_YAML = True  # tests the legacy model file loader; goes with the removal change
 BASE = "config_version: 1\nname: shop\ntargets:\n  dev:\n    engine: {kind: memory}\n"
 Factory = Callable[[Mapping[str, Any]], Path]
 

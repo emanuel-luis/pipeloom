@@ -9,6 +9,7 @@ from pipeloom.config.resolve import ResolvedProject, merge_settings
 
 Factory = Callable[[Mapping[str, Any]], Path]
 
+LEGACY_YAML = True  # tests the legacy resolver; goes with the removal change
 PROJECT = """config_version: 1
 name: shop
 targets:

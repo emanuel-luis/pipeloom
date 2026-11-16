@@ -30,7 +30,7 @@ def make_project(tmp_path: Path, files: Mapping[str, Any], *, convert: bool = Tr
     Python-first models on write, unless `convert` is False (case files keep what they say)."""
     from tests.legacy_models import migrate
 
-    if convert:
+    if convert and not os.environ.get(KEEP_LEGACY_ENV):
         files = migrate(dict(files))
     for rel, content in files.items():
         target = tmp_path / rel
@@ -40,6 +40,17 @@ def make_project(tmp_path: Path, files: Mapping[str, Any], *, convert: bool = Tr
         else:
             target.write_bytes(str(content).encode("utf-8"))
     return tmp_path
+
+
+# A test module whose subject is the legacy YAML loader sets `LEGACY_YAML = True`: its projects
+# are written as given. Those modules go with the legacy path in the removal change.
+KEEP_LEGACY_ENV = "TESTS_KEEP_LEGACY_YAML"
+
+
+@pytest.fixture(autouse=True)
+def _legacy_yaml_modules(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    if getattr(request.module, "LEGACY_YAML", False):
+        monkeypatch.setenv(KEEP_LEGACY_ENV, "1")
 
 
 @pytest.fixture

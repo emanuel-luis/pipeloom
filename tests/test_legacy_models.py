@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 import yaml
-from tests import legacy_models as mig
 
 from pipeloom.api import Project, ProjectOptions
+from tests import legacy_models as mig
 
 PROJECT = """config_version: 1
 name: shop
