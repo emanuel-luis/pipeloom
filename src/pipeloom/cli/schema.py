@@ -26,7 +26,7 @@ def schema() -> None:
     "out",
     required=True,
     type=click.Path(file_okay=False, path_type=Path),
-    help="Directory to write project.json, models.json and defaults.json into.",
+    help="Directory to write project.json, properties.json, models.json and defaults.json into.",
 )
 @click.option(
     "--plugins",

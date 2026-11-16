@@ -347,7 +347,7 @@
         "source": {
           "anyOf": [
             {
-              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)?$",
               "type": "string"
             },
             {
@@ -355,7 +355,7 @@
             }
           ],
           "default": null,
-          "description": "Name of a declared source.",
+          "description": "Name of a declared source, or `group.table` for a table of a source group.",
           "title": "Source"
         }
       },
@@ -692,6 +692,355 @@
         "name"
       ],
       "title": "ModelConfig",
+      "type": "object"
+    },
+    "ModelSettings": {
+      "additionalProperties": false,
+      "description": "Settings a model may inherit from defaults.",
+      "properties": {
+        "catalog": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Catalog of the target relation; wins over the naming strategy's catalog.",
+          "title": "Catalog"
+        },
+        "cluster_by": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Clustering columns.",
+          "title": "Cluster By"
+        },
+        "expectations": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ExpectationConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Data quality expectations.",
+          "title": "Expectations"
+        },
+        "frame_api": {
+          "anyOf": [
+            {
+              "enum": [
+                "native",
+                "narwhals"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Frame type passed to Python bodies.",
+          "title": "Frame Api"
+        },
+        "incremental": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IncrementalConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Incremental processing."
+        },
+        "materialized": {
+          "anyOf": [
+            {
+              "enum": [
+                "table",
+                "incremental",
+                "view",
+                "ephemeral",
+                "intermediate"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How the model is stored.",
+          "title": "Materialized"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free-form metadata.",
+          "title": "Meta"
+        },
+        "partition_by": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Partition columns.",
+          "title": "Partition By"
+        },
+        "quality": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QualityConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Quarantine settings."
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Retries after a failure.",
+          "title": "Retries"
+        },
+        "retry_delay": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Base delay between retries.",
+          "title": "Retry Delay"
+        },
+        "retry_on": {
+          "anyOf": [
+            {
+              "enum": [
+                "transient",
+                "any"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Which failures are retried.",
+          "title": "Retry On"
+        },
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Schema (namespace) of the target relation.",
+          "title": "Schema"
+        },
+        "tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tags used by selectors.",
+          "title": "Tags"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^(?=.)(?:\\d+d)?(?:\\d+h)?(?:\\d+m)?(?:\\d+s)?$|^\\d+$|^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Time limit per attempt.",
+          "title": "Timeout"
+        },
+        "write": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WriteConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Write behaviour."
+        }
+      },
+      "title": "ModelSettings",
+      "type": "object"
+    },
+    "PropertiesEntry": {
+      "additionalProperties": false,
+      "description": "A properties entry: the description, settings and contract of a model defined elsewhere.",
+      "properties": {
+        "columns": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ColumnConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model contract, used when the model declares none itself.",
+          "title": "Columns"
+        },
+        "config": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelSettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model settings, below the model's own and above the `models:` tree."
+        },
+        "data_tests": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Data tests. Accepted and kept as written; a later release checks and runs them.",
+          "title": "Data Tests"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the model holds.",
+          "title": "Description"
+        },
+        "name": {
+          "description": "Name of the model it describes.",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "unit_tests": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Unit tests. Accepted and kept as written; a later release checks and runs them.",
+          "title": "Unit Tests"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "PropertiesEntry",
       "type": "object"
     },
     "QualityConfig": {
@@ -1043,8 +1392,16 @@
   "description": "A `*.yml` file under model_paths.",
   "properties": {
     "models": {
+      "description": "Models (entries with `sql` or `python`) and properties entries (all others).",
       "items": {
-        "$ref": "#/$defs/ModelConfig"
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ModelConfig"
+          },
+          {
+            "$ref": "#/$defs/PropertiesEntry"
+          }
+        ]
       },
       "title": "Models",
       "type": "array"

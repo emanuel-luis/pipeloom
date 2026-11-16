@@ -16,7 +16,7 @@ from tests.conftest import FIXTURES
 from tests.plugins.fakes import FAKE_ENGINE, FAKE_SINK
 
 MINIMAL = FIXTURES / "minimal"
-FILES = ("project.json", "models.json", "defaults.json")
+FILES = ("project.json", "properties.json", "models.json", "defaults.json")
 
 
 def builtin_schemas() -> dict[str, dict[str, Any]]:
@@ -148,9 +148,38 @@ def test_other_strings_are_still_rejected(doc: dict[str, Any]) -> None:
     assert errors(builtin_schemas()["project.json"], doc)
 
 
+def test_project_schema_has_the_models_tree_and_source_groups() -> None:
+    schema = builtin_schemas()["project.json"]
+    tree = {"+materialized": "view", "silver": {"+tags": ["s"], "deep": {"+retries": 1}}}
+    groups = {"tpch": {"format": "parquet", "tables": {"orders": {"location": "o"}, "c": None}}}
+    override = {"sources": {"tpch": {"location": None, "tables": {"orders": {"location": None}}}}}
+    good = project(models=tree, sources=groups)
+    good["targets"]["prod"] = {"engine": {"kind": "memory"}, **override}
+    assert errors(schema, good) == []
+    assert errors(schema, project(models={"+materalized": "view"}))  # not a folder mapping
+    assert errors(schema, project(models={"silver": {"+retries": "x"}}))
+    assert errors(schema, project(sources={"g": {"tables": {"t": {"bogus": 1}}}}))
+
+
+def test_properties_schema() -> None:
+    schema = builtin_schemas()["properties.json"]
+    entry = {
+        "name": "m",
+        "description": "d",
+        "config": {"retries": 2},
+        "columns": [{"name": "id", "dtype": "int64"}],
+        "data_tests": [{"name": "t"}],
+        "unit_tests": [{"name": "u"}],
+    }
+    assert errors(schema, {"models": [entry]}) == []
+    assert errors(schema, {"models": [{"name": "m", "inputs": {}}]})
+    assert errors(schema, {"models": [{"name": "m", "sql": "select 1"}]})
+
+
 def test_model_file_schema_checks_exclusive_shape() -> None:
     schema = builtin_schemas()["models.json"]
     good = {"models": [{"name": "m", "sql": "select 1", "retries": 1}]}
     assert errors(schema, good) == []
     assert errors(schema, {"models": [{"name": "m", "bogus": 1}]})
+    assert errors(schema, {"models": [{"name": "m", "description": "d"}]}) == []  # properties
     assert errors(schema, {"models": [{"name": "1bad", "sql": "x"}]})

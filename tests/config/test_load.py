@@ -111,7 +111,7 @@ def test_models_collected_and_errors_reported_per_file(project_factory: Factory)
         "pipeloom.yml": BASE,
         "models/a.yml": "models: [{name: a, sql: select 1}]\n",
         "models/z/_defaults.yml": "models: {retries: 2}\n",
-        "models/z/b.yaml": "models: [{name: b}]\n",
+        "models/z/b.yaml": "models: [{name: b, sql: select 1, python: 'm:f'}]\n",
         "models/.hidden/c.yml": "not: valid: yaml: [",
     }
     outcome = load(project_factory(files))
