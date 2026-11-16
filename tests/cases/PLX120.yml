@@ -16,5 +16,5 @@ files:
         materialized: view
   src/m.py: |
     def a(ctx):
-        return [{"id": 1}]
+        return []
 run: true
