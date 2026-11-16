@@ -1,2 +1,0 @@
-error PLR205 models/b.yml:2:11 duplicate source name 'raw'
-      hint: first defined in models/a.yml:2

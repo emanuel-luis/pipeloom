@@ -1,2 +1,0 @@
-error PLC502 models/m.yml:3:10 engine 'nosql' cannot run SQL, but model 'a' is SQL
-      hint: write the model in Python or choose an engine with SQL

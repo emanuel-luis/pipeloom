@@ -34,15 +34,6 @@ GROUP = "raw"
 RESERVED = {"model", "ref", "source", "ctx"}
 SKIP_DIRS = {".pipeloom", "target", "__pycache__", ".venv"}
 _TOP_KEY = re.compile(r"^([A-Za-z_][\w-]*):")
-# Case files whose purpose is the legacy path itself: they go with it in the removal change.
-KEEP_LEGACY = {
-    "PLK601",  # a python: callable that does not import
-    "PLS108",  # a model entry with both sql: and python:
-    "PLR205",  # two flat sources with one name
-    "PLK604",  # a python: callable bound by an import, not a def
-    "PLC502",  # a sql: model on an engine without SQL; retired with the legacy path
-    "PLK602",  # half legacy: a python: signature that misses an alias; drop that half later
-}
 
 
 class MigrationError(Exception):
@@ -440,9 +431,6 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     status = 0
     for path in args.paths:
-        if args.case and path.stem in KEEP_LEGACY:
-            print(f"{path}: kept legacy on purpose", file=sys.stderr)
-            continue
         try:
             if args.case:
                 text = path.read_text(encoding="utf-8")

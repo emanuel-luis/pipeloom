@@ -33,8 +33,10 @@ class CodeInfo:
     severity: Severity
     title: str
     explanation: str
-    status: Literal["active", "reserved"]
+    status: Literal["active", "reserved", "retired"]
     since: str
+    retired: str | None = None
+    """The version a retired code stopped being emitted in."""
 
 
 _PREFIX_LAYER: Final[Mapping[str, Layer]] = {
@@ -87,7 +89,7 @@ _ACTIVE: Final = (
         "PLY004",
         E,
         "File missing or unreadable",
-        "pipeloom.yml or a model file does not exist or cannot be read.",
+        "pipeloom.yml or a properties file does not exist or cannot be read.",
     ),
     (
         "PLS101",
@@ -120,7 +122,7 @@ _ACTIVE: Final = (
         "PLS108",
         E,
         "Exactly one of several fields required",
-        "Exactly one of a set of fields must be given, for example sql or python.",
+        "At most one, or exactly one, of a set of fields may be given, for example location or table on a source table.",
     ),
     (
         "PLR206",
@@ -157,7 +159,7 @@ _ACTIVE: Final = (
         "PLR203",
         E,
         "Unknown source",
-        "An input names a source that no model file declares.",
+        "An input names a source table that no source group in pipeloom.yml declares.",
     ),
     ("PLR205", E, "Duplicate source", "Two sources share a name. Names are unique per project."),
     (
@@ -324,7 +326,7 @@ _ACTIVE: Final = (
         "PLK602",
         E,
         "Callable parameters do not match inputs",
-        "The function's parameters must be ctx followed by one parameter per input alias (any alias is accepted with **kwargs).",
+        "Inputs are passed by keyword, so a model function cannot take *args or positional-only parameters, and every inputs= key must name a parameter (any key is accepted with **kwargs).",
     ),
     (
         "PLK604",
@@ -364,7 +366,7 @@ _ACTIVE_02: Final = (
         "PLP409",
         E,
         "View inlines an ephemeral model",
-        "A view cannot read an ephemeral model, because its query is stored in the catalog and an ephemeral model has no relation to name. A view may be a SQL model or a Python function that returns ctx.sql(...).",
+        "A view cannot read an ephemeral model, because its query is stored in the catalog and an ephemeral model has no relation to name. A view is a model function that returns ctx.sql(...).",
     ),
     (
         "PLX103",
@@ -772,6 +774,16 @@ _RESERVED: Final = (
     ("PLD002", E, "Submit task limit (never emitted, PLD001 covers it)", "0.4"),
 )
 
+# Codes no longer emitted, by the version that retired them. They keep their entry (codes are
+# never reused) but have no case file.
+_RETIRED: Final[Mapping[str, str]] = {
+    # The YAML model path (ADR-0050 point 19): `python:` callables, SQL bodies, flat sources.
+    "PLK601": "0.9",
+    "PLK604": "0.9",
+    "PLC502": "0.9",
+    "PLR205": "0.9",
+}
+
 
 def _build() -> Mapping[str, CodeInfo]:
     out: dict[str, CodeInfo] = {}
@@ -786,7 +798,11 @@ def _build() -> Mapping[str, CodeInfo]:
         ("0.9", _ACTIVE_09),
     ):
         for code, sev, title, expl in table:
-            out[code] = CodeInfo(code, _PREFIX_LAYER[code[:3]], sev, title, expl, "active", since)
+            retired = _RETIRED.get(code)
+            status: Literal["active", "retired"] = "active" if retired is None else "retired"
+            out[code] = CodeInfo(
+                code, _PREFIX_LAYER[code[:3]], sev, title, expl, status, since, retired
+            )
     for code, sev, title, since in _RESERVED:
         out[code] = CodeInfo(
             code,
@@ -830,7 +846,8 @@ def render_markdown() -> str:
                 "",
                 f"{c.title}. Severity: {c.severity.value}. Status: {c.status}. Since: {c.since}.",
                 "",
-                c.explanation,
-                "",
             ]
+            if c.retired is not None:
+                lines += [f"Retired in {c.retired}: no longer emitted.", ""]
+            lines += [c.explanation, ""]
     return "\n".join(lines)

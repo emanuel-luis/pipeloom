@@ -2,12 +2,14 @@ files:
   pipeloom.yml: |
     config_version: 1
     name: shop
+    sources:
+      raw:
+        location: data
+        tables:
+          orders:
+            location: orders.parquet
+            table: orders
     targets:
       dev:
         engine:
           kind: memory
-  models/m.yml: |
-    models:
-      - name: m
-        sql: select 1
-        python: pkg.mod:build

@@ -40,6 +40,12 @@ def test_a_reserved_code_says_so() -> None:
     assert "Status: reserved" in r.stdout
 
 
+def test_a_retired_code_says_when() -> None:
+    r = cli("explain", "PLK601")
+    assert r.exit_code == 0
+    assert "Status: retired in 0.9, no longer emitted" in r.stdout
+
+
 def test_an_unknown_code_is_a_usage_error_with_a_suggestion() -> None:
     r = cli("explain", "PLX11")
     assert r.exit_code == 2

@@ -2,13 +2,13 @@
   {
     "code": "PLS108",
     "severity": "error",
-    "message": "exactly one of sql, python is required",
+    "message": "at most one of location, table is allowed",
     "hint": null,
     "location": {
-      "file": "models/m.yml",
-      "line": 2,
-      "col": 5,
-      "json_pointer": "/models/0"
+      "file": "pipeloom.yml",
+      "line": 8,
+      "col": 9,
+      "json_pointer": "/sources/raw/tables/orders"
     },
     "context": {
       "pydantic_type": "pipeloom_exclusive"

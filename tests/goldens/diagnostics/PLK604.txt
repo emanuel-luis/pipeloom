@@ -1,1 +1,0 @@
-warning PLK604 models/m.yml:3:13 'a' in src/m.py is bound by something other than a def; its parameters were not checked
