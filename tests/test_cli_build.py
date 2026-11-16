@@ -125,6 +125,27 @@ def test_build_select_and_warn(tmp_path: Path) -> None:
     assert "data test 'id_in_p' (relationships) failed" in c["warnings"]
 
 
+def test_build_state_modified_tests_and_runs_only_the_change(tmp_path: Path) -> None:
+    root = _root(tmp_path)
+    ref = tmp_path / "ref"
+    compiled = _cli(root, "compile", "--stable", "--out", str(ref / "manifest.json"))
+    assert compiled.exit_code == 0, compiled.output
+    models = root / "models" / "m.yml"
+    text = models.read_text(encoding="utf-8")
+    changed = text.replace(
+        "select 1 as id union all select 2\n", "select 1 as id union all select 2 order by id\n"
+    )
+    assert changed != text
+    models.write_text(changed, encoding="utf-8")
+    result = _cli(
+        root, "build", "--state", str(ref), "--select", "state:modified", "--run-id", "r1"
+    )
+    assert result.exit_code == 0, result.output
+    assert [e["type"] for e in _events(result)].count("unit_test.passed") == 1
+    doc = _results(root, "r1")
+    assert [r["unique_id"].rsplit(".", 1)[-1] for r in doc["results"]] == ["p"]
+
+
 def test_run_has_no_data_tests_by_default(tmp_path: Path) -> None:
     root = _root(tmp_path)
     assert _cli(root, "run", "--run-id", "r1", "--select", "p").exit_code == 0
