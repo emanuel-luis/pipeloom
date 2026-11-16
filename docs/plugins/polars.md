@@ -23,7 +23,7 @@ The engine needs the `filesystem` catalog: tables are directories of part files 
 `_pipeloom/commit.json` ([ADR-0022](../adr/0022-filesystem-table-format.md)). Any other catalog is
 rejected when the session opens.
 
-A model can set `catalog` (and a `_defaults.yml` folder default can set it for a layer). The
+A model can set `catalog` (and a `+catalog` key in the `models:` tree can set it for a layer). The
 catalog becomes a leading directory: `<root>/<catalog>/<schema>/<name>/`. A table with no
 catalog keeps `<root>/<schema>/<name>/`.
 

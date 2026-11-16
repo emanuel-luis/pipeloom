@@ -6,8 +6,11 @@ flag mistakes before you run anything.
 | File | Schema |
 |---|---|
 | `pipeloom.yml` | [project.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json) |
-| model files under `model_paths` | [models.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json) |
-| `_defaults.yml` | [defaults.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/defaults.json) |
+| properties files under `model_paths` | [properties.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json) |
+
+Models themselves are Python functions, so the `@model` signature gives completion and type
+checking in the editor. `models.json` and `defaults.json` were removed in 0.9 with YAML model
+files; the version folders of 0.8 and earlier keep them.
 
 ## Use it in an editor
 
@@ -20,7 +23,7 @@ config_version: 1
 name: shop
 ```
 
-Use `models.json` in model files and `defaults.json` in `_defaults.yml`.
+Use `properties.json` in properties files.
 
 ## Include plugin options
 
