@@ -54,6 +54,8 @@ Expectations ([ADR-0009](0009-expectations-and-quarantine.md), [ADR-0028](0028-e
 
 15. The Airflow and Databricks renderers do not pass `--data-tests` yet. `pipeloom test` does not run data tests against existing tables. `init` templates are unchanged.
 
+Since the legacy model path was removed in 0.9 (ADR-0050), cases come only from properties entries of resolved models, so a properties entry for an unknown model is PLR209 and PLR208 covers the case itself (a missing or unknown input alias, a duplicate case name). There are no SQL bodies: a model that calls `ctx.sql` runs it through the same translate and `session.sql` path as `pipeloom run` (point 7).
+
 ## Consequences
 
 - A body is testable on a laptop in milliseconds, on every engine, with the same properties file. A plain pytest call on the decorated function also works. The contract suite runs one passing and one failing case per engine.

@@ -34,7 +34,7 @@ TARGET = "live"
 WHEELS = ("pipeloom", "pipeloom_spark", "pipeloom_databricks")
 """Wheel file name prefixes, in the order of the fixture's `wheel_*` vars."""
 SAMPLE = ROOT / "examples" / "tpch_spark" / "data" / "region.csv"
-"""The CSV the fixture's `region_csv` source reads from the volume (`sample_csv` var)."""
+"""The CSV the fixture's `samples.region` source reads from the volume (`sample_csv` var)."""
 SAMPLE_ROWS = 5
 
 WAIT_SECONDS = "1200"

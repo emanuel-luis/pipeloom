@@ -44,7 +44,6 @@ All notable changes to this project are documented here. The format follows
 ### Fixed
 
 - A source location with a URI scheme such as `file:/data/x.csv` or `dbfs:/Volumes/...` is no longer joined to the project directory; only relative paths are.
-
 - On Windows, `boundary: task` runs each child in its own job object, so a timed-out, cancelled or finished unit no longer leaves a grandchild running (POSIX already swept the child's process group). If the parent dies, Windows ends the whole tree. When Windows refuses a job, the executor falls back to `taskkill /T /F` ([ADR-0029 amendment](docs/adr/0029-retries-timeouts-cancellation.md#amendment-10-windows-job-objects)).
 
 ## [0.8.0] - 2026-11-06
