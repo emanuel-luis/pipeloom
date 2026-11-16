@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The published JSON Schema for the manifest, `schema/v1/manifest.json` (`pipeloom.manifest/1`): a hand-written top level as `compile` writes it, with or without `--stable`, and node, source and metadata objects generated from the plan models; `materialized` is a closed enum. Objects are open, so consumers ignore unknown fields; CI validates the manifest goldens and real compiles of the reference project and the TPC-H examples against a strict variant ([ADR-0049](docs/adr/0049-artifact-schemas-and-orchestrator-protocol.md)).
+
 ## [0.9.0] - 2026-11-16
 
 pipeloom 0.9 makes models Python-first. A model is a function marked with `@model`; `pipeloom.yml` holds the project and a `models:` tree of folder defaults, and properties files next to the models configure and describe them, with the decorator winning as in dbt. The compiler reads model files with `ast` and imports only the modules whose decorators have dynamic arguments, and SQL runs through `ctx.sql`, translated to the target engine. YAML model declarations are removed: see the [migration guide](docs/guide/migrate-0.9.md). The release also adds model contracts, `pipeloom test` and `pipeloom build` with post-write data tests, the `scd2` write strategy, run history and the `webhook` sink, the new `pipeloom-openlineage` distribution with Airflow facets, CSV sample data on Spark and Databricks, and the Airflow WATCHER mode.
