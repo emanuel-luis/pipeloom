@@ -1,3 +1,10 @@
+from pipeloom import model
+
+
+@model(
+    name="c",
+    tags=["flaky"],
+)
 def flaky(ctx, a):
     """Fail on the first attempt, succeed on every later one (a repair is a later attempt)."""
     if ctx.attempt == 1:

@@ -1,7 +1,8 @@
 config_version: 1
 name: live
-python_paths: [src]
-# tools/databricks_live.py passes every var below with --vars.
+python_paths:
+- src
+- .
 vars:
   catalog: main
   schema: pipeloom_live
@@ -10,9 +11,11 @@ vars:
   wheel_core: /Volumes/main/ops/pipeloom_live/wheels/pipeloom.whl
   wheel_spark: /Volumes/main/ops/pipeloom_live/wheels/pipeloom_spark.whl
   wheel_databricks: /Volumes/main/ops/pipeloom_live/wheels/pipeloom_databricks.whl
-defaults:
-  models:
-    materialized: table
+models:
+  +materialized: table
+model_paths:
+- models
+- src
 targets:
   live:
     engine:

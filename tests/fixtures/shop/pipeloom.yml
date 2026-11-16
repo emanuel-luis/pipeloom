@@ -5,9 +5,26 @@ engine:
   kind: memory
 catalog:
   kind: memory
-defaults:
-  models:
-    materialized: table
+models:
+  +materialized: table
+  staging:
+    +tags:
+    - staging
+sources:
+  raw:
+    tables:
+      raw_customers:
+        format: memory
+        location: raw/customers
+      raw_orders:
+        format: memory
+        location: raw/orders
+      raw_payments:
+        format: memory
+        location: raw/payments
+model_paths:
+- models
+- src
 targets:
   dev:
     naming:
