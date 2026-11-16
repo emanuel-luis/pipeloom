@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-16
+
+pipeloom 1.0.0 is the first stable release. It has the same content as 1.0.0rc1: from here the CLI, `config_version: 1`, plugin API (1, 0), the artifact schemas (`manifest`, `run_results`, `event`, `unit_states` and `unit_graph`, all `/1`) and the documented Python API follow Semantic Versioning, as the [stability page](docs/reference/stability.md) describes. If you come from 0.9, read the 1.0.0rc1 notes below, in particular the plugin API (1, 0) change for plugin authors.
+
+### Changed
+
+- The distributions are marked "Development Status :: 5 - Production/Stable", and they pin each other with `~=1.0.0` again. The examples install 1.0.0.
+
 ## [1.0.0rc1] - 2026-11-16
 
 pipeloom 1.0.0rc1 is the release candidate for 1.0. From 1.0 the CLI, `config_version: 1`, plugin API (1, 0), the artifact schemas (`manifest`, `run_results`, `event`, `unit_states` and `unit_graph`, all `/1`) and the documented Python API follow Semantic Versioning, as the [stability page](docs/reference/stability.md) describes. This candidate publishes the manifest JSON Schema, moves the plugin API to (1, 0), so a plugin built for (0, 5) needs a new release, and makes `tools/versions.py` check the declared config and plugin API versions. It also makes a missing source fail at read with PLM204 on polars and Spark Connect, accepts `ref()` in relationships data tests, fixes the WATCHER log line and maps every command to the page that explains it. 1.0.0 follows when the candidate is approved; changes after this candidate are fixes and additions only.
@@ -333,7 +341,8 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v1.0.0rc1...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/emanuel-luis/pipeloom/compare/v1.0.0rc1...v1.0.0
 [1.0.0rc1]: https://github.com/emanuel-luis/pipeloom/compare/v0.9.0...v1.0.0rc1
 [0.9.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/emanuel-luis/pipeloom/compare/v0.7.0...v0.8.0

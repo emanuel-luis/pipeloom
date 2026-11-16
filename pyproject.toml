@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pipeloom"
-version = "1.0.0rc1"
+version = "1.0.0"
 description = "Engine-agnostic data pipelines: Python models marked with @model, YAML for the project."
 readme = "README.pypi.md"
 requires-python = ">=3.11"
@@ -13,7 +13,7 @@ license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "Emanuel Luis", email = "emanuel.filho08@gmail.com" }]
 keywords = ["data-engineering", "pipelines", "yaml", "declarative", "etl", "orchestration"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
@@ -32,12 +32,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-polars = ["pipeloom-polars==1.0.0rc1"]
-pandas = ["pipeloom-pandas==1.0.0rc1"]
-spark = ["pipeloom-spark[local]==1.0.0rc1"]
-databricks = ["pipeloom-databricks==1.0.0rc1"]
-airflow = ["pipeloom-airflow==1.0.0rc1"]
-openlineage = ["pipeloom-openlineage==1.0.0rc1"]
+polars = ["pipeloom-polars==1.0.0"]
+pandas = ["pipeloom-pandas==1.0.0"]
+spark = ["pipeloom-spark[local]==1.0.0"]
+databricks = ["pipeloom-databricks==1.0.0"]
+airflow = ["pipeloom-airflow==1.0.0"]
+openlineage = ["pipeloom-openlineage==1.0.0"]
 sqlglot = ["sqlglot>=26"]
 
 [project.urls]

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pipeloom-openlineage"
-version = "1.0.0rc1"
+version = "1.0.0"
 description = "OpenLineage event sink for pipeloom: runs, jobs, datasets and facets."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -13,7 +13,7 @@ license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "Emanuel Luis", email = "emanuel.filho08@gmail.com" }]
 keywords = ["pipeloom", "openlineage", "lineage", "data-engineering", "pipelines"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
@@ -24,7 +24,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 # The floor is what apache-airflow-providers-openlineage requires, so both share one client.
-dependencies = ["pipeloom~=1.0.0rc1", "openlineage-python>=1.52.0,<2"]
+dependencies = ["pipeloom~=1.0.0", "openlineage-python>=1.52.0,<2"]
 
 [project.urls]
 Repository = "https://github.com/emanuel-luis/pipeloom"

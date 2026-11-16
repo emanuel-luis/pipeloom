@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pipeloom-databricks"
-version = "1.0.0rc1"
+version = "1.0.0"
 description = "Databricks renderer for pipeloom: a compiled plan as Jobs settings JSON and bundle YAML."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -13,7 +13,7 @@ license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "Emanuel Luis", email = "emanuel.filho08@gmail.com" }]
 keywords = ["pipeloom", "databricks", "jobs", "bundles", "data-engineering", "pipelines"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
 ]
-dependencies = ["pipeloom~=1.0.0rc1", "pipeloom-spark~=1.0.0rc1", "databricks-sdk>=0.50,<1"]
+dependencies = ["pipeloom~=1.0.0", "pipeloom-spark~=1.0.0", "databricks-sdk>=0.50,<1"]
 
 [project.urls]
 Repository = "https://github.com/emanuel-luis/pipeloom"
