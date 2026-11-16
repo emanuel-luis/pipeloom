@@ -255,7 +255,7 @@ Python-first authoring comes first; contracts and the test and build work are th
 | Post-write data tests with `relationships` | ADR-0045 (proposed) | results appear in `run_results` with `scope: table` |
 | Sample data on Spark and Databricks | none | a CSV source in the TPC-H Spark example runs locally and on a Databricks volume |
 | SCD2 write strategy | [ADR-0008 amendment](adr/0008-incremental-and-state.md#amendment-09-scd2) | the SCD2 cells of the engine contract suite pass on polars and Spark |
-| `pipeloom-openlineage` sink and Airflow facets | ADR-0046 (proposed) | a TPC-H run in Marquez shows the full graph, the schemas and the quality assertions |
+| `pipeloom-openlineage` sink and Airflow facets | ADR-0046 | a TPC-H run in Marquez shows the full graph, the schemas and the quality assertions |
 | Run history (`list_runs`, `pipeloom runs`) and the `webhook` sink | [ADR-0047](adr/0047-run-history-and-webhook.md), plugin API (0, 5) | `pipeloom runs ls` lists the last N runs on the sqlite, json and table stores, and a failed run posts once |
 | Airflow WATCHER mode | [ADR-0048](adr/0048-airflow-watcher-mode.md) (proposed) | the examples' Astro project runs in WATCHER mode with one producer, a sensor and an asset per model, and clearing a failed sensor reruns one unit |
 

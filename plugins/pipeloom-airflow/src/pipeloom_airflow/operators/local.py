@@ -8,9 +8,10 @@ import signal
 import subprocess
 import sys
 import tempfile
-from collections.abc import Mapping
-from typing import Any, Literal
+from collections.abc import Mapping, Sequence
+from typing import Any, Final, Literal
 
+from pipeloom.events.model import Event
 from pipeloom_airflow._compat import (
     AirflowException,
     AirflowFailException,
@@ -20,6 +21,7 @@ from pipeloom_airflow._compat import (
 )
 from pipeloom_airflow.commands import CoreCommand, RunContext, run_context, venv_python
 from pipeloom_airflow.errors import PipeloomAirflowError
+from pipeloom_airflow.lineage import OpenLineageMixin, child_event
 from pipeloom_airflow.states import (
     ChildTerminal,
     parse_child_line,
@@ -30,6 +32,8 @@ from pipeloom_airflow.states import (
 EXIT_FAILED = 1
 EXIT_USAGE = 2
 EXIT_CANCELLED = 130
+_LINEAGE_TYPES: Final = ("unit.", "model.written", "model.quality_evaluated")
+"""The child events the OpenLineage facets replay; `model.log` lines are not kept."""
 
 
 def _python(venv_dir: str | None) -> list[str]:
@@ -77,6 +81,7 @@ class _ChildOperator(BaseOperator):
     """Runs one `pipeloom` child in its own process group and logs its output line by line."""
 
     _proc: subprocess.Popen[str] | None = None
+    _lineage_events: Sequence[Event] = ()
 
     def __init__(
         self,
@@ -109,9 +114,15 @@ class _ChildOperator(BaseOperator):
             start_new_session=True,
         )
         assert self._proc.stdout is not None
+        events: list[Event] = []
+        self._lineage_events = events
         for line in self._proc.stdout:
             event, text = parse_child_line(line)
             terminal = event or terminal
+            if text.startswith(_LINEAGE_TYPES):
+                found = child_event(line)
+                if found is not None:
+                    events.append(found)
             if text:
                 self.log.info("%s", text)
         return self._proc.wait(), terminal
@@ -138,7 +149,7 @@ class _ChildOperator(BaseOperator):
             proc.wait()
 
 
-class PipeloomRunOperator(_ChildOperator):
+class PipeloomRunOperator(OpenLineageMixin, _ChildOperator):
     """Runs one unit: `pipeloom run --select unit:<id>` with the DAG run's identity."""
 
     def __init__(

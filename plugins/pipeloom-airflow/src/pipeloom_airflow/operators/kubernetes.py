@@ -10,6 +10,7 @@ from typing import Any, Final
 from pipeloom_airflow._compat import AirflowFailException, Context, get_task_states
 from pipeloom_airflow._compat_k8s import KubernetesPodOperator, pod_name
 from pipeloom_airflow.commands import CoreCommand
+from pipeloom_airflow.lineage import OpenLineageMixin
 from pipeloom_airflow.operators.local import _context, finalize_select
 from pipeloom_airflow.states import unit_states, unit_states_document
 
@@ -26,10 +27,11 @@ def _pod_kwargs(kpo_kwargs: dict[str, Any]) -> dict[str, Any]:
     return kpo_kwargs
 
 
-class PipeloomKubernetesOperator(KubernetesPodOperator):
+class PipeloomKubernetesOperator(OpenLineageMixin, KubernetesPodOperator):
     """Runs one unit: `python -m pipeloom run --select unit:<id>` in a pod. The arguments are set
     in `execute`, after templating, so the run id never sits in a templated field. `retry_on` is
-    not enforced: the pod's exit code is all Airflow sees, so every failure retries."""
+    not enforced: the pod's exit code is all Airflow sees, so every failure retries. Its
+    OpenLineage facets are the static datasets of the manifest: the pod's events stay in the pod."""
 
     def __init__(
         self,

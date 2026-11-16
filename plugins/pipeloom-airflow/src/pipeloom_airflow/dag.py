@@ -181,8 +181,9 @@ def build_tasks(
             **extra,
             **operator_args,
         }
+        op: PipeloomKubernetesOperator | PipeloomRunOperator
         if pod is not None:
-            ops[t.task_id] = PipeloomKubernetesOperator(
+            op = PipeloomKubernetesOperator(
                 unit_id=t.unit_id,
                 command=command,
                 python=python,
@@ -191,7 +192,7 @@ def build_tasks(
                 **common,
             )
         else:
-            ops[t.task_id] = PipeloomRunOperator(
+            op = PipeloomRunOperator(
                 unit_id=t.unit_id,
                 command=command,
                 venv_dir=venv,
@@ -201,6 +202,10 @@ def build_tasks(
                 group_id=group_id,
                 **common,
             )
+        # one plan shared by every task: the OpenLineage provider asks the task for datasets
+        op.lineage_plan = plan.plan
+        op.lineage_project_dir = command.project_dir
+        ops[t.task_id] = op
     for t in plan.tasks:
         for up in t.upstream:
             ops[up] >> ops[t.task_id]

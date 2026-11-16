@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import posixpath
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Final, Literal
 
 from pipeloom.diagnostics import Report
@@ -47,6 +47,8 @@ class TaskPlan:
     tasks: tuple[UnitTask, ...]
     leaves: tuple[str, ...]
     cancel_grace_s: float
+    plan: Plan | None = field(default=None, compare=False, repr=False)
+    """The loaded plan, for the OpenLineage facets of the unit tasks."""
 
 
 def _groups(plan: Plan, units: list[str], how: str) -> dict[str, tuple[str, ...]]:
@@ -167,6 +169,7 @@ def render_plan(
         tuple(tasks),
         tuple(t.task_id for t in tasks if t.task_id not in has_child),
         DEFAULT_CANCEL_GRACE,
+        plan,
     )
 
 
