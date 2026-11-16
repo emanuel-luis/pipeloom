@@ -196,8 +196,8 @@ def test_properties_data_tests_and_unit_tests(project_factory: Factory) -> None:
     loc = p.locate_data_test(m, 0)
     assert (loc.file, loc.json_pointer) == ("models/_properties.yml", "/models/0/data_tests/0")
     assert [t.name for t in n.entry.data_tests or ()] == ["own"]
-    assert n.origins["data_tests"].layer == "model"
-    assert p.locate_data_test(n, 0).file == "models/m.yml"
+    assert n.origins["data_tests"].layer == "decorator"
+    assert p.locate_data_test(n, 0).file == n.site.file
     (case,) = p.unit_tests
     assert (case.model, case.name, case.file, case.pointer) == (
         "m",

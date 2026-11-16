@@ -29,10 +29,26 @@ targets:
 default_target: dev
 """
 # `c` does not read `p`: only its relationships data test orders it after `p`.
+# One module per model: a node checksum covers its whole module file.
+P_MODULE = """\
+from pipeloom import model
+
+
+@model
+def p(ctx):
+    return ctx.sql("select 1 as id union all select 2")
+"""
+C_MODULE = """\
+from pipeloom import model
+
+
+@model
+def c(ctx):
+    return ctx.sql("select 1 as id union all select 3")
+"""
 MODELS = """\
 models:
   - name: p
-    sql: select 1 as id union all select 2
     unit_tests:
       - name: two_rows
         expect:
@@ -40,7 +56,6 @@ models:
             - id: 1
             - id: ${var:want}
   - name: c
-    sql: select 1 as id union all select 3
     data_tests:
       - name: id_in_p
         check:
@@ -60,7 +75,15 @@ models:
 def _root(tmp_path: Path) -> Path:
     # Tables live under store/, so a later invocation (retry) reads what an earlier one wrote.
     project = PROJECT.replace("engine:\n      kind: memory", engine_block(tmp_path, {}))
-    return make_project(tmp_path, {"pipeloom.yml": project, "models/m.yml": MODELS})
+    return make_project(
+        tmp_path,
+        {
+            "pipeloom.yml": project,
+            "models/p.py": P_MODULE,
+            "models/c.py": C_MODULE,
+            "models/m.yml": MODELS,
+        },
+    )
 
 
 def _cli(root: Path, *args: str) -> Any:
@@ -131,10 +154,10 @@ def test_build_state_modified_tests_and_runs_only_the_change(tmp_path: Path) -> 
     ref = tmp_path / "ref"
     compiled = _cli(root, "compile", "--stable", "--out", str(ref / "manifest.json"))
     assert compiled.exit_code == 0, compiled.output
-    models = root / "models" / "m.yml"
+    models = root / "models" / "p.py"
     text = models.read_text(encoding="utf-8")
     changed = text.replace(
-        "select 1 as id union all select 2\n", "select 1 as id union all select 2 order by id\n"
+        "select 1 as id union all select 2\"", "select 1 as id union all select 2 order by id\""
     )
     assert changed != text
     models.write_text(changed, encoding="utf-8")

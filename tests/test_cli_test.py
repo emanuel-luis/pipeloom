@@ -17,6 +17,11 @@ config_version: 1
 name: shop
 vars:
   k: 1
+sources:
+  raw:
+    tables:
+      raw:
+        location: raw
 targets:
   dev:
     engine:
@@ -30,16 +35,22 @@ targets:
       kind: memory
 default_target: dev
 """
+MODULE = """\
+from pipeloom import model, source
+
+
+@model(inputs={"src": source("raw", "raw")})
+def a(ctx, src):
+    return ctx.sql(f"select id * {ctx.vars['k']} as id from src")
+
+
+@model(inputs={"src": source("raw", "raw")})
+def b(ctx, src):
+    return ctx.sql("select id from src")
+"""
 MODELS = """\
-sources:
-  - name: raw
-    location: raw
 models:
   - name: a
-    sql: select id * ${var:k} as id from src
-    inputs:
-      src:
-        source: raw
     unit_tests:
       - name: times_k
         given:
@@ -50,10 +61,6 @@ models:
           rows:
             - id: 1
   - name: b
-    sql: select id from src
-    inputs:
-      src:
-        source: raw
     unit_tests:
       - name: same
         given:
@@ -67,7 +74,9 @@ models:
 
 
 def _root(tmp_path: Path) -> Path:
-    return make_project(tmp_path, {"pipeloom.yml": PROJECT, "models/m.yml": MODELS})
+    return make_project(
+        tmp_path, {"pipeloom.yml": PROJECT, "models/m.py": MODULE, "models/m.yml": MODELS}
+    )
 
 
 def _test(root: Path, *args: str, env: dict[str, str] | None = None) -> Any:
