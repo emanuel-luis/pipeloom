@@ -5,10 +5,10 @@
     "message": "SQL of model 'a' cannot be parsed, so its tables were not checked",
     "hint": "sqlglot parses it with its default dialect",
     "location": {
-      "file": "models/m.yml",
-      "line": 3,
-      "col": 10,
-      "json_pointer": "/models/0/sql"
+      "file": "models/m.py",
+      "line": 6,
+      "col": 20,
+      "json_pointer": null
     },
     "context": {
       "model": "a"

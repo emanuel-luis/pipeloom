@@ -5,10 +5,10 @@
     "message": "unknown ref 'stg_ordrs' in input 'orders' of model 'report'",
     "hint": "did you mean 'stg_orders'?",
     "location": {
-      "file": "models/m.yml",
-      "line": 8,
-      "col": 14,
-      "json_pointer": "/models/1/inputs/orders/ref"
+      "file": "models/m.py",
+      "line": 10,
+      "col": 5,
+      "json_pointer": "/@model/inputs/orders/ref"
     },
     "context": {
       "model": "report",

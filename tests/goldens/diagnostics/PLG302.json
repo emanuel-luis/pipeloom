@@ -5,10 +5,10 @@
     "message": "model 'loop' references itself through input 'me'",
     "hint": "a model cannot read its own output",
     "location": {
-      "file": "models/m.yml",
-      "line": 6,
-      "col": 14,
-      "json_pointer": "/models/0/inputs/me/ref"
+      "file": "models/m.py",
+      "line": 5,
+      "col": 5,
+      "json_pointer": "/@model/inputs/me/ref"
     },
     "context": {
       "model": "loop",

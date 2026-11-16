@@ -6,12 +6,17 @@ files:
       dev:
         engine:
           kind: memory
-  models/m.yml: |
-    models:
-      - name: stg_orders
-        sql: select 1
-      - name: report
-        sql: select * from orders
-        inputs:
-          orders:
-            ref: stg_ordrs
+  models/m.py: |
+    from pipeloom import model, ref
+
+
+    @model
+    def stg_orders(ctx):
+        return ctx.sql("select 1")
+
+
+    @model(
+        inputs={"orders": ref("stg_ordrs")},
+    )
+    def report(ctx, orders):
+        return ctx.sql("select * from orders")

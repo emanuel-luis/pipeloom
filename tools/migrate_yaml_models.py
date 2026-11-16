@@ -33,10 +33,28 @@ GROUP = "raw"
 RESERVED = {"model", "ref", "source", "ctx"}
 SKIP_DIRS = {".pipeloom", "target", "__pycache__", ".venv"}
 _TOP_KEY = re.compile(r"^([A-Za-z_][\w-]*):")
+# Case files whose purpose is the legacy path itself: they go with it in the removal change.
+KEEP_LEGACY = {
+    "PLK601",  # a python: callable that does not import
+    "PLS108",  # a model entry with both sql: and python:
+    "PLR205",  # two flat sources with one name
+    "PLK604",  # a python: callable bound by an import, not a def
+    "PLK602",  # half legacy: a python: signature that misses an alias; drop that half later
+}
 
 
 class MigrationError(Exception):
     """A declaration the tool cannot convert."""
+
+
+def _load(text: str) -> Any:
+    """The YAML document, or None for a file that is not valid YAML (or raw bytes in a case)."""
+    if not isinstance(text, str):
+        return None
+    try:
+        return yaml.safe_load(text)
+    except yaml.YAMLError:
+        return None
 
 
 def _py(value: Any) -> str:
@@ -127,6 +145,15 @@ def _sql_model(entry: dict[str, Any]) -> tuple[str, set[str]]:
         f"{_decorator(kwargs)}def {fn}({sig}):\n    return ctx.sql({_sql_literal(entry['sql'])})\n"
     )
     return code, helpers
+
+
+def _module_name(path: str, roots: list[str]) -> str | None:
+    """The module name of a file: its path relative to the longest python_paths root."""
+    rels = [r for r in (_under(path, root) for root in roots) if r is not None]
+    if not rels:
+        return None
+    parts = PurePosixPath(min(rels, key=len)).with_suffix("").parts
+    return ".".join(parts[:-1] if parts[-1] == "__init__" else parts)
 
 
 def _module_file(module: str, files: dict[str, str | None], roots: list[str]) -> tuple[str, str]:
@@ -223,9 +250,9 @@ def _replace_top_keys(text: str, changes: dict[str, Any]) -> str:
 def migrate(files: dict[str, str]) -> dict[str, str]:
     """The project files after migration, in order: changed files in place, a generated module
     right after the YAML file it came from, removed files left out."""
-    if "pipeloom.yml" not in files:
+    project = _load(files.get("pipeloom.yml", ""))
+    if not isinstance(project, dict):  # no project file, or one a case breaks on purpose
         return dict(files)
-    project = yaml.safe_load(files["pipeloom.yml"]) or {}
     model_paths: list[str] = list(project.get("model_paths", ["models"]))
     python_paths: list[str] = list(project.get("python_paths", ["."]))
     new: dict[str, str | None] = dict(files)
@@ -248,7 +275,7 @@ def migrate(files: dict[str, str]) -> dict[str, str]:
         rel = roots_of(path)
         if rel is None:
             continue
-        data = yaml.safe_load(text)
+        data = _load(text)
         if not isinstance(data, dict):
             continue
         if PurePosixPath(path).stem == "_defaults":
@@ -288,6 +315,9 @@ def migrate(files: dict[str, str]) -> dict[str, str]:
         changed = True
         if code:
             target = str(PurePosixPath(path).with_suffix(".py"))
+            taken = {_module_name(p, python_paths) for p in new if p.endswith(".py")}
+            if target in files or _module_name(target, python_paths) in taken:
+                target = str(PurePosixPath(path).with_name(PurePosixPath(path).stem + "_sql.py"))
             if target in files:
                 raise MigrationError(f"{target} already exists")
             new[target] = _import_line(helpers) + "\n\n" + "\n\n".join(code)
@@ -339,7 +369,10 @@ def migrate(files: dict[str, str]) -> dict[str, str]:
     return out
 
 
-def _literal(key: str, content: str) -> str:
+def _literal(key: str, content: Any) -> str:
+    if not isinstance(content, str):  # {"base64": ...}
+        dumped = yaml.safe_dump({key: content}, sort_keys=False, default_flow_style=False)
+        return "".join("  " + ln for ln in dumped.splitlines(keepends=True))
     plain = re.fullmatch(r"[\w./-]+", key) is not None
     head = f"  {key if plain else json.dumps(key)}:"
     if content == "":
@@ -392,21 +425,26 @@ def migrate_dir(root: Path) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("path", type=Path)
-    parser.add_argument("--case", action="store_true", help="the path is a case file")
+    parser.add_argument("paths", type=Path, nargs="+")
+    parser.add_argument("--case", action="store_true", help="the paths are case files")
     args = parser.parse_args(argv)
-    try:
-        if args.case:
-            text = args.path.read_text(encoding="utf-8")
-            new = migrate_case(text)
-            if new != text:
-                args.path.write_text(new, encoding="utf-8", newline="\n")
-        else:
-            migrate_dir(args.path)
-    except MigrationError as err:
-        print(f"{args.path}: {err}", file=sys.stderr)
-        return 1
-    return 0
+    status = 0
+    for path in args.paths:
+        if args.case and path.stem in KEEP_LEGACY:
+            print(f"{path}: kept legacy on purpose", file=sys.stderr)
+            continue
+        try:
+            if args.case:
+                text = path.read_text(encoding="utf-8")
+                new = migrate_case(text)
+                if new != text:
+                    path.write_text(new, encoding="utf-8", newline="\n")
+            else:
+                migrate_dir(path)
+        except MigrationError as err:
+            print(f"{path}: {err}", file=sys.stderr)
+            status = 1
+    return status
 
 
 if __name__ == "__main__":
