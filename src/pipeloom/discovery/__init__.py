@@ -74,15 +74,19 @@ class Discovery:
         sites: dict[str, dict[str, Site]] = {}
         for sf in files:
             try:
-                st = sf.abs.stat()
+                if sf.stat is None:
+                    st = sf.abs.stat()
+                    mtime_ns, size = st.st_mtime_ns, st.st_size
+                else:
+                    mtime_ns, size = sf.stat
                 old = previous.get(sf.path)
-                if old and (old.mtime_ns, old.size) == (st.st_mtime_ns, st.st_size):
+                if old and (old.mtime_ns, old.size) == (mtime_ns, size):
                     parsed = old.parsed
                 else:
                     parsed = parse_file(sf.abs.read_bytes(), sf.path)
             except OSError:
                 continue  # removed while scanning
-            entries[sf.path] = cache.Entry(st.st_mtime_ns, st.st_size, parsed)
+            entries[sf.path] = cache.Entry(mtime_ns, size, parsed)
             failures.extend(parsed.failures)
             if parsed.kind == "static":
                 if sf.module is None:

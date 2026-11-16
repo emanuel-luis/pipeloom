@@ -21,20 +21,39 @@ class SourceFile:
     path: str
     abs: Path
     module: str | None
+    stat: tuple[int, int] | None = None
+    """`(st_mtime_ns, st_size)` taken during the walk, when it was."""
 
 
-def _walk(root: Path) -> Iterator[Path]:
-    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-        dirnames[:] = [
-            d
-            for d in dirnames
-            if not d.startswith(".")
-            and d not in SKIP_DIRS
-            and not (Path(dirpath, d) / "pyvenv.cfg").exists()
-        ]
-        for name in filenames:
-            if name.endswith(".py") and not name.startswith("."):
-                yield Path(dirpath, name)
+Stat = tuple[int, int]
+
+
+def _walk(root: Path) -> Iterator[tuple[Path, Stat | None]]:
+    """Every `*.py` below `root` with its stat from the directory entry (no extra stat call on
+    Windows, where `DirEntry.stat()` is served from the directory listing)."""
+    stack = [str(root)]
+    while stack:
+        top = stack.pop()
+        try:
+            with os.scandir(top) as it:
+                entries = list(it)
+        except OSError:
+            continue
+        for e in entries:
+            name = e.name
+            if name.startswith("."):
+                continue
+            try:
+                if e.is_dir(follow_symlinks=False):
+                    if name not in SKIP_DIRS and not os.path.exists(
+                        os.path.join(e.path, "pyvenv.cfg")
+                    ):
+                        stack.append(e.path)
+                elif name.endswith(".py"):
+                    st = e.stat()
+                    yield Path(e.path), (st.st_mtime_ns, st.st_size)
+            except OSError:
+                continue
 
 
 def _skipped(path: Path, base: Path) -> bool:
@@ -56,10 +75,25 @@ def module_name(file: Path, roots: Sequence[Path]) -> str | None:
 
 
 def _rel(path: Path, project_dir: Path) -> str | None:
+    text, base = str(path), str(project_dir) + os.sep
+    if text.startswith(base):  # the common case, without relpath
+        return text[len(base) :].replace(os.sep, "/")
     try:
         return Path(os.path.relpath(path, project_dir)).as_posix()
     except ValueError:  # another drive on Windows
         return None
+
+
+def _fast_module(path: Path, roots: Sequence[str]) -> str | None:
+    """`module_name` with string operations; `roots` end with a separator, longest first."""
+    text = str(path)
+    for root in roots:
+        if text.startswith(root):
+            parts = text[len(root) : -len(".py")].split(os.sep)
+            if parts[-1] == "__init__":
+                parts.pop()
+            return ".".join(parts) or None
+    return None
 
 
 def find_files(
@@ -73,16 +107,19 @@ def find_files(
     A missing directory is the config loader's finding, not discovery's."""
     project_dir = project_dir.resolve()
     roots = [(project_dir / p).resolve() for p in python_paths]
+    root_texts = sorted((str(r).rstrip(os.sep) + os.sep for r in roots), key=len, reverse=True)
     found: dict[Path, str | None] = {}
+    stats: dict[Path, Stat | None] = {}
     for entry in model_paths:
         if "*" in entry:
             for match in sorted(project_dir.glob(entry)):
                 if match.is_dir():
-                    found.update(dict.fromkeys(_walk(match.resolve())))
+                    stats.update(_walk(match.resolve()))
                 elif match.suffix == ".py" and not _skipped(match, project_dir):
-                    found[match.resolve()] = None
+                    stats[match.resolve()] = None
         elif (project_dir / entry).is_dir():
-            found.update(dict.fromkeys(_walk((project_dir / entry).resolve())))
+            stats.update(_walk((project_dir / entry).resolve()))
+    found.update(dict.fromkeys(stats))
 
     failures: list[DiscoveryFailure] = []
     for dotted in model_packages:
@@ -96,10 +133,11 @@ def find_files(
                 )
             )
             continue
-        for file in _walk(target):
+        for file, st in _walk(target):
             # A package outside every root is importable under its own dotted name.
             if file not in found:
                 found[file] = module_name(file, roots) or module_name(file, [base.parent])
+                stats[file] = st
 
     files: list[SourceFile] = []
     for f, own in found.items():
@@ -115,7 +153,8 @@ def find_files(
                 )
             )
             continue
-        files.append(SourceFile(rel, f, own if own is not None else module_name(f, roots)))
+        module = own if own is not None else _fast_module(f, root_texts)
+        files.append(SourceFile(rel, f, module, stats.get(f)))
     return sorted(files, key=lambda s: s.path), failures
 
 
