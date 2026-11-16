@@ -133,6 +133,19 @@ class WriteConfig:
     """The run's start (UTC), filled by the runner. An engine that needs a stable write version
     (a Delta `txnVersion`) reads it here, never from the session context: the session opens
     before the start time is resolved."""
+    tracked_columns: tuple[str, ...] = ()
+    """scd2: the columns whose change opens a new version, filled by the runner; empty only when
+    the table has no business column besides the key and the delete column."""
+    full_refresh: bool = False
+    """scd2: drop the history and reload the batch as a first load."""
+
+
+SCD2_COLUMNS: Final[Schema] = (
+    Column("valid_from", "timestamp[us, UTC]"),
+    Column("valid_to", "timestamp[us, UTC]"),
+    Column("is_current", "boolean"),
+)
+"""The system columns an scd2 table adds after the business columns (ADR-0008 amendment)."""
 
 
 @dataclass(frozen=True)

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Collection, Iterator, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Any, Literal
 
@@ -15,6 +15,7 @@ from pipeloom.diagnostics import JsonValue
 from pipeloom.engine.errors import WriteKeyError
 from pipeloom.engine.types import (
     ROW_CHECKS,
+    SCD2_COLUMNS,
     Column,
     ExpectationSpec,
     QualityCounts,
@@ -426,6 +427,104 @@ def merge_frames(
         int(inserts.shape[0] + nokey_inserts.shape[0]),
         int(updates.shape[0]),
         int(deleted.shape[0]),
+    )
+
+
+# -- scd2 ---------------------------------------------------------------------------------------
+
+_SCD2_NAMES = tuple(c.name for c in SCD2_COLUMNS)
+_TS = nw.Datetime("us", "UTC")
+
+
+def scd2_time(cfg: WriteConfig) -> datetime:
+    """The run start as an aware UTC datetime: every version of a run opens and closes at it."""
+    ts = cfg.run_started_at
+    if ts is None:
+        raise ValueError("scd2 needs run_started_at")
+    return ts.astimezone(UTC) if ts.tzinfo else ts.replace(tzinfo=UTC)
+
+
+def _differs(column: str, dtype: Any) -> Any:
+    """Expression: the batch value differs from the target's (null-safe, NaN is null)."""
+    # pandas gives an all-null right column of a left join no type: cast it back.
+    a, b = nw.col(column), nw.col(f"{_T}{column}").cast(dtype)
+    if _is_float(dtype):
+        a, b = a.fill_nan(None), b.fill_nan(None)
+    return (a.is_null() != b.is_null()) | (a != b).fill_null(False)
+
+
+def scd2_frames(current: Any | None, batch: Any, cfg: WriteConfig, ts: datetime) -> MergeOutcome:
+    """Apply `batch` (business columns) to the scd2 table `current` (business columns, then the
+    system columns); None is an empty table. `updated` counts rows closed by a change, `deleted`
+    rows closed by a delete. Raises `WriteKeyError` for a null or repeated key in the batch, or a
+    batch column named like a system column."""
+    key, tracked = list(cfg.unique_key), list(cfg.tracked_columns)
+    if not key:
+        raise WriteKeyError("scd2 needs a unique_key")
+    bat = _eager(batch)
+    clash = [c for c in bat.columns if c in _SCD2_NAMES]
+    if clash:
+        raise WriteKeyError(f"the batch has scd2 system column(s) {', '.join(clash)}")
+    check_columns(bat, key, "unique_key")
+    check_columns(bat, tracked, "tracked_columns")
+    if bat.shape[0] and bool(bat.select(_null_any(key).any()).item()):
+        raise WriteKeyError("the batch has a null unique_key")
+    if bat.shape[0] and bool(bat.select(*key).is_duplicated().any()):
+        raise WriteKeyError("the batch repeats a unique_key value")
+    deletes = cfg.deletes
+    if deletes is not None and deletes.mode != "hard":
+        raise ValueError("scd2 supports hard deletes only")
+    is_del = (
+        (nw.col(deletes.column) == deletes.value).fill_null(False)
+        if deletes is not None
+        else nw.lit(False)
+    )
+    opened = [
+        nw.lit(ts, _TS).alias("valid_from"),
+        nw.lit(None, _TS).alias("valid_to"),
+        nw.lit(True, nw.Boolean).alias("is_current"),
+    ]
+    if current is None:
+        cols = [*bat.columns, *_SCD2_NAMES]
+        flagged = bat.with_columns(is_del.alias(_DEL))
+        inserts = flagged.filter(~nw.col(_DEL)).with_columns(*opened).select(*cols)
+        return MergeOutcome(nw.to_native(inserts), int(inserts.shape[0]), 0, 0)
+    cur = _eager(current)
+    cols = list(cur.columns)
+    business = [c for c in cols if c not in _SCD2_NAMES]
+    if set(bat.columns) != set(business):
+        raise ValueError("scd2 needs a batch with the business columns of the target (align first)")
+    bat = bat.select(*business)
+    live_flag = nw.col("is_current").fill_null(False)
+    live, history = cur.filter(live_flag), cur.filter(~live_flag)
+    right = live.select(
+        *(nw.col(k).alias(f"{_T}k_{k}") for k in key),
+        *(nw.col(c).alias(f"{_T}{c}") for c in tracked),
+    ).with_columns(nw.lit(True).alias(_MATCH))
+    joined = bat.join(right, left_on=key, right_on=[f"{_T}k_{k}" for k in key], how="left")
+    diffs = [_differs(c, bat.schema[c]) for c in tracked]
+    matched = nw.col(_MATCH).fill_null(False).cast(nw.Boolean)
+    joined = joined.with_columns(is_del.alias(_DEL), matched.alias(_MATCH))
+    if diffs:  # no tracked column (a table of keys only): nothing can change
+        changes = nw.any_horizontal(*diffs, ignore_nulls=True)
+        joined = joined.with_columns((nw.col(_MATCH) & ~nw.col(_DEL) & changes).alias(_NEW))
+    else:
+        joined = joined.with_columns(nw.lit(False).alias(_NEW))
+    gone, changed = nw.col(_MATCH) & nw.col(_DEL), nw.col(_NEW)
+    closing = joined.filter(gone | changed).select(*key)
+    inserts = joined.filter(~nw.col(_DEL) & (~nw.col(_MATCH) | changed))
+    inserts = inserts.select(*business).with_columns(*opened)
+    closed = live.join(closing, on=key, how="inner").with_columns(
+        nw.lit(ts, _TS).alias("valid_to"), nw.lit(False, nw.Boolean).alias("is_current")
+    )
+    untouched = live.join(closing, on=key, how="anti") if closing.shape[0] else live
+    parts = [history, untouched, closed, inserts]
+    frame = nw.concat([p.select(*cols) for p in parts], how="vertical")
+    return MergeOutcome(
+        nw.to_native(frame),
+        int(inserts.shape[0]),
+        int(joined.filter(changed).shape[0]),
+        int(joined.filter(gone).shape[0]),
     )
 
 

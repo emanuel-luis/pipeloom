@@ -15,7 +15,7 @@ from typing import Any, Protocol
 from pipeloom.builtins.fs_table import FsCommit, FsFile, FsTable
 from pipeloom.engine import portable
 from pipeloom.engine.errors import WriteKeyError
-from pipeloom.engine.types import Schema, WriteConfig, WriteResult
+from pipeloom.engine.types import SCD2_COLUMNS, Schema, WriteConfig, WriteResult
 
 
 class FrameOps(Protocol):
@@ -92,6 +92,8 @@ def materialize(
             return _merge(writer, previous, batch, cfg, token)
         if cfg.strategy == "replace_partitions":
             return _replace_partitions(writer, previous, batch, cfg, token)
+        if cfg.strategy == "scd2":
+            return _scd2(writer, previous, batch, cfg, token)
         raise ValueError(f"filesystem tables do not support strategy '{cfg.strategy}'")
     except BaseException:
         table.discard(writer.files)
@@ -250,5 +252,58 @@ def _replace_partitions(
     )
     return commit.result
 
+
+def _scd2(
+    w: _Writer, previous: FsCommit | None, batch: Any, cfg: WriteConfig, token: str
+) -> WriteResult:
+    """Read the whole table, close and open versions, and rewrite it (like merge)."""
+    ts = portable.scd2_time(cfg)
+    meta = dict(cfg.commit_meta)
+    if previous is None or cfg.full_refresh:
+        outcome = portable.scd2_frames(None, batch, cfg, ts)
+        business = cfg.columns or portable.schema(batch)
+    else:
+        business = cfg.columns or _union(
+            tuple(c for c in previous.columns if c.name not in _SYSTEM), portable.schema(batch)
+        )
+        if portable.count(batch) == 0:
+            portable.scd2_frames(None, batch, cfg, ts)  # the same checks as a real write
+            commit = w.table.commit(
+                mode="append",
+                files=[],
+                columns=(*business, *SCD2_COLUMNS),
+                rows=0,
+                token=token,
+                result=WriteResult(0, 0, 0, 0, commit_meta=meta),
+                partition_by=cfg.partition_by or previous.partition_by,
+                expected_version=previous.version,
+            )
+            return commit.result
+        full = (*business, *SCD2_COLUMNS)
+        current = w.ops.align(w.ops.collect(read_table(w.table, w.ops, previous)), full)
+        outcome = portable.scd2_frames(current, w.ops.align(batch, business), cfg, ts)
+    frame = w.ops.align(outcome.frame, (*business, *SCD2_COLUMNS))
+    w.put_partitioned(frame, cfg.partition_by)
+    commit = w.table.commit(
+        mode="overwrite",
+        files=w.files,
+        columns=portable.schema(frame),
+        rows=portable.count(frame),
+        token=token,
+        result=WriteResult(
+            rows_written=outcome.inserted + outcome.updated + outcome.deleted,
+            rows_inserted=outcome.inserted,
+            rows_updated=outcome.updated,
+            rows_deleted=outcome.deleted,
+            commit_meta=meta,
+        ),
+        file_info=w.info,
+        partition_by=cfg.partition_by,
+        expected_version=0 if previous is None else previous.version,
+    )
+    return commit.result
+
+
+_SYSTEM = frozenset(c.name for c in SCD2_COLUMNS)
 
 __all__ = ["FrameOps", "materialize", "read_table"]

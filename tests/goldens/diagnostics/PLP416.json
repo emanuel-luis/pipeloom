@@ -1,0 +1,33 @@
+[
+  {
+    "code": "PLP416",
+    "severity": "error",
+    "message": "scd2 options of model 'a' conflict: deletes.column names system column 'is_current'; tracked_columns is empty; deletes.mode is soft",
+    "hint": "the columns valid_from, valid_to, is_current are added by scd2; tracked_columns must be non-empty and outside unique_key, and deletes must use mode: hard",
+    "location": {
+      "file": "models/m.yml",
+      "line": 6,
+      "col": 7,
+      "json_pointer": "/models/0/write"
+    },
+    "context": {
+      "model": "a"
+    }
+  },
+  {
+    "code": "PLC501",
+    "severity": "error",
+    "message": "engine 'memory' does not support strategy 'scd2' (model 'a')",
+    "hint": "supported: append, merge, overwrite, replace_partitions",
+    "location": {
+      "file": "models/m.yml",
+      "line": 6,
+      "col": 17,
+      "json_pointer": "/models/0/write/strategy"
+    },
+    "context": {
+      "model": "a",
+      "engine": "memory"
+    }
+  }
+]

@@ -11,7 +11,7 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0005 | [Packaging](0005-packaging.md) | Accepted | 2026-10-29 |
 | 0006 | [Ready-queue scheduler](0006-ready-queue-scheduler.md) | Accepted | 2026-10-29 |
 | 0007 | [Data handoff: execution units, inlining, intermediates](0007-data-handoff.md) | Accepted | 2026-10-29 |
-| 0008 | [Incremental key, watermark state, strategies](0008-incremental-and-state.md) | Accepted | 2026-10-29 |
+| 0008 | [Incremental key, watermark state, strategies](0008-incremental-and-state.md) | Accepted. Amended in 0.9 (scd2). | 2026-10-29 |
 | 0009 | [Expectations and quarantine](0009-expectations-and-quarantine.md) | Accepted | 2026-10-29 |
 | 0010 | [Events, sinks, artifacts; rich for the console](0010-events-sinks-artifacts.md) | Accepted | 2026-10-29 |
 | 0011 | [Databricks job rendering](0011-databricks-job-rendering.md) | Accepted | 2026-10-29 |

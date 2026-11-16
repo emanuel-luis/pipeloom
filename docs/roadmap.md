@@ -107,8 +107,9 @@ paths, listens on localhost by default and ships as a separate distribution, so 
 - Sample data on Spark and Databricks (0.9). A source can point at a CSV inside the project. The polars and pandas
   engines already read it, and `pipeloom-spark` needs the same reader on volumes. This covers what dbt seeds do
   without a new materialization.
-- SCD2 write strategy (0.9). `scd2` is already in the config literal; the polars and Spark engines implement it, as
-  an amendment to [ADR-0008](adr/0008-incremental-and-state.md).
+- SCD2 write strategy (0.9). The polars, pandas and Spark engines write `scd2` with `valid_from`, `valid_to` and
+  `is_current` columns and hard deletes. Decided in the
+  [ADR-0008 amendment](adr/0008-incremental-and-state.md#amendment-09-scd2) (accepted).
 - `pipeloom build` (0.9). Runs the unit tests, then `run` with post-write data tests in DAG order. `run` keeps its
   meaning.
 - Dev environments. `per_user` naming already isolates developers. A guide page plus `--defer` covers most of what
@@ -241,7 +242,7 @@ Delivered in 0.8.0. The docs site lays its graph out in Python instead of a vend
 | `pipeloom test` and `pipeloom build` | ADR-0045 (proposed) | a case whose expected rows match passes, and a case with one wrong row fails with a row diff, on polars, pandas and Spark |
 | Post-write data tests with `relationships` | ADR-0045 (proposed) | results appear in `run_results` with `scope: table` |
 | Sample data on Spark and Databricks | none | a CSV source in the TPC-H Spark example runs locally and on a Databricks volume |
-| SCD2 write strategy | [ADR-0008](adr/0008-incremental-and-state.md) amendment | the SCD2 cells of the engine contract suite pass on polars and Spark |
+| SCD2 write strategy | [ADR-0008 amendment](adr/0008-incremental-and-state.md#amendment-09-scd2) | the SCD2 cells of the engine contract suite pass on polars and Spark |
 | `pipeloom-openlineage` sink and Airflow facets | ADR-0046 (proposed) | a TPC-H run in Marquez shows the full graph, the schemas and the quality assertions |
 | Run history (`list_runs`, `pipeloom runs`) and the `webhook` sink | [ADR-0047](adr/0047-run-history-and-webhook.md), plugin API (0, 5) | `pipeloom runs ls` lists the last N runs on the sqlite, json and table stores, and a failed run posts once |
 | Airflow WATCHER mode | ADR-0048 (proposed) | the examples' Astro project runs in WATCHER mode with one producer, a sensor and an asset per model, and clearing a failed sensor reruns one unit |

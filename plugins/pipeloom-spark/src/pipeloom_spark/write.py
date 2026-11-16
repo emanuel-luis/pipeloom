@@ -1,4 +1,5 @@
-"""Delta writes: append, overwrite, merge and replace_partitions, each under an idempotency token.
+"""Delta writes: append, overwrite, merge, replace_partitions and scd2, each under an idempotency
+token.
 
 Every per-write setting is a DataFrameWriter option; no Spark conf is touched. A MERGE is plain
 SQL followed by an empty append that carries the token (Delta applies `txnAppId` to a MERGE only
@@ -15,7 +16,9 @@ from typing import Any, Final, Protocol
 
 from pipeloom.diagnostics import JsonValue
 from pipeloom.engine.errors import WriteKeyError, WriteRefusedError
+from pipeloom.engine.portable import scd2_time
 from pipeloom.engine.types import (
+    SCD2_COLUMNS,
     DeleteSpec,
     Relation,
     Schema,
@@ -75,6 +78,100 @@ def merge_statement(
         + " THEN INSERT *"
     )
     return f"MERGE INTO {ident} AS target USING {{src}} AS source ON {on}\n" + "\n".join(clauses)
+
+
+_SYSTEM: Final = frozenset(c.name for c in SCD2_COLUMNS)
+_DEL: Final = "`__pipeloom_del`"
+
+
+def _mk(key: str) -> str:
+    return sqltext.quote_ident(f"__pipeloom_mk_{key}")
+
+
+def _value(alias: str, column: str, dtype: str) -> str:
+    ref = f"{alias}.{sqltext.quote_ident(column)}"
+    return f"CASE WHEN isnan({ref}) THEN NULL ELSE {ref} END" if dtype.startswith("float") else ref
+
+
+def _unchanged(a: str, b: str, tracked: Sequence[str], dtypes: Mapping[str, str]) -> str:
+    """Null-safe equality of every tracked column (NaN counts as null); `true` with none."""
+    terms = [f"{_value(a, c, dtypes[c])} <=> {_value(b, c, dtypes[c])}" for c in tracked]
+    return " AND ".join(terms) or "true"
+
+
+def _is_delete(alias: str, cfg: WriteConfig, dtypes: Mapping[str, str]) -> str:
+    if cfg.deletes is None:
+        return "false"
+    lit = sqltext.literal(cfg.deletes.value, dtypes[cfg.deletes.column])
+    return f"coalesce({alias}{sqltext.quote_ident(cfg.deletes.column)} = {lit}, false)"
+
+
+def scd2_source(
+    ident: str, keys: Sequence[str], cfg: WriteConfig, dtypes: Mapping[str, str]
+) -> str:
+    """The scd2 MERGE source over the batch `{src}`: every batch row with its key copied to the
+    match keys `__pipeloom_mk_<k>` and its delete flag, then again with null match keys for each
+    row that changes a current row, so one MERGE closes the old version and inserts the new."""
+    q = sqltext.quote_ident
+    is_del = _is_delete("s.", cfg, dtypes)
+    marks = ", ".join(f"s.{q(k)} AS {_mk(k)}" for k in keys)
+    nulls = ", ".join("NULL" for _ in keys)
+    on = " AND ".join(f"c.{q(k)} = s.{q(k)}" for k in keys)
+    same = _unchanged("c", "s", cfg.tracked_columns, dtypes)
+    return (
+        f"SELECT s.*, {marks}, {is_del} AS {_DEL} FROM {{src}} AS s\n"
+        "UNION ALL\n"
+        f"SELECT s.*, {nulls}, false FROM {{src}} AS s "
+        f"JOIN {ident} AS c ON {on} AND c.`is_current`\n"
+        f"WHERE NOT {is_del} AND NOT ({same})"
+    )
+
+
+def scd2_merge_statement(
+    ident: str,
+    keys: Sequence[str],
+    business: Sequence[str],
+    cfg: WriteConfig,
+    dtypes: Mapping[str, str],
+    ts: str,
+) -> str:
+    """The scd2 MERGE: close the current row of a deleted or changed key at `ts` (a SQL literal)
+    and insert new keys and changed rows as current from `ts`."""
+    q = sqltext.quote_ident
+    on = " AND ".join(f"target.{q(k)} = source.{_mk(k)}" for k in keys)
+    same = _unchanged("target", "source", cfg.tracked_columns, dtypes)
+    cols = ", ".join(q(c) for c in business)
+    values = ", ".join(f"source.{q(c)}" for c in business)
+    return (
+        f"MERGE INTO {ident} AS target USING (\n{scd2_source(ident, keys, cfg, dtypes)}\n) AS source\n"
+        f"ON {on} AND target.`is_current`\n"
+        f"WHEN MATCHED AND (source.{_DEL} OR NOT ({same})) THEN UPDATE SET "
+        f"`valid_to` = {ts}, `is_current` = false\n"
+        f"WHEN NOT MATCHED AND NOT source.{_DEL} THEN INSERT "
+        f"({cols}, `valid_from`, `valid_to`, `is_current`) VALUES ({values}, {ts}, NULL, true)"
+    )
+
+
+def scd2_counts_query(ident: str, keys: Sequence[str], ts: str) -> str:
+    """Per key, whether a row opened or closed at `ts`: opened keys are inserts, closed and
+    reopened keys updates, closed only keys deletes. Rerunning the MERGE leaves it unchanged."""
+    group = ", ".join(sqltext.quote_ident(k) for k in keys)
+    return (
+        "SELECT count_if(o) AS inserted, count_if(c) AS closed, count_if(c AND NOT o) AS deleted "
+        f"FROM (SELECT bool_or(`valid_from` = {ts}) AS o, "
+        f"bool_or(coalesce(`valid_to` = {ts}, false)) AS c FROM {ident} "
+        f"WHERE `valid_from` = {ts} OR `valid_to` = {ts} GROUP BY {group})"
+    )
+
+
+def _opened(frame: Any, ts: str) -> Any:
+    """`frame` plus the system columns of a current row opened at `ts`."""
+    return frame.selectExpr(
+        "*",
+        f"{ts} AS `valid_from`",
+        "CAST(NULL AS TIMESTAMP_LTZ) AS `valid_to`",
+        "true AS `is_current`",
+    )
 
 
 def _epoch_ms(value: datetime) -> int:
@@ -185,10 +282,11 @@ class DeltaWriter:
         *,
         empty: bool = False,
         claimed: bool = False,
+        result: WriteResult | None = None,
         **more: str,
     ) -> dict[str, str]:
         return {
-            "userMetadata": delta.token_metadata(token, meta, None),
+            "userMetadata": delta.token_metadata(token, meta, result),
             **self._txn(app, started, token if empty or claimed else None, claimed=claimed),
             **more,
         }
@@ -253,16 +351,25 @@ class DeltaWriter:
             return self._replace_partitions(rel, target, ident, cfg, token)
         if strategy == "merge":
             return self._merge(rel, target, ident, cfg, token)
+        if strategy == "scd2":
+            return self._scd2(rel, target, ident, cfg, token)
         raise ValueError(f"spark engine does not support strategy '{strategy}'")
 
     def _overwrite(
-        self, frame: Any, target: TargetRef, ident: str, cfg: WriteConfig, token: str
+        self,
+        frame: Any,
+        target: TargetRef,
+        ident: str,
+        cfg: WriteConfig,
+        token: str,
+        result: WriteResult | None = None,
     ) -> WriteResult:
         opts = self._options(
             token,
             cfg.commit_meta,
             app_id(self._project, token),
             cfg.run_started_at,
+            result=result,
             overwriteSchema="true",
         )
 
@@ -275,7 +382,13 @@ class DeltaWriter:
         return self._run(ident, token, cfg.commit_meta, write)
 
     def _append(
-        self, frame: Any, target: TargetRef, ident: str, cfg: WriteConfig, token: str
+        self,
+        frame: Any,
+        target: TargetRef,
+        ident: str,
+        cfg: WriteConfig,
+        token: str,
+        result: WriteResult | None = None,
     ) -> WriteResult:
         existing, adds, claimed = self._prepare_schema(frame, target, cfg, token)
         if existing is None:
@@ -288,6 +401,7 @@ class DeltaWriter:
             cfg.run_started_at,
             empty=(not self._guard or cfg.run_started_at is None) and frame.isEmpty(),
             claimed=claimed,
+            result=result,
             **more,
         )
 
@@ -355,8 +469,9 @@ class DeltaWriter:
             cfg.run_started_at,
             empty=not tuples,
             claimed=claimed,
-            **({"mergeSchema": "true"} if adds else {}),
         )
+        if adds:
+            base["mergeSchema"] = "true"
 
         def write() -> None:
             if not tuples:  # an empty batch replaces nothing: only the token commit
@@ -405,15 +520,83 @@ class DeltaWriter:
             result = replace(
                 result, rows_updated=updated, rows_deleted=(result.rows_deleted or 0) + soft
             )
+        return self._commit_token(batch, target, ident, cfg, token, result, before, claimed)
+
+    def _commit_token(
+        self,
+        frame: Any,
+        target: TargetRef,
+        ident: str,
+        cfg: WriteConfig,
+        token: str,
+        result: WriteResult,
+        before: int | None,
+        claimed: bool,
+    ) -> WriteResult:
+        """After a MERGE: an empty append that carries the token and `result`."""
         opts = {
             "userMetadata": delta.token_metadata(token, cfg.commit_meta, result),
             # After the claim, `<app>@<token>` still guards two attempts of the same token.
             **self._txn(app_id(self._project, token), cfg.run_started_at, token, claimed=claimed),
         }
-        self._save(self._writer(batch.limit(0), "append", opts), target)
+        self._save(self._writer(frame.limit(0), "append", opts), target)
         if not self._metrics.token_committed(ident, before, token):
             return self._resolve_skipped(ident, token)
         return replace(result, commit_meta=dict(cfg.commit_meta))
+
+    def _scd2(
+        self, rel: Relation, target: TargetRef, ident: str, cfg: WriteConfig, token: str
+    ) -> WriteResult:
+        """Close and open versions with one MERGE over a staged source (ADR-0008 amendment)."""
+        keys = cfg.unique_key
+        if not keys:
+            raise WriteKeyError("scd2 needs a unique_key")
+        batch = self._host.persist(rel).native
+        clash = [c for c in batch.columns if c in _SYSTEM]
+        if clash:
+            raise WriteKeyError(f"the batch has scd2 system column(s) {', '.join(clash)}")
+        self._check_keys(batch, keys, "unique_key")
+        self._check_keys(batch, cfg.tracked_columns, "tracked_columns")
+        if cfg.deletes is not None:
+            if cfg.deletes.mode != "hard":
+                raise ValueError("scd2 supports hard deletes only")
+            self._check_keys(batch, (cfg.deletes.column,), "deletes")
+        nulls = " OR ".join(f"{sqltext.quote_ident(k)} IS NULL" for k in keys)
+        if batch.where(nulls).limit(1).count():
+            raise WriteKeyError("the batch has a null unique_key")
+        self._reject_duplicates(batch, keys)
+        dtypes = {c.name: c.dtype for c in schema_of(batch)}
+        ts = sqltext.literal(scd2_time(cfg), _UTC_TS)
+        claim_cfg = replace(
+            cfg, columns=None if cfg.columns is None else (*cfg.columns, *SCD2_COLUMNS)
+        )
+        exists = self._host.catalog.table_schema(target) is not None
+        if cfg.full_refresh or not exists:  # a first load: every live row opens a version
+            live = _opened(batch.where(f"NOT {_is_delete('', cfg, dtypes)}"), ts)
+            n = int(live.count())
+            counts = WriteResult(n, n, 0, 0)
+            write = self._overwrite if exists else self._append
+            loaded = write(live, target, ident, claim_cfg, token, counts)
+            return replace(loaded, rows_written=n, rows_inserted=n, rows_updated=0, rows_deleted=0)
+        full = _opened(batch, ts)
+        before = self._metrics.before_write(ident)
+        _, adds, claimed = self._prepare_schema(full, target, claim_cfg, token, claim=True)
+        if adds:  # new columns first, in a commit of their own that carries no token
+            self._save(self._writer(full.limit(0), "append", {"mergeSchema": "true"}), target)
+        business = list(batch.columns)
+        self._spark.sql(scd2_merge_statement(ident, keys, business, cfg, dtypes, ts), src=batch)
+        merged = self._metrics.after_write(ident, before, token, merge=True)
+        assert merged is not None  # merge=True always reports
+        row = self._spark.sql(scd2_counts_query(ident, keys, ts)).first()
+        inserted, closed, deleted = int(row["inserted"]), int(row["closed"]), int(row["deleted"])
+        result = replace(
+            merged,
+            rows_written=inserted + closed,
+            rows_inserted=inserted,
+            rows_updated=closed - deleted,
+            rows_deleted=deleted,
+        )
+        return self._commit_token(full, target, ident, cfg, token, result, before, claimed)
 
     def _reject_duplicates(self, batch: Any, keys: Sequence[str]) -> None:
         from pyspark.sql import functions as F

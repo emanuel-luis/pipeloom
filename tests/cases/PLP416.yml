@@ -1,0 +1,22 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    targets:
+      dev:
+        engine:
+          kind: memory
+  models/m.yml: |
+    models:
+      - name: a
+        sql: select 1 as id, 'x' as is_current
+        materialized: table
+        write:
+          strategy: scd2
+          unique_key:
+            - id
+          tracked_columns: []
+          deletes:
+            column: is_current
+            mode: soft

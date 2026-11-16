@@ -69,8 +69,7 @@ def test_unsupported_format_and_strategy(tmp_path: Path) -> None:
     with PolarsEngine().session(ctx(tmp_path), catalog=catalog) as s:
         with pytest.raises(ValueError, match="format"):
             s.reader("orc")
-        with pytest.raises(ValueError, match="strategy"):
-            s.materializer("scd2")
+        assert s.materializer("scd2") is not None
 
 
 def test_a_missing_table_raises(tmp_path: Path) -> None:
