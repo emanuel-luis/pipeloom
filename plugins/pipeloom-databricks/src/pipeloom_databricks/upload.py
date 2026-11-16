@@ -19,7 +19,7 @@ import yaml
 
 from pipeloom.diagnostics import Location, Report, Severity
 from pipeloom.plan.manifest import manifest_bytes
-from pipeloom.plan.model import Plan
+from pipeloom.plan.model import Plan, PythonBody
 from pipeloom_databricks.client import ApiError, DatabricksClient
 
 MAX_FILE_BYTES: Final = 10 * 1024 * 1024
@@ -79,11 +79,17 @@ def collect(
         found.setdefault(rel, path)
 
     add(root / CONFIG_FILE)
-    for rel_file in [n.file for n in plan.nodes.values()] + [s.file for s in plan.sources.values()]:
-        add(root / rel_file)
+    # Modules of model_packages are installed in the job environment (ADR-0050 point 17).
+    packages = _config_list(root, "model_packages", [])
+    for node in plan.nodes.values():
+        module = node.body.callable.partition(":")[0] if isinstance(node.body, PythonBody) else ""
+        if not any(module == p or module.startswith(p + ".") for p in packages):
+            add(root / node.file)
+    for source in plan.sources.values():
+        add(root / source.file)
     # Properties YAML under model_paths, for parity with the project folder (ADR-0050 point 17).
     entries: list[tuple[str, tuple[str, ...]]] = [(e, (".py",)) for e in plan.metadata.python_paths]
-    entries += [(e, (".yml", ".yaml")) for e in _model_paths(root)]
+    entries += [(e, (".yml", ".yaml")) for e in _config_list(root, "model_paths", ["models"])]
     for entry, suffixes in entries:
         base = (root / entry).resolve()
         if not base.is_dir():
@@ -121,14 +127,15 @@ def collect(
     return Payload(ordered, _digest(ordered))
 
 
-def _model_paths(root: Path) -> list[str]:
-    """The `model_paths` of pipeloom.yml; the plan does not record them."""
+def _config_list(root: Path, key: str, default: list[str]) -> list[str]:
+    """A list setting of pipeloom.yml (`model_paths`, `model_packages`); the plan does not record
+    them."""
     try:
         doc = yaml.safe_load((root / CONFIG_FILE).read_bytes())
     except (OSError, yaml.YAMLError):
         return []
-    paths = doc.get("model_paths") if isinstance(doc, dict) else None
-    return [str(p) for p in paths] if isinstance(paths, list) else ["models"]
+    paths = doc.get(key) if isinstance(doc, dict) else None
+    return [str(p) for p in paths] if isinstance(paths, list) else default
 
 
 def _read(path: Path, rel: str, report: Report) -> bytes | None:
