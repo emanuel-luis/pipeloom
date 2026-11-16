@@ -1,1 +1,1 @@
-error PLX101 src/m.py:2 model 'a' raised: ValueError: boom
+error PLX101 src/m.py:7 model 'a' raised: ValueError: boom

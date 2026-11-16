@@ -25,10 +25,13 @@ files:
         main: {}
     targets:
       prod: {}
-  models/m.yml: |
-    models:
-      - name: a
-        sql: select 1 as x
+  models/m.py: |
+    from pipeloom import model
+
+
+    @model
+    def a(ctx):
+        return ctx.sql("select 1 as x")
   nb.py: |
     # Databricks notebook source
     print(1)

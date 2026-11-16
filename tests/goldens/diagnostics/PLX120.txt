@@ -1,2 +1,2 @@
-error PLX120 models/m.yml:2 view model 'a' returned list, not the result of ctx.sql(...): pipeloom.runtime.sql.ViewModeError: returned list
+error PLX120 src/m.py:3 view model 'a' returned list, not the result of ctx.sql(...): pipeloom.runtime.sql.ViewModeError: returned list
       hint: return ctx.sql(...) over the input aliases, or materialize the model as a table

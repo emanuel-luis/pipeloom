@@ -5,10 +5,10 @@
     "message": "'m:a' calls ctx.sql, but engine 'nosql' has no SQL",
     "hint": "write the model with frames, or choose an engine with SQL",
     "location": {
-      "file": "models/m.yml",
+      "file": "src/m.py",
       "line": 3,
-      "col": 13,
-      "json_pointer": "/models/0/python"
+      "col": 2,
+      "json_pointer": "/@model"
     },
     "context": {
       "model": "a",

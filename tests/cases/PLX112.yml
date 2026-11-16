@@ -11,13 +11,17 @@ files:
           kind: memory
         catalog:
           kind: memory
-  models/m.yml: |
-    models:
-      - name: a
-        materialized: intermediate
-        sql: select 1 as x
-      - name: b
-        sql: select * from a
-        inputs:
-          a:
-            ref: a
+  models/m.py: |
+    from pipeloom import model
+
+
+    @model(
+        materialized="intermediate",
+    )
+    def a(ctx):
+        return ctx.sql("select 1 as x")
+
+
+    @model
+    def b(ctx, a):
+        return ctx.sql("select * from a")

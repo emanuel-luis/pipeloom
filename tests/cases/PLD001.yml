@@ -14,11 +14,20 @@ files:
       kind: databricks
     targets:
       dev: {}
-  models/m.yml: |
-    models:
-      - name: a
-        sql: select 1 as x
-      - name: b
-        sql: select 1 as x
-      - name: c
-        sql: select 1 as x
+  models/m.py: |
+    from pipeloom import model
+
+
+    @model
+    def a(ctx):
+        return ctx.sql("select 1 as x")
+
+
+    @model
+    def b(ctx):
+        return ctx.sql("select 1 as x")
+
+
+    @model
+    def c(ctx):
+        return ctx.sql("select 1 as x")

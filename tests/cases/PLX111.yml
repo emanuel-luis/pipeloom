@@ -15,12 +15,15 @@ files:
         state:
           kind: json
           path: .pipeloom/state
-  models/m.yml: |
-    models:
-      - name: a
-        sql: select 1 as x
-      - name: b
-        sql: select * from a
-        inputs:
-          a:
-            ref: a
+  models/m.py: |
+    from pipeloom import model
+
+
+    @model
+    def a(ctx):
+        return ctx.sql("select 1 as x")
+
+
+    @model
+    def b(ctx, a):
+        return ctx.sql("select * from a")
