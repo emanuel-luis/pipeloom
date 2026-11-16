@@ -94,11 +94,33 @@ config schemas ([ADR-0049](../adr/0049-artifact-schemas-and-orchestrator-protoco
 | an attempt file | `#/$defs/result` of run_results.json |
 | one event (`pipeloom.event/1`) | [event.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/event.json) |
 | `--unit-states` (`pipeloom.unit_states/1`) | [unit_states.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_states.json) |
+| `graph --units --output json` (`pipeloom.unit_graph/1`) | [unit_graph.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_graph.json) |
 
 Compatibility within a version: consumers must ignore fields they do not know, since the schemas
 leave objects open. A 1.x release may add optional fields, new event types and new skip reasons
 and stays on `/1`. A new value of a closed enum (`status`, `level`) or any change a consumer must
 understand moves the document to `/2`.
+
+## Unit graph
+
+`pipeloom graph --units --output json` prints the execution units an orchestrator runs one by
+one, tagged `pipeloom.unit_graph/1`. With `--manifest PATH` it reads the plan from that manifest,
+so `plan_hash` is the manifest's; without it the command compiles the project. A unit is in scope
+when its persisted model is selected; `parents` and `edges` only name units in scope.
+
+| Key | Meaning |
+|---|---|
+| `project`, `target`, `plan_hash` | From the plan. |
+| `selectors` | `select` and `exclude` as given; the finalize command repeats them. |
+| `placeholders` | `project_dir`, `manifest` and `run_id`: written as `{name}` in every `argv`. |
+| `units` | Topological order, ties broken by unit id. Each has `unit_id`, `unique_id`, `nodes`, `materialized`, `relation` (`catalog`, `schema`, `name`) and `relation_name` (null without a relation), `assets`, `parents`, `tags`, `retries`, `retry_delay_s`, `retry_on`, `timeout_s` and `argv`. |
+| `edges` | `{"from": parent, "to": child}`. |
+| `finalize.argv` | The command line that closes the run. |
+
+An `argv` starts with `pipeloom`; the unit id, target and plan hash are literal. Assets are
+`pipeloom://{project}/{target}/{relation_name}` with each part percent-encoded; intermediates and
+models without a relation have none. The schema is
+[unit_graph.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_graph.json).
 
 ## Events
 
