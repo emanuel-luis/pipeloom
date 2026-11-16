@@ -37,6 +37,10 @@ openlineage = "pipeloom_openlineage.spec:SPEC"
 [tool.uv.sources]
 pipeloom = { workspace = true }
 
+[tool.pipeloom]
+config-version = 1
+plugin-api = "1.0"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/pipeloom_openlineage"]
 

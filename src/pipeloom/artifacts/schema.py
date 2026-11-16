@@ -1,7 +1,10 @@
-"""JSON Schemas of the run artifacts (ADR-0049): `run_results`, `event`, `unit_states` and `unit_graph`.
+"""JSON Schemas of the artifacts (ADR-0049): `manifest`, `run_results`, `event`, `unit_states`
+and `unit_graph`.
 
-Events come from the pydantic models in `pipeloom.events.model`; run results and unit states are
-written here by hand, since their rows are plain dicts. The published schemas are open: a
+Events come from the pydantic models in `pipeloom.events.model`, the unit graph from
+`pipeloom.artifacts.unit_graph`, and the manifest's `$defs` from the plan models (its top level
+is written here, as `manifest_dict` shapes it). Run results and unit states are written here by
+hand, since their rows are plain dicts. The published schemas are open: a
 consumer must ignore fields it does not know, so a later 1.x can add fields. `close()` builds the
 strict variant the tests use to catch a field emitted by mistake.
 """
@@ -9,14 +12,17 @@ strict variant the tests use to catch a field emitted by mistake.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from typing import Any, Final
+from typing import Any, Final, get_args
 
 from pydantic import BaseModel
 
 from pipeloom.artifacts.results import RESULTS_SCHEMA
 from pipeloom.artifacts.unit_graph import UNIT_GRAPH_SCHEMA, UnitGraph
+from pipeloom.config.models import Materialized
 from pipeloom.config.schema import DIALECT, SCHEMA_BASE_URL
 from pipeloom.events.model import EVENT_SCHEMA, ErrorInfo, Event, EventPayload
+from pipeloom.plan.manifest import MANIFEST_SCHEMA
+from pipeloom.plan.model import PlanMetadata, PlanNode, PlanSelection, PlanSource
 
 UNIT_STATES_SCHEMA: Final = "pipeloom.unit_states/1"
 
@@ -26,6 +32,26 @@ _INTEGER: Final = {"type": "integer"}
 _BOOLEAN: Final = {"type": "boolean"}
 _STRINGS: Final = {"type": "array", "items": _STRING}
 _OBJECT: Final = {"type": "object"}
+# The resolved config keys every 1.0 manifest writes. Frozen: a field added later stays optional
+# (ADR-0049), so it must not join this tuple.
+MANIFEST_CONFIG_REQUIRED: Final = (
+    "materialized",
+    "write",
+    "incremental",
+    "partition_by",
+    "cluster_by",
+    "expectations",
+    "quality",
+    "tags",
+    "retries",
+    "retry_delay",
+    "retry_on",
+    "timeout",
+    "frame_api",
+    "schema",
+    "catalog",
+    "meta",
+)
 _ORCHESTRATOR_IDS: Final = {
     "type": "object",
     "propertyNames": {"pattern": "^[a-z][a-z0-9_]{0,63}$"},
@@ -289,9 +315,62 @@ def unit_graph_schema() -> dict[str, Any]:
     return _document("unit_graph.json", UNIT_GRAPH_SCHEMA, "pipeloom unit graph", body)
 
 
-# File name under schema/v1/ to builder. The manifest joins with its PR.
+def manifest_schema() -> dict[str, Any]:
+    """`pipeloom.manifest/1`: the output of `pipeloom compile`. The top level is written here,
+    as `manifest_dict` shapes it; the node, source and metadata objects come from the plan
+    models, adjusted where `manifest_dict` reshapes their dump."""
+    defs: dict[str, Any] = {}
+    for model in (PlanMetadata, PlanNode, PlanSource, PlanSelection):
+        defs[model.__name__] = _model(model, defs)
+    node = defs["PlanNode"]["properties"]
+    # The model types it as str; ADR-0049 makes it a closed enum.
+    node["materialized"] = {"enum": list(get_args(Materialized))}
+    # `_node` drops these keys while they are None, so they are an array or absent.
+    for key in ("columns", "data_tests"):
+        node[key] = node[key]["anyOf"][0]
+    meta = defs["PlanMetadata"]["properties"]
+    meta["deploy"] = {**_OBJECT, "description": "Absent when the target has no deploy block."}
+    for key in ("generated_at", "invocation_id"):
+        meta[key]["description"] = "An empty string in `compile --stable` output."
+    config = defs["ResolvedModelConfig"]
+    # `_config` drops `sql_dialect` while it is None.
+    config["properties"]["sql_dialect"] = {**_STRING, "description": "Absent while unset."}
+    config["required"] = list(MANIFEST_CONFIG_REQUIRED)
+    ids = {"type": "object", "additionalProperties": _STRINGS}
+    body = {
+        "description": "The compiled plan: nodes, sources, execution units and edges.",
+        "properties": {
+            "metadata": {"$ref": _DEFS + "PlanMetadata"},
+            "nodes": {"type": "object", "additionalProperties": {"$ref": _DEFS + "PlanNode"}},
+            "sources": {"type": "object", "additionalProperties": {"$ref": _DEFS + "PlanSource"}},
+            "units": {**ids, "description": "Unit id to its node ids, in run order."},
+            "unit_parent_map": {**ids, "description": "Unit id to the unit ids it reads from."},
+            "parent_map": {**ids, "description": "Unique id to its parents' unique ids."},
+            "child_map": {**ids, "description": "Unique id to its children's unique ids."},
+            "selectors": {
+                "$ref": _DEFS + "PlanSelection",
+                "description": "Empty lists in `compile --stable` output.",
+            },
+        },
+        "required": [
+            "metadata",
+            "nodes",
+            "sources",
+            "units",
+            "unit_parent_map",
+            "parent_map",
+            "child_map",
+            "selectors",
+        ],
+        "$defs": dict(sorted(defs.items())),
+    }
+    return _document("manifest.json", MANIFEST_SCHEMA, "pipeloom manifest", body)
+
+
+# File name under schema/v1/ to builder.
 _BUILDERS: Final[Mapping[str, Callable[[], dict[str, Any]]]] = {
     "event.json": event_schema,
+    "manifest.json": manifest_schema,
     "run_results.json": run_results_schema,
     "unit_graph.json": unit_graph_schema,
     "unit_states.json": unit_states_schema,

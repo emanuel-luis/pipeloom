@@ -19,6 +19,10 @@ Within a major version these do not change in a breaking way:
 - The meaning of each diagnostic code.
 - The documented Python API: the `pipeloom` top-level exports and `pipeloom.api`.
 
+Release candidates such as `1.0.0rc1` are published to PyPI, and `pip` skips them unless you
+pass `--pre`. The distributions pin each other with `~=` on the prerelease (`pipeloom~=1.0.0rc1`),
+which accepts `1.0.0rc1` and the final `1.0.0`, but no other minor.
+
 ## What may change in a minor release
 
 - Console text, including messages and hints of diagnostics, log lines and table layout. Read
