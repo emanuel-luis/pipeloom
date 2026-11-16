@@ -17,7 +17,13 @@ ROOT = "/usr/local/airflow/examples/"
 
 
 def test_dags_exist() -> None:
-    assert len(DAGS) == 4
+    assert [p.name for p in DAGS] == [
+        "tpch_databricks.py",
+        "tpch_pandas.py",
+        "tpch_polars.py",
+        "tpch_polars_watcher.py",
+        "tpch_spark.py",
+    ]
 
 
 @pytest.mark.parametrize("dag", DAGS, ids=lambda p: p.name)
