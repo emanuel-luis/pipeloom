@@ -28,6 +28,7 @@ In LOCAL, VIRTUALENV and KUBERNETES modes every unit is its own Airflow task and
 8. Shared storage: the watcher lists the unit folder and also opens `attempt-1` up to `attempt-<retries + 1>` by name, since an NFS listing can lag behind a file. Partial or invalid JSON is not visible. Waiting is bounded by the grace.
 9. Rerun and finalize: a unit invocation takes no lock and writes no results; `pipeloom_finalize`, cleared with Downstream, merges the new attempt and overwrites the producer's `run_results.json`.
 10. Codes: PLA008 (WATCHER artifacts root not resolved) and PLA009 (WATCHER producer ended without run results).
+11. OpenLineage (ADR-0046): the producer's child carries the Airflow ids, so the `openlineage` sink stays silent by default. Each watcher reports its unit to the Airflow provider through the operator hooks, with the static datasets of the manifest, as KUBERNETES does; the producer reports nothing.
 
 ## Consequences
 

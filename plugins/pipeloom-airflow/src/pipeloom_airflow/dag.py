@@ -358,7 +358,7 @@ def _build_watcher(
             extra["outlets"] = [Asset(name=uri, uri=uri) for uri in t.assets]
         if t.group:
             extra["task_group"] = group(t.group)
-        ops[t.task_id] = PipeloomWatcherSensor(
+        watcher = PipeloomWatcherSensor(
             task_id=t.task_id,
             unit_id=t.unit_id,
             command=command,
@@ -376,6 +376,11 @@ def _build_watcher(
             **extra,
             **operator_args,
         )
+        # as in the other modes: the producer's child is silent inside Airflow, so each watcher
+        # reports its unit's datasets to the OpenLineage provider
+        watcher.lineage_plan = plan.plan
+        watcher.lineage_project_dir = command.project_dir
+        ops[t.task_id] = watcher
     for t in plan.tasks:
         for up in t.upstream:
             ops[up] >> ops[t.task_id]
