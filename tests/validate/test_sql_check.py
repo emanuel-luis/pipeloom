@@ -7,9 +7,8 @@ from typing import Any
 
 import pytest
 
-from tests.conftest import make_project
-
 from pipeloom.api import Project, ProjectOptions
+from tests.conftest import make_project
 
 PROJECT = {
     "pipeloom.yml": "config_version: 1\nname: shop\ntargets:\n  dev:\n    engine: {kind: memory}\n",

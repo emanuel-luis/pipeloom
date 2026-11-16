@@ -9,14 +9,13 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from tests.conftest import make_project
-
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.events.bus import EventBus
 from pipeloom.runtime.run import RunOptions, RunOutcome
 from pipeloom.testing.clock import FakeClock
 from pipeloom.testing.memory import JsonTableStore
 from pipeloom.testing.recording import RecordingSink
+from tests.conftest import make_project
 
 ORDERS = [{"id": 1, "v": 5}, {"id": 2, "v": -1}, {"id": 3, "v": 7}]
 
