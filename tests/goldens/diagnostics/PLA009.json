@@ -1,0 +1,12 @@
+[
+  {
+    "code": "PLA009",
+    "severity": "error",
+    "message": "the producer task ended, but no attempt file of the unit and no run_results.json is visible under artifacts.root",
+    "hint": null,
+    "location": null,
+    "context": {
+      "unit": "a"
+    }
+  }
+]

@@ -10,6 +10,7 @@ import sys
 import pipeloom_airflow
 from pipeloom_airflow import (config, errors, load, naming, render, commands, states, version)
 from pipeloom_airflow.testing import cases
+from pipeloom_airflow.watcher import state
 assert "airflow" not in sys.modules, "airflow was imported"
 for name in ("kubernetes", "databricks", "databricks.sdk", "pyspark"):
     assert name not in sys.modules, name + " was imported"

@@ -1,0 +1,2 @@
+error PLA008 artifacts.root '${env:ARTIFACTS_ROOT}' is resolved only at run time
+      hint: set execution.watcher_artifacts_root to the absolute artifacts root

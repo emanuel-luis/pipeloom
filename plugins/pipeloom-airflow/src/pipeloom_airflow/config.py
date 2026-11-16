@@ -13,6 +13,7 @@ from typing import Any, Final, Literal
 from pydantic import JsonValue
 
 from pipeloom.diagnostics import Report
+from pipeloom.graph.selectors import Selection, is_unit_selection
 from pipeloom_airflow.naming import PLACEHOLDERS
 
 
@@ -27,6 +28,7 @@ class ExecutionMode(StrEnum):
     KUBERNETES = "kubernetes"
     DATABRICKS = "databricks"
     DOCKER = "docker"
+    WATCHER = "watcher"
 
 
 @dataclass(frozen=True)
@@ -78,6 +80,13 @@ class ExecutionConfig:
     """Seconds the launch waits for the job run before it times out (and retries, attaching)."""
     databricks_client_factory: str | None = None
     """`module:attr`, for tests only."""
+    watcher_workers: int | None = None
+    """`--workers` of the producer's run; None keeps the target's."""
+    watcher_poll_interval: float = 10.0
+    watcher_timeout: float = 86400.0
+    """Seconds: the producer's execution_timeout and each watcher's deadline for one try."""
+    watcher_artifacts_root: str | None = None
+    """Absolute path; overrides the artifacts root read from pipeloom.yml at parse time."""
 
 
 OPERATOR_ARGS_RESERVED: Final = (
@@ -139,7 +148,7 @@ def validate_configs(
         report.add(
             "PLA001",
             "execution mode 'docker' is not supported",
-            hint="use local, virtualenv, kubernetes or databricks",
+            hint="use local, virtualenv, kubernetes, databricks or watcher",
         )
     if render.load_method is LoadMode.MANIFEST and not project.manifest_path:
         bad("load_method 'manifest' needs project.manifest_path", "or use load_method 'project'")
@@ -150,15 +159,30 @@ def validate_configs(
         "execution.project_dir": execution.project_dir,
         "execution.manifest_path": execution.manifest_path,
         "execution.virtualenv_dir": execution.virtualenv_dir,
+        "execution.watcher_artifacts_root": execution.watcher_artifacts_root,
     }
     for name, value in paths.items():
         if value is not None and not _absolute(value):
             bad(f"{name} must be an absolute path, got '{value}'")
     if execution.mode is ExecutionMode.VIRTUALENV and not execution.virtualenv_dir:
         bad("execution mode 'virtualenv' needs execution.virtualenv_dir")
-    for name in ("databricks_timeout", "databricks_poll_interval"):
+    for name in (
+        "databricks_timeout",
+        "databricks_poll_interval",
+        "watcher_timeout",
+        "watcher_poll_interval",
+    ):
         if not getattr(execution, name) > 0:
             bad(f"execution.{name} must be a positive number of seconds")
+    if execution.watcher_workers is not None and execution.watcher_workers < 1:
+        bad(f"execution.watcher_workers must be 1 or more, got {execution.watcher_workers}")
+    if execution.mode is ExecutionMode.WATCHER and is_unit_selection(
+        Selection(render.select, render.exclude)
+    ):
+        bad(
+            "a WATCHER selection made only of unit: selectors runs the producer in unit mode",
+            "select models by name, tag or path instead",
+        )
     if execution.mode is ExecutionMode.KUBERNETES:
         if execution.kubernetes is None or not execution.kubernetes.image:
             bad("execution mode 'kubernetes' needs execution.kubernetes.image")

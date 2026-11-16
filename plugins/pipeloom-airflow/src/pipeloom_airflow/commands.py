@@ -7,12 +7,14 @@ import posixpath
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Final, Literal
 
 from pipeloom.diagnostics import Report
 from pipeloom.platform import check_orchestrator_id
 from pipeloom_airflow import naming
 from pipeloom_airflow.errors import PipeloomAirflowError
+
+ALL_MODELS: Final = "name:*"
 
 
 @dataclass(frozen=True)
@@ -123,6 +125,40 @@ class CoreCommand:
             "true" if ctx.full_refresh else "false",
             *_ids(ctx),
             *self._vars(),
+        ]
+
+    def producer_argv(
+        self,
+        python: Sequence[str],
+        ctx: RunContext,
+        *,
+        select: Sequence[str],
+        exclude: Sequence[str],
+        workers: int | None,
+    ) -> list[str]:
+        """The WATCHER producer: one run of the whole rendered selection. An empty `select`
+        becomes `name:*`, as the DAG renders every unit, while a run without selectors keeps the
+        selection a non-stable manifest recorded at compile time."""
+        return [
+            *python,
+            "-m",
+            "pipeloom",
+            "run",
+            "--log-format",
+            "json",
+            *self._base(),
+            *self._plan(),
+            *[a for s in (select or [ALL_MODELS]) for a in ("--select", s)],
+            *[a for s in exclude for a in ("--exclude", s)],
+            "--run-id",
+            ctx.run_id,
+            "--run-started-at",
+            ctx.run_started_at.isoformat(),
+            "--full-refresh",
+            "true" if ctx.full_refresh else "false",
+            *_ids(ctx),
+            *self._vars(),
+            *(["--workers", str(workers)] if workers is not None else []),
         ]
 
     def finalize_argv(
