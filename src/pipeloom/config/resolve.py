@@ -445,7 +445,7 @@ def resolve_project(
         else:
             models[m.unique_id] = m
 
-    names = {m.name for m in models.values()}
+    names = {m.name for m in models.values()} | broken
     problems = [
         PropertiesProblem(name, file, ptr, None)
         for name, (file, ptr, _) in props.items()
