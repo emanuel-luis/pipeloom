@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import sys
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -154,6 +155,19 @@ def find_files(
             )
             continue
         module = own if own is not None else _fast_module(f, root_texts)
+        top = (module or "").partition(".")[0]
+        if top in sys.stdlib_module_names:
+            failures.append(
+                DiscoveryFailure(
+                    rel,
+                    None,
+                    None,
+                    "name_mismatch",
+                    f"model module '{module}' shadows the standard library module '{top}'; "
+                    "rename it",
+                )
+            )
+            continue
         files.append(SourceFile(rel, f, module, stats.get(f)))
     return sorted(files, key=lambda s: s.path), failures
 

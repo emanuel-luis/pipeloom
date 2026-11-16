@@ -753,7 +753,7 @@ _ACTIVE_09: Final = (
         "PLY005",
         E,
         "Model module cannot be loaded",
-        "A Python file under model_paths or model_packages has a syntax error, raised an exception while it was imported, lies outside every python_paths root, or resolves to another file under its module name (an installed package or another module shadows it). Every such file is reported; the location is the innermost traceback frame in that file, or the syntax error. While any is reported, PLR209 is not, since the missing models may be the ones a properties entry describes.",
+        "A Python file under model_paths or model_packages has a syntax error, raised an exception while it was imported, lies outside every python_paths root, or resolves to another file under its module name (an installed package or another module shadows it, or its top-level name is a standard library module). Every such file is reported; the location is the innermost traceback frame in that file, or the syntax error. While any is reported, PLR209 is not, since the missing models may be the ones a properties entry describes.",
     ),
     (
         "PLR210",

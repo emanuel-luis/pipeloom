@@ -242,6 +242,17 @@ def test_a_keyword_typo_is_pls101_only(tmp_path: Path, name: str, extra: str) ->
     assert [d.code for d in outcome.diagnostics if d.severity == "error"] == ["PLS101"]
 
 
+def test_a_model_module_named_like_the_standard_library_is_ply005(tmp_path: Path) -> None:
+    code = "from pipeloom import model\n\n\n@model\ndef cal(ctx):\n    return []\n"
+    root = make_project(tmp_path, {**FILES, "models/calendar.py": code})
+    outcome = Project(ProjectOptions(project_dir=root, env={})).validate()
+    found = [d for d in outcome.diagnostics if d.code == "PLY005"]
+    assert [(d.location and d.location.file, d.context) for d in found] == [
+        ("models/calendar.py", {"kind": "name_mismatch"})
+    ]
+    assert "shadows the standard library module 'calendar'" in found[0].message
+
+
 def test_python_and_yaml_models_with_one_name(tmp_path: Path) -> None:
     code = """\
 from pipeloom import model
