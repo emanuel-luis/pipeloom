@@ -8,6 +8,7 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -99,21 +100,47 @@ def test_an_open_unit_defers_on_its_trigger(af_project: Project) -> None:
     }
 
 
-def test_a_succeeded_attempt_succeeds_and_logs_its_tail(af_project: Project) -> None:
+def capture_log(op: Any, monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """Replace the operator's task logger with a mock (the Airflow logger's handlers vary)."""
+    log = MagicMock()
+    monkeypatch.setattr(type(op), "log", log, raising=False)
+    return log
+
+
+def logged(log: MagicMock) -> str:
+    """Every message the mock received, formatted like the logging module does."""
+    calls = [*log.info.call_args_list, *log.error.call_args_list]
+    return "\n".join(c.args[0] % c.args[1:] for c in calls)
+
+
+def test_a_succeeded_attempt_succeeds_and_logs_its_tail(
+    af_project: Project, monkeypatch: pytest.MonkeyPatch
+) -> None:
     op = watcher(af_project)
+    log = capture_log(op, monkeypatch)
     write_attempt(af_project, op.unit_id, 1, "succeeded")
-    log = paths(af_project).log(op.unit_id, 1)
-    log.parent.mkdir(parents=True, exist_ok=True)
-    log.write_text("".join(f"line {i}\n" for i in range(300)), encoding="utf-8")
+    path = paths(af_project).log(op.unit_id, 1)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(f"line {i}\n" for i in range(300)), encoding="utf-8")
     assert op.execute(context(op, "running")) is None
     assert op.execute(context(op, "success")) is None
+    text = logged(log)
+    assert f"unit {op.unit_id} attempt 1 succeeded" in text
+    assert "line 299" in text
+    assert "line 99\n" not in text  # only the last 200 of 300 lines
+    assert "last 200 lines" in text
 
 
-def test_a_reported_failure_fails_without_retry(af_project: Project) -> None:
+def test_a_reported_failure_fails_without_retry(
+    af_project: Project, monkeypatch: pytest.MonkeyPatch
+) -> None:
     op = watcher(af_project)
+    log = capture_log(op, monkeypatch)
     write_attempt(af_project, op.unit_id, 1, "failed", trace_excerpt=["Traceback", "ValueError"])
     with pytest.raises(AirflowFailException, match="PLM204 boom"):
         op.execute(context(op, "success"))
+    text = logged(log)
+    assert "trace excerpt:\nTraceback\nValueError" in text
 
 
 def test_a_cancelled_row_fails(af_project: Project) -> None:
