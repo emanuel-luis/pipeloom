@@ -102,6 +102,23 @@ def test_a_touched_file_is_a_miss(project: Path, tmp_path: Path, compiles: list[
     assert again is not None and again.source == "project" and len(compiles) == 2
 
 
+def test_the_cache_key_covers_model_packages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    proj = tmp_path / "p"
+    proj.mkdir()
+    (proj / "pipeloom.yml").write_text(
+        "config_version: 1\nname: gen\nmodel_packages: [extpkg_for_key.models]\n", encoding="utf-8"
+    )
+    pkg = tmp_path / "site" / "extpkg_for_key"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    monkeypatch.syspath_prepend(str(tmp_path / "site"))
+    before = load_module._cache_key(proj, "ci", {})
+    (pkg / "m.py").write_text("x = 1\n", encoding="utf-8")
+    assert load_module._cache_key(proj, "ci", {}) != before
+
+
 def test_new_vars_are_a_miss(project: Path, tmp_path: Path, compiles: list[int]) -> None:
     cache = tmp_path / "cache"
     go(project, cache)

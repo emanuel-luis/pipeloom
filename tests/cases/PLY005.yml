@@ -1,0 +1,37 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    model_paths: [models, extra]
+    python_paths: [models]
+    targets:
+      dev:
+        engine:
+          kind: memory
+  models/_properties.yml: |
+    models:
+      - name: ghost
+        description: Its module raises while it is imported, so no PLR209 is reported.
+  models/broken_syntax.py: |
+    from pipeloom import model
+
+
+    @model
+    def a(ctx:
+        return None
+  models/raises.py: |
+    from pipeloom import model
+
+    raise RuntimeError("boom")
+
+
+    @model(tags=[t for t in ("a", "b")])
+    def ghost(ctx):
+        return None
+  extra/outside.py: |
+    from pipeloom import model
+
+
+    @model
+    def c(ctx):
+        return None

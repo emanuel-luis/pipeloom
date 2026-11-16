@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner, Result
 
+from pipeloom.api import ProjectOptions
 from pipeloom.cli import main
 from pipeloom.docs.serve import make_server
 from tests.conftest import FIXTURES, make_project
@@ -291,13 +292,119 @@ def test_serve_stops_on_ctrl_c(project: Path, monkeypatch: pytest.MonkeyPatch) -
 def test_serve_default_dir_and_busy_port(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     assert cli("docs", "generate", "--project-dir", str(project)).exit_code == 0
 
-    def refuse(directory: Path, host: str, port: int) -> ThreadingHTTPServer:
+    def refuse(directory: Path, host: str, port: int, on_index: object) -> ThreadingHTTPServer:
         raise OSError("address in use")
 
     # `pipeloom.cli.docs` as an attribute path is the click group, so go through sys.modules
     monkeypatch.setattr(sys.modules["pipeloom.cli.docs"], "make_server", refuse)
     result = cli("docs", "serve", "--project-dir", str(project))
     assert result.exit_code == 2 and "cannot listen on 127.0.0.1:8000" in result.stderr
+
+
+def opts_of(project: Path) -> ProjectOptions:
+    return ProjectOptions(project_dir=project, env={})
+
+
+@pytest.fixture
+def served(
+    monkeypatch: pytest.MonkeyPatch,
+) -> list[ProjectOptions]:
+    """The options `docs serve` builds its refresher with; serving stops at once."""
+    seen: list[ProjectOptions] = []
+    module = sys.modules["pipeloom.cli.docs"]
+    real = module._refresher
+
+    def spy(opts: ProjectOptions, folder: Path) -> object:
+        seen.append(opts)
+        return real(opts, folder)
+
+    def interrupt(self: ThreadingHTTPServer, poll_interval: float = 0.5) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(module, "_refresher", spy)
+    monkeypatch.setattr(ThreadingHTTPServer, "serve_forever", interrupt)
+    return seen
+
+
+def test_serve_target_vars_and_plugin_reach_the_refresher(
+    tmp_path: Path, served: list[ProjectOptions]
+) -> None:
+    out = tmp_path / "o"
+    assert cli("docs", "generate", *SHOP, "--out", str(out)).exit_code == 0
+    result = cli(
+        "docs", "serve", *SHOP, "--vars", "{region: BR}", "--plugin",
+        "tests.plugins.fakes:FAKE_SINK", "--dir", str(out), "--port", "0",
+    )  # fmt: skip
+    assert result.exit_code == 0, result.stderr
+    (opts,) = served
+    assert (opts.target, dict(opts.vars), tuple(opts.plugins)) == (
+        "ci",
+        {"region": "BR"},
+        ("tests.plugins.fakes:FAKE_SINK",),
+    )
+    assert "does not resolve" not in result.stderr
+
+
+def test_serve_target_from_environment(tmp_path: Path, served: list[ProjectOptions]) -> None:
+    out = tmp_path / "o"
+    shop = ["--project-dir", str(FIXTURES / "shop")]
+    assert cli("docs", "generate", *shop, "--target", "dev", "--out", str(out)).exit_code == 0
+    result = CliRunner().invoke(
+        main,
+        ["docs", "serve", *shop, "--dir", str(out), "--port", "0"],
+        env={**ENV, "PIPELOOM_TARGET": "dev"},
+    )
+    assert result.exit_code == 0, result.stderr
+    assert served[0].target == "dev"
+
+
+def test_serve_a_project_that_does_not_resolve_serves_the_static_page(
+    tmp_path: Path, served: list[ProjectOptions]
+) -> None:
+    root = make_project(tmp_path / "bad", {"pipeloom.yml": "config_version: 1\nname: x\n"})
+    (root / "site").mkdir()
+    (root / "site" / "index.html").write_text("<html></html>", encoding="utf-8")
+    result = cli("docs", "serve", "--project-dir", str(root), "--dir", "site", "--port", "0")
+    assert result.exit_code == 0
+    assert result.stderr.splitlines() == [
+        "docs serve: the project does not resolve; serving the page without rebuilding it"
+    ]
+    assert result.stdout.startswith("serving ")
+
+
+def test_serve_regenerates_the_page_when_models_change(project: Path) -> None:
+    assert cli("docs", "generate", "--project-dir", str(project)).exit_code == 0
+    page = project / "target" / "docs" / "index.html"
+    refresh = sys.modules["pipeloom.cli.docs"]._refresher(opts_of(project), page.parent)
+    assert refresh is not None
+    before = page.read_bytes()
+    refresh()
+    assert page.read_bytes() == before  # nothing changed: not regenerated
+    (project / "models" / "added_by_serve.py").write_text(
+        "from pipeloom import model\n\n\n@model\ndef added_by_serve():\n    return []\n",
+        encoding="utf-8",
+    )
+    refresh()
+    assert b"added_by_serve" in page.read_bytes()
+
+
+def test_serve_reimports_dynamic_modules_and_their_helpers(project: Path) -> None:
+    assert cli("docs", "generate", "--project-dir", str(project)).exit_code == 0
+    page = project / "target" / "docs" / "index.html"
+    helper = project / "models" / "serve_helper.py"
+    helper.write_text("TAGS = ['first_tag']\n", encoding="utf-8")
+    (project / "models" / "serve_dynamic.py").write_text(
+        "from pipeloom import model\n"
+        "from models.serve_helper import TAGS\n\n\n"
+        "@model(tags=list(TAGS))\n"
+        "def serve_dynamic():\n    return []\n",
+        encoding="utf-8",
+    )
+    refresh = sys.modules["pipeloom.cli.docs"]._refresher(opts_of(project), page.parent)
+    assert refresh is not None
+    helper.write_text("TAGS = ['second_tag_value']\n", encoding="utf-8")
+    refresh()  # the helper is not a model file: only the re-import sees the change
+    assert b"second_tag_value" in page.read_bytes()
 
 
 def test_make_server_serves_the_page(project: Path) -> None:

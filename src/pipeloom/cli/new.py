@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import keyword
 import os
 import re
 from pathlib import Path, PurePosixPath
@@ -13,30 +14,37 @@ from pipeloom.api import Project, ProjectOptions
 from pipeloom.cli._events import Invocation
 from pipeloom.cli._options import log_format_option, project_options
 from pipeloom.config.load import LoadedProject
-from pipeloom.config.schema import SCHEMA_BASE_URL
 from pipeloom.config.types import IDENTIFIER_PATTERN
+from pipeloom.discovery import discover
 
 _IDENT = re.compile(IDENTIFIER_PATTERN)
+# Names the module itself uses: a function with one of them would shadow the import or `ctx`.
+_RESERVED = {"ctx", "model", "ModelContext"}
 
-_INPUTS_EXAMPLE = """\
-    # Declare inputs as aliases of other models (ref) or sources (source):
-    # inputs:
-    #   orders:
-    #     ref: orders
-"""
-
-_STUB = '''\
+_SQL = '''\
 """Model {name}."""
 
-from typing import Any
+from pipeloom import ModelContext, model
 
 
-def build(ctx: Any, **inputs: Any) -> Any:
-    """Build the model.
+@model
+def {name}(ctx: ModelContext):
+    # Add one parameter per input, named like the model or source table it reads, and use that
+    # name in the query.
+    return ctx.sql("select 1 as id")
+'''
 
-    Each input alias declared in {yml} arrives as a keyword argument.
-    """
-    raise NotImplementedError("write the model body in {py}")
+_PYTHON = '''\
+"""Model {name}."""
+
+from pipeloom import ModelContext, model
+
+
+@model
+def {name}(ctx: ModelContext):
+    # Add one parameter per input, named like the model or source table it reads. Each arrives
+    # as a frame of the engine; return one too.
+    raise NotImplementedError("write the body of {name} in {path}")
 '''
 
 
@@ -52,17 +60,14 @@ def _default_kind(loaded: LoadedProject) -> str:
     return "python" if block is not None and block.kind == "pandas" else "sql"
 
 
-def _model_yaml(name: str, python_ref: str | None) -> str:
-    body = f"    python: {python_ref}\n" if python_ref else "    sql: |\n      select 1 as id\n"
-    return (
-        f"# yaml-language-server: $schema={SCHEMA_BASE_URL}models.json\n"
-        f"models:\n  - name: {name}\n{body}{_INPUTS_EXAMPLE}"
+def _model_names(loaded: LoadedProject) -> set[str]:
+    """Models declared in YAML and decorated functions, by name."""
+    config = loaded.config
+    names = {m.name for f in loaded.model_files for m in f.config.models}
+    found = discover(
+        loaded.project_dir, config.model_paths, config.model_packages, config.python_paths
     )
-
-
-def _write(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8", newline="\n")
+    return names | {m.name for m in found.models}
 
 
 @click.group()
@@ -74,12 +79,17 @@ def new() -> None:
 @click.argument("name")
 @project_options
 @log_format_option
-@click.option("--sql", "sql_", is_flag=True, help="Write a SQL model (default unless pandas).")
+@click.option(
+    "--sql",
+    "sql_",
+    is_flag=True,
+    help="Write a body that returns ctx.sql(...) (default unless pandas).",
+)
 @click.option(
     "--python",
     "python_",
     is_flag=True,
-    help="Write a Python model and its build() stub (default on a pandas default target).",
+    help="Write a frame stub (default on a pandas default target).",
 )
 @click.option(
     "--folder",
@@ -95,9 +105,9 @@ def model(
     python_: bool,
     folder: str | None,
 ) -> None:
-    """Create a model named NAME: its YAML entry and, for Python, a build() stub.
+    """Create a model named NAME: a decorated function in models/<folder>/NAME.py.
 
-    The paths written are printed, one per line.
+    The path written is printed.
     """
     if sql_ and python_:
         raise click.UsageError("--sql and --python cannot be used together")
@@ -106,6 +116,8 @@ def model(
             f"'{name}' is not a valid model name: use letters, digits and underscores, "
             "not starting with a digit"
         )
+    if keyword.iskeyword(name) or name in _RESERVED:
+        raise click.UsageError(f"'{name}' cannot name a model function: pick another name")
     inv = Invocation("new model", log_format)
     opts = ProjectOptions(project_dir=project_dir, vars=vars_, env=os.environ)
     outcome = Project(opts, invocation_id=inv.invocation_id).load()
@@ -114,49 +126,25 @@ def model(
         inv.finish(outcome.diagnostics, 1)
         return
     config = loaded.config
-    if name in {m.name for f in loaded.model_files for m in f.config.models}:
-        raise click.UsageError(f"a model named '{name}' already exists")
     root = project_dir / config.model_paths[0]
     sub = PurePosixPath(folder or ".")
-    yml = root.joinpath(*sub.parts) / f"{name}.yml"
+    py = root.joinpath(*sub.parts) / f"{name}.py"
     # Backslashes and drive letters would let Windows climb out of the folder; the resolved
     # check also catches symlinks.
     if (
         any(c in str(sub) for c in "\\:")
         or sub.is_absolute()
         or ".." in sub.parts
-        or not yml.resolve().is_relative_to(root.resolve())
+        or not py.resolve().is_relative_to(root.resolve())
     ):
         raise click.UsageError(f"--folder '{folder}' must stay inside {config.model_paths[0]}")
-    if yml.exists():
-        raise click.UsageError(f"{yml.relative_to(project_dir).as_posix()} already exists")
+    rel = py.relative_to(project_dir).as_posix()
+    if py.exists():
+        raise click.UsageError(f"{rel} already exists")
+    if name in _model_names(loaded):
+        raise click.UsageError(f"a model named '{name}' already exists")
     kind = "python" if python_ else "sql" if sql_ else _default_kind(loaded)
-    written: list[Path] = []
-    python_ref = None
-    if kind == "python":
-        # An explicit python_paths entry says where importable code lives; the default "." is not
-        # a choice the project made.
-        explicit = loaded.project_file.doc.data.get("python_paths")
-        if not explicit:
-            raise click.UsageError(
-                "python models need python_paths in pipeloom.yml; add 'python_paths: [src]'"
-            )
-        package = f"{config.name}_models"
-        pkg_dir = project_dir / config.python_paths[0] / package
-        stub = pkg_dir / f"{name}.py"
-        if stub.exists():
-            raise click.UsageError(f"{stub.relative_to(project_dir).as_posix()} already exists")
-        init_file = pkg_dir / "__init__.py"
-        if not init_file.exists():
-            _write(init_file, f'"""Python models of {config.name}."""\n')
-            written.append(init_file)
-        python_ref = f"{package}.{name}:build"
-        rel_yml = yml.relative_to(project_dir).as_posix()
-        _write(
-            stub, _STUB.format(name=name, yml=rel_yml, py=stub.relative_to(project_dir).as_posix())
-        )
-        written.append(stub)
-    _write(yml, _model_yaml(name, python_ref))
-    written.append(yml)
-    for path in written:
-        click.echo(path.relative_to(project_dir).as_posix())
+    text = (_PYTHON if kind == "python" else _SQL).format(name=name, path=rel)
+    py.parent.mkdir(parents=True, exist_ok=True)
+    py.write_text(text, encoding="utf-8", newline="\n")
+    click.echo(rel)

@@ -125,14 +125,16 @@ def test_shop_runs_end_to_end(tmp_path: Path, golden: Callable[[str, str], None]
     assert [r["email"] for r in data["main.stg_customers"]] == ["a@x.com", "b@x.com"]
     assert len(data["main.fct_orders"]) == 3 and len(data["main.dim_customers"]) == 3
     assert {r["customer_id"]: r["revenue"] for r in data["main.rpt_revenue"]} == {1: 7.5, 2: 7.5}
+    # the decorated model, through ctx.sql
+    assert {r["customer_id"]: r["revenue"] for r in data["main.top_customers"]} == {1: 7.5, 2: 7.5}
     sink.assert_sequence(
         "run.started", "run.compiled", "unit.started", "unit.succeeded", "run.completed"
     )
-    assert sink.types().count("unit.succeeded") == 6
+    assert sink.types().count("unit.succeeded") == 7
     assert sink.types().count("artifact.written") == 4
     doc = results(root)
     assert [r["unit_id"] for r in doc["results"]] == sorted(r["unit_id"] for r in doc["results"])
-    assert doc["run"]["counts"]["succeeded"] == 6 and doc["run"]["exit_code"] == 0
+    assert doc["run"]["counts"]["succeeded"] == 7 and doc["run"]["exit_code"] == 0
     for name in ("manifest.json", "run_results.json"):
         assert (root / "target" / name).read_bytes().count(b"\r") == 0
     text = json.dumps(normalize(doc), indent=2, ensure_ascii=False) + "\n"
@@ -252,7 +254,7 @@ def test_reusing_a_run_id_counts_attempts_and_merges_results(tmp_path: Path) -> 
     ]
     rows = {r["unit_id"]: r for r in results(root, "same")["results"]}
     assert rows["fct_orders"]["attempt"] == 2 and rows["dim_customers"]["attempt"] == 1
-    assert len(rows) == 6
+    assert len(rows) == 7
 
 
 def test_full_refresh_turns_append_into_overwrite(tmp_path: Path) -> None:

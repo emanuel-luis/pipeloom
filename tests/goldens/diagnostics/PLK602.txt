@@ -1,2 +1,8 @@
 error PLK602 models/m.yml:3:13 parameters of 'm:a' do not match the inputs of 'a': missing ['x'], unexpected ['y']
       hint: expected (ctx, x)
+error PLK602 models/p.py:4:2 parameters of 'p:c' cannot take *args ('rest')
+      hint: inputs are passed by keyword
+error PLK602 models/p.py:4:8 input 'z' of model 'c' is not a parameter of 'p:c'
+      hint: add the parameter, or take **kwargs
+error PLK602 models/p.py:9:2 parameters of 'p:d' cannot take a positional-only parameter ('x')
+      hint: inputs are passed by keyword

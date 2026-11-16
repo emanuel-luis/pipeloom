@@ -25,6 +25,7 @@ CAPABILITIES = EngineCapabilities(
     bytes_metrics=True,
     portable=True,
     quality=True,
+    sql_dialect="spark",
 )
 
 

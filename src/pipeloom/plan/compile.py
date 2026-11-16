@@ -29,7 +29,7 @@ from pipeloom.plan.units import build_units
 from pipeloom.platform import Clock, Identity
 from pipeloom.plugins import PluginRegistry
 from pipeloom.validate.semantics import effective_strategy
-from pipeloom.validate.static import find_module
+from pipeloom.validate.static import model_file
 
 
 def _relation(
@@ -46,7 +46,7 @@ def _body(pg: ProjectGraph, m: ResolvedModel) -> tuple[SqlBody | PythonBody, byt
         return SqlBody(sql=m.entry.sql), m.entry.sql.encode("utf-8")
     loaded = pg.project.bound.loaded
     ref = m.entry.python or ""
-    file = find_module(loaded.project_dir, loaded.config.python_paths, ref.split(":")[0])
+    file = model_file(loaded.project_dir, loaded.config.python_paths, m)
     if file is None:
         raise LookupError(f"module of '{ref}' not found; validate before compiling")
     raw = ref.encode("utf-8") + b"\0" + (loaded.project_dir / file).read_bytes()
@@ -55,9 +55,11 @@ def _body(pg: ProjectGraph, m: ResolvedModel) -> tuple[SqlBody | PythonBody, byt
 
 def _config(m: ResolvedModel) -> ResolvedModelConfig:
     """The model config with the strategy a run applies, decided here so later versions only read it."""
+    # `description` is not part of the manifest, so a plan read back from one must not hold it.
     return m.config.model_copy(
         update={
-            "write": m.config.write.model_copy(update={"strategy": effective_strategy(m.config)})
+            "write": m.config.write.model_copy(update={"strategy": effective_strategy(m.config)}),
+            "description": None,
         }
     )
 
@@ -116,7 +118,7 @@ def compile_plan(
             unique_id=uid,
             name=m.name,
             file=m.file,
-            line=project.locate(m.file, f"{m.pointer}/name").line,
+            line=m.site.line if m.site is not None else project.at(m, "/name").line,
             materialized=m.config.materialized,
             body=body,
             inputs={alias: b.unique_id for alias, b in m.inputs.items()},

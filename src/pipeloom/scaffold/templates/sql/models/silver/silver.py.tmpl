@@ -1,0 +1,21 @@
+"""Silver: typed orders with a positive amount. `orders` binds the bronze model."""
+
+from pipeloom import Expectation, ModelContext, model, not_null, unique
+
+
+@model(
+    expectations=[
+        Expectation(name="order_id_present", check=not_null("order_id"), on_violation="fail"),
+        Expectation(name="order_id_unique", check=unique("order_id"), on_violation="fail"),
+    ],
+)
+def orders_clean(ctx: ModelContext, orders):
+    return ctx.sql("""
+        select
+          cast(order_id as bigint) as order_id,
+          cast(customer_id as bigint) as customer_id,
+          cast(order_date as date) as order_date,
+          cast(amount as double) as amount
+        from orders
+        where amount > 0
+    """)

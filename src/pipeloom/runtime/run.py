@@ -22,6 +22,7 @@ from pipeloom.artifacts.reference import Reference, load_reference
 from pipeloom.artifacts.results import RunHeader, RunStatusName, exit_code_of, git_sha, result_row
 from pipeloom.config.bind import BoundProject
 from pipeloom.diagnostics import Diagnostic, JsonValue, Location, Report, Severity
+from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
 from pipeloom.engine.types import TargetRef
 from pipeloom.events.bus import EventBus, PlanInfo
@@ -43,7 +44,6 @@ from pipeloom.runtime.errors import ErrorInfo, to_diagnostic
 from pipeloom.runtime.executors import Executor
 from pipeloom.runtime.executors.process import ChildCommand, ProcessExecutor
 from pipeloom.runtime.executors.thread import ThreadExecutor
-from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.retry import UnitPolicy
 from pipeloom.runtime.runner import ModelRunner
@@ -503,7 +503,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                 )
                 loader_cm = nullcontext()
             else:
-                loader_cm = CallableLoader(project_dir, plan.metadata.python_paths)
+                loader_cm = ModuleLoader(project_dir, plan.metadata.python_paths)
             with loader_cm as loader:
                 if not task:
                     assert session is not None and loader is not None

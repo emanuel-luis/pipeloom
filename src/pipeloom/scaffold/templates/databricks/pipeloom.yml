@@ -8,15 +8,31 @@
 #     pipeloom databricks --profile <name> deploy, or set DATABRICKS_CONFIG_PROFILE.
 config_version: 1
 name: {{name}}
-defaults:
-  models:
-    materialized: table
+# Settings by model folder: `+key` applies to every model below that folder.
+models:
+  +materialized: table
+  bronze:
+    +schema: bronze
+    +tags: [bronze]
+  silver:
+    +schema: silver
+    +tags: [silver]
+  gold:
+    +schema: gold
+    +tags: [gold]
+# The TPC-H sample that every workspace has. Replace it with your own tables. A model parameter
+# named like a table binds to it.
+sources:
+  raw:
+    schema: samples.tpch
+    tables:
+      orders:
 targets:
   dev:
     engine:
       kind: spark
-    # Every model writes to {{catalog}}.<layer schema>.<model>; models/<layer>/_defaults.yml sets
-    # the schema.
+    # Every model writes to {{catalog}}.<layer schema>.<model>; the models: tree above sets the
+    # schema.
     catalog:
       kind: unity
       catalog: {{catalog}}

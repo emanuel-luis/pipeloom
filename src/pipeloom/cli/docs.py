@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+import threading
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -134,15 +136,43 @@ def generate(
     inv.finish([d for d in diags if d.severity is not Severity.ERROR], 0, bound=bound)
 
 
+def _refresher(opts: ProjectOptions, folder: Path) -> Callable[[], None] | None:
+    """What `docs serve` runs on each index request: refresh discovery and, when the models
+    changed, compile again and rewrite index.html (ADR-0050 point 2, reload). None when the
+    project does not resolve."""
+    project_dir = opts.project_dir
+    project = Project(opts)
+    discovery = project.discovery if project.resolve().value is not None else None
+    if discovery is None:
+        return None
+    lock = threading.Lock()
+    last = [discovery.refresh()]
+
+    def refresh() -> None:
+        with lock:
+            now = discovery.refresh()
+            if now == last[0]:
+                return
+            last[0] = now
+            fresh = Project(opts)
+            plan = fresh.compile(Selection()).value
+            bound = fresh.bind().value
+            if plan is None or bound is None:
+                click.echo(
+                    "docs serve: the project no longer compiles; serving the last page", err=True
+                )
+                return
+            found = artifacts_root(bound, project_dir) / "run_results.json"
+            results = _load_results(found, plan.metadata.project) if found.is_file() else None
+            (folder / "index.html").write_bytes(render_site(plan, results).encode("utf-8"))
+
+    return refresh
+
+
 @docs.command()
-@click.option(
-    "--project-dir",
-    envvar="PIPELOOM_PROJECT_DIR",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    default=".",
-    show_default=True,
-    help="Directory that holds pipeloom.yml.",
-)
+@project_options
+@target_option
+@plugin_option
 @click.option(
     "--dir",
     "directory",
@@ -154,16 +184,39 @@ def generate(
 @click.option(
     "--port", type=click.IntRange(0, 65535), default=8000, show_default=True, help="Port to use."
 )
-def serve(project_dir: Path, directory: Path | None, host: str, port: int) -> None:
-    """Serve the generated site until Ctrl+C. It never opens a browser."""
+def serve(
+    project_dir: Path,
+    vars_: dict[str, Any],
+    target: str | None,
+    plugins: tuple[str, ...],
+    directory: Path | None,
+    host: str,
+    port: int,
+) -> None:
+    """Serve the generated site until Ctrl+C, rebuilding it when the models change. It never
+    opens a browser."""
     folder = directory if directory is not None else Path(DEFAULT_DIR)
     folder = folder if folder.is_absolute() else project_dir / folder
     if not (folder / "index.html").is_file():
         raise click.UsageError(
             f"{folder.as_posix()}/index.html not found; run `pipeloom docs generate` first"
         )
+    opts = ProjectOptions(
+        project_dir=project_dir,
+        target=target,
+        vars=vars_,
+        boundary=None,
+        plugins=plugins,
+        env=os.environ,
+    )
+    refresh = _refresher(opts, folder)
+    if refresh is None:
+        click.echo(
+            "docs serve: the project does not resolve; serving the page without rebuilding it",
+            err=True,
+        )
     try:
-        server = make_server(folder, host, port)
+        server = make_server(folder, host, port, refresh)
     except OSError as err:
         raise click.UsageError(f"cannot listen on {host}:{port}: {err}") from err
     click.echo(f"serving {folder.as_posix()} at http://{host}:{server.server_address[1]}/")

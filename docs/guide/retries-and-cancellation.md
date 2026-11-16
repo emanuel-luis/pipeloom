@@ -127,8 +127,10 @@ From Python, pass a `RunControl` to `Project.run(..., control=control)` and call
 
 With `boundary: task` each child runs in its own process group, so a Ctrl+C in your terminal
 reaches only the parent, which then stops the children. A graceful stop is SIGTERM on POSIX and
-Ctrl+Break on Windows, followed by a kill after the grace. Windows has no job objects in 0.3: a
-grandchild started by a child that exits on its own can outlive the run.
+Ctrl+Break on Windows, followed by a kill after the grace. The kill ends the child and every
+process it started: its process group on POSIX, its job object on Windows. When a child exits
+on its own, the parent sweeps the same group or job, so a grandchild it left behind does not
+outlive the run.
 
 Run IDs are reusable after a stop. Rerun with the same `--run-id` and the units that already
 committed are skipped through their write tokens.

@@ -6,10 +6,19 @@ in the exported JSON Schema.
 
 from __future__ import annotations
 
+import json
 import keyword
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Discriminator,
+    Field,
+    Tag,
+    field_validator,
+    model_validator,
+)
 from pydantic_core import PydanticCustomError
 
 from pipeloom.config.types import Duration, Identifier, RelativePosixPath
@@ -19,6 +28,7 @@ Materialized = Literal["table", "incremental", "view", "ephemeral", "intermediat
 Strategy = Literal["append", "overwrite", "replace_partitions", "merge", "scd2"]
 OnSchemaChange = Literal["fail", "ignore", "append_new_columns", "sync_all_columns"]
 OnViolation = Literal["warn", "drop", "fail"]
+SOURCE_REF_PATTERN = r"^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?$"
 
 
 class _Model(BaseModel):
@@ -95,6 +105,9 @@ class RuntimeSettings(_Model):
 
 class TargetConfig(RuntimeSettings):
     """One deployment target."""
+
+    sources: dict[Identifier, dict[str, Any]] | None = None
+    """Source group overrides, deep-merged over the groups; an explicit null removes a key."""
 
 
 class WriteConfig(_Model):
@@ -233,8 +246,27 @@ class ModelSettings(_Model):
     """Schema (namespace) of the target relation."""
     catalog: str | None = Field(default=None, min_length=1)
     """Catalog of the target relation; wins over the naming strategy's catalog."""
+    sql_dialect: str | None = Field(default=None, min_length=1)
+    """sqlglot dialect of the model's `ctx.sql` queries; translated when it differs from the
+    engine's (needs the sqlglot extra)."""
     meta: dict[str, Any] | None = None
     """Free-form metadata."""
+
+    @field_validator("sql_dialect")
+    @classmethod
+    def _known_dialect(cls, value: str | None) -> str | None:
+        """A sqlglot dialect name when sqlglot is installed; any string otherwise (PLC513 then
+        reports a translation it cannot do)."""
+        if value is None:
+            return value
+        try:
+            from sqlglot.dialects.dialect import Dialects
+        except ImportError:
+            return value
+        known = sorted(d.value for d in Dialects if d.value)
+        if value not in known:
+            raise ValueError(f"unknown sql_dialect '{value}'; sqlglot knows {', '.join(known)}")
+        return value
 
 
 class ResolvedModelConfig(_Model):
@@ -256,19 +288,51 @@ class ResolvedModelConfig(_Model):
     schema_: str | None = Field(default=None, alias="schema")
     catalog: str | None = Field(default=None, min_length=1)
     """Catalog of the target relation; wins over the naming strategy's catalog."""
+    sql_dialect: str | None = None
+    """Kept out of the checksum and the manifest while None, so older plans keep their hash."""
     meta: dict[str, Any] = Field(default_factory=dict)
+    description: str | None = Field(default=None, exclude=True)
+    """What the model holds. Excluded from dumps, so it stays out of checksums and the manifest."""
+
+
+class FolderSettings(ModelSettings):
+    """One folder of the `models:` tree in pipeloom.yml: settings written as `+key`, and
+    sub-folders written as plain keys."""
+
+    model_config = ConfigDict(alias_generator=lambda name: "+" + name)
+    schema_: str | None = Field(default=None, alias="+schema")
+    """Schema (namespace) of the target relation."""
+    folders: dict[str, FolderSettings] = Field(default_factory=dict, alias="folders")
+    """Sub-folders by name. YAML writes them as plain keys; validation gathers them here."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _gather_folders(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        out = {k: v for k, v in data.items() if str(k).startswith("+")}
+        folders = {k: v for k, v in data.items() if not str(k).startswith("+")}
+        return {**out, "folders": folders} if folders else out
 
 
 class InputConfig(_Model):
     ref: Identifier | None = None
     """Name of another model."""
-    source: Identifier | None = None
-    """Name of a declared source."""
+    source: str | None = Field(default=None, pattern=SOURCE_REF_PATTERN)
+    """Name of a declared source, or `group.table` for a table of a source group."""
 
     @model_validator(mode="after")
     def _ref_or_source(self) -> InputConfig:
         _exactly_one(self, ("ref", "source"))
         return self
+
+
+def _unique_columns(value: list[ColumnConfig] | None) -> list[ColumnConfig] | None:
+    names = [c.name for c in value or ()]
+    dupes = sorted({n for n in names if names.count(n) > 1})
+    if dupes:
+        raise ValueError(f"duplicate column name(s) {', '.join(dupes)}")
+    return value
 
 
 class ColumnConfig(_Model):
@@ -308,15 +372,50 @@ class ModelConfig(ModelSettings):
     @field_validator("columns")
     @classmethod
     def _unique_columns(cls, value: list[ColumnConfig] | None) -> list[ColumnConfig] | None:
-        names = [c.name for c in value or ()]
-        dupes = sorted({n for n in names if names.count(n) > 1})
-        if dupes:
-            raise ValueError(f"duplicate column name(s) {', '.join(dupes)}")
-        return value
+        return _unique_columns(value)
 
     @field_validator("inputs")
     @classmethod
     def _alias_names(cls, value: dict[str, InputConfig]) -> dict[str, InputConfig]:
+        for alias in value:
+            if alias == "ctx" or keyword.iskeyword(alias):
+                raise ValueError(f"'{alias}' cannot be an input alias")
+        return value
+
+
+class DecoratorArgs(ModelSettings):
+    """The arguments of `@model`, as plain data (ADR-0050 point 1)."""
+
+    name: Identifier | None = None
+    description: str | None = None
+    inputs: dict[Identifier, InputConfig | Identifier] = Field(default_factory=dict)
+    columns: list[ColumnConfig] | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _not_ctx(cls, value: str | None) -> str | None:
+        if value == "ctx":
+            raise ValueError("'ctx' is reserved for the model context")
+        return value
+
+    @field_validator("meta")
+    @classmethod
+    def _json_meta(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
+        """In YAML every value is JSON; a Python value may not be (ADR-0050 point 10)."""
+        try:
+            json.dumps(value, allow_nan=False)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"meta values must be JSON: {exc}") from None
+        return value
+
+    @field_validator("columns")
+    @classmethod
+    def _unique_columns(cls, value: list[ColumnConfig] | None) -> list[ColumnConfig] | None:
+        return _unique_columns(value)
+
+    @field_validator("inputs")
+    @classmethod
+    def _alias_names(cls, value: dict[str, InputConfig | str]) -> dict[str, InputConfig | str]:
         for alias in value:
             if alias == "ctx" or keyword.iskeyword(alias):
                 raise ValueError(f"'{alias}' cannot be an input alias")
@@ -347,11 +446,104 @@ class SourceConfig(_Model):
         return self
 
 
+class SourceTableConfig(_Model):
+    """One table of a source group. Keys it leaves out come from the group."""
+
+    description: str | None = None
+    """What the table holds."""
+    location: str | None = None
+    """Path joined to the group location."""
+    table: str | None = None
+    """Table name, qualified by the group schema. Without location or table, the key is used."""
+    schema_: str | None = Field(default=None, alias="schema")
+    """Schema that qualifies the table name; replaces the group schema."""
+    format: str | None = None
+    """File or table format; replaces the group format."""
+    options: dict[str, Any] | None = None
+    """Reader options, merged over the group options."""
+    tags: list[str] | None = None
+    """Tags added to the group tags."""
+    meta: dict[str, Any] | None = None
+    """Free-form metadata, merged over the group meta."""
+
+    @model_validator(mode="after")
+    def _not_both(self) -> SourceTableConfig:
+        if self.location is not None and self.table is not None:
+            raise PydanticCustomError(
+                "pipeloom_exclusive", "at most one of location, table is allowed"
+            )
+        return self
+
+
+class SourceGroupConfig(_Model):
+    """A group of source tables that share a format, a location or a schema."""
+
+    description: str | None = None
+    """What the group holds."""
+    format: str | None = None
+    """File or table format of its tables."""
+    location: str | None = None
+    """Base path or URI that table locations are joined to."""
+    schema_: str | None = Field(default=None, alias="schema")
+    """Schema that qualifies table names."""
+    options: dict[str, Any] = Field(default_factory=dict)
+    """Reader options."""
+    tags: list[str] = Field(default_factory=list)
+    """Tags used by selectors."""
+    meta: dict[str, Any] = Field(default_factory=dict)
+    """Free-form metadata."""
+    tables: dict[Identifier, SourceTableConfig | None] = Field(default_factory=dict)
+    """Tables by name. An empty entry reads the table named by its key."""
+
+
+class PropertiesEntry(_Model):
+    """A properties entry: the description, settings and contract of a model defined elsewhere."""
+
+    name: Identifier
+    """Name of the model it describes."""
+    description: str | None = None
+    """What the model holds."""
+    config: ModelSettings | None = None
+    """Model settings, below the model's own and above the `models:` tree."""
+    columns: list[ColumnConfig] | None = None
+    """Model contract, used when the model declares none itself."""
+    data_tests: list[dict[str, Any]] | None = None
+    """Data tests. Accepted and kept as written; a later release checks and runs them."""
+    unit_tests: list[dict[str, Any]] | None = None
+    """Unit tests. Accepted and kept as written; a later release checks and runs them."""
+
+    @field_validator("columns")
+    @classmethod
+    def _unique_columns(cls, value: list[ColumnConfig] | None) -> list[ColumnConfig] | None:
+        return _unique_columns(value)
+
+
+def _entry_kind(value: Any) -> str:
+    """An entry with `sql` or `python` (or one that is not a mapping) is a model."""
+    if isinstance(value, dict) and "sql" not in value and "python" not in value:
+        return "properties"
+    return "model"
+
+
+ModelFileEntry = Annotated[
+    Annotated[ModelConfig, Tag("model")] | Annotated[PropertiesEntry, Tag("properties")],
+    Discriminator(_entry_kind),
+]
+
+
 class ModelFile(_Model):
     """A `*.yml` file under model_paths."""
 
     sources: list[SourceConfig] = Field(default_factory=list)
-    models: list[ModelConfig] = Field(default_factory=list)
+    models: list[ModelFileEntry] = Field(default_factory=list)
+    """Models (entries with `sql` or `python`) and properties entries (all others)."""
+
+
+class PropertiesFile(_Model):
+    """A properties file under model_paths."""
+
+    models: list[PropertiesEntry] = Field(default_factory=list)
+    """Properties entries, one per model."""
 
 
 class DefaultsFile(_Model):
@@ -381,10 +573,19 @@ class ProjectConfig(RuntimeSettings):
     """Directories that hold model files."""
     python_paths: list[RelativePosixPath] = Field(default_factory=lambda: ["."])
     """Directories added to sys.path when models run."""
+    model_packages: list[Annotated[str, Field(pattern=r"^[A-Za-z_]\w*(\.[A-Za-z_]\w*)*$")]] = Field(
+        default_factory=list
+    )
+    """Installed packages whose modules hold models, by dotted name."""
     vars: dict[str, Any] = Field(default_factory=dict)
     """Variables for ${var:name}."""
     defaults: ProjectDefaults = Field(default_factory=ProjectDefaults)
     """Project-wide defaults."""
+    models: FolderSettings = Field(default_factory=FolderSettings)
+    """Model settings by folder: `+key` settings apply to every model below that folder, and
+    plain keys name sub-folders of model_paths. Root `+key` settings are project defaults."""
+    sources: dict[Identifier, SourceGroupConfig] = Field(default_factory=dict)
+    """Source groups by name."""
     targets: dict[Identifier, TargetConfig] = Field(min_length=1)
     """Deployment targets."""
     default_target: Identifier | None = None

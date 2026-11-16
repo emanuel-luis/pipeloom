@@ -1,0 +1,47 @@
+[
+  {
+    "code": "PLY005",
+    "severity": "error",
+    "message": "'extra/outside.py' is not under any python_paths root",
+    "hint": "add the folder that holds it to python_paths",
+    "location": {
+      "file": "extra/outside.py",
+      "line": null,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {
+      "kind": "outside_roots"
+    }
+  },
+  {
+    "code": "PLY005",
+    "severity": "error",
+    "message": "'(' was never closed",
+    "hint": null,
+    "location": {
+      "file": "models/broken_syntax.py",
+      "line": 5,
+      "col": 6,
+      "json_pointer": null
+    },
+    "context": {
+      "kind": "syntax"
+    }
+  },
+  {
+    "code": "PLY005",
+    "severity": "error",
+    "message": "RuntimeError: boom",
+    "hint": null,
+    "location": {
+      "file": "models/raises.py",
+      "line": 3,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {
+      "kind": "import_error"
+    }
+  }
+]

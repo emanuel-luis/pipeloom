@@ -5,8 +5,8 @@ resources:
       name: pipeloom_shop_main_ci
       tags:
         pipeloom_job: shop.main.ci
-        pipeloom_plan_hash: e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
-        pipeloom_settings_hash: 348c45f656e1dec54897f25c2bda637e696f725a6cf7ef9859654dc63e1d47cf
+        pipeloom_plan_hash: 2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
+        pipeloom_settings_hash: 708518163c052cd8363625fcd0aeaa731f6317f1dd9291dc76cc130e7adf1cdd
         pipeloom_version: 1.2.3
       parameters:
       - name: pipeloom_run_id
@@ -38,7 +38,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --group=dir_models_marts
-          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
+          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -46,7 +46,8 @@ resources:
           - --task-key={{task.name}}
           - --task-run-id={{task.run_id}}
           - --start-ms={{job.start_time.timestamp_ms}}
-        max_retries: 0
+        max_retries: 1
+        min_retry_interval_millis: 1000
         disable_auto_optimization: true
       - task_key: dir_models_staging
         environment_key: pipeloom_default
@@ -60,7 +61,7 @@ resources:
           - --target=ci
           - --pipeline=main
           - --group=dir_models_staging
-          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
+          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}
@@ -84,7 +85,7 @@ resources:
           - --manifest=/Workspace/pipeloom/shop/manifest.json
           - --target=ci
           - --pipeline=main
-          - --plan-hash=e8ab668d21df616af1743516a81b1290ffc166b417df2f673d72ac8e562239e0
+          - --plan-hash=2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da
           - --run-id={{job.parameters.pipeloom_run_id}}
           - --full-refresh={{job.parameters.full_refresh}}
           - --job-id={{job.id}}

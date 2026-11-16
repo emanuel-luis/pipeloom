@@ -1,0 +1,19 @@
+[
+  {
+    "code": "PLK606",
+    "severity": "warning",
+    "message": "'m:a' calls ctx.sql, but engine 'nosql' has no SQL",
+    "hint": "write the model with frames, or choose an engine with SQL",
+    "location": {
+      "file": "models/m.yml",
+      "line": 3,
+      "col": 13,
+      "json_pointer": "/models/0/python"
+    },
+    "context": {
+      "model": "a",
+      "callable": "m:a",
+      "engine": "nosql"
+    }
+  }
+]

@@ -53,10 +53,25 @@ class ModelContext:
     is_incremental: bool = False
     watermark: Any = None
     lower_bound: Any = None
-    """The last three are used from 0.3."""
+    """The last three are used from 0.3. Fields after them are wiring, not part of the API."""
     emit_log: Callable[[str, str, Mapping[str, JsonValue]], None] | None = field(
         default=None, repr=False, compare=False
     )
+    _run_sql: Callable[[str, str | None, Mapping[str, Any] | None], Any] | None = field(
+        default=None, repr=False, compare=False
+    )
+    """Private: set by the runner; backs `sql`."""
+
+    def sql(
+        self, query: str, *, dialect: str | None = None, inputs: Mapping[str, Any] | None = None
+    ) -> Any:
+        """Run `query` over the model's inputs, named by alias as read (after the incremental
+        filter). `inputs` adds or replaces frames by name. `dialect` (else the model's
+        `sql_dialect`) is translated to the engine's when it differs. Returns the native frame,
+        or a Narwhals frame under `frame_api: narwhals`."""
+        if self._run_sql is None:
+            raise RuntimeError("ctx.sql works only while pipeloom runs the model")
+        return self._run_sql(query, dialect, inputs)
 
     def log(
         self,

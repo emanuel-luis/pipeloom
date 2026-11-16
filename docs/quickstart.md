@@ -26,8 +26,9 @@ Next steps:
   pipeloom run
 ```
 
-It writes `pipeloom.yml` with a `dev` target, one example model in each of `models/bronze`,
-`models/silver` and `models/gold`, a small CSV in `data/`, a `.gitignore` and a README. Pass
+It writes `pipeloom.yml` with a `dev` target, a source group and a `models:` tree, one decorated
+model in each of `models/bronze`, `models/silver` and `models/gold`, a properties file
+`models/silver/_properties.yml`, a small CSV in `data/`, a `.gitignore` and a README. Pass
 `--no-input` (and `--name`, `--engine`, `--catalog`) to skip the questions; see
 [pipeloom init](reference/cli.md#pipeloom-init).
 
@@ -39,15 +40,15 @@ schemas to the project files. With only the YAML extension (`redhat.vscode-yaml`
 
 ```console
 $ pipeloom new model customers_clean --folder silver
-models/silver/customers_clean.yml
+models/silver/customers_clean.py
 $ pipeloom validate
 ```
 
-`pipeloom new model NAME` writes one model file under `models/`. It writes a SQL model by default
-and a Python model when the default target is pandas; pass `--sql` or `--python` to choose. A
-Python model also gets a `build(ctx, **inputs)` stub in the project's `<name>_models` package
-(this needs `python_paths: [src]` in `pipeloom.yml`). Declare its inputs in the commented
-`inputs:` block, then fill in the body. See [pipeloom new](reference/cli.md#pipeloom-new-model).
+`pipeloom new model NAME` writes one `.py` file under `models/` with a function decorated with
+`@model`. By default its body returns `ctx.sql("select 1 as id")`, or, when the default target is
+pandas, a frame stub; pass `--sql` or `--python` to choose. Add a parameter for each input,
+named like the model or source table it reads, then fill in the body. See
+[pipeloom new](reference/cli.md#pipeloom-new-model).
 
 The rest of this page writes a project by hand, to show each part.
 

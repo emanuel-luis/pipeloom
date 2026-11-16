@@ -1,0 +1,19 @@
+[
+  {
+    "code": "PLR210",
+    "severity": "error",
+    "message": "input 'orders' of model 'stg_orders' matches several source tables: archive.orders, raw.orders",
+    "hint": "bind it with inputs={'orders': source(...)}",
+    "location": {
+      "file": "models/staging.py",
+      "line": 4,
+      "col": 2,
+      "json_pointer": "/@model"
+    },
+    "context": {
+      "model": "stg_orders",
+      "callable": "staging:stg_orders",
+      "input": "orders"
+    }
+  }
+]
