@@ -53,7 +53,7 @@ def test_active_codes_and_others_reserved() -> None:
         | {"PLX108", "PLX109", "PLM207"}
         | {"PLD001", "PLD003", "PLD004", "PLD005", "PLD006", "PLD007", "PLD008", "PLD009"}
         | {"PLD010", "PLD011", "PLD012", "PLD013", "PLD014", "PLD015"}
-        | {f"PLA00{n}" for n in range(1, 8)}
+        | {f"PLA00{n}" for n in range(1, 10)}
         | {"PLG307", "PLG308", "PLX110", "PLX111", "PLX112", "PLX113"}
         | {"PLM208", "PLP414"}
         | {"PLX117", "PLX118"}
