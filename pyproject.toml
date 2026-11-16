@@ -201,7 +201,9 @@ type = "forbidden"
 # Every top-level module except testing: with `pipeloom` as the source, testing would be one too.
 source_modules = [
     "pipeloom.__main__",
+    "pipeloom._version",
     "pipeloom.api",
+    "pipeloom.authoring",
     "pipeloom.artifacts",
     "pipeloom.builtins",
     "pipeloom.cli",
