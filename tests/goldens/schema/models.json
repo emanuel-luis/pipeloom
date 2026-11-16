@@ -126,7 +126,7 @@
             }
           ],
           "default": null,
-          "description": "What the column holds. Left out of dumps, so it never changes a checksum, the plan hash\nor the manifest.",
+          "description": "What the column holds. Not part of the checksum or the plan hash.",
           "title": "Description"
         },
         "dtype": {

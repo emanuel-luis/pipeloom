@@ -281,8 +281,7 @@ class ColumnConfig(_Model):
     nullable: bool = True
     """False makes a null in the column a contract violation."""
     description: str | None = Field(default=None, exclude=True)
-    """What the column holds. Left out of dumps, so it never changes a checksum, the plan hash
-    or the manifest."""
+    """What the column holds. Not part of the checksum or the plan hash."""
 
 
 class ModelConfig(ModelSettings):
