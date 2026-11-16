@@ -6,6 +6,7 @@ in the exported JSON Schema.
 
 from __future__ import annotations
 
+import json
 import keyword
 from typing import Annotated, Any, Literal
 
@@ -395,6 +396,16 @@ class DecoratorArgs(ModelSettings):
     def _not_ctx(cls, value: str | None) -> str | None:
         if value == "ctx":
             raise ValueError("'ctx' is reserved for the model context")
+        return value
+
+    @field_validator("meta")
+    @classmethod
+    def _json_meta(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
+        """In YAML every value is JSON; a Python value may not be (ADR-0050 point 10)."""
+        try:
+            json.dumps(value, allow_nan=False)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"meta values must be JSON: {exc}") from None
         return value
 
     @field_validator("columns")

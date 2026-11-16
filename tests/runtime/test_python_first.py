@@ -116,6 +116,29 @@ def check(big):
     ]
 
 
+def test_meta_values_must_be_json(tmp_path: Path) -> None:
+    code = """\
+import datetime
+
+from pipeloom import model
+
+
+def src(ctx):
+    return []
+
+
+@model(meta={"when": datetime.date(2024, 1, 2)})
+def big(src):
+    return src
+
+
+@model
+def check(big):
+    return big
+"""
+    assert _codes(tmp_path, code) == [("PLS102", "models/shop_models.py", 10, "/@model/meta")]
+
+
 def test_literal_ctx_sql_is_checked(tmp_path: Path) -> None:
     pytest.importorskip("sqlglot")
     code = """\
