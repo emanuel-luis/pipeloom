@@ -4,7 +4,7 @@ Declarative, engine-agnostic data pipelines in YAML. 0.2 validates, compiles and
 
 ## Rules
 
-- Clean room: design inputs are public references only. Never import code from other codebases.
+- Clean room: design inputs are public references and the author's own earlier prototype, which ADR-0050 adapts (decorator, model context, module loader). Never import code from any other codebase, and never bring third-party names, internal identifiers, credentials or data into this repo.
 - `docs/architecture.md` and `docs/adr/` are the source of truth. A deviation needs a new ADR in the same PR.
 - The core never imports a plugin. Discovery reads entry-point metadata; a plugin is imported only when a config names its `kind`.
 - Every diagnostic code lives in `pipeloom.diagnostics.codes` and has a case file `tests/cases/<CODE>.yml` with goldens (`pytest --update-goldens`). Codes are never reused.

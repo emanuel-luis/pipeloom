@@ -30,7 +30,7 @@ YAML plus both. YAML declares every model. The body is either a Python callable 
 
 ## Status
 
-Accepted
+Superseded by [ADR-0050](0050-python-first-authoring.md).
 
 ## Date
 
