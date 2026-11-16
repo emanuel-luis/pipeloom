@@ -17,6 +17,7 @@ from typing import Any
 
 import pytest
 from click.testing import CliRunner
+from tests.conftest import make_project
 
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.cli import main
@@ -93,10 +94,7 @@ SLOW = {
 
 
 def project(root: Path, files: Mapping[str, str]) -> Path:
-    for rel, text in files.items():
-        (root / rel).parent.mkdir(parents=True, exist_ok=True)
-        (root / rel).write_bytes(text.encode("utf-8"))
-    return root
+    return make_project(root, files)
 
 
 def run(
