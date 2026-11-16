@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+models:
+  - name: orders_enriched
+    description: One row per order with its customer, nation and region.
+  - name: lineitem_revenue
+    description: One row per line item with its net revenue, l_extendedprice * (1 - l_discount).
