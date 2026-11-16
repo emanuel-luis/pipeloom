@@ -1,0 +1,1688 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Declarative, engine-agnostic data pipelines in YAML.">
+      
+      
+      
+        <link rel="canonical" href="https://emanuel-luis.github.io/pipeloom/dev/guide/orchestrators/">
+      
+      
+        <link rel="prev" href="../alerts/">
+      
+      
+        <link rel="next" href="../recipe-github-actions/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Orchestrator protocol - pipeloom</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#orchestrator-protocol" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="pipeloom" class="md-header__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            pipeloom
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Orchestrator protocol
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="pipeloom" class="md-nav__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    pipeloom
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../running/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../write-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge, replace_partitions, scd2 and schema changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../retries-and-cancellation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retries, timeouts and cancellation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docs-site/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs site
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../run-history/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../alerts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrator protocol
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrator protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#terms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terms
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-prepare" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Prepare
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-run-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Run id
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-start-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Start time
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-run-a-unit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Run a unit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-plan-hash-mismatch-and-setup-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Plan hash mismatch and setup failures
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-exit-codes-and-retries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Exit codes and retries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Order
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-shared-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Shared storage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-finalize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Finalize
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Outputs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-stability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Stability
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recipe-github-actions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipe: GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/polars/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/pandas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pandas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/spark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spark
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/databricks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/airflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Airflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/databricks-cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/errors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stability and deprecations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#terms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terms
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-prepare" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Prepare
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-run-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Run id
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-start-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Start time
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-run-a-unit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Run a unit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-plan-hash-mismatch-and-setup-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Plan hash mismatch and setup failures
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-exit-codes-and-retries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Exit codes and retries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Order
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-shared-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Shared storage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-finalize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Finalize
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Outputs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-stability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Stability
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="orchestrator-protocol">Orchestrator protocol<a class="headerlink" href="#orchestrator-protocol" title="Permanent link">&para;</a></h1>
+<p>An orchestrator runs a pipeloom plan one unit at a time and closes the run when the units are done.
+Airflow and Databricks do it through plugins. Anything else (GitHub Actions, Kestra, Argo, a shell
+script) can follow the same protocol with only the command line and the files pipeloom writes. The
+protocol is <a href="../../adr/0049-artifact-schemas-and-orchestrator-protocol/">ADR-0049</a>; this page is
+the short version, and <a href="../recipe-github-actions/">the GitHub Actions recipe</a> is a working example.</p>
+<h2 id="terms">Terms<a class="headerlink" href="#terms" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Run</strong>: one orchestrator run of the plan, named by a run id. It has one folder,
+  <code>&lt;artifacts root&gt;/runs/&lt;run_id&gt;/</code>.</li>
+<li><strong>Unit</strong>: the smallest thing the orchestrator schedules, one persisted model plus the ephemeral
+  models inlined into it. The unit id is the model name.</li>
+<li><strong>Artifacts root</strong>: the folder that holds the runs, <code>target/</code> in the project by default.</li>
+<li><strong>Attempt file</strong>: <code>units/&lt;unit_id&gt;/attempt-&lt;n&gt;.json</code> in the run folder, written by every unit
+  invocation. It is one row of <code>run_results.json</code>.</li>
+</ul>
+<h2 id="1-prepare">1. Prepare<a class="headerlink" href="#1-prepare" title="Permanent link">&para;</a></h2>
+<p>Compile once, then read the unit graph from that manifest, so every unit runs the same plan:</p>
+<pre><code class="language-console">$ pipeloom compile --project-dir &lt;dir&gt; --target &lt;target&gt; --stable --out /tmp/plan/manifest.json
+$ pipeloom graph --units --output json --project-dir &lt;dir&gt; --target &lt;target&gt; --manifest /tmp/plan/manifest.json &gt; units.json
+</code></pre>
+<p><code>--stable</code> leaves the timestamps out of the manifest, so the same project always gives the same
+bytes. Use an absolute manifest path: <code>compile --out</code> resolves a relative path against the project
+directory, while every <code>--manifest</code> option (and so the <code>{manifest}</code> placeholder) resolves it
+against the working directory. The unit graph
+(<code>pipeloom.unit_graph/1</code>) has the plan hash, the <code>units</code> in topological order, the <code>edges</code>, and
+<code>finalize.argv</code>. Each unit lists its <code>parents</code>, its <code>retries</code>, <code>retry_delay_s</code>, <code>retry_on</code> and
+<code>timeout_s</code>, and its <code>argv</code>.</p>
+<h2 id="2-run-id">2. Run id<a class="headerlink" href="#2-run-id" title="Permanent link">&para;</a></h2>
+<p>Pick one run id per orchestrator run: 1 to 64 letters, digits, dots, underscores or hyphens
+(<a href="../../adr/0013-run-identity-and-reruns/">ADR-0013</a>). Use the same id for every unit, for the
+finalize call, and for every retry or repair of that run. Prefix it with the orchestrator so ids do
+not collide, such as <code>gha-&lt;run_id&gt;-&lt;attempt&gt;</code>.</p>
+<h2 id="3-start-time">3. Start time<a class="headerlink" href="#3-start-time" title="Permanent link">&para;</a></h2>
+<p>Give every invocation the same start time, with a UTC offset. Either pass <code>--run-started-at</code> to
+each command or export <code>PIPELOOM_RUN_STARTED_AT</code> once. Engines use it to make writes idempotent.
+Once a run has recorded its start, a retry or repair must pass the same value or leave it out (the
+recorded one is kept); a different value stops <code>run</code> and <code>finalize</code> with PLX108 (exit 2). So
+compute the start time once per orchestrator run, never per attempt. The option needs <code>--run-id</code>.</p>
+<h2 id="4-run-a-unit">4. Run a unit<a class="headerlink" href="#4-run-a-unit" title="Permanent link">&para;</a></h2>
+<p>The <code>argv</code> of a unit is a command line with three placeholders: <code>{project_dir}</code>, <code>{manifest}</code> and
+<code>{run_id}</code>. Replace them as whole values and run the result. The unit id, the target and the plan
+hash are already in it. For the example in the recipe a unit looks like this:</p>
+<pre><code class="language-console">$ pipeloom run --project-dir examples/tpch_polars --target dev --manifest /tmp/plan/manifest.json \
+    --select unit:orders --run-id gha-1-1 --expect-plan-hash &lt;sha256&gt;
+</code></pre>
+<p>You may add these options to a unit command: <code>--orchestrator-id KEY=VALUE</code> (repeatable, stored in
+the attempt file, the run results and every event), <code>--log-format json</code>, <code>--cancel-grace DURATION</code>
+and <code>--full-refresh</code>. A unit invocation takes no run lock, writes no <code>run_results.json</code> and never
+retries on its own.</p>
+<h2 id="5-plan-hash-mismatch-and-setup-failures">5. Plan hash mismatch and setup failures<a class="headerlink" href="#5-plan-hash-mismatch-and-setup-failures" title="Permanent link">&para;</a></h2>
+<p><code>--expect-plan-hash</code> stops the unit with PLX103 when its plan is not the one you prepared. That is
+an orchestrator bug, not a data problem, so do not retry it. More generally, a unit that exits 1
+without writing a new attempt file failed during setup (a bad config, a missing plugin, an
+unreachable catalog). Treat it as permanent and do not retry it.</p>
+<h2 id="6-exit-codes-and-retries">6. Exit codes and retries<a class="headerlink" href="#6-exit-codes-and-retries" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Exit code</th>
+<th>Meaning</th>
+<th>What the orchestrator does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>The unit succeeded.</td>
+<td>Go on.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>The unit failed.</td>
+<td>Read the newest attempt file.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Usage error.</td>
+<td>Never retry.</td>
+</tr>
+<tr>
+<td>130</td>
+<td>The unit was cancelled.</td>
+<td>May retry.</td>
+</tr>
+</tbody>
+</table>
+<p>For exit 1, read <code>error.category</code> in the newest attempt file. Retry when attempts remain and the
+category is <code>transient</code>, or when the unit's <code>retry_on</code> is <code>any</code>. The orchestrator owns the retry
+count, the delay and the timeout: use <code>retries</code>, <code>retry_delay_s</code> and <code>timeout_s</code> from the unit
+graph. Pipeloom does not retry inside a unit invocation, so retries are never counted twice.
+Enforce <code>timeout_s</code> by stopping the process with SIGTERM, then SIGKILL after the cancel grace.
+Allow <code>timeout_s</code> plus the grace plus a margin before you stop it. More on the settings in
+<a href="../retries-and-cancellation/">Retries, timeouts and cancellation</a>.</p>
+<h2 id="7-order">7. Order<a class="headerlink" href="#7-order" title="Permanent link">&para;</a></h2>
+<p>Start a unit only after all its <code>parents</code> succeeded. Never run the same unit twice at once.
+Units that do not depend on each other may run in parallel. A unit whose parent failed or was
+skipped is not started; tell finalize about it (see below).</p>
+<h2 id="8-shared-storage">8. Shared storage<a class="headerlink" href="#8-shared-storage" title="Permanent link">&para;</a></h2>
+<p>Every invocation, including finalize, must see the same artifacts root, the same state store and
+the same catalog (<a href="../../adr/0038-airflow-execution-modes-and-artifact-store/">ADR-0038</a>). On one
+machine that is a folder. Across machines it takes a shared volume and a remote catalog and state
+store. Pipeloom does not copy artifacts between machines for you.</p>
+<h2 id="9-finalize">9. Finalize<a class="headerlink" href="#9-finalize" title="Permanent link">&para;</a></h2>
+<p>Always run <code>finalize</code>, also when a unit failed: it is the call that writes <code>run_results.json</code> and
+closes the run (<a href="../../adr/0034-core-orchestration-hooks/">ADR-0034</a>). Use <code>finalize.argv</code> from the
+unit graph, with the same placeholders. Options you may add: <code>--orchestrator-id KEY=VALUE</code> and
+<code>--run-started-at</code>.</p>
+<p>For each unit in scope, finalize takes the newest attempt file. A unit that left none takes the
+state you pass with <code>--unit-states PATH</code> (a JSON file) or <code>--unit-states-json TEXT</code> (the same
+document inline), and a unit with neither is recorded as skipped with <code>not_run</code>, which does not
+fail the run. The states document is <code>pipeloom.unit_states/1</code>: a map from unit id to <code>status</code>
+(<code>skipped</code>, <code>cancelled</code>, <code>failed</code> or <code>excluded</code>) plus an optional <code>reason</code>, <code>code</code>, <code>message</code> and
+<code>orchestrator_ids</code>. An excluded unit gets no row.</p>
+<p>Finalize exits 0 when the run succeeded, 1 when any unit failed, and 130 when it was cancelled.
+A failure wins over a cancellation. Run it again and it rewrites the same results; the second
+<code>run.completed</code> event carries <code>replay: true</code>. PLX105 means a full <code>pipeloom run</code> holds the run, so
+a run is driven either by the orchestrator or by one <code>pipeloom run</code>, never both.</p>
+<h2 id="10-outputs">10. Outputs<a class="headerlink" href="#10-outputs" title="Permanent link">&para;</a></h2>
+<p>Everything lands in <code>&lt;artifacts root&gt;/runs/&lt;run_id&gt;/</code>: <code>manifest.json</code>, <code>run_results.json</code>, the
+attempt files under <code>units/</code>, the logs, and one event file per invocation under <code>events/</code>. Each
+document has a JSON Schema (the manifest's arrives with 1.0.0rc1), so a consumer in any language
+can validate it:</p>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Tag</th>
+<th>Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>manifest.json</code></td>
+<td><code>pipeloom.manifest/1</code></td>
+<td>published with 1.0.0rc1 as <code>schema/v1/manifest.json</code></td>
+</tr>
+<tr>
+<td><code>run_results.json</code>, attempt files</td>
+<td><code>pipeloom.run_results/1</code></td>
+<td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/run_results.json">run_results.json</a></td>
+</tr>
+<tr>
+<td>one event</td>
+<td><code>pipeloom.event/1</code></td>
+<td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/event.json">event.json</a></td>
+</tr>
+<tr>
+<td>unit states</td>
+<td><code>pipeloom.unit_states/1</code></td>
+<td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_states.json">unit_states.json</a></td>
+</tr>
+<tr>
+<td>unit graph</td>
+<td><code>pipeloom.unit_graph/1</code></td>
+<td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_graph.json">unit_graph.json</a></td>
+</tr>
+</tbody>
+</table>
+<p>See <a href="../../reference/artifacts/">Run artifacts</a> for the fields.</p>
+<h2 id="11-stability">11. Stability<a class="headerlink" href="#11-stability" title="Permanent link">&para;</a></h2>
+<p>The protocol and the five schemas are part of pipeloom 1.0. A new field is optional, so a consumer
+must ignore fields it does not know. Event types and <code>skip_reason</code> are open strings. <code>status</code>
+values are a closed set, and a new one needs a new schema version. Anything a consumer must
+understand to act correctly is a breaking change. The full policy is in
+<a href="../../reference/stability/">Stability and deprecations</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>

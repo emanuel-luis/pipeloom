@@ -544,6 +544,62 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/orchestrators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrator protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/recipe-github-actions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipe: GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1512,7 +1568,8 @@
 (or a task group inside one): one Airflow task per execution unit, plus a finalize task that closes
 the pipeloom run. Four execution modes are supported: <code>local</code>, <code>virtualenv</code>, <code>kubernetes</code> and
 <code>databricks</code>. The design is in <a href="../../architecture/#13-the-airflow-plugin">architecture section 13</a>
-and ADR-0037 to ADR-0039.</p>
+and ADR-0037 to ADR-0039. For another orchestrator, the same per-unit protocol is described in
+<a href="../../guide/orchestrators/">Orchestrator protocol</a>.</p>
 <pre><code class="language-python">from datetime import datetime
 
 from pipeloom_airflow.config import ExecutionConfig, ExecutionMode, ProjectConfig, RenderConfig
