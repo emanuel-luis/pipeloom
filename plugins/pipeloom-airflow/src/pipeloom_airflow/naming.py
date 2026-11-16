@@ -12,6 +12,7 @@ from urllib.parse import quote
 TASK_ID_MAX: Final = 200
 FINALIZE_ID: Final = "pipeloom_finalize"
 LAUNCH_ID: Final = "pipeloom_launch"
+PRODUCER_ID: Final = "pipeloom_run"
 _UNSAFE = re.compile(r"[^A-Za-z0-9_.-]")
 
 

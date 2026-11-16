@@ -12,8 +12,8 @@ from typing import Any
 from airflow.providers.openlineage.extractors import OperatorLineage
 
 from pipeloom_airflow import _compat
-from pipeloom_airflow.config import ExecutionConfig, ProjectConfig, RenderConfig
-from pipeloom_airflow.dag import _plan, build_tasks
+from pipeloom_airflow.config import ExecutionConfig, ExecutionMode, ProjectConfig, RenderConfig
+from pipeloom_airflow.dag import PipeloomDag, _plan, build_tasks
 from pipeloom_airflow.testing.context import FakeTaskInstance, make_context
 
 AFTER = datetime(2026, 11, 5, 12, 0, tzinfo=UTC)
@@ -37,7 +37,7 @@ def with_sink(project: Path, log: Path, inside_airflow: str) -> None:
 def run_base(af_project: tuple[Path, Path, str]) -> Any:
     """Build the DAG's tasks, run the task of the model `base` and return its operator."""
     project, manifest, _ = af_project
-    plan, command = _plan(
+    plan, command, _ = _plan(
         ProjectConfig(project.as_posix(), manifest_path=manifest.as_posix()),
         "dev",
         RenderConfig(),
@@ -76,6 +76,35 @@ def test_the_sink_is_silent_and_the_operator_reports_the_unit_once(
     assert out.outputFacets["outputStatistics"].rowCount == 3
     assert [f.name for f in out.facets["schema"].fields] == ["id"]
     assert "parent" not in lineage.run_facets and "jobType" not in lineage.job_facets
+
+
+def test_watchers_report_the_static_datasets_of_their_unit(
+    af_project: tuple[Path, Path, str],
+) -> None:
+    """WATCHER mode: the producer's child is silent inside Airflow, so each watcher hands the
+    provider its unit's datasets from the manifest, as KUBERNETES does."""
+    project, manifest, _ = af_project
+    plan, _, _ = _plan(
+        ProjectConfig(project.as_posix(), manifest_path=manifest.as_posix()),
+        "dev",
+        RenderConfig(),
+        ExecutionConfig(),
+        {},
+    )
+    dag = PipeloomDag(
+        dag_id="w",
+        schedule=None,
+        start_date=START,
+        project_config=ProjectConfig(project.as_posix(), manifest_path=manifest.as_posix()),
+        target="dev",
+        execution_config=ExecutionConfig(mode=ExecutionMode.WATCHER, watcher_timeout=600.0),
+    )
+    for t in plan.tasks:
+        watcher = dag.get_task(t.task_id)
+        lineage = watcher.get_openlineage_facets_on_complete(None)
+        assert isinstance(lineage, OperatorLineage), t.task_id
+        [out] = lineage.outputs
+        assert out.name.endswith(t.models[-1]), (t.task_id, out.name)
 
 
 def test_emit_makes_the_sink_report_too(af_project: tuple[Path, Path, str], tmp_path: Path) -> None:

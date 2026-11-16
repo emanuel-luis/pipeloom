@@ -47,6 +47,7 @@ The Airflow OpenLineage provider already reports every task, with the DAG run as
 |---|---|
 | LOCAL, VIRTUALENV | the datasets and facets built from the child's events, as the sink would build them |
 | KUBERNETES | the static datasets of the manifest: the pod's events stay in the pod |
+| WATCHER | each watcher reports the static datasets of its unit from the manifest, and a watcher that reruns its unit reports the facets of its own child, as LOCAL does; the producer's child carries the Airflow ids, so the sink stays silent |
 | DATABRICKS | nothing from the operators: the sink in the Databricks task reports the units, since its events carry no Airflow ids |
 
 Install `apache-airflow-providers-openlineage` and `pipeloom-openlineage` in the Airflow image; without either, the hooks return nothing. Set `inside_airflow: emit` only when the provider is not installed.

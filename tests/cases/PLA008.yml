@@ -1,0 +1,13 @@
+python: "pipeloom_airflow.testing.cases:pla008"
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    engine:
+      kind: memory
+    catalog:
+      kind: memory
+    artifacts:
+      root: ${env:ARTIFACTS_ROOT}
+    targets:
+      dev: {}

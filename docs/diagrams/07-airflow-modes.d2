@@ -1,5 +1,6 @@
 # PipeloomDag in LOCAL, VIRTUALENV or KUBERNETES mode (one task per unit) versus DATABRICKS mode (launch,
-# mirror sensors, repair path). Illustrates section 13 (ADR-0012, ADR-0037 to ADR-0039) in
+# mirror sensors, repair path) and WATCHER mode (producer, one watcher per unit).
+# Illustrates section 13 (ADR-0012, ADR-0037 to ADR-0039, ADR-0048) in
 # docs/architecture.md.
 ...@_style
 
@@ -37,8 +38,22 @@ dbxmode: "DATABRICKS" {
 }
 job: "Databricks saved job\nrepair stays in Databricks" {class: external}
 
+watchmode: "WATCHER" {
+  class: group
+  producer: "pipeloom_run (producer)\none pipeloom run for the selection,\nno edge to the watchers" {class: process}
+  w1: "watcher: stg_orders\ndefers, reads unit files only" {class: process}
+  w2: "watcher: fct_orders\nrerun at try 2 when cleared" {class: process}
+  fin: "pipeloom_finalize\nall_done, after producer\nand every leaf" {class: process}
+  w1 -> w2: "plan dependencies"
+  w2 -> fin
+  producer -> fin
+}
+
 manifest -> local
 manifest -> dbxmode
+manifest -> watchmode
+watchmode.producer -> store: "writes unit files" {class: meta}
+watchmode.w1 -> store: "reads (no file: PLA004)" {class: meta}
 rid -> manifest {class: [meta; layer]}
 local.u2 -> store: "run units write" {class: meta}
 dbxmode.launch -> job: "run-now, repair"

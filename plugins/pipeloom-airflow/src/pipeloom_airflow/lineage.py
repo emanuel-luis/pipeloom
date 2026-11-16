@@ -3,8 +3,9 @@
 The provider reports every task with the DAG run as parent and asks the operator for datasets
 through `get_openlineage_facets_on_*`. The facets come from `pipeloom_openlineage`, the code the
 sink uses, imported lazily: without that distribution the hooks return an empty OperatorLineage, and
-None without the provider. LOCAL and VIRTUALENV replay the child's events; KUBERNETES reports the static datasets of the
-manifest; DATABRICKS has no hooks, the sink in the Databricks task reports the units.
+None without the provider. LOCAL and VIRTUALENV replay the child's events; KUBERNETES and the WATCHER
+sensors report the static datasets of the manifest; DATABRICKS has no hooks, the sink in the
+Databricks task reports the units.
 """
 
 from __future__ import annotations

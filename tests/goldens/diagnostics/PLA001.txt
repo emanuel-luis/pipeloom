@@ -1,2 +1,2 @@
 error PLA001 execution mode 'docker' is not supported
-      hint: use local, virtualenv, kubernetes or databricks
+      hint: use local, virtualenv, kubernetes, databricks or watcher

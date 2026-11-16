@@ -1,0 +1,10 @@
+[
+  {
+    "code": "PLA008",
+    "severity": "error",
+    "message": "artifacts.root '${env:ARTIFACTS_ROOT}' is resolved only at run time",
+    "hint": "set execution.watcher_artifacts_root to the absolute artifacts root",
+    "location": null,
+    "context": {}
+  }
+]

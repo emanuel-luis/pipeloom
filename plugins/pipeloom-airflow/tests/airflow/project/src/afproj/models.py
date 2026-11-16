@@ -1,4 +1,5 @@
-"""Models of the Airflow test project. AFPROJ_MODE makes `other` fail or hang."""
+"""Models of the Airflow test project. AFPROJ_MODE makes `other` fail or hang; AFPROJ_BASE=fail
+makes `base` fail, so `child` is skipped."""
 
 import os
 import time
@@ -8,6 +9,8 @@ import polars as pl
 
 
 def base(ctx: Any) -> Any:
+    if os.environ.get("AFPROJ_BASE") == "fail":
+        raise ValueError("bad base")
     return pl.DataFrame({"id": [1, 2, 3]})
 
 

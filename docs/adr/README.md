@@ -51,5 +51,6 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0045 | [Unit tests, post-write data tests and pipeloom build](0045-unit-and-data-tests.md) | Accepted | 2026-11-16 |
 | 0046 | [OpenLineage](0046-openlineage.md) | Accepted | 2026-11-15 |
 | 0047 | [Run history and the webhook sink](0047-run-history-and-webhook.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-06 |
+| 0048 | [Airflow WATCHER mode](0048-airflow-watcher-mode.md) | Proposed | 2026-11-16 |
 | 0049 | [Artifact schemas, the unit graph and the orchestrator protocol](0049-artifact-schemas-and-orchestrator-protocol.md) | Accepted | 2026-11-15 |
 | 0050 | [Python-first model authoring](0050-python-first-authoring.md) | Accepted. Supersedes 0003. | 2026-11-15 |

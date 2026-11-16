@@ -152,6 +152,30 @@ def test_the_databricks_dag_parses_into_launch_sensors_and_finalize(
 
 
 @pytest.mark.timeout(240)
+def test_the_watcher_dag_parses_into_producer_watchers_and_finalize(
+    tmp_path: Path, af_project: Any, af_plan: Plan, wide: Any
+) -> None:
+    result = parse(tmp_path, "shop_watcher.py", af_project, wide)
+    assert result["parse_s"] < 2.0 * SCALE, result["parse_s"]
+    tasks = result["dags"]["shop_watcher"]["tasks"]
+    plan = af_plan[0]
+    producer = naming.PRODUCER_ID
+    assert set(tasks) == {t.task_id for t in plan.tasks} | {producer, naming.FINALIZE_ID}
+    assert tasks[producer]["class"] == "PipeloomWatcherProducerOperator"
+    assert (tasks[producer]["upstream"], tasks[producer]["retries"]) == ([], 0)
+    for t in plan.tasks:
+        assert tasks[t.task_id]["class"] == "PipeloomWatcherSensor"
+        assert tasks[t.task_id]["upstream"] == list(t.upstream)
+        assert tasks[t.task_id]["retries"] == t.retries
+    finalize = tasks[naming.FINALIZE_ID]
+    assert finalize["class"] == "PipeloomFinalizeOperator"
+    assert finalize["trigger_rule"] == "all_done"
+    assert finalize["upstream"] == sorted([*plan.leaves, producer])
+    by_model = {t.models[0]: t.task_id for t in plan.tasks}
+    assert tasks[by_model["base"]]["outlets"] == ["pipeloom://afproj/dev/main.base"]
+
+
+@pytest.mark.timeout(240)
 def test_a_task_group_nests_the_units_between_other_tasks(
     tmp_path: Path, af_project: Any, af_plan: Plan, wide: Any
 ) -> None:

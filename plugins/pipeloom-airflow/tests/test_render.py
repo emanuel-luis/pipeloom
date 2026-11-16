@@ -131,12 +131,16 @@ def test_the_task_boundary_has_no_pla007(shop: LoadedPlan) -> None:
     assert codes == []
 
 
-def test_task_ids_avoid_the_reserved_ones(models_loaded: Models) -> None:
-    loaded = models_loaded(
-        {"models/m.yml": "models:\n  - {name: pipeloom_finalize, sql: select 1}\n"}
-    )
+def test_watcher_mode_has_no_pla007(shop: LoadedPlan) -> None:
+    _, codes = render(shop, execution=ExecutionConfig(mode=ExecutionMode.WATCHER))
+    assert codes == []
+
+
+@pytest.mark.parametrize("name", ["pipeloom_finalize", "pipeloom_launch", "pipeloom_run"])
+def test_task_ids_avoid_the_reserved_ones(models_loaded: Models, name: str) -> None:
+    loaded = models_loaded({"models/m.yml": f"models:\n  - {{name: {name}, sql: select 1}}\n"})
     (task,) = render(loaded)[0].tasks
-    assert task.unit_id == "pipeloom_finalize" and task.task_id != "pipeloom_finalize"
+    assert task.unit_id == name and task.task_id != name
 
 
 DEPLOY = "deploy:\n  kind: databricks\n  task_grouping: by_tag\n"

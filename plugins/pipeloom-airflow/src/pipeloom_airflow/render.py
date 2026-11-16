@@ -118,7 +118,8 @@ def render_plan(
     """The tasks of the DAG. Reports PLA003 (nothing rendered) and PLA007 (boundary)."""
     plan = loaded.plan
     units = _selected_units(plan, render, report)
-    if plan.metadata.boundary != "task":
+    # WATCHER: one producer process runs every unit, so the boundary need not be task.
+    if plan.metadata.boundary != "task" and execution.mode is not ExecutionMode.WATCHER:
         report.add(
             "PLA007",
             f"the target's boundary is '{plan.metadata.boundary}', not 'task'",
@@ -149,7 +150,9 @@ def render_plan(
             (),
             DEFAULT_CANCEL_GRACE,
         )
-    ids = naming.task_ids([r[0] for r in raw], reserved={naming.FINALIZE_ID, naming.LAUNCH_ID})
+    ids = naming.task_ids(
+        [r[0] for r in raw], reserved={naming.FINALIZE_ID, naming.LAUNCH_ID, naming.PRODUCER_ID}
+    )
     groups = _groups(plan, sorted({u for _, m, _ in raw for u in m}), render.group_by)
     tasks = [
         _task(plan, render, ids, groups, key, members, parents, databricks, target)

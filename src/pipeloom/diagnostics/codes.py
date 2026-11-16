@@ -611,13 +611,13 @@ _ACTIVE_06: Final = (
         "PLA001",
         E,
         "Unsupported execution mode",
-        "The Airflow plugin was configured with an execution mode it does not support. DOCKER is not supported in 0.6; use local, virtualenv, kubernetes or databricks.",
+        "The Airflow plugin was configured with an execution mode it does not support. DOCKER is not supported in 0.6; use local, virtualenv, kubernetes, databricks or watcher.",
     ),
     (
         "PLA002",
         E,
         "Invalid Airflow plugin configuration",
-        "A configuration of the Airflow plugin cannot be used: the manifest load method without a manifest path, a relative path, a virtualenv mode without a directory, a kubernetes mode without an image, a pod_kwargs or operator_args key that pipeloom sets itself, an unknown asset_uri placeholder, or a full_refresh param that is not a boolean.",
+        "A configuration of the Airflow plugin cannot be used: the manifest load method without a manifest path, a relative path, a virtualenv mode without a directory, a kubernetes mode without an image, a pod_kwargs or operator_args key that pipeloom sets itself, an unknown asset_uri placeholder, a WATCHER setting out of range or a WATCHER selection made only of unit: selectors, or a full_refresh param that is not a boolean.",
     ),
     (
         "PLA003",
@@ -754,6 +754,18 @@ _ACTIVE_09: Final = (
         E,
         "scd2 options conflict",
         "A model writing with scd2 sets an option the strategy cannot apply: an empty tracked_columns, a tracked column that is part of unique_key, deletes with mode: soft, or a unique_key, tracked_columns, partition_by, cluster_by, deletes.column or contract column named valid_from, valid_to or is_current (scd2 adds those columns itself).",
+    ),
+    (
+        "PLA008",
+        E,
+        "WATCHER artifacts root not resolved",
+        "In WATCHER mode the DAG reads the artifacts root from pipeloom.yml at parse time, so the watchers can read the attempt files. The file could not be read, or its artifacts.root holds a ${...} reference; set execution.watcher_artifacts_root to the absolute path. At run time, the producer's run left no run_results.json under that root: the root differs from the one the run writes to.",
+    ),
+    (
+        "PLA009",
+        E,
+        "WATCHER producer ended without run results",
+        "The producer task of a WATCHER DAG ended, but neither an attempt file of the unit nor run_results.json appeared under the artifacts root within the grace period. The producer was killed or failed before it ran the unit. The watcher fails, and a retry of the watcher runs the unit itself.",
     ),
     (
         "PLC513",

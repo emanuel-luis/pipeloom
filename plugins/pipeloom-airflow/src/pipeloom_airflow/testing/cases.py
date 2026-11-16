@@ -12,6 +12,7 @@ from pipeloom.api import Project, ProjectOptions
 from pipeloom.diagnostics import Diagnostic, Report
 from pipeloom.graph.selectors import Selection
 from pipeloom.runtime.finalize_run import FinalizeOptions, read_unit_states
+from pipeloom.runtime.retry import NO_POLICY
 from pipeloom_airflow.config import (
     ExecutionConfig,
     ExecutionMode,
@@ -25,6 +26,7 @@ from pipeloom_airflow.load import LoadedPlan, load_plan
 from pipeloom_airflow.render import render_plan
 from pipeloom_airflow.states import unit_states, unit_states_document
 from pipeloom_airflow.version import check_airflow_version
+from pipeloom_airflow.watcher.state import decide, read_unit, resolve_artifacts_root
 
 
 def _loaded(project_dir: Path) -> LoadedPlan:
@@ -115,4 +117,21 @@ def pla006(project_dir: Path) -> Sequence[Diagnostic]:
 def pla007(project_dir: Path) -> Sequence[Diagnostic]:
     report = Report()
     render_plan(_loaded(project_dir), "dev", RenderConfig(), ExecutionConfig(), report)
+    return report.sorted()
+
+
+def pla008(project_dir: Path) -> Sequence[Diagnostic]:
+    """The artifacts root holds an environment reference, so a parse cannot resolve it."""
+    report = Report()
+    resolve_artifacts_root(project_dir.as_posix(), "/srv/project", "dev", None, report)
+    return report.sorted()
+
+
+def pla009(project_dir: Path) -> Sequence[Diagnostic]:
+    """The producer ended and the run folder holds nothing for the unit."""
+    view = read_unit(project_dir / "target" / "runs" / "case", "a", probe=1)
+    decision = decide(view, NO_POLICY, producer_ended=True)
+    assert decision.code is not None and decision.message is not None
+    report = Report()
+    report.add(decision.code, decision.message, context={"unit": "a"})
     return report.sorted()

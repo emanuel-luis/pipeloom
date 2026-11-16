@@ -87,7 +87,7 @@ touched at parse time unless a load method reads them.
 
 | Field | Default | Meaning |
 | --- | --- | --- |
-| `mode` | `ExecutionMode.LOCAL` | `LOCAL`, `VIRTUALENV`, `KUBERNETES`, `DATABRICKS`. `DOCKER` is PLA001. |
+| `mode` | `ExecutionMode.LOCAL` | `LOCAL`, `VIRTUALENV`, `KUBERNETES`, `DATABRICKS`, `WATCHER`. `DOCKER` is PLA001. |
 | `project_dir`, `manifest_path` | those of `ProjectConfig` | Where units execute, when that differs from where the DAG is parsed (a pod, for example). |
 | `virtualenv_dir` | `None` | Required by `VIRTUALENV`: a virtualenv created on every worker. |
 | `kubernetes` | `None` | Required by `KUBERNETES`: `KubernetesConfig(image, namespace=None, python="python", pod_kwargs={})`. |
@@ -98,6 +98,10 @@ touched at parse time unless a load method reads them.
 | `databricks_poll` | `"per_task"` | `per_task` or `shared`, see [Poll modes](#poll-modes). |
 | `databricks_poll_interval` | `30.0` | Seconds between polls. |
 | `databricks_timeout` | `86400.0` | Seconds any single wait on the job run may last. |
+| `watcher_workers` | `None` | WATCHER: `--workers` of the producer's run. `None` keeps the target's. |
+| `watcher_poll_interval` | `10.0` | WATCHER: seconds between reads of a unit's files. |
+| `watcher_timeout` | `86400.0` | WATCHER: the producer's execution timeout and each watcher's deadline for one try. |
+| `watcher_artifacts_root` | `None` | WATCHER: absolute path that replaces the artifacts root read from `pipeloom.yml`. |
 
 `PipeloomDag` takes `project_config`, `target`, `render_config`, `execution_config`, an optional
 `operator_args` mapping that goes to every operator, and the usual `DAG` keywords.
@@ -131,6 +135,7 @@ crosses a process boundary. Prefer `MANIFEST` for large projects.
 | `VIRTUALENV` | the same, with the interpreter of `virtualenv_dir` | the virtualenv on every worker (a missing interpreter fails the task without retry, PLA002) |
 | `KUBERNETES` | a pod from `KubernetesPodOperator` | an image with pipeloom; see below |
 | `DATABRICKS` | a task of the Databricks job that `pipeloom-databricks` renders | see below |
+| `WATCHER` | one `pipeloom run` for the whole selection, reported by one deferrable watcher per unit | pipeloom on the worker and the triggerer, one artifacts root shared with both; see below |
 
 In LOCAL and VIRTUALENV, killing the task sends SIGTERM to the child's process group and SIGKILL
 after the cancel grace. The grace is the core default of 30 seconds, not the target's
@@ -153,6 +158,52 @@ run. A missing job is PLD007 and a job deployed from other settings is PLD008, u
 `databricks_ensure_job=True` deploys it. A retried or cleared launch finds the same run: it attaches
 to it, or repairs it when a task failed. Databricks owns the task retries.
 
+### Watcher
+
+LOCAL starts one Python process per unit. On a wide DAG of short models that start-up dominates.
+WATCHER runs the whole selection once and keeps one Airflow task per model for its state, retries,
+logs and asset events.
+
+```python
+execution_config=ExecutionConfig(
+    mode=ExecutionMode.WATCHER,
+    watcher_workers=4,
+    watcher_poll_interval=10.0,
+)
+```
+
+The DAG has a root task `pipeloom_run` (the producer), one watcher per unit and `pipeloom_finalize`.
+The producer has no edge to the watchers. Watchers follow the plan's edges, so a failed unit leaves
+its descendants `upstream_failed`. Finalize runs after the producer and every leaf. `virtualenv_dir`
+is optional, as in VIRTUALENV.
+
+- The producer runs `python -m pipeloom run` with the rendered selection (`--select name:*` when it
+  is empty), the plan hash, the run id and `--workers` when `watcher_workers` is set. Exit 0 or 1
+  is a success for the producer: the results belong to the watchers, and finalize fails the DAG run
+  when the pipeloom run failed. Exit 2 or 130 fails it. Once the child exits, the producer checks that
+  `runs/<run id>/run_results.json` is visible under the artifacts root, and raises PLA008 if it is
+  not. A producer try above 1 is skipped, so it runs once per DAG run.
+- Each watcher defers on a trigger that only reads the unit's attempt files. It succeeds when the
+  latest attempt succeeded, and fails (without Airflow retry) when the attempt failed and the unit's
+  `retries` and `retry_on` allow no more, or timed out, or was cancelled. If the producer ended and
+  left no run results, the watcher raises PLA009 after a short grace, and a retry runs again.
+- The watcher's log shows the attempt summary and the last 200 lines of the unit's log, or the error
+  code, message and trace excerpt.
+- To rerun a unit, clear its failed watcher with Downstream. At try 2 or later, when the producer is
+  no longer running the unit, the watcher runs the unit itself (same run id, one attempt), and the
+  cleared descendants follow. Finalize then merges the new attempt.
+- The watchers have no `execution_timeout`. `watcher_timeout` bounds one try, and a watcher that
+  waits longer raises an Airflow exception and retries.
+- The artifacts root is read at parse time from `<project_dir>/pipeloom.yml` as plain YAML:
+  `targets.<target>.artifacts` replaces the top-level block, `root` falls back to `target`, and a
+  relative root joins the execution `project_dir`. An unreadable file, or a `${...}` reference in the
+  root, is PLA008 unless `watcher_artifacts_root` is set. The project is not bound in the worker for
+  this.
+- PLA002 covers `watcher_workers` below 1, a non-positive interval or timeout, and a selection made
+  only of `unit:` selectors. PLA007 is not reported.
+- Limit: a producer worker that dies can leave its child running, so PLA009 and a watcher retry may
+  run a unit twice. A retry after a watch timeout can rerun a unit the producer finished meanwhile.
+
 ## Artifact store
 
 All units of a run and the finalize task must see one `artifacts.root` directory: unit result files
@@ -171,6 +222,13 @@ A unit task that Airflow saw succeed, with no attempt file visible under the roo
 with PLA004. That is the sign of a root that is not shared. PLA007 warns when the target's boundary
 is not `task`, since each unit runs in its own process.
 
+In WATCHER mode the triggerer reads the unit files too. It needs `pipeloom-airflow` installed and the
+artifacts root mounted at the same path as on the workers. On NFS, a stale directory listing can
+hide a fresh attempt file, so the watcher also opens `attempt-1` up to `attempt-<retries + 1>` by
+name and treats partial JSON as not visible. Mount with `lookupcache=positive` and a low `acdirmax`
+(a few seconds) to keep the delay short. A file still hidden after the grace of 120 seconds is
+PLA004.
+
 ## Run id
 
 All tasks of a DAG run share one pipeloom run id: `af-` plus the first 16 hex characters of the
@@ -187,6 +245,7 @@ DAG id, run id, task id and try number as orchestrator ids.
 | LOCAL, VIRTUALENV | Airflow | The model's `retries` and `retry_delay` become the task's. A unit invocation never retries by itself. Exit 2 fails without retry. Exit 130 retries. Exit 1 fails without retry when the unit's error is permanent and `retry_on` is `transient`; otherwise it retries. |
 | KUBERNETES | Airflow | The same counts and delay. `retry_on` is not enforced: Airflow sees only the pod's result, so every failure retries. |
 | DATABRICKS | Databricks | Sensors have no retries. A sensor fails once the task's last attempt failed or the run is over. The launch retries twice and attaches to the same run. |
+| WATCHER | The core scheduler, then Airflow | The producer has `retries=0` and the core applies the model's retries inside the one run. A watcher gets the model's `retries` and `retry_delay`: a failure the producer already reported fails it without retry, while PLA004, PLA009 and a watch timeout retry. A rerun at try 2 or later maps exit codes as LOCAL does. |
 
 The task execution timeout is the model timeout plus the cancel grace plus 300 seconds, so the core
 times a unit out before Airflow does. The grace here is the core default of 30 seconds, since the
@@ -201,7 +260,7 @@ use false when it is missing.
 
 ## Assets
 
-With `emit_assets=True`, each model task declares `Asset(name=uri, uri=uri)` outlets, one per
+With `emit_assets=True`, each model task (in WATCHER mode, each watcher) declares `Asset(name=uri, uri=uri)` outlets, one per
 persisted model of the task. The URI comes from `asset_uri`. In DATABRICKS mode the sensor of a task
 carries them.
 
@@ -268,7 +327,9 @@ use `shared`.
 
 PLA001 unsupported mode or missing extra, PLA002 invalid configuration, PLA003 the selection renders
 no unit, PLA004 a task ended without a unit result, PLA005 unsupported Airflow version, PLA006 the
-compile cache is unusable, PLA007 the target boundary is not `task`. See the
+compile cache is unusable, PLA007 the target boundary is not `task`, PLA008 the WATCHER artifacts
+root is not resolved or the producer's run left no `run_results.json` under it, PLA009 the WATCHER
+producer ended without run results. See the
 [error code reference](../reference/errors.md).
 
 ![Airflow execution modes](../diagrams/07-airflow-modes.svg)
