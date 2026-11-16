@@ -1,0 +1,4 @@
+error PLR209 models/_properties.yml:4:11 properties entry names no model 'stg_ordrs'
+      hint: did you mean 'stg_orders'?
+error PLR209 models/more/_properties.yml:2:11 model 'stg_orders' is already described by another properties entry
+      hint: first described in models/_properties.yml:2
