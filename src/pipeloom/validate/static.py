@@ -98,16 +98,18 @@ def _calls_ctx_sql(fn: _Def) -> bool:
     )
 
 
-def _literal_queries(project_dir: Path, m: ResolvedModel) -> list[tuple[str, set[str], Location]]:
+def _literal_queries(
+    project_dir: Path, m: ResolvedModel
+) -> list[tuple[str, set[str], Location, str | None]]:
     """The literal `ctx.sql("...")` queries of a decorated model's function, with the names its
-    literal `inputs=` mapping adds and the call's location."""
+    literal `inputs=` mapping adds, the call's location and its literal `dialect=`."""
     attr = (m.entry.python or "").partition(":")[2]
     try:
         tree = ast.parse((project_dir / m.file).read_bytes(), filename=m.file)
     except (OSError, SyntaxError, ValueError):
         return []
     fns = [s for s in tree.body if isinstance(s, _Def) and s.name == attr]
-    out: list[tuple[str, set[str], Location]] = []
+    out: list[tuple[str, set[str], Location, str | None]] = []
     for node in ast.walk(fns[-1]) if fns else ():
         if not (
             isinstance(node, ast.Call)
@@ -121,6 +123,7 @@ def _literal_queries(project_dir: Path, m: ResolvedModel) -> list[tuple[str, set
         ):
             continue
         extra: set[str] = set()
+        dialect: str | None = None
         for kw in node.keywords:
             if kw.arg == "inputs" and isinstance(kw.value, ast.Dict):
                 extra |= {
@@ -128,8 +131,14 @@ def _literal_queries(project_dir: Path, m: ResolvedModel) -> list[tuple[str, set
                     for k in kw.value.keys
                     if isinstance(k, ast.Constant) and isinstance(k.value, str)
                 }
+            if (
+                kw.arg == "dialect"
+                and isinstance(kw.value, ast.Constant)
+                and isinstance(kw.value.value, str)
+            ):
+                dialect = kw.value.value
         loc = Location(m.file, node.args[0].lineno, node.args[0].col_offset + 1)
-        out.append((node.args[0].value, extra, loc))
+        out.append((node.args[0].value, extra, loc, dialect))
     return out
 
 
@@ -141,20 +150,22 @@ def check_sql(pg: ProjectGraph, report: Report) -> None:
     from sqlglot.errors import SqlglotError
 
     project = pg.project
-    queries: list[tuple[ResolvedModel, str, set[str], Location]] = []
+    queries: list[tuple[ResolvedModel, str, set[str], Location, str | None]] = []
     for m in project.models.values():
         if m.entry.sql is not None:
-            queries.append((m, m.entry.sql, set(m.inputs), where(project, m, "sql")))
+            queries.append((m, m.entry.sql, set(m.inputs), where(project, m, "sql"), None))
         elif m.site is not None:
             queries += [
-                (m, sql, set(m.inputs) | extra, loc)
-                for sql, extra, loc in _literal_queries(project.bound.loaded.project_dir, m)
+                (m, sql, set(m.inputs) | extra, loc, dialect)
+                for sql, extra, loc, dialect in _literal_queries(
+                    project.bound.loaded.project_dir, m
+                )
             ]
-    for m, sql, aliases, loc in queries:
+    for m, sql, aliases, loc, dialect in queries:
         ctx = {"model": m.name}
         try:
-            statements = parse(sql)
-        except SqlglotError:
+            statements = parse(sql, read=dialect)
+        except (SqlglotError, ValueError):  # ValueError: an unknown dialect name
             report.add(
                 "PLK605",
                 f"SQL of model '{m.name}' cannot be parsed, so its tables were not checked",
