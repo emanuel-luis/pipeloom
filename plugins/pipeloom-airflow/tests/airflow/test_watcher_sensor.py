@@ -36,8 +36,9 @@ def watcher(af_project: Project, model: str = "base", **execution: Any) -> Any:
             mode=ExecutionMode.WATCHER, watcher_timeout=3600.0, **execution
         ),
     )
+    tasks: list[Any] = list(dag.tasks)
     return next(
-        t for t in dag.tasks if type(t).__name__ == "PipeloomWatcherSensor" and model in t.unit_id
+        t for t in tasks if type(t).__name__ == "PipeloomWatcherSensor" and model in t.unit_id
     )
 
 

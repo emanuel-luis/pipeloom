@@ -31,7 +31,11 @@ def make(run_dir: Path, **kw: Any) -> PipeloomWatcherTrigger:
 
 
 def attempt(run_dir: Path, n: int, status: str, category: str = "transient") -> None:
-    error = None if status == "succeeded" else {"code": "PLM204", "message": "boom", "category": category}
+    error = (
+        None
+        if status == "succeeded"
+        else {"code": "PLM204", "message": "boom", "category": category}
+    )
     path = run_dir / "units" / "u" / f"attempt-{n}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     row = {"unit_id": "u", "status": status, "retries_used": n - 1, "error": error}

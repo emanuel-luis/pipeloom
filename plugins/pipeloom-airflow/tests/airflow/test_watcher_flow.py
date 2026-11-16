@@ -4,6 +4,7 @@ watcher, finalize; then the failed watcher cleared with Downstream reruns its un
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -34,9 +35,9 @@ def make_dag(af_project: Project, env: dict[str, str]) -> PipeloomDag:
     )
 
 
-def execute(op: Any, states: dict[str, str | None], try_number: int = 1) -> None:
+def execute(op: Any, states: Mapping[str, str], try_number: int = 1) -> None:
     ti = FakeTaskInstance(
-        dag_id="d", run_id=RUN_ID, task_id=op.task_id, try_number=try_number, states=states
+        dag_id="d", run_id=RUN_ID, task_id=op.task_id, try_number=try_number, states=dict(states)
     )
     op.execute(make_context(ti, run_after=AFTER, params={}))
 
