@@ -390,7 +390,7 @@
   <span class="md-ellipsis">
     
   
-    Merge, replace_partitions and schema changes
+    Merge, replace_partitions, scd2 and schema changes
   
 
     
@@ -1701,8 +1701,9 @@ paths, listens on localhost by default and ships as a separate distribution, so 
 <li>Sample data on Spark and Databricks (0.9). A source can point at a CSV inside the project. The polars and pandas
   engines already read it, and <code>pipeloom-spark</code> needs the same reader on volumes. This covers what dbt seeds do
   without a new materialization.</li>
-<li>SCD2 write strategy (0.9). <code>scd2</code> is already in the config literal; the polars and Spark engines implement it, as
-  an amendment to <a href="../adr/0008-incremental-and-state/">ADR-0008</a>.</li>
+<li>SCD2 write strategy (0.9). The polars, pandas and Spark engines write <code>scd2</code> with <code>valid_from</code>, <code>valid_to</code> and
+  <code>is_current</code> columns and hard deletes. Decided in the
+  <a href="../adr/0008-incremental-and-state/#amendment-09-scd2">ADR-0008 amendment</a> (accepted).</li>
 <li><code>pipeloom build</code> (0.9). Runs the unit tests, then <code>run</code> with post-write data tests in DAG order. <code>run</code> keeps its
   meaning.</li>
 <li>Dev environments. <code>per_user</code> naming already isolates developers. A guide page plus <code>--defer</code> covers most of what
@@ -1886,7 +1887,7 @@ so the first step is to publish it as a contract.</p>
 </tr>
 <tr>
 <td>SCD2 write strategy</td>
-<td><a href="../adr/0008-incremental-and-state/">ADR-0008</a> amendment</td>
+<td><a href="../adr/0008-incremental-and-state/#amendment-09-scd2">ADR-0008 amendment</a></td>
 <td>the SCD2 cells of the engine contract suite pass on polars and Spark</td>
 </tr>
 <tr>

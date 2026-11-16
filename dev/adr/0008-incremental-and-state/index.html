@@ -386,7 +386,7 @@
   <span class="md-ellipsis">
     
   
-    Merge, replace_partitions and schema changes
+    Merge, replace_partitions, scd2 and schema changes
   
 
     
@@ -1087,6 +1087,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#amendment-09-scd2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (0.9): SCD2
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1152,6 +1163,22 @@
 <ul>
 <li>The watermark is committed after the write. A crash between the two reprocesses at most the lookback window plus the batch. That is safe for merge, overwrite and replace_partitions, and for append only when the engine has idempotent writes (otherwise PLC505 forbids retries).</li>
 <li>A schema change under the default policy fails the unit (PLM202). Every detected change emits <code>model.schema_changed</code>.</li>
+</ul>
+<h2 id="amendment-09-scd2">Amendment (0.9): SCD2<a class="headerlink" href="#amendment-09-scd2" title="Permanent link">&para;</a></h2>
+<p>The scd2 strategy keeps a type 2 history of each <code>unique_key</code>.</p>
+<ul>
+<li>No new config keys: <code>unique_key</code>, <code>tracked_columns</code> and the <code>deletes</code> block are reused, so manifests, checksums and plan hashes of projects without scd2 stay byte-identical. <code>tracked_columns</code> left unset means every business column except the <code>unique_key</code> columns and the <code>deletes.column</code>; an explicit empty list is PLP416.</li>
+<li>System columns have fixed names: <code>valid_from</code> and <code>valid_to</code> (<code>timestamp[us, UTC]</code>) and <code>is_current</code> (<code>boolean</code>). A rename option can come later.</li>
+<li>A change is detected by comparing the tracked columns directly, null-safely, with NaN counted as null. There is no row hash: it would depend on the engine and go stale when <code>tracked_columns</code> changes. A change in an untracked column is ignored.</li>
+<li><code>valid_from</code> and <code>valid_to</code> come from the run's start time (<code>WriteConfig.run_started_at</code>), the same on every retry of a run, so a re-run converges. Timestamps taken from a source column are a non-goal.</li>
+<li>Deletes use the existing block with <code>mode: hard</code> only (<code>soft</code> is PLP416). A flagged row closes the key's current row; a flagged row for an unknown key is ignored. Keys missing from the batch are not closed. A closed key that comes back gets a new current row.</li>
+<li>A null key, a key repeated in one batch, a batch column named like a system column, or an existing target without the system columns is PLM206 (<code>WriteKeyError</code>); the last one asks for <code>--full-refresh</code>.</li>
+<li>The first load inserts every non-delete row as current. A full refresh drops the history and reloads as a first load: scd2 keeps its strategy under full refresh. A retry with the same token replays the stored result (ADR-0032); a re-run with an unchanged batch adds no versions.</li>
+<li>Schema policy: scd2 keeps rows. The runner strips the system columns from the target schema before the policy, so the policy acts on business columns only.</li>
+<li>A model contract (ADR-0044) describes the body output, so a system column there is PLP416. PLP416 also covers a <code>unique_key</code>, <code>partition_by</code>, <code>cluster_by</code>, <code>deletes.column</code> or tracked column that names a system column, and tracked columns that overlap the <code>unique_key</code>.</li>
+<li>Counts reuse the <code>WriteResult</code> fields: <code>rows_inserted</code> is new current rows, <code>rows_updated</code> is rows closed by a change, <code>rows_deleted</code> is rows closed by a delete, <code>rows_written</code> is their sum.</li>
+<li><code>WriteConfig</code> gains <code>tracked_columns</code> (filled by the runner; empty only when the table has no business column besides the key and the delete column) and <code>full_refresh</code>, appended with defaults, and the engine types gain <code>SCD2_COLUMNS</code>. This is additive and stays within plugin API (0, 5).</li>
+<li>Engines without scd2 get PLC501. The memory engine does not declare it; polars and pandas do (they share the filesystem write code, which rewrites the whole table on each scd2 write, like merge).</li>
 </ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
 <p>Accepted</p>

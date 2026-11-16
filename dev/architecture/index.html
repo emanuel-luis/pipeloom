@@ -390,7 +390,7 @@
   <span class="md-ellipsis">
     
   
-    Merge, replace_partitions and schema changes
+    Merge, replace_partitions, scd2 and schema changes
   
 
     
@@ -2101,12 +2101,12 @@ queued  → cancelled (run cancelled)
 </tr>
 <tr>
 <td>scd2</td>
-<td><code>unique_key</code>, <code>tracked_columns</code> (default all), columns <code>valid_from</code>, <code>valid_to</code>, <code>is_current</code>, row hash; deletes close the current row</td>
+<td><code>unique_key</code>, <code>tracked_columns</code> (default all but the key and the delete column), columns <code>valid_from</code>, <code>valid_to</code>, <code>is_current</code>; tracked columns compared null-safely; hard deletes close the current row (<a href="../adr/0008-incremental-and-state/#amendment-09-scd2">ADR-0008</a>)</td>
 <td>rebuild</td>
 </tr>
 </tbody>
 </table>
-<p>A full refresh writes append, merge and replace_partitions as overwrite. A first build (the target does not exist) keeps its strategy, because into an absent table every strategy writes the same rows and merge still checks its key. On filesystem tables (ADR-0025) every strategy writes one part file per partition when <code>partition_by</code> is set; replace_partitions swaps whole files without reading the others, and a merge rewrites the whole table in 0.3 as read-modify-write under a commit lock and an expected version. SCD2 is planned (section 16).</p>
+<p>A full refresh writes append, merge and replace_partitions as overwrite. A first build (the target does not exist) keeps its strategy, because into an absent table every strategy writes the same rows and merge still checks its key. On filesystem tables (ADR-0025) every strategy writes one part file per partition when <code>partition_by</code> is set; replace_partitions swaps whole files without reading the others, and a merge rewrites the whole table in 0.3 as read-modify-write under a commit lock and an expected version. An scd2 write rewrites the whole table the same way.</p>
 <p><strong>Idempotency:</strong> each write receives <code>token = "&lt;run_id&gt;:&lt;model&gt;"</code>. Engines with transactional idempotency use it. Engines without it declare <code>idempotent_writes=False</code>.</p>
 <p><strong>Delta mapping (<code>pipeloom-spark</code>, <a href="../adr/0032-delta-writes-and-idempotency/">ADR-0032</a>).</strong> All Delta statements are SQL text or DataFrameWriter options; no Spark conf is set, on any session.
 - Token: <code>txnAppId</code> is <code>pipeloom/&lt;project&gt;/&lt;model&gt;</code> (suffix <code>#quarantine</code> or <code>#intermediate</code> for those writes), <code>txnVersion</code> is the run start in epoch milliseconds, and <code>userMetadata</code> is <code>{"pipeloom": {"v": 1, "token", "commit_meta", "result"?}}</code>.
@@ -2136,9 +2136,13 @@ queued  → cancelled (run cancelled)
 <td>merge</td>
 <td>the claim commit, SQL <code>MERGE INTO</code>, then the token commit; null keys never match and insert; soft deletes are counted and moved from updated to deleted; a merge into a missing table is the first load, an append</td>
 </tr>
+<tr>
+<td>scd2</td>
+<td>a missing table is the first load: an append of the batch minus its delete rows, with <code>valid_from</code> set to the run start, <code>valid_to</code> null and <code>is_current</code> true; a full refresh writes the same rows as an overwrite. Otherwise the claim commit, then one SQL <code>MERGE INTO</code> whose source stages the batch twice: every row with its key copied to match keys (<code>__pipeloom_mk_&lt;k&gt;</code>) and a delete flag, and again with null match keys each row that changes a current row. A matched current row that is deleted or differs in a tracked column (<code>&lt;=&gt;</code>, NaN as null) closes at the run start; unmatched rows that are not deletes insert as current. The counts come from one query over the rows opened or closed at the run start, so a re-run MERGE reports the same, then the token commit</td>
+</tr>
 </tbody>
 </table>
-<p>The schema policy (above) is applied by the core; the engine maps its result. Added columns go in the write itself (<code>mergeSchema</code>); a merge first makes an empty <code>mergeSchema</code> append instead. Removed or widened columns first run one migration commit: the table is read, aligned to the final columns and overwritten with <code>overwriteSchema</code>, keeping its partitioning. A migration commit carries no <code>txn</code> options and no token, so it never counts in the metrics; with the guard on, the claim commit before it takes the write version.</p>
+<p>The schema policy (above) is applied by the core; the engine maps its result. Added columns go in the write itself (<code>mergeSchema</code>); a merge or scd2 write first makes an empty <code>mergeSchema</code> append instead. Removed or widened columns first run one migration commit: the table is read, aligned to the final columns and overwritten with <code>overwriteSchema</code>, keeping its partitioning. A migration commit carries no <code>txn</code> options and no token, so it never counts in the metrics; with the guard on, the claim commit before it takes the write version.</p>
 <p><strong>Schema-change policy (<code>on_schema_change</code>):</strong>
 - <code>fail</code> (default): any column added, removed or changed in type raises PLM202.
 - <code>ignore</code>: the final schema is the target's. The batch is aligned to it: extra columns dropped, missing ones filled with nulls, values cast to the target types (a failed cast is PLM201).

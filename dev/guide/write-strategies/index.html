@@ -27,7 +27,7 @@
     
     
       
-        <title>Merge, replace_partitions and schema changes - pipeloom</title>
+        <title>Merge, replace_partitions, scd2 and schema changes - pipeloom</title>
       
     
     
@@ -70,7 +70,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#merge-replace_partitions-and-schema-changes" class="md-skip">
+        <a href="#merge-replace_partitions-scd2-and-schema-changes" class="md-skip">
           Skip to content
         </a>
       
@@ -106,7 +106,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Merge, replace_partitions and schema changes
+              Merge, replace_partitions, scd2 and schema changes
             
           </span>
         </div>
@@ -401,7 +401,7 @@
   <span class="md-ellipsis">
     
   
-    Merge, replace_partitions and schema changes
+    Merge, replace_partitions, scd2 and schema changes
   
 
     
@@ -419,7 +419,7 @@
   <span class="md-ellipsis">
     
   
-    Merge, replace_partitions and schema changes
+    Merge, replace_partitions, scd2 and schema changes
   
 
     
@@ -460,6 +460,17 @@
     <span class="md-ellipsis">
       
         replace_partitions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scd2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        scd2
       
     </span>
   </a>
@@ -1162,6 +1173,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#scd2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        scd2
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#schema-changes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1203,11 +1225,11 @@
   
 
 
-<h1 id="merge-replace_partitions-and-schema-changes">Merge, replace_partitions and schema changes<a class="headerlink" href="#merge-replace_partitions-and-schema-changes" title="Permanent link">&para;</a></h1>
+<h1 id="merge-replace_partitions-scd2-and-schema-changes">Merge, replace_partitions, scd2 and schema changes<a class="headerlink" href="#merge-replace_partitions-scd2-and-schema-changes" title="Permanent link">&para;</a></h1>
 <p><code>write.strategy</code> decides how a batch meets the rows already in the target table. 0.3 adds
 <code>merge</code> and <code>replace_partitions</code> next to <code>append</code> and <code>overwrite</code>, and a policy for batches whose
 columns differ from the table. The polars and pandas engines support all of it on filesystem
-tables.</p>
+tables. 0.9 adds <code>scd2</code> on polars, pandas and Spark.</p>
 <h2 id="merge">merge<a class="headerlink" href="#merge" title="Permanent link">&para;</a></h2>
 <p>Rows are matched on <code>unique_key</code>. Matched rows are updated, unmatched rows are inserted.</p>
 <pre><code class="language-yaml">models:
@@ -1265,6 +1287,51 @@ It needs <code>partition_by</code>; without it <code>pipeloom validate</code> re
 without reading the other files. <code>rows_deleted</code> reports how many old rows went away. A table
 written by 0.2 has no partition values in its files, so the first replace reads and rewrites
 those files once. An empty batch changes no files. A null is a partition value like any other.</p>
+<h2 id="scd2">scd2<a class="headerlink" href="#scd2" title="Permanent link">&para;</a></h2>
+<p><code>scd2</code> keeps the history of each key as a type 2 slowly changing dimension. The table holds the
+model's columns followed by three system columns: <code>valid_from</code> and <code>valid_to</code>
+(<code>timestamp[us, UTC]</code>) and <code>is_current</code> (<code>boolean</code>).</p>
+<pre><code class="language-yaml">models:
+  - name: customers_history
+    sql: select id, name, tier, status from raw_customers
+    inputs:
+      raw_customers:
+        source: raw_customers
+    write:
+      strategy: scd2
+      unique_key:
+        - id
+      tracked_columns:
+        - name
+        - tier
+      deletes:
+        column: status
+        value: closed
+        mode: hard
+</code></pre>
+<ul>
+<li>The first load, and every <code>--full-refresh</code>, writes each batch row as the current version and
+  drops any earlier history.</li>
+<li>On later runs a batch row for a new key opens a version. A row whose tracked columns differ
+  from the key's current version closes that version and opens a new one. Tracked columns are
+  compared null-safely, and NaN counts as null. A change in any other column is ignored.</li>
+<li><code>tracked_columns</code> defaults to every column except <code>unique_key</code> and the delete column. An empty
+  list or a key column in the list is PLP416, and so is a system column named in <code>unique_key</code>,
+  <code>tracked_columns</code>, <code>partition_by</code>, <code>cluster_by</code>, <code>deletes.column</code> or the model's <code>columns</code>.</li>
+<li>Versions open and close at the run's start time, the same on every retry of the run, so a
+  rerun with an unchanged batch adds no version.</li>
+<li><code>deletes</code> supports <code>mode: hard</code> only (<code>soft</code> is PLP416). A delete row closes the key's current
+  version without opening a new one; a delete for an unknown key is ignored, and a key that
+  comes back later opens a new version. Keys missing from the batch stay current.</li>
+<li>A null or repeated key in the batch, or a batch column named like a system column, fails with
+  PLM206 before anything is written.</li>
+<li><code>run_results.json</code> reports <code>rows_inserted</code> (versions opened), <code>rows_updated</code> (versions closed by
+  a change) and <code>rows_deleted</code> (versions closed by a delete); <code>rows_written</code> is their sum.</li>
+</ul>
+<p>The schema policy applies to the model's columns only; old versions read a new column as null.
+A target without the system columns fails with PLM206 until you run with <code>--full-refresh</code>. On
+filesystem tables an scd2 write rewrites the whole table like a merge; on Spark it is one Delta
+<code>MERGE INTO</code>. The memory engine does not support <code>scd2</code> (PLC501).</p>
 <h2 id="schema-changes">Schema changes<a class="headerlink" href="#schema-changes" title="Permanent link">&para;</a></h2>
 <p><code>write.on_schema_change</code> says what happens when the batch's columns differ from the target's.
 The default is <code>fail</code>.</p>
@@ -1298,7 +1365,7 @@ The default is <code>fail</code>.</p>
 every digit, a finer timestamp unit in the same zone, or a null column to any type. A batch that
 differs from the table only by such a widening of the table's type is cast to the table's type
 under every policy.</p>
-<p>The policy applies to <code>append</code>, <code>merge</code> and <code>replace_partitions</code> on an existing table. <code>overwrite</code>,
+<p>The policy applies to <code>append</code>, <code>merge</code>, <code>replace_partitions</code> and <code>scd2</code> on an existing table. <code>overwrite</code>,
 <code>--full-refresh</code> and the first build use the batch's schema, and report the difference with the
 action <code>replaced</code>.</p>
 <p>With <code>fail</code>, adding a column to the model fails like this:</p>

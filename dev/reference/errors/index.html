@@ -390,7 +390,7 @@
   <span class="md-ellipsis">
     
   
-    Merge, replace_partitions and schema changes
+    Merge, replace_partitions, scd2 and schema changes
   
 
     
@@ -1497,6 +1497,17 @@
     <span class="md-ellipsis">
       
         PLP414
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp416" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP416
       
     </span>
   </a>
@@ -3040,6 +3051,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plp416" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP416
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4069,6 +4091,9 @@
 <h3 id="plp414">PLP414<a class="headerlink" href="#plp414" title="Permanent link">&para;</a></h3>
 <p>Contract on a view or ephemeral model. Severity: error. Status: active. Since: 0.9.</p>
 <p>A view or an ephemeral model writes no batch of its own, so its columns cannot be checked. Put the contract on a table that reads it.</p>
+<h3 id="plp416">PLP416<a class="headerlink" href="#plp416" title="Permanent link">&para;</a></h3>
+<p>scd2 options conflict. Severity: error. Status: active. Since: 0.9.</p>
+<p>A model writing with scd2 sets an option the strategy cannot apply: an empty tracked_columns, a tracked column that is part of unique_key, deletes with mode: soft, or a unique_key, tracked_columns, partition_by, cluster_by, deletes.column or contract column named valid_from, valid_to or is_current (scd2 adds those columns itself).</p>
 <h2 id="l5-capability">L5 capability<a class="headerlink" href="#l5-capability" title="Permanent link">&para;</a></h2>
 <h3 id="plc501">PLC501<a class="headerlink" href="#plc501" title="Permanent link">&para;</a></h3>
 <p>Strategy unsupported by engine. Severity: error. Status: active. Since: 0.1.</p>
