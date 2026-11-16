@@ -2,8 +2,8 @@
 
 The provider reports every task with the DAG run as parent and asks the operator for datasets
 through `get_openlineage_facets_on_*`. The facets come from `pipeloom_openlineage`, the code the
-sink uses, imported lazily: without that distribution, or without the provider, the hooks return
-None. LOCAL and VIRTUALENV replay the child's events; KUBERNETES reports the static datasets of the
+sink uses, imported lazily: without that distribution the hooks return an empty OperatorLineage, and
+None without the provider. LOCAL and VIRTUALENV replay the child's events; KUBERNETES reports the static datasets of the
 manifest; DATABRICKS has no hooks, the sink in the Databricks task reports the units.
 """
 
@@ -67,12 +67,11 @@ class OpenLineageMixin:
     def _openlineage(self, events: Sequence[Event]) -> Any:
         if self.lineage_plan is None:
             return None
-        found = unit_facets(self.lineage_plan, self.lineage_project_dir, self.unit_id, events)
-        if found is None:
-            return None
         from pipeloom_airflow._compat import operator_lineage
 
-        return operator_lineage(*found)
+        found = unit_facets(self.lineage_plan, self.lineage_project_dir, self.unit_id, events)
+        # without pipeloom-openlineage: empty lineage (None only when the provider is missing)
+        return operator_lineage(*(found or ([], [], {}, {})))
 
     def get_openlineage_facets_on_start(self) -> Any:
         return self._openlineage(())

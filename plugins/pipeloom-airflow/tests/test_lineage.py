@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import json
+import sys
+import types
+from typing import Any
 
-from pipeloom_airflow.lineage import child_event, unit_facets
+import pytest
+
+from pipeloom_airflow.lineage import OpenLineageMixin, child_event, unit_facets
 from pipeloom_airflow.load import LoadedPlan
 
 LINE = {
@@ -38,6 +43,31 @@ def test_static_facets_come_from_the_manifest(shop: LoadedPlan) -> None:
     assert [o.name.rsplit(".", 1)[-1] for o in outputs] == ["stg_orders"]
     assert "parent" not in run_facets  # the provider's parent is the DAG run
     assert set(job_facets) == {"sourceCodeLocation"}
+
+
+def test_hooks_return_empty_lineage_without_pipeloom_openlineage(
+    shop: LoadedPlan, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # `_compat` needs Airflow, so a stand-in replaces it: it records what the mixin asks for and
+    # returns None when told the provider is missing, like the real `operator_lineage`.
+    provider = {"installed": True}
+    calls: list[tuple[Any, ...]] = []
+
+    def operator_lineage(*args: Any) -> Any:
+        calls.append(args)
+        return args if provider["installed"] else None
+
+    compat = types.ModuleType("pipeloom_airflow._compat")
+    compat.operator_lineage = operator_lineage  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "pipeloom_airflow._compat", compat)
+    monkeypatch.setitem(sys.modules, "pipeloom_openlineage.sink", None)  # ImportError on import
+    hooks = OpenLineageMixin()
+    hooks.unit_id = "stg_orders"
+    hooks.lineage_plan = shop.plan
+    assert hooks.get_openlineage_facets_on_start() == ([], [], {}, {})
+    provider["installed"] = False
+    assert hooks.get_openlineage_facets_on_start() is None
+    assert len(calls) == 2
 
 
 def test_replayed_events_add_output_statistics(shop: LoadedPlan) -> None:
