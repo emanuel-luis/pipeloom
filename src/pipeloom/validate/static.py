@@ -144,6 +144,9 @@ def check_static(pg: ProjectGraph, report: Report) -> None:
         else None
     )
     trees: dict[str, ast.Module | str] = {}
+    for b in project.binding_problems:
+        if b.code == "PLK602":
+            report.add(b.code, b.message, location=b.location, hint=b.hint, context=dict(b.context))
     for m in project.models.values():
         ref = m.entry.python
         if ref is None:

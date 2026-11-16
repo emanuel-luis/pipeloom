@@ -14,5 +14,56 @@
       "model": "a",
       "callable": "m:a"
     }
+  },
+  {
+    "code": "PLK602",
+    "severity": "error",
+    "message": "parameters of 'p:c' cannot take *args ('rest')",
+    "hint": "inputs are passed by keyword",
+    "location": {
+      "file": "models/p.py",
+      "line": 4,
+      "col": 2,
+      "json_pointer": "/@model"
+    },
+    "context": {
+      "model": "c",
+      "callable": "p:c",
+      "parameter": "rest"
+    }
+  },
+  {
+    "code": "PLK602",
+    "severity": "error",
+    "message": "input 'z' of model 'c' is not a parameter of 'p:c'",
+    "hint": "add the parameter, or take **kwargs",
+    "location": {
+      "file": "models/p.py",
+      "line": 4,
+      "col": 8,
+      "json_pointer": "/@model/inputs/z"
+    },
+    "context": {
+      "model": "c",
+      "callable": "p:c",
+      "input": "z"
+    }
+  },
+  {
+    "code": "PLK602",
+    "severity": "error",
+    "message": "parameters of 'p:d' cannot take a positional-only parameter ('x')",
+    "hint": "inputs are passed by keyword",
+    "location": {
+      "file": "models/p.py",
+      "line": 9,
+      "col": 2,
+      "json_pointer": "/@model"
+    },
+    "context": {
+      "model": "d",
+      "callable": "p:d",
+      "parameter": "x"
+    }
   }
 ]

@@ -14,6 +14,8 @@ def check_references(
     whose entries may describe the models that are missing."""
     model_names = [m.name for m in project.models.values()]
     for b in project.binding_problems:
+        if b.code == "PLK602":
+            continue  # L6: check_static reports it
         report.add(b.code, b.message, location=b.location, hint=b.hint, context=dict(b.context))
     for p in () if models_incomplete else project.properties_problems:
         if p.first is None:
