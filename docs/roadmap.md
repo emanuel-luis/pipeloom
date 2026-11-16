@@ -3,7 +3,7 @@
 Status: plan as of 2026-11-06, written against 0.7.0, and updated on 2026-11-15 for Python-first authoring. This
 page replaces the planned versions that section 16 of [architecture.md](architecture.md#16-roadmap) used to list;
 section 16 keeps the record of what each delivered version contains. Items that change a decision name the ADR they
-need: ADRs up to 0044, 0047 and 0050 exist, and 0045, 0046, 0048 and 0049 are proposed.
+need: ADRs up to 0050 exist and are accepted.
 
 Terms such as unit, run, boundary and artifacts root are defined in the
 [glossary](architecture.md#2-glossary). In short, a unit is one schedulable node of the plan (a persisted model
@@ -244,6 +244,9 @@ Delivered in 0.8.0. The docs site lays its graph out in Python instead of a vend
 | `pipeloom docs generate` and `serve` | [ADR-0043](adr/0043-docs-site.md) | the TPC-H examples produce one HTML file that opens offline and shows the graph and every model |
 
 ### 0.9: test it, see it, run it faster
+
+Delivered in 0.9.0. YAML model declarations were removed in the same release, without a deprecation
+release ([migration guide](guide/migrate-0.9.md)); WATCHER mode was checked live on the Astro example.
 
 Python-first authoring comes first; contracts and the test and build work are then written against the decorator.
 

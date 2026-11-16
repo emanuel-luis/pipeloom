@@ -4,7 +4,7 @@ Architecture: [Section 13, The Airflow plugin](../architecture.md#13-the-airflow
 
 Amends [ADR-0012](0012-airflow-rendering-and-modes.md) and [ADR-0038](0038-airflow-execution-modes-and-artifact-store.md). No core change.
 
-Status: Proposed. Set to Accepted after the live check.
+Status: Accepted (2026-11-16, after the live check on the Astro example: a green run, then a failed unit cleared with Downstream and rerun on try 2).
 
 ## Context
 

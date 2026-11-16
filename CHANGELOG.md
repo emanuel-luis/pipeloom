@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-16
+
+pipeloom 0.9 makes models Python-first. A model is a function marked with `@model`; `pipeloom.yml` holds the project and a `models:` tree of folder defaults, and properties files next to the models configure and describe them, with the decorator winning as in dbt. The compiler reads model files with `ast` and imports only the modules whose decorators have dynamic arguments, and SQL runs through `ctx.sql`, translated to the target engine. YAML model declarations are removed: see the [migration guide](docs/guide/migrate-0.9.md). The release also adds model contracts, `pipeloom test` and `pipeloom build` with post-write data tests, the `scd2` write strategy, run history and the `webhook` sink, the new `pipeloom-openlineage` distribution with Airflow facets, CSV sample data on Spark and Databricks, and the Airflow WATCHER mode.
+
 ### Added
 
 - Airflow WATCHER mode (`ExecutionMode.WATCHER`, [ADR-0048](docs/adr/0048-airflow-watcher-mode.md)): one producer task runs the whole selection in a single `pipeloom run`, and one deferrable watcher per model reads the unit's files, reports its result and declares its asset. Clearing a failed watcher with Downstream reruns that one unit. New `ExecutionConfig` fields `watcher_workers`, `watcher_poll_interval`, `watcher_timeout` and `watcher_artifacts_root`; the triggerer needs `pipeloom-airflow` and the artifacts root at the same path. New codes: PLA008 (WATCHER artifacts root not resolved, or the run left no `run_results.json`) and PLA009 (producer ended without run results). The examples gain the `tpch_polars_watcher` DAG and a development-wheel hook in the Astro `Dockerfile`.
