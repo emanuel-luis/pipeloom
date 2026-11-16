@@ -1361,6 +1361,10 @@ bytes.</p>
 <td>Directory that holds <code>pipeloom.yml</code>.</td>
 </tr>
 <tr>
+<td><code>--target</code>, <code>--vars</code>, <code>--plugin</code></td>
+<td>As in <code>docs generate</code>; the rebuild compiles with them.</td>
+</tr>
+<tr>
 <td><code>--dir DIR</code></td>
 <td>Folder to serve, relative to the project dir unless absolute. Default <code>target/docs</code>.</td>
 </tr>
@@ -1374,8 +1378,10 @@ bytes.</p>
 </tr>
 </tbody>
 </table>
-<p>If <code>index.html</code> is missing, the command exits 2 and asks you to run <code>pipeloom docs generate</code> first. Press Ctrl+C to
-stop it; it exits 0.</p>
+<p>When a model file changes, the next request for the page compiles the project again and rewrites <code>index.html</code>.
+If the project does not resolve when the command starts, it prints one line on stderr and serves the page as it
+is. If <code>index.html</code> is missing, the command exits 2 and asks you to run <code>pipeloom docs generate</code> first. Press
+Ctrl+C to stop it; it exits 0.</p>
 <h2 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">&para;</a></h2>
 <p>The graph is a static drawing, not an interactive one. Pan and zoom are the scroll area and the buttons. An
 interactive viewer over the artifacts root is planned as <code>pipeloom ui</code>, in its own distribution. Model contracts

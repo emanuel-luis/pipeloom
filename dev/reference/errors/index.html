@@ -1084,6 +1084,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#ply005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLY005
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1288,6 +1299,17 @@
     <span class="md-ellipsis">
       
         PLR209
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr210" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR210
       
     </span>
   </a>
@@ -2704,6 +2726,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#ply005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLY005
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2908,6 +2941,17 @@
     <span class="md-ellipsis">
       
         PLR209
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr210" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR210
       
     </span>
   </a>
@@ -4148,6 +4192,9 @@
 <h3 id="ply004">PLY004<a class="headerlink" href="#ply004" title="Permanent link">&para;</a></h3>
 <p>File missing or unreadable. Severity: error. Status: active. Since: 0.1.</p>
 <p>pipeloom.yml or a model file does not exist or cannot be read.</p>
+<h3 id="ply005">PLY005<a class="headerlink" href="#ply005" title="Permanent link">&para;</a></h3>
+<p>Model module cannot be loaded. Severity: error. Status: active. Since: 0.9.</p>
+<p>A Python file under model_paths or model_packages has a syntax error, raised an exception while it was imported, lies outside every python_paths root, or resolves to another file under its module name (an installed package or another module shadows it, or its top-level name is a standard library module). Every such file is reported; the location is the innermost traceback frame in that file, or the syntax error. While any is reported, PLR209 is not, since the missing models may be the ones a properties entry describes.</p>
 <h2 id="l1-schema">L1 schema<a class="headerlink" href="#l1-schema" title="Permanent link">&para;</a></h2>
 <h3 id="pls101">PLS101<a class="headerlink" href="#pls101" title="Permanent link">&para;</a></h3>
 <p>Unknown field. Severity: error. Status: active. Since: 0.1.</p>
@@ -4198,6 +4245,9 @@
 <h3 id="plr209">PLR209<a class="headerlink" href="#plr209" title="Permanent link">&para;</a></h3>
 <p>Properties entry names no model, or describes one twice. Severity: error. Status: active. Since: 0.9.</p>
 <p>An entry of a properties file (a models entry without sql or python) names a model that does not exist, or a model that another properties entry already describes. Each model has at most one properties entry. The hint suggests the closest model name, or points at the first entry.</p>
+<h3 id="plr210">PLR210<a class="headerlink" href="#plr210" title="Permanent link">&para;</a></h3>
+<p>Input name matches a table in several source groups. Severity: error. Status: active. Since: 0.9.</p>
+<p>A parameter of a Python model binds by name to a source table, and tables with that name exist in more than one source group. Bind it explicitly with inputs={'name': source('group', 'table')}.</p>
 <h2 id="l3-graph">L3 graph<a class="headerlink" href="#l3-graph" title="Permanent link">&para;</a></h2>
 <h3 id="plg301">PLG301<a class="headerlink" href="#plg301" title="Permanent link">&para;</a></h3>
 <p>Cycle in the graph. Severity: error. Status: active. Since: 0.1.</p>
