@@ -201,6 +201,10 @@
          <lastmod>2026-11-16</lastmod>
     </url>
     <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0046-openlineage/</loc>
+         <lastmod>2026-11-16</lastmod>
+    </url>
+    <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0047-run-history-and-webhook/</loc>
          <lastmod>2026-11-16</lastmod>
     </url>
@@ -222,6 +226,10 @@
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/incremental/</loc>
+         <lastmod>2026-11-16</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/openlineage/</loc>
          <lastmod>2026-11-16</lastmod>
     </url>
     <url>

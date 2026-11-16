@@ -551,6 +551,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../guide/openlineage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lineage with OpenLineage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../guide/orchestrators/" class="md-nav__link">
         
   
@@ -2348,7 +2376,9 @@ quality:
 - <code>buffered: true</code> wraps a sink in a bounded queue and worker thread for slow transports, with drop-oldest and a count of drops.
 - A redaction filter masks registered secret values before any sink sees an event.
 - Built-in sinks: <code>console</code>, <code>jsonl</code> (stdout or file), <code>file</code> (per-invocation event files under artifacts), <code>artifacts</code> (always on; builds the result files).
-- <code>pipeloom-openlineage</code> maps units to OpenLineage jobs: <code>&lt;project&gt;.&lt;model&gt;</code>, with a parent run facet for the pipeline run, the error facet, and input and output datasets from the manifest. The output-statistics facet is used if available (unverified).
+- <code>pipeloom-openlineage</code> (0.9, <a href="../adr/0046-openlineage/">ADR-0046</a>) maps the run to the OpenLineage job <code>&lt;project&gt;</code> and each unit to <code>&lt;project&gt;.&lt;model&gt;</code>, with uuid5 run ids, a parent run facet for the pipeline run, input and output datasets from the manifest, and the schema, outputStatistics, dataQualityAssertions, errorMessage, jobType and sourceCodeLocation facets. Inside an Airflow task it stays silent unless <code>inside_airflow: emit</code>; the unit operators give the Airflow OpenLineage provider the same datasets and facets through <code>get_openlineage_facets_on_*</code> (LOCAL and VIRTUALENV from the child's events, KUBERNETES from the manifest). Guide: <a href="../guide/openlineage/">Lineage with OpenLineage</a>.
+- A sink may define <code>plan_ready(PlanInfo)</code> (0.9, additive in plugin API (0, 5)): the bus hands it the run's manifest dict and project dir right after <code>run.started</code> (or where a unit invocation would emit it) and in <code>finalize</code>.
+- <code>model.written</code> also carries <code>columns</code> (0.9): the table's columns after the write, null for intermediates, views and replayed writes.
 - <code>RecordingSink</code> in <code>pipeloom.testing</code> asserts ordered events.</p>
 <p><img alt="The event bus fans out to sinks through a redaction filter. Each sink has a failure budget, slow sinks can be buffered, and the artifacts sink writes the result files." src="../diagrams/05-events.svg" /></p>
 <p>Source: <a href="../diagrams/05-events.d2">05-events.d2</a>.</p>
