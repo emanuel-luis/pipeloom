@@ -44,6 +44,7 @@ HELPERS = frozenset(
         "Expectation",
         "Quality",
         "Deletes",
+        "DataTest",
     }
 )
 MODULES = ("pipeloom", "pipeloom.authoring")
