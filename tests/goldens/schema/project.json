@@ -795,6 +795,20 @@
           "description": "Schema (namespace) of the target relation.",
           "title": "Schema"
         },
+        "sql_dialect": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "sqlglot dialect of the model's `ctx.sql` queries; translated when it differs from the\nengine's (needs the sqlglot extra).",
+          "title": "Sql Dialect"
+        },
         "tags": {
           "anyOf": [
             {
