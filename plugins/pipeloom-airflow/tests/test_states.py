@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from jsonschema import Draft202012Validator
+
+from pipeloom.artifacts.schema import close, unit_states_schema
 from pipeloom.events.model import Event
 from pipeloom.runtime.finalize_run import ExternalUnitState, read_unit_states
 from pipeloom_airflow.states import (
@@ -77,6 +80,9 @@ def test_the_document_round_trips_through_the_core_reader(tmp_path: Path) -> Non
     path.write_text(json.dumps(full), encoding="utf-8")
     assert read_unit_states(path) == states
     assert full["schema"] == "pipeloom.unit_states/1"
+    strict = Draft202012Validator(close(unit_states_schema()))
+    for doc in (full, compact, unit_states_document(long, compact=False)):
+        strict.validate(doc)
 
 
 EVENTS = Path(__file__).parent / "data" / "child.jsonl"
