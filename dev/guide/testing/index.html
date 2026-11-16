@@ -1646,17 +1646,23 @@ relationship edges.</p>
 <p><code>data_tests</code> also has a decorator keyword, which takes <code>DataTest</code> objects or plain dicts. The
 <code>check</code> is one of <code>not_null</code>, <code>unique</code> or <code>relationships</code>, as in YAML. It is not an expectation
 check, so helpers such as <code>not_null()</code> from <code>pipeloom</code> do not apply there:</p>
-<pre><code class="language-python">from pipeloom import DataTest, model
+<pre><code class="language-python">from pipeloom import DataTest, model, ref
 
 
 @model(
     data_tests=[
         DataTest(name=&quot;id_unique&quot;, check={&quot;unique&quot;: [&quot;id&quot;]}, on_violation=&quot;warn&quot;),
+        DataTest(
+            name=&quot;customer_exists&quot;,
+            check={&quot;relationships&quot;: {&quot;column&quot;: &quot;customer_id&quot;, &quot;to&quot;: ref(&quot;customers&quot;), &quot;field&quot;: &quot;id&quot;}},
+        ),
     ],
 )
 def orders(raw_orders):
     ...
 </code></pre>
+<p>In a relationships check, <code>to</code> takes <code>ref("name")</code> or <code>source("group", "table")</code> as well as the
+mapping <code>{"ref": "name"}</code> or <code>{"source": "group.table"}</code>; they resolve to the same config.</p>
 <p>A model that sets <code>data_tests</code> in both places keeps the decorator's list, which replaces the
 properties list whole. <code>unit_tests</code> live only in properties.</p>
 <h2 id="build">build<a class="headerlink" href="#build" title="Permanent link">&para;</a></h2>
