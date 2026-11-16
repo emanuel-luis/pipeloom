@@ -9,6 +9,7 @@ from typing import Any
 
 import polars as pl
 import pytest
+from tests.conftest import make_project
 
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.builtins.fs_table import FsTable
@@ -39,10 +40,7 @@ def project(tmp_path: Path, boundary: str) -> Path:
             "    write: {strategy: merge, unique_key: [id]}\n"
         ),
     }
-    for rel, text in files.items():
-        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / rel).write_bytes(text.encode("utf-8"))
-    return tmp_path
+    return make_project(tmp_path, files)
 
 
 def feed(root: Path, rows: list[tuple[int, int, str]]) -> None:
