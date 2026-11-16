@@ -291,17 +291,19 @@ def test_intermediate_parents_of_a_retried_unit_run_again(tmp_path: Path) -> Non
     assert statuses(root, "r2") == {"a": "succeeded", "b": "succeeded", "c": "succeeded"}
 
 
-# `${var:x}` in a YAML model body is interpolated only on the legacy path, so the two var tests
-# keep legacy YAML models (convert=False) until the removal PR rewrites them with var().
-VAR_MODELS = MODELS + "  - {name: v, sql: 'select ${var:x} as x'}\n"
+# A model whose decorator reads `var("x")`, which has no default.
+VAR_MODEL = (
+    "from pipeloom import model, var\n\n\n"
+    '@model(meta={"x": var("x")})\n'
+    'def v(ctx):\n    return ctx.sql("select 1 as x")\n'
+)
 
 
 def test_vars_of_the_parent_apply_before_the_project_loads(tmp_path: Path) -> None:
-    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": VAR_MODELS}, convert=False)
+    files = {"pipeloom.yml": YML, "models/m.yml": MODELS, "models/v.py": VAR_MODEL}
+    root = make_project(tmp_path, files)
     failed_parent(root, "--vars", '{"x": 7}')
-    (root / "models" / "m.yml").write_text(
-        FIXED + "  - {name: v, sql: 'select ${var:x} as x'}\n", encoding="utf-8", newline="\n"
-    )
+    make_project(root, {"pipeloom.yml": YML, "models/m.yml": FIXED})
     r = retry(root, "--from", "r1", "--run-id", "r2")
     assert r.exit_code == 0, r.stderr
     assert statuses(root, "r2") == {"bad": "succeeded", "after_bad": "succeeded"}
@@ -310,7 +312,10 @@ def test_vars_of_the_parent_apply_before_the_project_loads(tmp_path: Path) -> No
 
 
 def test_unknown_parent_keeps_the_load_errors_and_hints_at_vars(tmp_path: Path) -> None:
-    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": VAR_MODELS}, convert=False)
+    # `${var:x}` in a properties file fails the load itself (PLS106).
+    props = "models:\n  - name: v\n    description: ${var:x}\n"
+    files = {"pipeloom.yml": YML, "models/m.yml": MODELS, "models/v.yml": props}
+    root = make_project(tmp_path, {**files, "models/v.py": VAR_MODEL})
     r = retry(root, "--from", "nope")
     assert r.exit_code == 1 and "PLS106" in codes(r) and "--vars" in r.stderr
 
