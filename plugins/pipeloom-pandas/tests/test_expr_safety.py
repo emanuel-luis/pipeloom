@@ -52,7 +52,7 @@ def test_an_unsafe_expr_in_a_model_is_plq302(tmp_path: Path) -> None:
         ignore=shutil.ignore_patterns("target", ".pipeloom"),
         dirs_exist_ok=True,
     )
-    models = tmp_path / "models" / "models.yml"
+    models = tmp_path / "src" / "quality" / "models.py"
     text = models.read_text(encoding="utf-8").replace("amount < 100", "@Path.cwd() == 1")
     models.write_text(text, encoding="utf-8", newline="\n")
     clock = FakeClock(datetime(2026, 1, 1, tzinfo=UTC), step=timedelta(0))
