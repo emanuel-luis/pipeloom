@@ -59,6 +59,13 @@ The rest of this page writes a project by hand, to show each part.
 # yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
 config_version: 1
 name: shop
+sources:
+  raw:
+    format: csv
+    location: raw
+    tables:
+      orders:
+        location: orders.csv
 targets:
   dev:
     engine:
@@ -80,27 +87,30 @@ id,customer_id,amount
 3,11,7.0
 ```
 
-`models/orders.yml`:
+`models/orders.py`:
 
-```yaml
-# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/models.json
-sources:
-  - name: raw_orders
-    format: csv
-    location: raw/orders.csv
-models:
-  - name: stg_orders
-    sql: select id, customer_id, amount from raw_orders
-    inputs:
-      raw_orders:
-        source: raw_orders
-    tags: [staging]
-  - name: orders_by_customer
-    sql: select customer_id, sum(amount) as total from stg_orders group by customer_id
-    inputs:
-      stg_orders:
-        ref: stg_orders
+```python
+from pipeloom import ModelContext, model
+
+
+@model(tags=["staging"])
+def stg_orders(ctx: ModelContext, orders):
+    return ctx.sql("select id, customer_id, amount from orders")
+
+
+@model
+def orders_by_customer(ctx: ModelContext, stg_orders):
+    return ctx.sql(
+        "select customer_id, sum(amount) as total from stg_orders group by customer_id"
+    )
 ```
+
+A model is a function marked with `@model`. Its parameters are its inputs: `orders` binds to the
+source table `raw.orders`, and `stg_orders` to the model of that name. `ctx.sql` runs a query over
+the inputs by parameter name and returns the engine's frame; a model may also build and return a
+frame itself. Settings such as `tags` are `@model` keywords, or folder defaults in a `models:`
+tree in `pipeloom.yml`. Coming from 0.8 and YAML models? See
+[Migrating from 0.8](guide/migrate-0.9.md).
 
 ## Check it
 
