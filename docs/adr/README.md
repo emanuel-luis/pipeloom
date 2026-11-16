@@ -48,4 +48,5 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0042 | [Selection by state and --defer](0042-state-selection-and-defer.md) | Accepted | 2026-11-06 |
 | 0043 | [Docs site](0043-docs-site.md) | Accepted | 2026-11-06 |
 | 0044 | [Model contracts](0044-model-contracts.md) | Accepted | 2026-11-06 |
+| 0046 | [OpenLineage](0046-openlineage.md) | Accepted | 2026-11-15 |
 | 0047 | [Run history and the webhook sink](0047-run-history-and-webhook.md) | Accepted | 2026-11-06 |
