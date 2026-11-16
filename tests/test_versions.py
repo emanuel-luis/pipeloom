@@ -13,15 +13,17 @@ REPO = Path(__file__).resolve().parent.parent
 
 @pytest.fixture
 def workspace(tmp_path: Path) -> Path:
+    """The pyprojects and the two files that hold the constants. `check` parses every source
+    file for `PluginSpec` calls, so copying whole trees made each test take seconds; the real
+    tree is covered by `test_the_repository_is_in_lockstep`."""
     shutil.copy(REPO / "pyproject.toml", tmp_path / "pyproject.toml")
-    skip = shutil.ignore_patterns("__pycache__", "*.pyc")
-    shutil.copytree(REPO / "src" / "pipeloom", tmp_path / "src" / "pipeloom", ignore=skip)
+    for source in (versions._API_SOURCE, versions._CONFIG_SOURCE):
+        (tmp_path / source).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(REPO / source, tmp_path / source)
     for member in versions.members(REPO):
         dest = tmp_path / "plugins" / member.parent.name
-        dest.mkdir(parents=True)
+        (dest / "src").mkdir(parents=True)
         shutil.copy(member, dest / "pyproject.toml")
-        if (member.parent / "src").is_dir():
-            shutil.copytree(member.parent / "src", dest / "src", ignore=skip)
     return tmp_path
 
 
