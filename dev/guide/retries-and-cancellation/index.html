@@ -1387,8 +1387,10 @@ thread still commits its write, the attempt file says <code>timed_out</code> and
 <code>control.request_stop()</code>.</p>
 <p>With <code>boundary: task</code> each child runs in its own process group, so a Ctrl+C in your terminal
 reaches only the parent, which then stops the children. A graceful stop is SIGTERM on POSIX and
-Ctrl+Break on Windows, followed by a kill after the grace. Windows has no job objects in 0.3: a
-grandchild started by a child that exits on its own can outlive the run.</p>
+Ctrl+Break on Windows, followed by a kill after the grace. The kill ends the child and every
+process it started: its process group on POSIX, its job object on Windows. When a child exits
+on its own, the parent sweeps the same group or job, so a grandchild it left behind does not
+outlive the run.</p>
 <p>Run IDs are reusable after a stop. Rerun with the same <code>--run-id</code> and the units that already
 committed are skipped through their write tokens.</p>
 

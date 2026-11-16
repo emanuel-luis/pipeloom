@@ -1115,6 +1115,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#amendment-10-windows-job-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (1.0): Windows job objects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1181,8 +1192,19 @@
 <li>Timeouts and delays are whole seconds in the config (<code>Duration</code>); the scheduler accepts fractions, so tests and API users can use shorter ones.</li>
 <li><code>Executor</code> changes shape: <code>wait_any(timeout)</code>, <code>cancel(handle, reason)</code>, <code>wake()</code> and <code>has_terminal_event(handle)</code>. <code>UnitHandle</code> gains <code>seq</code> and <code>attempt</code>.</li>
 </ul>
+<h2 id="amendment-10-windows-job-objects">Amendment (1.0): Windows job objects<a class="headerlink" href="#amendment-10-windows-job-objects" title="Permanent link">&para;</a></h2>
+<p>The process executor closes the Windows gap above: a grandchild of a child that exits on its own no longer survives.</p>
+<ul>
+<li>Each child runs in its own job object, created with <code>JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE</code> (<code>SetInformationJobObject</code> with the extended limit information). The helper is stdlib only (<code>ctypes</code>); the child is assigned after <code>Popen</code> through a handle from <code>OpenProcess</code>, not the private <code>Popen._handle</code>.</li>
+<li>A kill terminates the job first. The job handle is not a pid, so this is safe after the child was reaped. <code>taskkill /T /F</code> and <code>Popen.kill</code> stay as the fallback, used alone when Windows refuses the job.</li>
+<li>After the child exits, the executor terminates its job before joining the reader threads, the Windows counterpart of the POSIX <code>killpg</code> sweep, then closes it. <code>shutdown(wait=False)</code> and the cancel grace timer reach the job too; terminating a closed job does nothing.</li>
+<li>The sweep is stricter than on POSIX. There a unit can keep a detached process alive by starting it in a new session; on Windows nothing leaves the job, because the job does not allow breakaway (<code>CREATE_BREAKAWAY_FROM_JOB</code> fails with access denied). A unit must not leave processes running after it ends on either platform.</li>
+<li><code>CREATE_NEW_PROCESS_GROUP</code> stays, so <code>CTRL_BREAK_EVENT</code> still gives a graceful stop.</li>
+<li>If the parent dies, Windows closes the job handle and ends the whole tree.</li>
+<li>A grandchild started between <code>Popen</code> and the assignment escapes the job. The child is <code>python -m pipeloom run</code>, which imports for hundreds of milliseconds before user code runs, so the window stays open only in theory. <code>CREATE_SUSPENDED</code> would close it but needs the main thread handle, which <code>Popen</code> does not expose.</li>
+</ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted</p>
+<p>Accepted. Amended in 1.0 (Windows job objects).</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
 <p>2026-11-04</p>
 
