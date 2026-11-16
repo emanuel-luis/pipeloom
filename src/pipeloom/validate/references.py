@@ -1,15 +1,15 @@
-"""L2: names resolve. Duplicate models and sources, unknown refs and unknown sources."""
+"""L2: names resolve. Duplicate models, unknown refs and unknown sources."""
 
 from __future__ import annotations
 
-from pipeloom.config.resolve import ResolvedModel, ResolvedProject
+from pipeloom.config.resolve import ResolvedProject
 from pipeloom.diagnostics import Report, suggest
 
 
 def check_references(
     project: ResolvedProject, report: Report, *, models_incomplete: bool = False
 ) -> None:
-    """Report PLR201, PLR202, PLR203, PLR205 and PLR209. The caller stops before the graph on
+    """Report PLR201, PLR202, PLR203 and PLR209. The caller stops before the graph on
     errors. `models_incomplete` (some model modules could not be loaded) suppresses PLR209,
     whose entries may describe the models that are missing."""
     model_names = [m.name for m in project.models.values()]
@@ -31,24 +31,16 @@ def check_references(
             hint=hint,
             context={"model": p.name},
         )
-    for kind, code, first_of, shadowed in (
-        ("model", "PLR202", project.models, project.shadowed_models),
-        ("source", "PLR205", project.sources, project.shadowed_sources),
-    ):
-        for dup in shadowed:
-            first = first_of[dup.unique_id]
-            if isinstance(first, ResolvedModel) and isinstance(dup, ResolvedModel):
-                there, here = project.at(first, "/name"), project.at(dup, "/name")
-            else:
-                there = project.locate(first.file, f"{first.pointer}/name")
-                here = project.locate(dup.file, f"{dup.pointer}/name")
-            report.add(
-                code,
-                f"duplicate {kind} name '{dup.name}'",
-                location=here,
-                hint=f"first defined in {there.file}:{there.line}",
-                context={"name": dup.name, "first": first.file},
-            )
+    for dup in project.shadowed_models:
+        first = project.models[dup.unique_id]
+        there, here = project.at(first, "/name"), project.at(dup, "/name")
+        report.add(
+            "PLR202",
+            f"duplicate model name '{dup.name}'",
+            location=here,
+            hint=f"first defined in {there.file}:{there.line}",
+            context={"name": dup.name, "first": first.file},
+        )
     source_names = [s.name for s in project.sources.values()]
     for m in project.models.values():
         for alias, binding in m.inputs.items():

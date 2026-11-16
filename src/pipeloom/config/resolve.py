@@ -2,20 +2,16 @@
 
 Settings precedence, highest first:
 
-1. the model's own entry (YAML today; the decorator layer of ADR-0050 replaces it);
+1. the model's `@model` decorator;
 2. its properties entry: `config`, plus `description` and `columns`;
 3. for each folder from the model's own up to its model_paths root, the `models:` tree entry
-   for that folder, then that folder's `_defaults.yml` (the tree wins within one folder);
-4. the root `+key` settings of the tree, then `defaults.models` (the tree wins within the
-   project level);
+   for that folder;
+4. the root `+key` settings of the tree;
 5. the built-in defaults of `ResolvedModelConfig`.
 
-`_defaults.yml` and `defaults.models` map onto the folder and project layers of the tree
-(docs/architecture.md section 4).
-
 Mappings merge deeply, lists replace, and `tags` is an ordered union without duplicates. An
-explicit `null` removes a scalar or mapping set by a lower layer; `tags: null` is ignored. A model
-entry's `columns` replace the properties `columns` whole.
+explicit `null` removes a scalar or mapping set by a lower layer; `tags: null` is ignored.
+Decorator `columns` replace the properties `columns` whole.
 """
 
 from __future__ import annotations
@@ -29,7 +25,6 @@ from pipeloom.config.bind import BoundProject
 from pipeloom.config.decorator import POINTER, DecoratorSite, PythonModel
 from pipeloom.config.discover import PROJECT_FILE
 from pipeloom.config.models import (
-    DefaultsFile,
     InputConfig,
     ModelConfig,
     ModelSettings,
@@ -44,9 +39,7 @@ from pipeloom.secrets.interpolation import InterpolationRecord
 
 _SETTING_FIELDS = frozenset(ModelSettings.model_fields)
 
-Layer = Literal[
-    "model", "decorator", "properties", "folder", "project", "defaults_file", "project_defaults"
-]
+Layer = Literal["decorator", "properties", "folder", "project"]
 
 
 def model_id(project: str, name: str) -> str:
@@ -75,7 +68,7 @@ class ResolvedSource:
     """The source name, or `group.table` for a table of a source group."""
     file: str
     pointer: str
-    """JSON pointer of the entry in its file, for example `/sources/0`."""
+    """JSON pointer of the table in pipeloom.yml, for example `/sources/raw/tables/orders`."""
     config: SourceConfig
 
 
@@ -92,18 +85,18 @@ class ResolvedModel:
     name: str
     file: str
     pointer: str
-    """JSON pointer of the entry in its file, for example `/models/0`."""
+    """JSON pointer of the decorator (`/@model`)."""
     folder: str
     entry: ModelConfig
     """The model entry; its `columns` come from the properties entry when it sets none."""
     config: ResolvedModelConfig
     inputs: Mapping[str, InputBinding]
     own_fields: frozenset[str]
-    """YAML keys the entry sets itself."""
+    """Keywords the decorator sets itself."""
+    site: DecoratorSite
+    """The `@model` decorator."""
     origins: Mapping[str, Origin] = field(default_factory=dict)
     """The winning layer of each setting, `description` and `columns` that some layer sets."""
-    site: DecoratorSite | None = None
-    """The `@model` decorator of a Python-first model; None for a YAML model."""
 
 
 @dataclass(frozen=True)
@@ -136,7 +129,6 @@ class ResolvedProject:
     sources: Mapping[str, ResolvedSource]
     shadowed_models: tuple[ResolvedModel, ...]
     """Later definitions of a model name already taken (PLR202)."""
-    shadowed_sources: tuple[ResolvedSource, ...]
     docs: Mapping[str, LoadedDocument]
     interpolations: tuple[InterpolationRecord, ...]
     properties_problems: tuple[PropertiesProblem, ...] = ()
@@ -155,21 +147,17 @@ class ResolvedProject:
         return doc.locate(pointer, key=key) if doc else Location(file)
 
     def at(self, model: ResolvedModel, sub: str = "") -> Location:
-        """A pointer below the model's entry, or below its `@model` decorator."""
-        if model.site is not None:
-            return model.site.locate(sub)
-        return self.locate(model.file, f"{model.pointer}{sub}")
+        """A pointer below the model's `@model` decorator."""
+        return model.site.locate(sub)
 
     def locate_model(self, model: ResolvedModel, field: str | None = None) -> Location:
-        """Where the winning layer sets `field`, else the entry's own `field`, else its name."""
+        """Where the winning layer sets `field`, else the decorator's own `field`, else the
+        decorator."""
         origin = model.origins.get(field) if field is not None else None
         if origin is not None:
             return origin.location
-        if model.site is not None:
-            own = field is not None and field in model.own_fields
-            return model.site.locate(f"/{field}" if own else "")
-        leaf = field if field is not None and field in model.own_fields else "name"
-        return self.locate(model.file, f"{model.pointer}/{leaf}")
+        own = field is not None and field in model.own_fields
+        return model.site.locate(f"/{field}" if own else "")
 
 
 @dataclass(frozen=True)
@@ -220,37 +208,23 @@ def _inherited(
     bound: BoundProject,
     file: str,
     roots: Sequence[str],
-    defaults: Mapping[str, Sequence[tuple[str, DefaultsFile]]],
-    base: _Layer,
-    module: str | None = None,
+    module: str,
 ) -> list[_Layer]:
-    """The layers a model file inherits, lowest first: `defaults.models`, the root `+keys`,
-    then each folder from the model_paths root down to the file's own: its `_defaults.yml`,
-    then its `models:` tree entry. A Python module outside every model_paths root (found
-    through `model_packages`) uses its dotted package path as folders."""
+    """The layers a model file inherits, lowest first: the root `+keys`, then the `models:`
+    tree entry of each folder from the model_paths root down to the file's own. A module
+    outside every model_paths root (found through `model_packages`) uses its dotted package
+    path as folders."""
     tree = bound.loaded.config.models
-    out = [base, _layer("project", PROJECT_FILE, "/models", _dump(tree), "+")]
+    out = [_layer("project", PROJECT_FILE, "/models", _dump(tree), "+")]
     found = _folders(file, roots)
-    if found is None and module is not None:
-        found = ("", module.split(".")[:-1])
-        defaults = {}
-    if found is None:
-        return out
-    folder, parts = found
-    pointer, in_tree = "/models", True
-    for part in ["", *parts]:
-        folder = f"{folder}/{part}" if folder and part else folder or part
-        out += [
-            _layer("defaults_file", p, "/models", _dump(d.models))
-            for p, d in defaults.get(folder, ())
-        ]
-        if not part:
-            continue  # the model_paths root: its tree entry is the root `+keys` above
-        sub = tree.folders.get(part) if in_tree else None
-        in_tree = sub is not None
-        if sub is not None:
-            tree, pointer = sub, f"{pointer}/{part}"
-            out.append(_layer("folder", PROJECT_FILE, pointer, _dump(tree), "+"))
+    parts = found[1] if found is not None else module.split(".")[:-1]
+    pointer = "/models"
+    for part in parts:
+        sub = tree.folders.get(part)
+        if sub is None:
+            break
+        tree, pointer = sub, f"{pointer}/{part}"
+        out.append(_layer("folder", PROJECT_FILE, pointer, _dump(tree), "+"))
     return out
 
 
@@ -274,12 +248,11 @@ def _properties(
     later: list[tuple[str, str, PropertiesEntry]] = []
     for lf in bound.loaded.model_files:
         for i, e in enumerate(lf.config.models):
-            if isinstance(e, PropertiesEntry):
-                found = (lf.path, f"/models/{i}", e)
-                if e.name in first:
-                    later.append(found)
-                else:
-                    first[e.name] = found
+            found = (lf.path, f"/models/{i}", e)
+            if e.name in first:
+                later.append(found)
+            else:
+                first[e.name] = found
     return first, later
 
 
@@ -293,14 +266,7 @@ def resolve_project(
     project = loaded.config.name
     # A root of "." is the project dir itself; file paths carry no "./", so it becomes "".
     roots = [p if p != "." else "" for p in map(posixpath.normpath, loaded.config.model_paths)]
-    defaults: dict[str, list[tuple[str, DefaultsFile]]] = {}
-    for d in loaded.defaults_files:
-        defaults.setdefault(posixpath.dirname(d.path), []).append((d.path, d.config))
-    base = _layer(
-        "project_defaults", PROJECT_FILE, "/defaults/models", _dump(loaded.config.defaults.models)
-    )
     docs = {f.path: f.doc for f in loaded.model_files}
-    docs.update({f.path: f.doc for f in loaded.defaults_files})
     docs[PROJECT_FILE] = loaded.project_file.doc
 
     def locate(file: str, pointer: str) -> Location:
@@ -330,76 +296,19 @@ def resolve_project(
     models: dict[str, ResolvedModel] = {}
     sources: dict[str, ResolvedSource] = {}
     shadowed_models: list[ResolvedModel] = []
-    shadowed_sources: list[ResolvedSource] = []
     for bs in bound.sources:
         name = f"{bs.group}.{bs.table}"
         sources[source_id(project, name)] = ResolvedSource(
             source_id(project, name), name, PROJECT_FILE, bs.pointer, bs.config
         )
-    fields = ModelConfig.model_fields
-    for lf in loaded.model_files:
-        inherited = _inherited(bound, lf.path, roots, defaults, base)
-        for i, entry in enumerate(lf.config.models):
-            if not isinstance(entry, ModelConfig):
-                continue
-            pointer = f"/models/{i}"
-            layers = list(inherited)
-            columns = props_layer(entry.name, layers)
-            own = _dump(entry)
-            if entry.description is not None:
-                own["description"] = entry.description
-            layers.append(_layer("model", lf.path, pointer, own))
-            if entry.columns is not None:
-                columns = Origin("model", locate(lf.path, f"{pointer}/columns"))
-            elif columns is not None:
-                entry = entry.model_copy(update={"columns": props[entry.name][2].columns})
-            origins = {
-                key: Origin(layer.name, locate(layer.file, layer.pointers[key]))
-                for layer in layers
-                for key in layer.settings
-            }
-            if columns is not None:
-                origins["columns"] = columns
-            inputs: dict[str, InputBinding] = {}
-            for alias, ic in entry.inputs.items():
-                if ic.ref is not None:
-                    inputs[alias] = InputBinding("model", model_id(project, ic.ref))
-                else:
-                    inputs[alias] = InputBinding("source", source_id(project, ic.source or ""))
-            m = ResolvedModel(
-                unique_id=model_id(project, entry.name),
-                name=entry.name,
-                file=lf.path,
-                pointer=pointer,
-                folder=posixpath.dirname(lf.path),
-                entry=entry,
-                config=merge_settings([layer.settings for layer in layers]),
-                inputs=inputs,
-                own_fields=frozenset(
-                    fields[n].alias or n for n in lf.config.models[i].model_fields_set
-                ),
-                origins=origins,
-            )
-            if m.unique_id in models:
-                shadowed_models.append(m)
-            else:
-                models[m.unique_id] = m
-        for i, src in enumerate(lf.config.sources):
-            s = ResolvedSource(
-                source_id(project, src.name), src.name, lf.path, f"/sources/{i}", src
-            )
-            if s.unique_id in sources:
-                shadowed_sources.append(s)
-            else:
-                sources[s.unique_id] = s
 
-    known = {m.name for m in models.values()} | {p.name for p in python} | broken
+    known = {p.name for p in python} | broken
     tables: dict[str, list[str]] = {}
     for s in sources.values():
         tables.setdefault(s.name.rsplit(".", 1)[-1], []).append(s.name)
     binding: list[Problem] = []
     for p in sorted(python, key=lambda p: (p.site.file, p.site.line, p.site.col)):
-        layers = _inherited(bound, p.site.file, roots, defaults, base, p.module)
+        layers = _inherited(bound, p.site.file, roots, p.module)
         columns = props_layer(p.name, layers)
         layers.append(_Layer("decorator", p.site.file, p.settings, {}))
         entry_columns = p.columns
@@ -467,7 +376,6 @@ def resolve_project(
         models=models,
         sources=sources,
         shadowed_models=tuple(shadowed_models),
-        shadowed_sources=tuple(shadowed_sources),
         docs=docs,
         interpolations=loaded.interpolations,
         properties_problems=tuple(problems),

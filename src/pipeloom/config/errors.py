@@ -12,6 +12,18 @@ from pipeloom.config.decorator import DecoratorSite
 from pipeloom.config.yaml import LoadedDocument
 from pipeloom.diagnostics import Report, suggest
 
+MIGRATION_GUIDE = "https://emanuel-luis.github.io/pipeloom/latest/guide/migrate-0.9/"
+# Keys of the YAML model path that 0.9 removed (ADR-0050 point 19), by the model that rejects them.
+_REMOVED_IN_0_9 = frozenset(
+    {
+        ("PropertiesEntry", "sql"),
+        ("PropertiesEntry", "python"),
+        ("PropertiesEntry", "inputs"),
+        ("PropertiesFile", "sources"),
+        ("ProjectConfig", "defaults"),
+    }
+)
+
 
 def _escape(segment: str) -> str:
     return segment.replace("~", "~0").replace("/", "~1")
@@ -95,8 +107,12 @@ def from_validation_error(
                 node = node[seg]
         kind = item["type"]
         last = loc[-1] if loc else ""
+        hint: str | None
         if kind == "extra_forbidden":
-            hint = suggest(str(last), _field_names(before)) if before is not None else None
+            if before is not None and (before.__name__, last) in _REMOVED_IN_0_9:
+                hint = f"removed in 0.9: see {MIGRATION_GUIDE}"
+            else:
+                hint = suggest(str(last), _field_names(before)) if before is not None else None
             code, message, location = (
                 "PLS101",
                 f"unknown field '{last}'",

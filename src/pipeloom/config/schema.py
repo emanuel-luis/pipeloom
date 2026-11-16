@@ -1,4 +1,4 @@
-"""Export JSON Schemas for pipeloom.yml, properties files, model files and `_defaults.yml`.
+"""Export JSON Schemas for pipeloom.yml and properties files.
 
 The schemas come from the pydantic models. Plugin blocks are open in the models (a plugin's
 options are only known once it is installed), so the export replaces them with a `oneOf` that has
@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 from pydantic_core import core_schema
 
-from pipeloom.config.models import DefaultsFile, ModelFile, ProjectConfig, PropertiesFile
+from pipeloom.config.models import ProjectConfig, PropertiesFile
 from pipeloom.plugins import Group, PluginSpec
 
 SCHEMA_BASE_URL: Final = "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/"
@@ -136,24 +136,14 @@ def _finish(schema: dict[str, Any], file: str, title: str) -> dict[str, Any]:
 def export_schemas(
     specs: Mapping[Group, Sequence[PluginSpec[Any]]],
 ) -> dict[str, dict[str, Any]]:
-    """Schemas by file name: project.json, properties.json, and the legacy models.json and
-    defaults.json."""
+    """Schemas by file name: project.json and properties.json."""
     project = _model_schema(ProjectConfig)
     _inject_plugins(project, specs)
     _folder_keys(project)
-    models = _model_schema(ModelFile)
-    # The JSON Schema of a model entry cannot say "sql or python", so an entry may match both
-    # branches: anyOf, where pydantic's tagged union would export oneOf.
-    entries = models["properties"]["models"]
-    entries["items"] = {"anyOf": entries["items"]["oneOf"]}
     return {
         "project.json": _finish(project, "project.json", "pipeloom project"),
         "properties.json": _finish(
             _model_schema(PropertiesFile), "properties.json", "pipeloom properties file"
-        ),
-        "models.json": _finish(models, "models.json", "pipeloom model file"),
-        "defaults.json": _finish(
-            _model_schema(DefaultsFile), "defaults.json", "pipeloom _defaults.yml"
         ),
     }
 

@@ -23,13 +23,11 @@ from pipeloom.plan.model import (
     PlanSource,
     PluginInfo,
     PythonBody,
-    SqlBody,
 )
 from pipeloom.plan.units import build_units
 from pipeloom.platform import Clock, Identity
 from pipeloom.plugins import PluginRegistry
 from pipeloom.validate.semantics import effective_strategy
-from pipeloom.validate.static import model_file
 
 
 def _relation(
@@ -40,15 +38,10 @@ def _relation(
     return ref if config.catalog is None else replace(ref, catalog=config.catalog)
 
 
-def _body(pg: ProjectGraph, m: ResolvedModel) -> tuple[SqlBody | PythonBody, bytes]:
+def _body(pg: ProjectGraph, m: ResolvedModel) -> tuple[PythonBody, bytes]:
     """The model's body and the bytes its checksum covers."""
-    if m.entry.sql is not None:
-        return SqlBody(sql=m.entry.sql), m.entry.sql.encode("utf-8")
     loaded = pg.project.bound.loaded
-    ref = m.entry.python or ""
-    file = model_file(loaded.project_dir, loaded.config.python_paths, m)
-    if file is None:
-        raise LookupError(f"module of '{ref}' not found; validate before compiling")
+    ref, file = m.entry.python, m.site.file
     raw = ref.encode("utf-8") + b"\0" + (loaded.project_dir / file).read_bytes()
     return PythonBody(callable=ref, file=file), raw
 
@@ -65,15 +58,11 @@ def _config(m: ResolvedModel) -> ResolvedModelConfig:
 
 
 def model_checksums(pg: ProjectGraph) -> dict[str, str]:
-    """The node checksum of every model, as `compile_plan` records it. A Python model whose module
-    is missing (a project that is not validated yet) has none."""
-    out: dict[str, str] = {}
-    for uid, m in pg.project.models.items():
-        try:
-            out[uid] = node_checksum(_config(m), _body(pg, m)[1], m.entry.columns)
-        except LookupError:
-            continue
-    return out
+    """The node checksum of every model, as `compile_plan` records it."""
+    return {
+        uid: node_checksum(_config(m), _body(pg, m)[1], m.entry.columns)
+        for uid, m in pg.project.models.items()
+    }
 
 
 def compile_plan(

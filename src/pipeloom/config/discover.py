@@ -4,22 +4,12 @@ from __future__ import annotations
 
 import os
 from collections.abc import Sequence
-from dataclasses import dataclass
 from pathlib import Path
 
 from pipeloom.config.yaml import LoadedDocument
 from pipeloom.diagnostics import Location, Report
 
 PROJECT_FILE = "pipeloom.yml"
-DEFAULTS_NAMES = frozenset({"_defaults.yml", "_defaults.yaml"})
-
-
-@dataclass(frozen=True)
-class ModelFiles:
-    """Paths relative to the project directory, POSIX, sorted by string."""
-
-    models: tuple[str, ...]
-    defaults: tuple[str, ...]
 
 
 def read_file(project_dir: Path, rel: str, report: Report) -> bytes | None:
@@ -41,8 +31,9 @@ def read_file(project_dir: Path, rel: str, report: Report) -> bytes | None:
 
 def find_model_files(
     project_dir: Path, model_paths: Sequence[str], doc: LoadedDocument, report: Report
-) -> ModelFiles:
-    """Walk model_paths for `*.yml` and `*.yaml`; report PLR206 for a missing directory."""
+) -> tuple[str, ...]:
+    """Walk model_paths for properties files (`*.yml`, `*.yaml`), as POSIX paths relative to
+    the project directory, sorted; report PLR206 for a missing directory."""
     found: set[str] = set()
     for index, mp in enumerate(model_paths):
         root = project_dir / mp
@@ -61,8 +52,4 @@ def find_model_files(
                     rel = Path(dirpath, name).relative_to(project_dir).as_posix()
                     if rel != PROJECT_FILE:
                         found.add(rel)
-    ordered = sorted(found)
-    return ModelFiles(
-        models=tuple(p for p in ordered if p.rsplit("/", 1)[-1] not in DEFAULTS_NAMES),
-        defaults=tuple(p for p in ordered if p.rsplit("/", 1)[-1] in DEFAULTS_NAMES),
-    )
+    return tuple(sorted(found))

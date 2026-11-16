@@ -1,4 +1,4 @@
-"""Configuration models for pipeloom.yml, model files and `_defaults.yml`.
+"""Configuration models for pipeloom.yml, properties files and `@model` arguments.
 
 Every model is frozen and forbids unknown fields. Attribute docstrings become the descriptions
 in the exported JSON Schema.
@@ -13,9 +13,7 @@ from typing import Annotated, Any, Literal
 from pydantic import (
     BaseModel,
     ConfigDict,
-    Discriminator,
     Field,
-    Tag,
     field_validator,
     model_validator,
 )
@@ -349,25 +347,18 @@ class ColumnConfig(_Model):
 
 
 class ModelConfig(ModelSettings):
-    """One model."""
+    """One resolved model entry, built from a `@model` function (never read from YAML)."""
 
     name: Identifier
     """Unique model name."""
     description: str | None = None
     """What the model holds."""
-    sql: str | None = None
-    """SQL body."""
-    python: str | None = Field(default=None, pattern=r"^[A-Za-z_][\w.]*:[A-Za-z_]\w*$")
+    python: str = Field(pattern=r"^[A-Za-z_][\w.]*:[A-Za-z_]\w*$")
     """Python body as `module:function`."""
     inputs: dict[Identifier, InputConfig] = Field(default_factory=dict)
     """Local aliases bound to refs or sources."""
     columns: list[ColumnConfig] | None = None
     """Model contract: the exact output columns, checked before every write (PLM208)."""
-
-    @model_validator(mode="after")
-    def _sql_or_python(self) -> ModelConfig:
-        _exactly_one(self, ("sql", "python"))
-        return self
 
     @field_validator("columns")
     @classmethod
@@ -518,43 +509,11 @@ class PropertiesEntry(_Model):
         return _unique_columns(value)
 
 
-def _entry_kind(value: Any) -> str:
-    """An entry with `sql` or `python` (or one that is not a mapping) is a model."""
-    if isinstance(value, dict) and "sql" not in value and "python" not in value:
-        return "properties"
-    return "model"
-
-
-ModelFileEntry = Annotated[
-    Annotated[ModelConfig, Tag("model")] | Annotated[PropertiesEntry, Tag("properties")],
-    Discriminator(_entry_kind),
-]
-
-
-class ModelFile(_Model):
-    """A `*.yml` file under model_paths."""
-
-    sources: list[SourceConfig] = Field(default_factory=list)
-    models: list[ModelFileEntry] = Field(default_factory=list)
-    """Models (entries with `sql` or `python`) and properties entries (all others)."""
-
-
 class PropertiesFile(_Model):
-    """A properties file under model_paths."""
+    """A properties file: any `*.yml` or `*.yaml` under model_paths."""
 
     models: list[PropertiesEntry] = Field(default_factory=list)
     """Properties entries, one per model."""
-
-
-class DefaultsFile(_Model):
-    """A `_defaults.yml` file."""
-
-    models: ModelSettings = Field(default_factory=ModelSettings)
-
-
-class ProjectDefaults(_Model):
-    models: ModelSettings = Field(default_factory=ModelSettings)
-    """Defaults for every model."""
 
 
 class EventsConfig(_Model):
@@ -579,8 +538,6 @@ class ProjectConfig(RuntimeSettings):
     """Installed packages whose modules hold models, by dotted name."""
     vars: dict[str, Any] = Field(default_factory=dict)
     """Variables for ${var:name}."""
-    defaults: ProjectDefaults = Field(default_factory=ProjectDefaults)
-    """Project-wide defaults."""
     models: FolderSettings = Field(default_factory=FolderSettings)
     """Model settings by folder: `+key` settings apply to every model below that folder, and
     plain keys name sub-folders of model_paths. Root `+key` settings are project defaults."""
