@@ -10,6 +10,7 @@ vars:
   wheel_core: /Volumes/main/ops/pipeloom_live/wheels/pipeloom.whl
   wheel_spark: /Volumes/main/ops/pipeloom_live/wheels/pipeloom_spark.whl
   wheel_databricks: /Volumes/main/ops/pipeloom_live/wheels/pipeloom_databricks.whl
+  sample_csv: /Volumes/main/ops/pipeloom_live/samples/region.csv
 defaults:
   models:
     materialized: table
