@@ -30,24 +30,37 @@ from tests.conftest import make_project
 from tests.runtime.test_process import PIPELOOM_YML as TASK_YML
 from tests.runtime.test_retries_sim import Scenario, scenarios, simulate
 
-HEAD = "config_version: 1\nname: p\npython_paths: [src]\ntargets:\n  ci:\n"
+HEAD = "config_version: 1\nname: p\ntargets:\n  ci:\n"
 ENGINE = "    engine: {kind: memory}\n    catalog: {kind: memory}\n"
-CHAIN = """models:
-  - {name: a, python: "m:body"}
-  - {name: b, sql: select * from a, inputs: {a: {ref: a}}}
-  - {name: c, sql: select * from b, inputs: {b: {ref: b}}}
+# Appended to a module that defines the first model, `a`.
+CHAIN = """
+
+@model
+def b(ctx, a):
+    return ctx.sql("select * from a")
+
+
+@model
+def c(ctx, b):
+    return ctx.sql("select * from b")
 """
 SOFT = """import builtins
 
+from pipeloom import model
 
-def body(ctx):
+
+@model
+def a(ctx):
     builtins.PL_CONTROL.request_stop()
     return ({"x": 1},)
 """
 HANG = """import builtins
 
+from pipeloom import model
 
-def body(ctx):
+
+@model
+def a(ctx):
     builtins.PL_CONTROL.request_stop(hard=builtins.PL_HARD)
     builtins.PL_RELEASE.wait(20)
     return ({"x": 1},)
@@ -55,10 +68,7 @@ def body(ctx):
 
 
 def chain(tmp_path: Path, src: str) -> Path:
-    return make_project(
-        tmp_path,
-        {"pipeloom.yml": HEAD + ENGINE, "models/m.yml": CHAIN, "src/m.py": src},
-    )
+    return make_project(tmp_path, {"pipeloom.yml": HEAD + ENGINE, "models/m.py": src + CHAIN})
 
 
 def run_stopped(
@@ -198,8 +208,11 @@ def test_handlers_are_not_installed_off_the_main_thread() -> None:
 SLOW = """import os
 import time
 
+from pipeloom import model
 
-def body(ctx):
+
+@model
+def a(ctx):
     with open(os.environ["PL_MARK"], "w") as fh:
         fh.write("1")
     time.sleep(2)
@@ -227,11 +240,7 @@ def test_a_signal_makes_the_cli_exit_130_with_run_results(tmp_path: Path) -> Non
         pytest.skip("CTRL_BREAK_EVENT needs a console")
     root = make_project(
         tmp_path,
-        {
-            "pipeloom.yml": HEAD + ENGINE,
-            "models/m.yml": CHAIN.replace('"m:body"', '"m:body"'),
-            "src/m.py": SLOW,
-        },
+        {"pipeloom.yml": HEAD + ENGINE, "models/m.py": SLOW + CHAIN},
     )
     kwargs: dict[str, Any] = {}
     sig: int = signal.SIGINT
@@ -272,11 +281,7 @@ def test_a_parent_cancel_reaches_the_child_and_leaves_no_orphan(
         pytest.skip("CTRL_BREAK_EVENT needs a console")
     root = make_project(
         tmp_path,
-        {
-            "pipeloom.yml": TASK_YML,
-            "models/m.yml": CHAIN,
-            "src/m.py": SLOW,
-        },
+        {"pipeloom.yml": TASK_YML, "models/m.py": SLOW + CHAIN},
     )
     made: list[ProcessExecutor] = []
     original = ProcessExecutor.__init__
