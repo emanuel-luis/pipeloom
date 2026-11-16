@@ -30,6 +30,11 @@ from pipeloom_databricks.upload import MANIFEST_PATH
 
 Sim = Any
 VERSIONS = {"pipeloom": "1.2.3", "pipeloom-databricks": "1.2.3"}
+CHANGED_MODELS = (
+    "from pipeloom import model\n\n\n"
+    '@model\ndef a(ctx):\n    return ctx.sql("select 2 as x")\n\n\n'
+    '@model\ndef e(ctx):\n    return ctx.sql("select 3 as x")\n'
+)
 
 
 def runtime(s: Sim) -> Runtime:
@@ -152,10 +157,7 @@ def test_a_changed_project_is_pld008_unless_ensure_deploys_it_first(
 ) -> None:
     s, fake = sim(), FakeDatabricks()
     job_id = deployed(s, fake)
-    (s.root / "models" / "m.yml").write_text(
-        "models:\n  - {name: a, sql: select 2 as x}\n  - {name: e, sql: select 3 as x}\n",
-        encoding="utf-8",
-    )
+    (s.root / "models" / "m.py").write_text(CHANGED_MODELS, encoding="utf-8")
     changed = compile_project(s.root, "prod")
     started, report = go(s, fake, plan=changed)
     assert started is None and codes(report) == ["PLD008"]
