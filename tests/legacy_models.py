@@ -293,7 +293,11 @@ def migrate(files: dict[str, str]) -> dict[str, str]:
         # top-level list (whose cases name their `model`) move there.
         cases: dict[str, list[Any]] = {}
         for entry in data.get("models") or []:
-            if isinstance(entry, dict) and {"sql", "python"} & entry.keys() and "unit_tests" in entry:
+            if (
+                isinstance(entry, dict)
+                and {"sql", "python"} & entry.keys()
+                and "unit_tests" in entry
+            ):
                 cases.setdefault(entry["name"], []).extend(entry.pop("unit_tests") or [])
         for case in data.pop("unit_tests", None) or []:
             case = dict(case)
