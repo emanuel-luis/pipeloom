@@ -53,10 +53,10 @@ class ViewInput:
     def __iter__(self) -> NoReturn:
         self._refuse("iteration")
 
-    def __len__(self) -> NoReturn:
+    def __len__(self) -> int:  # noqa: PLE0303 - it always raises
         self._refuse("len()")
 
-    def __bool__(self) -> NoReturn:
+    def __bool__(self) -> bool:  # noqa: PLE0304 - it always raises
         self._refuse("truth test")
 
     def __call__(self, *args: object, **kwargs: object) -> NoReturn:

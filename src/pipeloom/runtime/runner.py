@@ -63,13 +63,6 @@ from pipeloom.runtime.incremental import IncrementalError, IncrementalState, Wat
 from pipeloom.runtime.loader import CallableLoader
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.retry import NO_POLICY, UnitPolicy
-from pipeloom.runtime.sql import (
-    SqlUnsupportedError,
-    ViewInput,
-    ViewModeError,
-    ViewQuery,
-    translate,
-)
 from pipeloom.runtime.schema_policy import (
     ContractViolation,
     SchemaRejected,
@@ -77,6 +70,13 @@ from pipeloom.runtime.schema_policy import (
     check_contract,
     resolve_columns,
     strip_scd2,
+)
+from pipeloom.runtime.sql import (
+    SqlUnsupportedError,
+    ViewInput,
+    ViewModeError,
+    ViewQuery,
+    translate,
 )
 from pipeloom.secrets.redaction import Redactor
 from pipeloom.state.types import StateKey, StateStore, UnitRecord
@@ -796,7 +796,9 @@ class ModelRunner:
 
         def view_sql(query: str, dialect: str | None, extra: Mapping[str, Any] | None) -> Any:
             if extra:
-                raise ViewModeError("passed inputs= to ctx.sql; a stored view reads only its inputs")
+                raise ViewModeError(
+                    "passed inputs= to ctx.sql; a stored view reads only its inputs"
+                )
             engine = self._engine.capabilities.sql_dialect
             return ViewQuery(translate(query, dialect or node.config.sql_dialect, engine), specs)
 
