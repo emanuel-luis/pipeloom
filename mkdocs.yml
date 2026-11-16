@@ -5,6 +5,8 @@ repo_url: https://github.com/emanuel-luis/pipeloom
 docs_dir: docs
 exclude_docs: |
   diagrams/*.d2
+validation:
+  anchors: warn
 theme:
   name: material
 hooks:
