@@ -41,7 +41,9 @@ Stop with `astro dev stop`, or remove the containers and volumes with `astro dev
 
 `docker-compose.override.yml` mounts the whole `examples/` folder at
 `/usr/local/airflow/examples` in the scheduler, DAG processor, triggerer and API server. The DAGs
-compile each project at parse time (`LoadMode.PROJECT`), so no manifest is needed. The project
+compile each project at parse time (`LoadMode.PROJECT`), so no manifest is needed. Every
+`@model` decorator in the examples has only literal arguments, so compiling reads the model files
+without importing them; a unit task imports only the module of the model it runs. The project
 variable `tpch_dir` (`../data/tpch`) resolves to `examples/data/tpch`.
 
 `packages.txt` installs Java 21 for the Spark DAG: the runtime 3.2 image is based on Debian 13, which

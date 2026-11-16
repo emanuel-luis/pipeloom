@@ -31,10 +31,7 @@ def installed_schemas() -> dict[str, dict[str, Any]]:
 
 def expected_schema(rel: str) -> str:
     """The schema file a project YAML file maps to."""
-    name = rel.rsplit("/", 1)[-1]
-    if rel == "pipeloom.yml":
-        return "project.json"
-    return "defaults.json" if name == "_defaults.yml" else "models.json"
+    return "project.json" if rel == "pipeloom.yml" else "properties.json"
 
 
 def glob_match(pattern: str, rel: str) -> bool:
@@ -71,7 +68,7 @@ def test_every_yaml_has_its_modeline_and_validates(engine: str) -> None:
     }
     files = render(engine, values)
     yamls = [p for p in files if p.endswith(".yml")]
-    assert "pipeloom.yml" in yamls and any(p.endswith("_defaults.yml") for p in yamls)
+    assert "pipeloom.yml" in yamls and "models/silver/_properties.yml" in yamls
     for rel in yamls:
         check_yaml_file(rel, files[rel].decode("utf-8"))
 
@@ -87,13 +84,12 @@ def test_vscode_settings_map_the_published_schemas(engine: str) -> None:
     }
     files = render(engine, values)
     mapping = json.loads(files[".vscode/settings.json"])["yaml.schemas"]
-    # init maps properties.json once it writes properties files (ADR-0050 point 16).
-    published = set(installed_schemas()) - {"properties.json"}
-    assert set(mapping) == {SCHEMA_BASE_URL + name for name in published}
+    # Python-first projects have no model or _defaults files (ADR-0050 point 16).
+    assert set(mapping) == {SCHEMA_BASE_URL + n for n in ("project.json", "properties.json")}
+    assert set(mapping) <= {SCHEMA_BASE_URL + name for name in installed_schemas()}
     for rel in (p for p in files if p.endswith(".yml")):
         assert schemas_for(rel, mapping) == {SCHEMA_BASE_URL + expected_schema(rel)}, rel
-    assert schemas_for("models/x/new.yaml", mapping) == {SCHEMA_BASE_URL + "models.json"}
-    assert schemas_for("models/x/_defaults.yaml", mapping) == {SCHEMA_BASE_URL + "defaults.json"}
+    assert schemas_for("models/x/new.yaml", mapping) == {SCHEMA_BASE_URL + "properties.json"}
     assert schemas_for("pipeloom.yaml", mapping) == {SCHEMA_BASE_URL + "project.json"}
     assert schemas_for("other/a.yml", mapping) == set()
 

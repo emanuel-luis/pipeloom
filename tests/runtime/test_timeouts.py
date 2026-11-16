@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-import contextlib
 import json
-import os
-import signal
-import sys
 import threading
 import time
 from pathlib import Path
@@ -368,19 +364,47 @@ def test_a_grandchild_does_not_survive_or_hold_up_the_run(tmp_path: Path) -> Non
     assert outcome.exit_code == 1, outcome.diagnostics
     assert outcome.run_results is not None, outcome.diagnostics
     assert {r["status"] for r in test_process.results(root, "r1")["results"]} == {"timed_out"}
-    if sys.platform == "win32":
-        # No job objects yet: a grandchild of a child that exits on its own survives, so end it
-        # here or every Windows run of the suite leaves it writing beat.txt forever.
-        pid_file = root / "models" / "grandchild.pid"
-        if pid_file.exists():
-            with contextlib.suppress(OSError):
-                os.kill(int(pid_file.read_text(encoding="utf-8")), signal.SIGTERM)
-        return
-    beat = root / "src" / "beat.txt"
+    _assert_no_beat(root)
+
+
+def _assert_no_beat(root: Path) -> None:
+    """A live grandchild rewrites beat.txt every 0.1 s: the file must stay unchanged."""
+    beat = root / "models" / "beat.txt"
     time.sleep(0.5)  # a live grandchild would have written by now
     before = beat.read_text(encoding="utf-8") if beat.exists() else ""
     time.sleep(0.5)
     assert (beat.read_text(encoding="utf-8") if beat.exists() else "") == before
+
+
+LEAVES_A_GRANDCHILD = """import subprocess
+import sys
+import time
+from pathlib import Path
+
+
+def leaves(ctx):
+    beat = Path(__file__).parent / "beat.txt"
+    code = (
+        "import time, pathlib; p = pathlib.Path(" + repr(str(beat)) + "); "
+        "exec('while True: p.write_text(str(time.time())); time.sleep(0.1)')"
+    )
+    subprocess.Popen([sys.executable, "-c", code])
+    deadline = time.monotonic() + 10
+    while not beat.exists() and time.monotonic() < deadline:
+        time.sleep(0.05)
+    raise RuntimeError("the child exits on its own, its grandchild still running")
+"""
+
+
+def test_a_grandchild_of_a_child_that_exits_does_not_survive_the_run(tmp_path: Path) -> None:
+    root = test_process.project_dir(
+        tmp_path, decorate(LEAVES_A_GRANDCHILD, "leaves", name="leaves")
+    )
+    outcome, _ = test_process.run(root, RunOptions(run_id="r1", workers=1))
+    assert outcome.run_results is not None, outcome.diagnostics
+    assert {r["status"] for r in test_process.results(root, "r1")["results"]} == {"failed"}
+    assert (root / "models" / "beat.txt").exists()  # the grandchild did start
+    _assert_no_beat(root)
 
 
 def test_a_final_cancel_after_the_runner_passed_its_checkpoint_is_not_a_timeout() -> None:
