@@ -192,7 +192,7 @@ def fct_orders(ctx: ModelContext, orders, stg_customers):
     return ctx.sql("select o.*, c.name from orders o join stg_customers c using (customer_id)")
 ```
 
-- Parameters are the inputs. Each binds, in order, to an `inputs=` entry (`ref(...)`, `source(...)` or a bare name), a model of that name other than the model itself, or a source table of that name when exactly one group has it; a parameter with a default is not an input, and anything else is PLR201. A table name in two groups is PLR210. `ctx` is optional and reserved.
+- Parameters are the inputs. Each binds in this order: (1) an `inputs=` entry (`ref(...)`, `source(...)` or a bare name, which resolves by steps 3 and 4); (2) a parameter with a default is never an input unless `inputs=` lists it; (3) a model of that name other than the model itself; (4) a source table of that name when exactly one group has it; (5) anything else is PLR201. A table name in two groups is PLR210. `ctx` is optional and reserved.
 - The default name is the function name, and a file may hold several models. Decorator arguments use the YAML keys, as plain dicts or as the re-exported config models (`Write`, `Incremental`, `Column`, `Expectation`, `Quality`, `Deletes`), plus the helpers `ref`, `source`, `var` and the check helpers (`not_null`, `unique`, `accepted_values`, `between`, `regex`, `row_count`, `freshness`).
 - SQL runs through `ctx.sql(query, *, dialect=None, inputs=None)` against the inputs by alias (section 5). There are no SQL model files.
 
