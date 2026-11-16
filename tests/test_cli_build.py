@@ -157,7 +157,7 @@ def test_build_state_modified_tests_and_runs_only_the_change(tmp_path: Path) -> 
     models = root / "models" / "p.py"
     text = models.read_text(encoding="utf-8")
     changed = text.replace(
-        "select 1 as id union all select 2\"", "select 1 as id union all select 2 order by id\""
+        'select 1 as id union all select 2"', 'select 1 as id union all select 2 order by id"'
     )
     assert changed != text
     models.write_text(changed, encoding="utf-8")
