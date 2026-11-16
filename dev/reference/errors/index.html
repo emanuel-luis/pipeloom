@@ -439,6 +439,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/retries-and-cancellation/" class="md-nav__link">
         
   
@@ -1323,6 +1351,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#plr208" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR208
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#plr209" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1614,6 +1653,17 @@
     <span class="md-ellipsis">
       
         PLP414
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp415" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP415
       
     </span>
   </a>
@@ -2108,6 +2158,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#plq303" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLQ303
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#plx101" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2244,6 +2305,28 @@
     <span class="md-ellipsis">
       
         PLX113
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx114" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX114
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx115" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX115
       
     </span>
   </a>
@@ -2965,6 +3048,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#plr208" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR208
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#plr209" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3256,6 +3350,17 @@
     <span class="md-ellipsis">
       
         PLP414
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp415" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP415
       
     </span>
   </a>
@@ -3750,6 +3855,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#plq303" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLQ303
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#plx101" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3886,6 +4002,28 @@
     <span class="md-ellipsis">
       
         PLX113
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx114" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX114
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx115" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX115
       
     </span>
   </a>
@@ -4270,6 +4408,9 @@
 <h3 id="plr207">PLR207<a class="headerlink" href="#plr207" title="Permanent link">&para;</a></h3>
 <p>No target selected. Severity: error. Status: active. Since: 0.1.</p>
 <p>Several targets exist and none was chosen. Use --target, PIPELOOM_TARGET or default_target.</p>
+<h3 id="plr208">PLR208<a class="headerlink" href="#plr208" title="Permanent link">&para;</a></h3>
+<p>Unit test reference. Severity: error. Status: active. Since: 0.9.</p>
+<p>A unit test names a model that does not exist, gives rows for an alias that is not an input of the model, leaves an input alias without rows, or reuses a case name of its model.</p>
 <h3 id="plr209">PLR209<a class="headerlink" href="#plr209" title="Permanent link">&para;</a></h3>
 <p>Properties entry names no model, or describes one twice. Severity: error. Status: active. Since: 0.9.</p>
 <p>An entry of a properties file (a models entry without sql or python) names a model that does not exist, or a model that another properties entry already describes. Each model has at most one properties entry. The hint suggests the closest model name, or points at the first entry.</p>
@@ -4344,6 +4485,9 @@
 <h3 id="plp414">PLP414<a class="headerlink" href="#plp414" title="Permanent link">&para;</a></h3>
 <p>Contract on a view or ephemeral model. Severity: error. Status: active. Since: 0.9.</p>
 <p>A view or an ephemeral model writes no batch of its own, so its columns cannot be checked. Put the contract on a table that reads it.</p>
+<h3 id="plp415">PLP415<a class="headerlink" href="#plp415" title="Permanent link">&para;</a></h3>
+<p>Data tests that cannot run. Severity: error. Status: active. Since: 0.9.</p>
+<p>data_tests is set on an ephemeral model, which writes no table to test, or a relationships check names as its parent the model itself, a descendant, an ephemeral model, an intermediate model (an intermediate table is not there when its model is not built in the run), or a model that closes a cycle among input and relationship edges. Test the relationship on a table that is not upstream of its parent.</p>
 <h3 id="plp416">PLP416<a class="headerlink" href="#plp416" title="Permanent link">&para;</a></h3>
 <p>scd2 options conflict. Severity: error. Status: active. Since: 0.9.</p>
 <p>A model writing with scd2 sets an option the strategy cannot apply: an empty tracked_columns, a tracked column that is part of unique_key, deletes with mode: soft, or a unique_key, tracked_columns, partition_by, cluster_by, deletes.column or contract column named valid_from, valid_to or is_current (scd2 adds those columns itself).</p>
@@ -4377,7 +4521,7 @@
 <p>The materialization is not in the selected engine's capabilities.</p>
 <h3 id="plc510">PLC510<a class="headerlink" href="#plc510" title="Permanent link">&para;</a></h3>
 <p>Expectations on an engine without quality. Severity: error. Status: active. Since: 0.3.</p>
-<p>The selected engine does not declare the quality capability, so it cannot evaluate expectations or count nulls in non-nullable contract columns.</p>
+<p>The selected engine does not declare the quality capability, so it cannot evaluate expectations or data tests, or count nulls in non-nullable contract columns.</p>
 <h3 id="plc513">PLC513<a class="headerlink" href="#plc513" title="Permanent link">&para;</a></h3>
 <p>SQL translation needs the sqlglot extra. Severity: error. Status: active. Since: 0.9.</p>
 <p>The model's sql_dialect differs from the dialect of the target engine, so its ctx.sql queries must be translated, and sqlglot is not installed. Install pipeloom[sqlglot], or remove sql_dialect and write the queries in the engine's dialect.</p>
@@ -4455,6 +4599,9 @@
 <h3 id="plq302">PLQ302<a class="headerlink" href="#plq302" title="Permanent link">&para;</a></h3>
 <p>Expectation references an unknown column. Severity: error. Status: active. Since: 0.3.</p>
 <p>An expectation names a column the model output lacks, or its expr cannot be evaluated by the engine.</p>
+<h3 id="plq303">PLQ303<a class="headerlink" href="#plq303" title="Permanent link">&para;</a></h3>
+<p>Data test failed. Severity: error. Status: active. Since: 0.9.</p>
+<p>A data test with on_violation: fail found violations in the written table: nulls, duplicate keys, or child keys with no parent row. Data tests run after the write and the watermark commit, so the data stays written; the unit fails, its descendants are skipped and the run exits 1. Permanent: only retry_on: any retries it.</p>
 <h3 id="plx101">PLX101<a class="headerlink" href="#plx101" title="Permanent link">&para;</a></h3>
 <p>Model raised. Severity: error. Status: active. Since: 0.2.</p>
 <p>A model's body raised, or returned a value its engine cannot use as a relation.</p>
@@ -4494,6 +4641,12 @@
 <h3 id="plx113">PLX113<a class="headerlink" href="#plx113" title="Permanent link">&para;</a></h3>
 <p>Run cannot be retried. Severity: error. Status: active. Since: 0.8.</p>
 <p>pipeloom retry --from names a run that cannot be retried: its folder or run_results.json is missing (it never existed, never finished or is still running), it belongs to another project, or it ran another target. Retry with the target of that run.</p>
+<h3 id="plx114">PLX114<a class="headerlink" href="#plx114" title="Permanent link">&para;</a></h3>
+<p>Unit test failed. Severity: error. Status: active. Since: 0.9.</p>
+<p>pipeloom test ran the model body on the given rows and the output differs from expect. The message lists up to 10 missing and 10 unexpected rows; the unit_test.failed event holds up to 50 of each. Rows compare as a multiset over the expect columns.</p>
+<h3 id="plx115">PLX115<a class="headerlink" href="#plx115" title="Permanent link">&para;</a></h3>
+<p>Unit test cannot run. Severity: error. Status: active. Since: 0.9.</p>
+<p>A unit test could not run: a CSV file is missing or unreadable, a value does not cast to its column type, a column holds only nulls and declares no type, the model body raised, or the engine lacks from_rows or to_rows (plugin API 0.5). Declare columns on the given, or upgrade the engine plugin.</p>
 <h3 id="plx117">PLX117<a class="headerlink" href="#plx117" title="Permanent link">&para;</a></h3>
 <p>State store cannot list runs. Severity: error. Status: active. Since: 0.9.</p>
 <p>pipeloom runs needs StateStore.list_runs (plugin API 0.5), and the configured state store does not provide it. Use --artifacts to read the run results under the artifacts root instead, or upgrade the store plugin.</p>

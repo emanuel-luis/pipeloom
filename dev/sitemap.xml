@@ -201,6 +201,10 @@
          <lastmod>2026-11-16</lastmod>
     </url>
     <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0045-unit-and-data-tests/</loc>
+         <lastmod>2026-11-16</lastmod>
+    </url>
+    <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0046-openlineage/</loc>
          <lastmod>2026-11-16</lastmod>
     </url>
@@ -254,6 +258,10 @@
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/running/</loc>
+         <lastmod>2026-11-16</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/testing/</loc>
          <lastmod>2026-11-16</lastmod>
     </url>
     <url>

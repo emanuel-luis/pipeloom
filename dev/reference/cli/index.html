@@ -439,6 +439,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/retries-and-cancellation/" class="md-nav__link">
         
   
@@ -991,6 +1019,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#pipeloom-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pipeloom-compile-" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1237,6 +1276,17 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unit-tests
+      
+    </span>
+  </a>
   
 </li>
         
@@ -1571,6 +1621,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#pipeloom-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pipeloom-compile-" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1821,6 +1882,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pipeloom-unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unit-tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pipeloom-validate" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1907,6 +1979,73 @@ folder named after the project in the current directory.</p>
 <p><strong>Options:</strong></p>
 <pre><code class="language-text">  --version  Show the version and exit.
   --help     Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-build">pipeloom build<a class="headerlink" href="#pipeloom-build" title="Permanent link">&para;</a></h4>
+<p>Run the unit tests of the selected models, then run them with data tests.</p>
+<p>Any failed unit test stops the build with exit 1 before a run id exists and before any write. Each model's data tests then run after its write; a failed one (PLQ303) fails the unit, skips its descendants and leaves the data written. Takes the flags of run. Exit codes: 0 ok, 1 a unit test, a unit or a check failed, 2 bad usage, 130 stopped.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom build [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY      Directory that holds pipeloom.yml.  [default:
+                               .]
+  --vars TEXT                  Variables as a YAML or JSON mapping; they
+                               override the vars block.
+  --target TEXT                Target to bind; default_target or the only
+                               target when omitted.
+  --plugin MODULE:ATTR         A PluginSpec to load besides the installed
+                               plugins. Repeatable.
+  -s, --select SELECTOR        Models to include: name, tag:x, path:dir,
+                               materialized:x, +model, model+, N+model,
+                               model+N. Space unions, comma intersects.
+                               Repeatable, all are unioned.
+  --exclude SELECTOR           Remove the models this selector matches from
+                               the selection. Repeatable.
+  --state DIR                  Folder of a reference manifest.json (and
+                               optionally run_results.json), for the state:
+                               and result: selectors. Relative to the project
+                               dir unless absolute. `compile --stable` or the
+                               artifacts root (target) both work.
+  --defer                      Read the parents this run does not select from
+                               the relations of the --state manifest instead
+                               of this target's, so a dev run of one model
+                               reads the production tables. Needs --state.
+                               Refused for unit invocations and the task
+                               boundary (PLX111).
+  --log-format [text|json]     Diagnostics and events on stderr: readable text
+                               or one JSON object per line.  [default: text]
+  --manifest FILE              Run the plan of this manifest instead of
+                               compiling the project.
+  --expect-plan-hash HEX       Stop with PLX103 unless the plan hash is this
+                               sha256.
+  --run-id TEXT                Name of the run. Reusing it continues that run.
+                               Default: a timestamp and a suffix.
+  --full-refresh BOOLEAN       Rebuild append tables from scratch. Takes an
+                               optional true or false.  [default: False]
+  --run-started-at ISO8601     Start time of the run, with a UTC offset (for
+                               example the start of the orchestrator job).
+                               Engines use it to make writes idempotent. Needs
+                               --run-id. A reused run id keeps the start it
+                               recorded.
+  --orchestrator-id KEY=VALUE  An id the orchestrator gave this run, such as
+                               job_run_id=42. It goes into the attempt files,
+                               the run results and the context of every event.
+                               Repeatable; a later duplicate wins. Key:
+                               [a-z][a-z0-9_]{0,63}; value: 1 to 256 printable
+                               characters.
+  --fail-fast                  After the first failure, start no more units.
+  --no-lock                    Do not take the run lock.
+  --workers INTEGER RANGE      Units to run at once. Default: the target's
+                               setting, else min(4, CPUs).  [x&gt;=1]
+  --boundary [process|task]    process runs units on threads here; task runs
+                               each in its own process. Default: the target's
+                               boundary.
+  --warn-error                 Exit 1 on warnings too.
+  --cancel-grace DURATION      After a stop request (Ctrl+C, SIGTERM) or a
+                               timeout, how long running units may finish
+                               before they are killed, as 30s, 2m or 30.
+                               Default: the setting, else 30s.
+  --help                       Show this message and exit.
 </code></pre>
 <h4 id="pipeloom-compile-">pipeloom compile-<a class="headerlink" href="#pipeloom-compile-" title="Permanent link">&para;</a></h4>
 <p>Validate the project and write the plan to a manifest file.</p>
@@ -2404,6 +2543,37 @@ process executor uses it.</p>
                                  text or one JSON object per line.  [default:
                                  text]
   --help                         Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-unit-tests">pipeloom unit-tests<a class="headerlink" href="#pipeloom-unit-tests" title="Permanent link">&para;</a></h4>
+<p>Run the unit tests of the selected models on their given rows.</p>
+<p>Each case runs the model body on in-memory input rows and compares its output with the
+expected rows. Nothing is written and no run is recorded. Exit codes: 0 every case passed,
+1 a case failed or the project does not validate, 2 usage error, 130 interrupted.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom unit-tests [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
+  --vars TEXT               Variables as a YAML or JSON mapping; they override
+                            the vars block.
+  --target TEXT             Target to bind; default_target or the only target
+                            when omitted.
+  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
+                            plugins. Repeatable.
+  -s, --select SELECTOR     Models to include: name, tag:x, path:dir,
+                            materialized:x, +model, model+, N+model, model+N.
+                            Space unions, comma intersects. Repeatable, all
+                            are unioned.
+  --exclude SELECTOR        Remove the models this selector matches from the
+                            selection. Repeatable.
+  --state DIR               Folder of a reference manifest.json (and
+                            optionally run_results.json), for the state: and
+                            result: selectors. Relative to the project dir
+                            unless absolute. `compile --stable` or the
+                            artifacts root (target) both work.
+  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+                            one JSON object per line.  [default: text]
+  --help                    Show this message and exit.
 </code></pre>
 <h4 id="pipeloom-validate">pipeloom validate<a class="headerlink" href="#pipeloom-validate" title="Permanent link">&para;</a></h4>
 <p>Check the project: YAML, schema, secrets, target and plugin options (L0 to L6).</p>

@@ -435,6 +435,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/retries-and-cancellation/" class="md-nav__link">
         
   
@@ -1396,7 +1424,7 @@
 <p><strong>Contracts.</strong> <code>columns</code> comes from the decorator (<code>Column(...)</code>) or from properties. <code>ColumnConfig.description</code> is optional and stays out of the node checksum and the plan hash: <code>columns</code> is hashed without <code>description</code>. Where descriptions appear in the manifest and on the docs site is settled later in 0.9, outside the plan hash. <a href="../0044-model-contracts/">ADR-0044</a> gets an amendment for the sources of <code>columns</code>, their precedence and <code>description</code>; PLP414 does not change.</p>
 </li>
 <li>
-<p><strong>Test and build shape</strong> (for the later ADR-0045). <code>data_tests</code> (the parked <code>DataTestConfig</code>, whose <code>check</code> is a <code>CheckConfig</code>) is a model key that the decorator (a keyword added by the ADR-0045 change) and properties can set, and a list that replaces. <code>unit_tests</code> live only in properties, with <code>given</code> keyed by input alias (the parameter name) and <code>expect</code>. Plain pytest calls on the function also work.</p>
+<p><strong>Test and build shape</strong> (for the later ADR-0045). <code>data_tests</code> (the parked <code>DataTestConfig</code>, whose <code>check</code> is a <code>DataCheckConfig</code> with <code>not_null</code>, <code>unique</code> or <code>relationships</code>, not a <code>CheckConfig</code>, so the expectation check helpers do not apply there) is a model key that the decorator (a keyword added by the ADR-0045 change) and properties can set, and a list that replaces. <code>unit_tests</code> live only in properties, with <code>given</code> keyed by input alias (the parameter name) and <code>expect</code>. Plain pytest calls on the function also work.</p>
 </li>
 <li>
 <p><strong><code>init</code> and <code>new model</code></strong> (<a href="../0041-pipeloom-init/">ADR-0041</a> amendment). <code>pipeloom new model NAME [--sql|--python] [--folder]</code> writes <code>models/&lt;folder&gt;/&lt;name&gt;.py</code>. With <code>--sql</code> the body returns <code>ctx.sql("select 1 as id")</code>, with <code>--python</code> a frame stub; the default is <code>--python</code> on pandas and <code>--sql</code> otherwise. The usage error for a missing <code>python_paths</code> goes away. <code>init</code> writes one <code>.py</code> per layer, the <code>models:</code> tree instead of <code>_defaults.yml</code>, <code>models/silver/_properties.yml</code>, and a <code>.vscode/settings.json</code> that maps <code>properties.json</code> to <code>models/**/*.yml</code>.</p>
