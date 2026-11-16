@@ -51,7 +51,7 @@ def _current() -> str:
 
 def test_check_finds_each_kind_of_drift(workspace: Path) -> None:
     cur = _current()
-    minor = cur.rsplit(".", 1)[0] + ".0"
+    minor = versions._pin(cur)  # X.Y.0, or the version itself on a prerelease
     plugin = workspace / "plugins" / "pipeloom-polars" / "pyproject.toml"
     text = plugin.read_text(encoding="utf-8")
     plugin.write_text(
@@ -119,7 +119,7 @@ def test_an_extra_on_the_pinned_name_is_accepted(workspace: Path) -> None:
 
 def test_a_member_that_pins_another_member_follows_the_version(workspace: Path) -> None:
     cur = _current()
-    minor = cur.rsplit(".", 1)[0] + ".0"
+    minor = versions._pin(cur)  # X.Y.0, or the version itself on a prerelease
     plugin = workspace / "plugins" / "pipeloom-databricks" / "pyproject.toml"
     text = plugin.read_text(encoding="utf-8")
     assert f'"pipeloom-spark~={minor}"' in text
