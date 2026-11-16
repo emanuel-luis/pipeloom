@@ -25,7 +25,7 @@
       }
     },
     "config_version": 1,
-    "plan_hash": "71781144a63128afc14a0521e109b0f9f2af7f4cc151029722ea0ab0c9369469",
+    "plan_hash": "2d803e6c5acffd12fd8b3af567ac14642f700801c1a6619e8559ff818cccf4da",
     "project": "shop",
     "target": "ci",
     "boundary": "process",
@@ -481,10 +481,8 @@
           "quarantine": false,
           "max_drop_ratio": null
         },
-        "tags": [
-          "mart"
-        ],
-        "retries": 0,
+        "tags": [],
+        "retries": 1,
         "retry_delay": 1,
         "retry_on": "transient",
         "timeout": null,
@@ -493,10 +491,8 @@
         "catalog": null,
         "meta": {}
       },
-      "tags": [
-        "mart"
-      ],
-      "checksum": "b7d06a0acf3bf80c90c1d18fa2b6474ad7f3d79d9c20fad3dd32bf5c138ba49b"
+      "tags": [],
+      "checksum": "891668d25abab195714d2438e08d09c551e79821a9909107acbb932ce5334249"
     }
   },
   "sources": {

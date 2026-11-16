@@ -39,24 +39,26 @@ def test_the_shop_graph(shop: LoadedPlan) -> None:
         "stg_customers",
         "stg_orders",
         "stg_payments",
+        "top_customers",
     ]
     by = {t.task_id: t for t in plan.tasks}
     assert by["fct_orders"].upstream == ("stg_customers", "stg_orders", "stg_payments")
     assert by["dim_customers"].upstream == ("stg_customers", "stg_orders")
     assert by["rpt_revenue"].upstream == ("fct_orders",)
+    assert by["top_customers"].upstream == ("rpt_revenue",)
     assert by["stg_orders"].upstream == ()
-    assert plan.leaves == ("dim_customers", "rpt_revenue")
+    assert plan.leaves == ("dim_customers", "top_customers")
     assert by["fct_orders"].models == ("fct_orders",)
     assert plan.cancel_grace_s == 30.0
 
 
 def test_select_and_exclude(shop: LoadedPlan) -> None:
     plan, _ = render(shop, RenderConfig(select=("fct_orders+",), exclude=("stg_payments",)))
-    assert [t.task_id for t in plan.tasks] == ["fct_orders", "rpt_revenue"]
+    assert [t.task_id for t in plan.tasks] == ["fct_orders", "rpt_revenue", "top_customers"]
     assert plan.select == ("fct_orders+",) and plan.exclude == ("stg_payments",)
     by = {t.task_id: t for t in plan.tasks}
     assert by["fct_orders"].upstream == ()
-    assert plan.leaves == ("rpt_revenue",)
+    assert plan.leaves == ("top_customers",)
 
 
 def test_a_selection_that_renders_nothing_is_pla003(shop: LoadedPlan) -> None:
@@ -80,6 +82,7 @@ def test_group_paths(shop: LoadedPlan) -> None:
         "stg_customers": ("staging",),
         "stg_orders": ("staging",),
         "stg_payments": ("staging",),
+        "top_customers": ("untagged",),
     }
     by_folder, _ = render(shop, RenderConfig(group_by="folder"))
     assert {t.group for t in by_folder.tasks} == {("marts",), ("staging",)}

@@ -69,7 +69,7 @@ def test_select_and_exclude(tmp_path: Path) -> None:
     assert data["selectors"] == {
         "select": ["tag:mart"],
         "exclude": ["dim_customers"],
-        "selected": ["model.shop.fct_orders", "model.shop.top_customers"],
+        "selected": ["model.shop.fct_orders"],
     }
     assert len(data["units"]) == 7
 
