@@ -1,9 +1,10 @@
 config_version: 1
 name: afproj
 python_paths: [src]
-defaults:
-  models:
-    materialized: table
+models:
+  +materialized: table
+model_paths:
+- src
 targets:
   dev:
     engine:

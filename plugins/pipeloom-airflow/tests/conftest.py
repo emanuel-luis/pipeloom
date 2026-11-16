@@ -4,6 +4,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 
 import pytest
+from tests.conftest import make_project
 
 from pipeloom.api import Project, ProjectOptions
 from pipeloom_airflow.load import LoadedPlan
@@ -29,15 +30,11 @@ def models_loaded(tmp_path: Path) -> Callable[..., LoadedPlan]:
     lines for the top level."""
 
     def make(files: Mapping[str, str], extra: str = "") -> LoadedPlan:
-        for rel, text in files.items():
-            target = tmp_path / rel
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(text, encoding="utf-8")
-        (tmp_path / "pipeloom.yml").write_text(
+        project = (
             "config_version: 1\nname: gen\nengine: {kind: memory}\ncatalog: {kind: memory}\n"
-            f"{extra}targets:\n  ci:\n    naming: {{kind: none}}\n",
-            encoding="utf-8",
+            f"{extra}targets:\n  ci:\n    naming: {{kind: none}}\n"
         )
+        make_project(tmp_path, {**files, "pipeloom.yml": project})
         return compile_loaded(tmp_path)
 
     return make
