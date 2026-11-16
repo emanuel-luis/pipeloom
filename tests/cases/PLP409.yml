@@ -11,9 +11,15 @@ files:
           kind: memory
   models/m.yml: |
     models:
+      - name: e
+        sql: select 1 as id
+        materialized: ephemeral
       - name: a
         python: "m:a"
         materialized: view
+        inputs:
+          e:
+            ref: e
   src/m.py: |
-    def a(ctx):
-        return []
+    def a(ctx, e):
+        return ctx.sql("select id from e")

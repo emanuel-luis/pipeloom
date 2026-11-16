@@ -66,6 +66,7 @@ CAPABILITIES = EngineCapabilities(
     idempotent_writes=True,
     cancel=True,
     quality=True,
+    sql_dialect="sqlite",  # `sql` runs on an in-memory sqlite3 connection
 )
 
 

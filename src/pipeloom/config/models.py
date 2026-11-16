@@ -233,8 +233,27 @@ class ModelSettings(_Model):
     """Schema (namespace) of the target relation."""
     catalog: str | None = Field(default=None, min_length=1)
     """Catalog of the target relation; wins over the naming strategy's catalog."""
+    sql_dialect: str | None = Field(default=None, min_length=1)
+    """sqlglot dialect of the model's `ctx.sql` queries; translated when it differs from the
+    engine's (needs the sqlglot extra)."""
     meta: dict[str, Any] | None = None
     """Free-form metadata."""
+
+    @field_validator("sql_dialect")
+    @classmethod
+    def _known_dialect(cls, value: str | None) -> str | None:
+        """A sqlglot dialect name when sqlglot is installed; any string otherwise (PLC513 then
+        reports a translation it cannot do)."""
+        if value is None:
+            return value
+        try:
+            from sqlglot.dialects.dialect import Dialects
+        except ImportError:
+            return value
+        known = sorted(d.value for d in Dialects if d.value)
+        if value not in known:
+            raise ValueError(f"unknown sql_dialect '{value}'; sqlglot knows {', '.join(known)}")
+        return value
 
 
 class ResolvedModelConfig(_Model):
@@ -256,6 +275,8 @@ class ResolvedModelConfig(_Model):
     schema_: str | None = Field(default=None, alias="schema")
     catalog: str | None = Field(default=None, min_length=1)
     """Catalog of the target relation; wins over the naming strategy's catalog."""
+    sql_dialect: str | None = None
+    """Kept out of the checksum and the manifest while None, so older plans keep their hash."""
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
