@@ -61,9 +61,11 @@ compile each project at parse time (`LoadMode.PROJECT`), so no manifest is neede
 without importing them; a unit task imports only the module of the model it runs. The project
 variable `tpch_dir` (`../data/tpch`) resolves to `examples/data/tpch`.
 
-`tpch_polars_watcher` loads the stable manifest from step 2 of "Run it" (`LoadMode.MANIFEST`, relative
-source locations so it works inside the containers) and uses `emit_assets=True`. The DAG has a producer task `pipeloom_run` that runs every model in one process, one deferrable
-watcher and one asset per model, and `pipeloom_finalize`. The watchers wait on the triggerer, which
+`tpch_polars_watcher` loads the stable manifest from step 2 of "Run it" (`LoadMode.MANIFEST`,
+relative source locations so it works inside the containers) and uses `emit_assets=True`. The DAG
+has a producer task `pipeloom_run` that runs every model in one process, one deferrable watcher and
+one asset per model, and `pipeloom_finalize`. The producer imports the decorated model modules the
+same way a unit task does. The watchers wait on the triggerer, which
 mounts the same `examples/` folder, so it sees the artifacts root at the same path. If a model fails,
 fix the cause and clear its watcher with Downstream: the watcher reruns that one unit.
 
