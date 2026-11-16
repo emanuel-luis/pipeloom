@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
 from click.testing import CliRunner
 
 from pipeloom.cli import main
@@ -172,6 +173,67 @@ def test_retry_inherits_data_tests(tmp_path: Path) -> None:
     doc = _results(root, "r2")
     assert doc["args"]["data_tests"] is True
     assert [e["name"] for e in _table_entries(doc, "c")] == ["id_in_p", "id_set"]
+
+
+PY_MODELS = """\
+from pipeloom import DataTest, model
+
+
+@model
+def p():
+    return [{"id": 1}, {"id": 2}]
+
+
+@model(
+    data_tests=[
+        DataTest(
+            name="id_in_p",
+            check={"relationships": {"column": "id", "to": {"ref": "p"}, "field": "id"}},
+        ),
+    ],
+)
+def c():
+    return [{"id": 1}, {"id": 3}]
+
+
+@model
+def d():
+    return [{"id": 1}, {"id": None}]
+"""
+PY_PROPERTIES = """\
+models:
+  - name: d
+    data_tests:
+      - name: id_set
+        check:
+          not_null:
+            - id
+"""
+
+
+@pytest.mark.parametrize(
+    ("model", "select"), [("c", "p c"), ("d", "d")], ids=["decorator", "properties"]
+)
+def test_build_fails_data_tests_of_decorated_models(
+    tmp_path: Path, model: str, select: str
+) -> None:
+    project = PROJECT.replace("engine:\n      kind: memory", engine_block(tmp_path, {}))
+    root = make_project(
+        tmp_path,
+        {
+            "pipeloom.yml": project + "python_paths:\n  - models\n",
+            "models/py_models.py": PY_MODELS,
+            "models/_properties.yml": PY_PROPERTIES,
+        },
+    )
+    result = _cli(root, "build", "--select", select, "--run-id", "r1")
+    assert result.exit_code == 1, result.output
+    (done,) = [e for e in _events(result) if e["type"] == "invocation.completed"]
+    assert done["data"]["counts"]["errors"] == 1
+    row = next(r for r in _results(root, "r1")["results"] if r["unique_id"].endswith(f".{model}"))
+    assert row["status"] == "failed" and row["error"]["code"] == "PLQ303"
+    (entry,) = _table_entries(_results(root, "r1"), model)
+    assert entry["failed"] == 1
 
 
 def test_the_process_executor_passes_data_tests_to_children(tmp_path: Path) -> None:
