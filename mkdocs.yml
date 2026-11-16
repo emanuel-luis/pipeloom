@@ -1,5 +1,5 @@
 site_name: pipeloom
-site_description: Declarative, engine-agnostic data pipelines in YAML.
+site_description: Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.
 site_url: https://emanuel-luis.github.io/pipeloom/
 repo_url: https://github.com/emanuel-luis/pipeloom
 docs_dir: docs

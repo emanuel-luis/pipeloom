@@ -1,6 +1,6 @@
 # pipeloom
 
-Declarative, engine-agnostic data pipelines in YAML.
+Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.
 
 pipeloom 0.3 reads a YAML project, checks it in layers, builds the dependency graph, writes the
 execution plan as a manifest and runs it on polars or pandas, with incremental models, merge and

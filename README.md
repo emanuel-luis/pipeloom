@@ -1,8 +1,8 @@
 # pipeloom
 
-Declarative, engine-agnostic data pipelines in YAML.
+Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.
 
-Pipelines are declared in YAML and compiled into an immutable plan. The same plan runs on pandas,
+Models are Python functions marked with `@model`; YAML holds the project and the properties files that configure and describe them. pipeloom compiles them into an immutable plan. The same plan runs on pandas,
 polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG.
 Every run produces a single event stream and artifacts you can query.
 
@@ -36,7 +36,7 @@ pandas, Spark and Databricks, with a data generator.
 
 ## Goals
 
-- Declarative YAML with layered validation and editor completion.
+- Python models with a YAML project, layered validation and editor completion.
 - An engine-agnostic core with one plugin per tool.
 - End-to-end events and styled logs from one event stream.
 - Persisted metadata for each run and each model.
