@@ -16,6 +16,13 @@ All notable changes to this project are documented here. The format follows
 - Breaking for plugin authors: the plugin API is (1, 0). A plugin built for (0, 5) fails with PLU001. From now on the core accepts a plugin with the same major and a minor not above its own. `config_version: 1` stays the only accepted value, now named by `CONFIG_VERSION` in `pipeloom.config.types`.
 - `pipeloom --help` describes pipeloom as Python-first instead of "pipelines in YAML", and `pipeloom plugins list --output` has help text. The [command line page](docs/reference/cli.md#where-each-command-is-explained) gains a table that maps every command, the Databricks ones included, to the guide that explains it, and the running guide gains an "Inspecting a project" section for `validate`, `compile`, `ls`, `graph`, `plugins list` and `schema export`. A test fails when a command is missing from the table or a command or option has no help.
 
+### Fixed
+
+- A missing, empty or unreadable source file on the polars engine now fails the unit at read with PLM204, as pandas does, instead of failing later with PLX101.
+- On Spark Connect, a missing source or table now fails the unit at read with PLM204 instead of failing later with PLX101, as on classic Spark. The reader asks for the schema right away, as classic Spark already does.
+- A `DataTest` relationships check now accepts `ref()` and `source()` in `to`, as `@model(inputs=...)` does.
+- Airflow WATCHER mode: a watcher whose unit has no log file of its own (any boundary but `task`) no longer logs "no log at <path>". It says that the unit's output is in the log of the producer task, and still shows the last 200 lines when the unit's log exists.
+
 ## [0.9.0] - 2026-11-16
 
 pipeloom 0.9 makes models Python-first. A model is a function marked with `@model`; `pipeloom.yml` holds the project and a `models:` tree of folder defaults, and properties files next to the models configure and describe them, with the decorator winning as in dbt. The compiler reads model files with `ast` and imports only the modules whose decorators have dynamic arguments, and SQL runs through `ctx.sql`, translated to the target engine. YAML model declarations are removed: see the [migration guide](docs/guide/migrate-0.9.md). The release also adds model contracts, `pipeloom test` and `pipeloom build` with post-write data tests, the `scd2` write strategy, run history and the `webhook` sink, the new `pipeloom-openlineage` distribution with Airflow facets, CSV sample data on Spark and Databricks, and the Airflow WATCHER mode.

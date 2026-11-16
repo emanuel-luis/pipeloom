@@ -59,7 +59,9 @@ class _Reader:
             return self._session.read_table(spec.table)
         if spec.location is None:
             raise ValueError(f"reading {self._fmt} needs a location")
-        return _rel(io.scan(self._fmt, spec.location, spec.options))
+        frame = io.scan(self._fmt, spec.location, spec.options)
+        frame.collect_schema()  # a scan is lazy: a missing or unreadable source must fail at read
+        return _rel(frame)
 
 
 class _Ops:

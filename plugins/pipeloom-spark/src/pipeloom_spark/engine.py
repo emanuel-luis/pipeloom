@@ -66,11 +66,15 @@ class _Reader:
         if self._fmt == "table":
             if spec.table is None:
                 raise ValueError("a table read needs a table")
-            return _rel(self._session.catalog.read(spec.table))
-        if spec.location is None:
-            raise ValueError(f"reading {self._fmt} needs a location")
-        fmt = "delta" if self._fmt == "intermediate" else self._fmt
-        return _rel(io.read(spark, fmt, spec.location, spec.options))
+            frame = self._session.catalog.read(spec.table)
+        else:
+            if spec.location is None:
+                raise ValueError(f"reading {self._fmt} needs a location")
+            fmt = "delta" if self._fmt == "intermediate" else self._fmt
+            frame = io.read(spark, fmt, spec.location, spec.options)
+        # Connect may analyze lazily: a missing source or table must fail here, at read.
+        frame.schema  # noqa: B018
+        return _rel(frame)
 
 
 class _Materializer:
