@@ -741,7 +741,7 @@ _ACTIVE_09: Final = (
         "PLP415",
         E,
         "Data tests that cannot run",
-        "data_tests is set on an ephemeral model, which writes no table to test, or a relationships check names as its parent the model itself, a descendant, an ephemeral or intermediate model (an intermediate table is not there when its model is not built in the run), or a model that closes a cycle among relationship edges. Test the relationship on a table that is not upstream of its parent.",
+        "data_tests is set on an ephemeral model, which writes no table to test, or a relationships check names as its parent the model itself, a descendant, an ephemeral model, an intermediate model (an intermediate table is not there when its model is not built in the run), or a model that closes a cycle among input and relationship edges. Test the relationship on a table that is not upstream of its parent.",
     ),
     (
         "PLQ303",

@@ -167,7 +167,8 @@ fails, its descendants are skipped and the run exits 1, but the data stays writt
 
 Tables, incremental, intermediate and view models take data tests. On an ephemeral model they are
 PLP415, as is a relationships parent that is the model itself, one of its descendants, an
-ephemeral model, or a model whose own relationships lead back here.
+ephemeral model, an intermediate model, or a model that closes a cycle among input and
+relationship edges.
 
 ## build
 
@@ -180,7 +181,7 @@ runs the selection with data tests on, ordering each model after its relationshi
 
 | Code | Meaning |
 | --- | --- |
-| PLP415 | Data tests on an ephemeral model, or a relationships parent that is the model itself, a descendant, an ephemeral model, or closes a cycle |
+| PLP415 | Data tests on an ephemeral model, or a relationships parent that is the model itself, a descendant, an ephemeral model, an intermediate model, or closes a cycle among input and relationship edges |
 | PLQ303 | A data test with `on_violation: fail` found violations; the data stays written |
 | PLR208 | A case names an unknown model, gives an alias that is not an input, leaves an input without rows, or reuses a case name |
 | PLX114 | The output differs from `expect` |
