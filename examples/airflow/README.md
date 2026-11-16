@@ -2,7 +2,8 @@
 
 An [Astro](https://www.astronomer.io/docs/astro/cli/overview) project (Airflow 3.2, Python 3.13) that
 runs the four TPC-H example projects as DAGs with `pipeloom-airflow`: `tpch_polars`, `tpch_pandas`
-and `tpch_spark` run inside the Airflow containers, `tpch_databricks` runs a Databricks job.
+and `tpch_spark` run inside the Airflow containers, `tpch_databricks` runs a Databricks job, and
+`tpch_polars_watcher` runs the polars project in WATCHER mode.
 
 ## Prerequisites
 
@@ -44,6 +45,35 @@ Stop with `astro dev stop`, or remove the containers and volumes with `astro dev
 compile each project at parse time (`LoadMode.PROJECT`), so no manifest is needed. The project
 variable `tpch_dir` (`../data/tpch`) resolves to `examples/data/tpch`.
 
+`tpch_polars_watcher` loads a stable manifest (`LoadMode.MANIFEST`) and uses `emit_assets=True`. Write
+the manifest on the host before you start Airflow, with relative source locations so it works inside
+the containers:
+
+```console
+$ uv run pipeloom compile --project-dir examples/tpch_polars --target dev --stable
+```
+
+The DAG has a producer task `pipeloom_run` that runs every model in one process, one deferrable
+watcher and one asset per model, and `pipeloom_finalize`. The watchers wait on the triggerer, which
+mounts the same `examples/` folder, so it sees the artifacts root at the same path. If a model fails,
+fix the cause and clear its watcher with Downstream: the watcher reruns that one unit.
+
+### Development wheels
+
+By default the containers install pipeloom from PyPI, as pinned in `requirements.txt`. To try
+unreleased code, build wheels from this checkout into `include/wheels/` (git-ignored) and restart:
+
+```console
+$ uv build --all-packages --out-dir examples/airflow/include/wheels
+$ cd examples/airflow
+$ astro dev restart
+```
+
+The `Dockerfile` installs any `include/wheels/*.whl` after the requirements. With no wheels the step
+does nothing.
+
+### Java for Spark
+
 `packages.txt` installs Java 21 for the Spark DAG: the runtime 3.2 image is based on Debian 13, which
 has no Java 17 package, and Spark 4 supports both.
 
@@ -54,6 +84,7 @@ has no Java 17 package, and Spark 4 supports both.
 | `tpch_polars` | local | `examples/tpch_polars/target/warehouse/pipeloom_<layer>/tpch/<table>/` |
 | `tpch_pandas` | local | `examples/tpch_pandas/target/warehouse/pipeloom_<layer>/tpch/<table>/` |
 | `tpch_spark` | local, max 2 tasks at once | `examples/tpch_spark/target/warehouse/pipeloom_<layer>/tpch/<table>/` |
+| `tpch_polars_watcher` | watcher: one producer, one watcher per model | `examples/tpch_polars/target/warehouse/pipeloom_<layer>/tpch/<table>/` |
 | `tpch_databricks` | Databricks job `main`, target `dev`, connection `databricks_default` | Unity Catalog tables `pipeloom_<layer>.tpch.<table>` |
 
 `<layer>` is `bronze`, `silver` or `gold`. Local outputs are written by the containers into the
