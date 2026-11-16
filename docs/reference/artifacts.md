@@ -97,8 +97,13 @@ config schemas ([ADR-0049](../adr/0049-artifact-schemas-and-orchestrator-protoco
 
 Compatibility within a version: consumers must ignore fields they do not know, since the schemas
 leave objects open. A 1.x release may add optional fields, new event types and new skip reasons
-and stays on `/1`. A new value of a closed enum (`status`, `level`) or any change a consumer must
-understand moves the document to `/2`.
+and stays on `/1`: skip reasons are open strings both in the row `skip_reason` and in the
+`unit.skipped` event. Every other enumerated value is closed: `status` of a row, of the run, of
+`run.completed` and of a unit state, the event `level`, the error `category` (`transient` or
+`permanent`), `unit.cancelled` `reason`, `model.input_read` `kind`, `model.schema_changed`
+`action`, `run.started` `boundary`, `state.watermark_committed` `source` and `model.log`
+`level`. A new value of one of them, or any change a consumer must understand, moves the
+document to `/2`.
 
 ## Events
 
