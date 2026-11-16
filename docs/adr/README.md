@@ -32,7 +32,7 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0026 | [Schema-change policy](0026-schema-change-policy.md) | Accepted | 2026-11-04 |
 | 0027 | [Incremental models](0027-incremental-models.md) | Accepted | 2026-11-04 |
 | 0028 | [Expectation evaluation](0028-expectation-evaluation.md) | Accepted | 2026-11-04 |
-| 0029 | [Retries, timeouts and cancellation](0029-retries-timeouts-cancellation.md) | Accepted | 2026-11-04 |
+| 0029 | [Retries, timeouts and cancellation](0029-retries-timeouts-cancellation.md) | Accepted. Amended in 1.0 (Windows job objects). | 2026-11-04 |
 | 0030 | [Plugin API (0, 4) and intermediates](0030-plugin-api-0-4-and-intermediates.md) | Accepted | 2026-11-04 |
 | 0031 | [Spark engine](0031-spark-engine.md) | Accepted | 2026-11-04 |
 | 0032 | [Delta writes and idempotency](0032-delta-writes-and-idempotency.md) | Accepted | 2026-11-04 |
