@@ -163,6 +163,52 @@ def big(ctx, src):
     ]
 
 
+LOOP = """\
+from pipeloom import model
+
+
+def src(ctx):
+    return [{"id": 1}]
+
+
+for _n in ("big", "check"):
+
+    def _copy(src):
+        return src
+
+    globals()[_n] = model(name=_n)(_copy)
+"""
+
+FACTORY = """\
+from pipeloom import model
+
+
+def src(ctx):
+    return [{"id": 1}]
+
+
+def make(name):
+    @model(name=name)
+    def built(src):
+        return src
+
+    return built
+
+
+big = make("big")
+check = make("check")
+"""
+
+
+@pytest.mark.parametrize("code", [LOOP, FACTORY], ids=["loop", "factory"])
+def test_models_built_in_a_loop_or_factory_validate(tmp_path: Path, code: str) -> None:
+    root = make_project(tmp_path, {**FILES, "models/shop_models.py": code})
+    outcome = Project(ProjectOptions(project_dir=root, env={})).validate()
+    codes = [d.code for d in outcome.diagnostics]
+    assert not {"PLK601", "PLK604"} & set(codes), outcome.diagnostics
+    assert [d for d in outcome.diagnostics if d.severity == "error"] == []
+
+
 def test_python_and_yaml_models_with_one_name(tmp_path: Path) -> None:
     code = """\
 from pipeloom import model

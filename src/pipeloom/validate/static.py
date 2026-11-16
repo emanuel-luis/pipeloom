@@ -30,6 +30,14 @@ def find_module(project_dir: Path, python_paths: Sequence[str], module: str) -> 
     return None
 
 
+def model_file(project_dir: Path, python_paths: Sequence[str], m: ResolvedModel) -> str | None:
+    """The file of a Python model: the decorator's file (which may lie in a `model_packages`
+    package outside `python_paths`), else the module found under `python_paths`."""
+    if m.site is not None:
+        return m.site.file
+    return find_module(project_dir, python_paths, (m.entry.python or "").partition(":")[0])
+
+
 def _targets(node: ast.expr) -> set[str]:
     if isinstance(node, ast.Name):
         return {node.id}
@@ -196,7 +204,7 @@ def check_static(pg: ProjectGraph, report: Report) -> None:
         module, _, name = ref.partition(":")
         loc = where(project, m, "python")
         ctx = {"model": m.name, "callable": ref}
-        file = find_module(loaded.project_dir, loaded.config.python_paths, module)
+        file = model_file(loaded.project_dir, loaded.config.python_paths, m)
         if file is None:
             path = module.replace(".", "/")
             report.add(
@@ -215,12 +223,16 @@ def check_static(pg: ProjectGraph, report: Report) -> None:
                 trees[file] = f"{type(exc).__name__}: {exc}"
         tree = trees[file]
         if isinstance(tree, str):
-            report.add("PLK601", f"cannot parse {file}: {tree}", location=loc, context=ctx)
+            if m.site is None:
+                report.add("PLK601", f"cannot parse {file}: {tree}", location=loc, context=ctx)
             continue
         last: ast.stmt | None = None
         for stmt in tree.body:
             if (isinstance(stmt, _Def) and stmt.name == name) or name in _bound_names(stmt):
                 last = stmt
+        if m.site is not None and not isinstance(last, _Def):
+            # Discovery imported the callable; loops and factories are allowed (ADR-0050 point 2).
+            continue
         if last is None:
             report.add(
                 "PLK601",
