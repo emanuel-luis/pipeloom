@@ -5,10 +5,10 @@
     "message": "ephemeral model 'a' cannot have data tests",
     "hint": "move the data tests to a table that reads it",
     "location": {
-      "file": "models/m.yml",
+      "file": "models/m.py",
       "line": 6,
-      "col": 9,
-      "json_pointer": "/models/0/data_tests/0"
+      "col": 5,
+      "json_pointer": "/@model/data_tests/0"
     },
     "context": {
       "model": "a",
@@ -21,10 +21,10 @@
     "message": "data test 'b_in_c' of model 'b' relates it to descendant 'c'",
     "hint": "test the relationship on a table that is not upstream of the parent",
     "location": {
-      "file": "models/m.yml",
-      "line": 16,
-      "col": 9,
-      "json_pointer": "/models/1/data_tests/0"
+      "file": "models/m.py",
+      "line": 13,
+      "col": 5,
+      "json_pointer": "/@model/data_tests/0"
     },
     "context": {
       "model": "b",
@@ -37,10 +37,10 @@
     "message": "data test 'd_in_d' of model 'd' relates the model to itself",
     "hint": "test the relationship on a table that is not upstream of the parent",
     "location": {
-      "file": "models/m.yml",
-      "line": 31,
-      "col": 9,
-      "json_pointer": "/models/3/data_tests/0"
+      "file": "models/m.py",
+      "line": 25,
+      "col": 5,
+      "json_pointer": "/@model/data_tests/0"
     },
     "context": {
       "model": "d",
@@ -53,10 +53,10 @@
     "message": "data test 'e_in_i' of model 'e' relates it to intermediate model 'i'",
     "hint": "test the relationship on a table that is not upstream of the parent",
     "location": {
-      "file": "models/m.yml",
-      "line": 44,
-      "col": 9,
-      "json_pointer": "/models/5/data_tests/0"
+      "file": "models/m.py",
+      "line": 39,
+      "col": 5,
+      "json_pointer": "/@model/data_tests/0"
     },
     "context": {
       "model": "e",
@@ -69,10 +69,10 @@
     "message": "data test 'g_in_h' of model 'g' closes a cycle through 'h'",
     "hint": "test the relationship on a table that is not upstream of the parent",
     "location": {
-      "file": "models/m.yml",
-      "line": 54,
-      "col": 9,
-      "json_pointer": "/models/6/data_tests/0"
+      "file": "models/m.py",
+      "line": 46,
+      "col": 5,
+      "json_pointer": "/@model/data_tests/0"
     },
     "context": {
       "model": "g",
@@ -85,10 +85,10 @@
     "message": "data test 'h_in_k' of model 'h' closes a cycle through 'k'",
     "hint": "test the relationship on a table that is not upstream of the parent",
     "location": {
-      "file": "models/m.yml",
-      "line": 64,
-      "col": 9,
-      "json_pointer": "/models/7/data_tests/0"
+      "file": "models/m.py",
+      "line": 53,
+      "col": 5,
+      "json_pointer": "/@model/data_tests/0"
     },
     "context": {
       "model": "h",
