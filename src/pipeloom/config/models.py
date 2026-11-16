@@ -280,6 +280,9 @@ class ColumnConfig(_Model):
     """Logical type, for example int64, string, decimal(18,2) or timestamp[us, UTC]."""
     nullable: bool = True
     """False makes a null in the column a contract violation."""
+    description: str | None = Field(default=None, exclude=True)
+    """What the column holds. Left out of dumps, so it never changes a checksum, the plan hash
+    or the manifest."""
 
 
 class ModelConfig(ModelSettings):

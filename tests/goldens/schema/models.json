@@ -116,6 +116,19 @@
       "additionalProperties": false,
       "description": "One column of a model contract.",
       "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the column holds. Left out of dumps, so it never changes a checksum, the plan hash\nor the manifest.",
+          "title": "Description"
+        },
         "dtype": {
           "description": "Logical type, for example int64, string, decimal(18,2) or timestamp[us, UTC].",
           "pattern": "^(?:u?int(?:8|16|32|64|128)|float(?:32|64)|string|boolean|binary|date|time|null|decimal\\(\\d+,\\d+\\)|timestamp\\[(?:ms|us|ns)(?:, [^\\]]+)?\\]|duration\\[(?:ms|us|ns)\\]|(?:list|struct)<.+>)$",
