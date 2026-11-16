@@ -42,8 +42,12 @@ A machine that renders or parses a DAG needs the extra, and the pure code is tes
 
 ## Status
 
-Accepted. A second half, covering the execution modes and the artifact store, follows with the operators.
+Accepted. A second half, covering the execution modes and the artifact store, follows with the operators. Amended in 0.9 by [ADR-0050](0050-python-first-authoring.md).
 
 ## Date
 
 2026-11-05
+
+## Amendment 0.9 (ADR-0050)
+
+With Python-first authoring ([ADR-0050](0050-python-first-authoring.md)), "compiling runs no user code" holds only for model modules whose decorator arguments are static. A PROJECT load imports the dynamic model modules, and only those, inside the DAG processor, so their top-level code runs at parse time. The PROJECT cache key also covers the directories of the packages named in `model_packages`, walked like `model_paths`. MANIFEST stays the recommended mode and imports nothing.
