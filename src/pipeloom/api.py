@@ -275,7 +275,7 @@ class Project:
                 outcome = _early(events, tested.diagnostics)
                 for payload in tested.events:
                     events.emit(payload)
-                return replace(outcome, exit_code=tested.exit_code)
+                return replace(outcome, exit_code=tested.exit_code, extra_errors=tested.failed)
             for payload in tested.events:
                 events.emit(payload)
             return self.run(replace(opts, data_tests=True), events, control)

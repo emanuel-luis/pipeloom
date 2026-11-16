@@ -131,6 +131,8 @@ class RunOutcome:
     run_results: Path | None
     diagnostics: tuple[Diagnostic, ...]
     """What validation found, and one diagnostic per failed unit."""
+    extra_errors: int = 0
+    """Errors carried by events rather than diagnostics, such as failed unit tests of a build."""
 
 
 def new_run_id(now: datetime) -> str:

@@ -65,7 +65,7 @@ def drive(
         except KeyboardInterrupt:  # a second Ctrl+C, after the run was finalized
             click.echo("Interrupted.", err=True)
             code = 130
-        inv.completed(bus, code, diagnostics)
+        inv.completed(bus, code, diagnostics, outcome.extra_errors if outcome else 0)
     if code:
         raise SystemExit(code)
     return outcome

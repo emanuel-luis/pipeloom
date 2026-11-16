@@ -146,9 +146,16 @@ class Invocation:
             )
         )
 
-    def completed(self, bus: EventBus, exit_code: int, diagnostics: Sequence[Diagnostic]) -> None:
+    def completed(
+        self,
+        bus: EventBus,
+        exit_code: int,
+        diagnostics: Sequence[Diagnostic],
+        extra_errors: int = 0,
+    ) -> None:
+        """`extra_errors` counts errors that events carry, such as failed unit tests."""
         counts = {
-            "errors": sum(1 for d in diagnostics if d.severity is Severity.ERROR),
+            "errors": extra_errors + sum(1 for d in diagnostics if d.severity is Severity.ERROR),
             "warnings": sum(1 for d in diagnostics if d.severity is Severity.WARNING),
         }
         bus.emit(

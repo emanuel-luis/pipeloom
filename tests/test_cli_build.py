@@ -110,6 +110,8 @@ def test_a_failed_unit_test_stops_before_a_run(tmp_path: Path) -> None:
     assert result.exit_code == 1, result.output
     assert "unit_test.failed" in [e["type"] for e in _events(result)]
     assert "run.started" not in [e["type"] for e in _events(result)]
+    (done,) = [e for e in _events(result) if e["type"] == "invocation.completed"]
+    assert done["data"]["counts"]["errors"] == 1  # the failed case
     runs = root / "target" / "runs"
     assert [p.name for p in runs.iterdir() if p.name != "_invocations"] == []
 
