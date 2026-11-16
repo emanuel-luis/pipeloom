@@ -57,6 +57,17 @@ def test_any_dialect_is_accepted_without_sqlglot(monkeypatch: pytest.MonkeyPatch
     assert m.sql_dialect == "nosuch"
 
 
+def test_plc513_ignores_a_sql_model_with_an_inherited_dialect(
+    project_factory: Factory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("pipeloom.validate.capabilities.sqlglot_installed", lambda: False)
+    root = project_factory(
+        {"pipeloom.yml": PROJECT, "models/a.yml": "models:\n  - name: a\n    sql: select 1\n"}
+    )
+    out = Project(ProjectOptions(project_dir=root, env={})).validate()
+    assert "PLC513" not in {d.code for d in out.diagnostics}
+
+
 def test_unset_dialect_stays_out_of_the_manifest(project_factory: Factory) -> None:
     root = project_factory(
         {

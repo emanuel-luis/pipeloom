@@ -87,8 +87,10 @@ def _check_model(
             checked,
             f"remove the {what} or use an engine with the quality capability",
         )
+    # Only Python models translate: a SQL body is stored and run as written.
     if (
-        c.sql_dialect is not None
+        m.entry.python is not None
+        and c.sql_dialect is not None
         and caps.sql_dialect is not None
         and c.sql_dialect != caps.sql_dialect
         and not sqlglot_installed()
