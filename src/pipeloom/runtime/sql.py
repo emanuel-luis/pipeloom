@@ -50,6 +50,15 @@ class ViewInput:
     def __getitem__(self, key: object) -> NoReturn:
         self._refuse("[...]")
 
+    def __format__(self, spec: str) -> NoReturn:
+        self._refuse("f-string")
+
+    def __str__(self) -> NoReturn:
+        self._refuse("str()")
+
+    def __repr__(self) -> str:
+        return f"<view input '{self._alias}'>"
+
     def __iter__(self) -> NoReturn:
         self._refuse("iteration")
 

@@ -76,6 +76,9 @@ def view(ctx, src):
 def view_misuse(ctx, src):
     return ctx.sql(f"select id from src limit {len(src)}")
 
+def view_fstring(ctx, src):
+    return ctx.sql(f"select id from {src}")
+
 def view_frames(ctx, src):
     return ctx.sql("select id from more", inputs={"more": [{"id": 1}]})
 """
@@ -157,7 +160,11 @@ def test_a_python_view(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     ("fn", "needle"),
-    [("view_misuse", "used input 'src' as a frame"), ("view_frames", "passed inputs=")],
+    [
+        ("view_misuse", "used input 'src' as a frame"),
+        ("view_fstring", "used input 'src' as a frame"),
+        ("view_frames", "passed inputs="),
+    ],
 )
 def test_view_mode_misuse_is_plx120(tmp_path: Path, fn: str, needle: str) -> None:
     found = run(tmp_path, fn, "view")
