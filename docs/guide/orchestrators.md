@@ -124,12 +124,11 @@ a run is driven either by the orchestrator or by one `pipeloom run`, never both.
 
 Everything lands in `<artifacts root>/runs/<run_id>/`: `manifest.json`, `run_results.json`, the
 attempt files under `units/`, the logs, and one event file per invocation under `events/`. Each
-document has a JSON Schema (the manifest's arrives with 1.0.0rc1), so a consumer in any language
-can validate it:
+document has a JSON Schema, so a consumer in any language can validate it:
 
 | Document | Tag | Schema |
 |---|---|---|
-| `manifest.json` | `pipeloom.manifest/1` | published with 1.0.0rc1 as `schema/v1/manifest.json` |
+| `manifest.json` | `pipeloom.manifest/1` | [manifest.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/manifest.json) |
 | `run_results.json`, attempt files | `pipeloom.run_results/1` | [run_results.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/run_results.json) |
 | one event | `pipeloom.event/1` | [event.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/event.json) |
 | unit states | `pipeloom.unit_states/1` | [unit_states.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_states.json) |
