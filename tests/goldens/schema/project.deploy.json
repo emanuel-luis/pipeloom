@@ -453,6 +453,20 @@
           "description": "Schema (namespace) of the target relation.",
           "title": "+Schema"
         },
+        "+sql_dialect": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "sqlglot dialect of the model's `ctx.sql` queries; translated when it differs from the\nengine's (needs the sqlglot extra).",
+          "title": "+Sql Dialect"
+        },
         "+tags": {
           "anyOf": [
             {
@@ -1803,6 +1817,15 @@
     "events": {
       "$ref": "#/$defs/EventsConfig",
       "description": "Event sinks."
+    },
+    "model_packages": {
+      "description": "Installed packages whose modules hold models, by dotted name.",
+      "items": {
+        "pattern": "^[A-Za-z_]\\w*(\\.[A-Za-z_]\\w*)*$",
+        "type": "string"
+      },
+      "title": "Model Packages",
+      "type": "array"
     },
     "model_paths": {
       "description": "Directories that hold model files.",
