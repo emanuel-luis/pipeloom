@@ -267,7 +267,7 @@ models:
     tags: [finance, daily]
 ```
 
-Model-only keys (0.9, [ADR-0045](adr/0045-unit-and-data-tests.md)), which defaults cannot set: `unit_tests` (cases `{name, given, expect}`, also allowed as a top-level `unit_tests` list whose entries name a `model`) and `data_tests` (`{name, check: {not_null | unique | relationships: {column, to: {ref | source}, field}}, on_violation: warn | fail}`). Unit tests stay out of the manifest; `data_tests` appears as `nodes[].data_tests` and enters the node checksum only when declared.
+Model-only keys (0.9, [ADR-0045](adr/0045-unit-and-data-tests.md)), which the `models:` tree and defaults cannot set: `unit_tests` (cases `{name, given, expect}`, `given` keyed by input alias, the parameter name of a decorated function), set in the model's properties entry; and `data_tests` (`{name, check: {not_null | unique | relationships: {column, to: {ref | source}, field}}, on_violation: warn | fail}`), set by the decorator's `data_tests=` or by properties, where the decorator list replaces the properties list. On the legacy YAML path a model entry may also set both, and a top-level `unit_tests` list whose entries name a `model` is accepted. Unit tests stay out of the manifest; `data_tests` appears as `nodes[].data_tests` and enters the node checksum only when declared.
 
 Legacy `_defaults.yml` files set folder-level defaults. They cascade from the model's own folder up to its `model_paths` root, nearest first; mappings merge deeply, lists replace and `tags` is an ordered union without duplicates. From 0.9 they and `defaults.models` map onto the folder and project layers of the `models:` tree until they are removed.
 

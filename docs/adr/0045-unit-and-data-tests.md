@@ -21,8 +21,8 @@ Expectations ([ADR-0009](0009-expectations-and-quarantine.md), [ADR-0028](0028-e
 ### Naming and config
 
 1. `unit_tests` holds cases, `data_tests` holds post-write checks. There is no bare `tests` key. The roadmap text uses these names.
-2. A model may declare `unit_tests:`. Any YAML file under `model_paths` may also hold a top-level `unit_tests:` list whose entries name their model with `model:` (a missing `model:` is PLS105). Keeping cases in a `tests/` folder means adding `tests` to `model_paths`; there is no new discovery path and no new project key. `unit_tests` is a model key, not a setting: defaults cannot set it.
-3. A case is `{name, given: {alias: {rows | csv, columns?}}, expect: {rows | csv, columns?}}`. `rows` and `csv` are mutually exclusive (PLS108). Every input alias of the model must be given, and only input aliases (PLR208). CSV paths are relative to the project dir and read with the standard `csv` module; an empty field is null. Case names are unique per model (PLR208); an unknown `model:` is PLR208.
+2. Under Python-first authoring ([ADR-0050](0050-python-first-authoring.md), point 15) unit tests live in the model's properties entry, as `unit_tests:` beside `description`, `config`, `columns` and `data_tests`, and never on the decorator: rows are data, not code. The diagnostics point at the properties file. While the legacy YAML path coexists with Python-first (ADR-0050, point 19), a YAML model entry may also declare `unit_tests:`, and any YAML file under `model_paths` may hold a top-level `unit_tests:` list whose entries name their model with `model:` (a missing `model:` is PLS105); both go away with the legacy path. There is no new discovery path and no new project key. `unit_tests` is a model key, not a setting: the `models:` tree cannot set it.
+3. A case is `{name, given: {alias: {rows | csv, columns?}}, expect: {rows | csv, columns?}}`. A `given` key is an input alias, which for a decorated function is the parameter name. `rows` and `csv` are mutually exclusive (PLS108). Every input alias of the model must be given, and only input aliases (PLR208). CSV paths are relative to the project dir and read with the standard `csv` module; an empty field is null. Case names are unique per model (PLR208); an unknown `model:` is PLR208.
 4. Cases stay out of `PlanNode`, the manifest, the node checksum and the plan hash. Manifests and plan hashes are byte-identical with or without unit tests.
 
 ### Types and comparison
@@ -41,14 +41,14 @@ Expectations ([ADR-0009](0009-expectations-and-quarantine.md), [ADR-0028](0028-e
 
 ### Data tests (implemented in the second half of 0.9)
 
-10. `data_tests: [{name, check: {not_null | unique | relationships: {column, to: {ref | source}, field}}, on_violation: warn | fail}]` is a model key like `columns`. `PlanNode.data_tests` is left out of the manifest when absent; the node checksum and the plan hash cover it only when declared (the ADR-0044 pattern).
+10. `data_tests: [{name, check: {not_null | unique | relationships: {column, to: {ref | source}, field}}, on_violation: warn | fail}]` is a model key like `columns`. The decorator sets it with `data_tests=` (a list of `pipeloom.DataTest` objects or mappings) and properties set it with `data_tests:`; the decorator list (or, on the legacy path, the YAML model entry's) replaces the properties list whole. Being a model key, the `models:` tree and its root `+keys` cannot set it, which keeps a relationship next to the model it describes. Diagnostics point at the list that won (`ResolvedModel.data_tests_at`). `PlanNode.data_tests` is left out of the manifest when absent; the node checksum and the plan hash cover it only when declared (the ADR-0044 pattern).
 11. A relationships violation is a child row whose non-null `column` (NaN counts as null) matches no `field` value of the parent; parent nulls never match. `to` is read like an input, through the runner's read and source specs, so `--defer`, intermediates and per-model catalogs behave the same; an unreadable parent is PLM204. The judge treats `relationships` like `unique`: the violation count is the value. `to` reuses PLR201 and PLR203 for unknown names.
-12. Data tests run inside the unit after the write and the watermark commit and before the attempt file, and also on the replay path, so a retry that replays the write token tests again. They read the whole written table, incremental models included. Tables, incremental, intermediate and view models take them; `data_tests` on an ephemeral model is PLP415, as is a relationships `to` that names the model itself, a descendant, an ephemeral model, or that closes a cycle among relationship edges.
+12. Data tests run inside the unit after the write and the watermark commit and before the attempt file, and also on the replay path, so a retry that replays the write token tests again. They read the whole written table, incremental models included. Tables, incremental, intermediate and view models take them; `data_tests` on an ephemeral model is PLP415, as is a relationships `to` that names the model itself, a descendant, an ephemeral model, an intermediate model, or that closes a cycle among edges of both kinds (inputs and relationships). An intermediate parent is rejected because its table exists only while a run that builds it is in progress: a run that selects the child alone would fail with PLM204.
 13. Results are entries of `results[].expectations` with `scope: "table"`. From 0.9 every entry carries `scope`: batch entries get `"batch"`, filled in when old `commit_meta` replays. The change is additive. `warn` adds to `warnings[]`; a `fail` is PLQ303, permanent: the unit fails, its descendants are skipped, the run exits 1, and the data stays written. PLC510 also covers data tests on an engine without `quality`.
 
 ### build
 
-14. `pipeloom build` runs the unit tests of the selected models first; any failure stops it with exit 1 before a run id exists and before any write. Then it runs `run` with data tests on. Relationship parents become extra scheduling edges at run time only (`UnitGraph.from_parents`); `run` and `unit_parent_map` are unchanged. `build` takes `run`'s user-facing flags. `run` gets a hidden `--data-tests true|false` that the process executor passes to its children; `args.data_tests` is recorded in `run_results`, and `retry --from` inherits it.
+14. `pipeloom build` runs the unit tests of the selected models first; any failure stops it with exit 1 before a run id exists and before any write, and `invocation.completed` counts each failed case as an error (`RunOutcome.extra_errors`). Then it runs `run` with data tests on. Relationship parents become extra scheduling edges at run time only (`UnitGraph.from_parents`); `run` and `unit_parent_map` are unchanged. `build` takes `run`'s user-facing flags. `run` gets a hidden `--data-tests true|false` that the process executor passes to its children; `args.data_tests` is recorded in `run_results`, and `retry --from` inherits it.
 
 ### Non-goals for 0.9
 
@@ -56,7 +56,7 @@ Expectations ([ADR-0009](0009-expectations-and-quarantine.md), [ADR-0028](0028-e
 
 ## Consequences
 
-- A body is testable on a laptop in milliseconds, on every engine, with the same YAML. The contract suite runs one passing and one failing case per engine.
+- A body is testable on a laptop in milliseconds, on every engine, with the same properties file. A plain pytest call on the decorated function also works. The contract suite runs one passing and one failing case per engine.
 - Unit tests never change a manifest or a plan hash, so adding them selects nothing under `state:modified`.
 - Data tests scan the whole written table on every build, incremental models included; `on_violation: warn` is available where that is too slow.
 - Type inference can surprise (a CSV id read as `int64` where a string was meant); declaring `columns` on the given is the fix the guide documents.
@@ -69,4 +69,4 @@ Accepted
 
 ## Date
 
-2026-11-06
+2026-11-16
