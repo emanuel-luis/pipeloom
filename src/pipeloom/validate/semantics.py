@@ -59,7 +59,11 @@ def _scd2_problems(m: ResolvedModel) -> list[str]:
 
 
 def where(project: ResolvedProject, m: ResolvedModel, field: str, sub: str = "") -> Location:
-    """The model's own `field` (and `sub` pointer below it) when it sets one, else its name."""
+    """Where the winning layer sets `field` (and `sub` below it), else the model's name."""
+    origin = m.origins.get(field)
+    if origin is not None:
+        loc = origin.location
+        return project.locate(loc.file or m.file, f"{loc.json_pointer or ''}{sub}")
     if field in m.own_fields:
         return project.locate(m.file, f"{m.pointer}/{field}{sub}")
     return project.locate_model(m)
