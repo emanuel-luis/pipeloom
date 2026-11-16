@@ -13,9 +13,11 @@ sources:
   - name: tpch_nation
     format: parquet
     location: "${var:tpch_dir}/nation.parquet"
+  # Sample data committed with the project (data/region.csv): a relative location resolves against
+  # the project directory. Point region_csv at a copy on a volume (/Volumes/...) to read it there.
   - name: tpch_region
-    format: parquet
-    location: "${var:tpch_dir}/region.parquet"
+    format: csv
+    location: "${var:region_csv}"
 models:
   - name: orders
     sql: select * from tpch_orders

@@ -4,6 +4,7 @@ config_version: 1
 name: tpch_spark
 vars:
   tpch_dir: ../data/tpch
+  region_csv: data/region.csv
 defaults:
   models:
     materialized: table
