@@ -1668,8 +1668,7 @@ a run is driven either by the orchestrator or by one <code>pipeloom run</code>, 
 <h2 id="10-outputs">10. Outputs<a class="headerlink" href="#10-outputs" title="Permanent link">&para;</a></h2>
 <p>Everything lands in <code>&lt;artifacts root&gt;/runs/&lt;run_id&gt;/</code>: <code>manifest.json</code>, <code>run_results.json</code>, the
 attempt files under <code>units/</code>, the logs, and one event file per invocation under <code>events/</code>. Each
-document has a JSON Schema (the manifest's arrives with 1.0.0rc1), so a consumer in any language
-can validate it:</p>
+document has a JSON Schema, so a consumer in any language can validate it:</p>
 <table>
 <thead>
 <tr>
@@ -1682,7 +1681,7 @@ can validate it:</p>
 <tr>
 <td><code>manifest.json</code></td>
 <td><code>pipeloom.manifest/1</code></td>
-<td>published with 1.0.0rc1 as <code>schema/v1/manifest.json</code></td>
+<td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/manifest.json">manifest.json</a></td>
 </tr>
 <tr>
 <td><code>run_results.json</code>, attempt files</td>
