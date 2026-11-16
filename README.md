@@ -6,7 +6,9 @@ Models are Python functions marked with `@model`; YAML holds the project and the
 polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG.
 Every run produces a single event stream and artifacts you can query.
 
-**Status: 0.9, alpha.** pipeloom discovers the `@model` functions of a project, validates it in
+**Status: 1.0.0rc1, release candidate.** From 1.0 the config, the plugin API, the artifact
+schemas and the CLI are stable within the major version; see
+[Stability and deprecations](docs/reference/stability.md). pipeloom discovers the `@model` functions of a project, validates it in
 layers (YAML, schema, references, graph, plan semantics, engine capabilities, Python callables),
 builds the dependency graph, compiles the execution plan into a manifest and runs it on polars,
 pandas or Spark. It writes incremental models with a watermark, merge, replace_partitions and
@@ -83,8 +85,8 @@ Every distribution is released together and carries the same version.
 | 0.6 | Airflow integration |
 | 0.7 | Per-model catalogs, reproducible manifests (`compile --stable`) |
 | 0.8 | `init`, `new model` and editor setup, `explain`, `state:modified` and `--defer`, `retry --from`, `docs generate` and `serve` |
-| 0.9 (current) | Python-first models (`@model`, `ctx.sql`), contracts, unit and data tests, `build`, SCD2, OpenLineage, run history and alerts, Airflow WATCHER mode |
-| 1.0 | Stable config, plugin API and artifact schemas |
+| 0.9 | Python-first models (`@model`, `ctx.sql`), contracts, unit and data tests, `build`, SCD2, OpenLineage, run history and alerts, Airflow WATCHER mode |
+| 1.0 (current: 1.0.0rc1) | Stable config, plugin API (1, 0), published artifact schemas including the manifest, the orchestrator protocol and `graph --units`, the stability and deprecation policy |
 
 Details per milestone are in the [roadmap](docs/roadmap.md).
 

@@ -110,7 +110,7 @@ $ pipeloom databricks --profile <your-profile> deploy --target dev --project-dir
 $ pipeloom databricks --profile <your-profile> run --target dev --pipeline main --project-dir examples/tpch_databricks
 ```
 
-The job installs `pipeloom`, `pipeloom-spark` and `pipeloom-databricks` 0.9.0 on serverless
+The job installs `pipeloom`, `pipeloom-spark` and `pipeloom-databricks` 1.0.0rc1 on serverless
 compute, and keeps run state in `pipeloom_bronze.ops._pipeloom_state_tpch`.
 
 ## Differences between the projects
