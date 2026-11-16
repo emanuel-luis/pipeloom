@@ -1,0 +1,20 @@
+"""Silver: typed orders with a positive amount. `orders` binds the bronze model."""
+
+import pandas as pd
+
+from pipeloom import Expectation, model, not_null, unique
+
+
+@model(
+    expectations=[
+        Expectation(name="order_id_present", check=not_null("order_id"), on_violation="fail"),
+        Expectation(name="order_id_unique", check=unique("order_id"), on_violation="fail"),
+    ],
+)
+def orders_clean(orders: pd.DataFrame) -> pd.DataFrame:
+    out = orders[orders["amount"] > 0].copy()
+    out["order_id"] = out["order_id"].astype("int64")
+    out["customer_id"] = out["customer_id"].astype("int64")
+    out["order_date"] = pd.to_datetime(out["order_date"])
+    out["amount"] = out["amount"].astype("float64")
+    return out[["order_id", "customer_id", "order_date", "amount"]].reset_index(drop=True)
