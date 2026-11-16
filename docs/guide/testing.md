@@ -170,6 +170,52 @@ PLP415, as is a relationships parent that is the model itself, one of its descen
 ephemeral model, an intermediate model, or a model that closes a cycle among input and
 relationship edges.
 
+## Python-first forms
+
+When a model is a decorated Python function, `unit_tests` and `data_tests` go in a properties
+file next to it. The entry names the model; the SQL or Python body stays in the function:
+
+```yaml
+models:
+  - name: orders
+    unit_tests:
+      - name: two_rows
+        given:
+          raw_orders:
+            rows:
+              - id: 1
+              - id: 2
+        expect:
+          rows:
+            - id: 1
+            - id: 2
+    data_tests:
+      - name: order_id_unique
+        check:
+          unique:
+            - order_id
+```
+
+`data_tests` also has a decorator keyword, which takes `DataTest` objects or plain dicts. The
+`check` is one of `not_null`, `unique` or `relationships`, as in YAML. It is not an expectation
+check, so helpers such as `not_null()` from `pipeloom` do not apply there:
+
+```python
+from pipeloom import DataTest, model
+
+
+@model(
+    data_tests=[
+        DataTest(name="order_id_unique", check={"unique": ["order_id"]}, on_violation="warn"),
+    ],
+)
+def orders(raw_orders):
+    ...
+```
+
+A model that sets `data_tests` in both places gets the decorator's list replaced by the
+properties list. `unit_tests` live only in properties.
+
 ## build
 
 `pipeloom build` takes the flags of `run`. It runs the unit tests of the selected models first;
