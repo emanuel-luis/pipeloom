@@ -178,7 +178,7 @@ events:
       failure_budget: 5
 ```
 
-**Sources (from 0.9).** `sources` maps a group name to `format`, `location`, `schema`, `options`, `tags`, `meta` and `tables`. A table may set the same keys plus `location` or `table`: a table `location` is joined to the group `location`, a table `table` is qualified by the group `schema`, and after the merge exactly one of the two remains (PLS108). `targets.<t>.sources.<group>` deep-merges over the group, and an explicit `null` removes a key, so a prod target can read the same tables from a catalog. Sources in properties files are rejected for now.
+**Sources (from 0.9).** `sources` maps a group name to `format`, `location`, `schema`, `options`, `tags`, `meta` and `tables`. A table may set the same keys plus `location` or `table`: a table `location` is joined to the group `location`, a table `table` is qualified by the group `schema`. A table entry whose merged result has no `location` and no `table` uses its key as `table`, qualified by the group `schema`; one with both is PLS108. `targets.<t>.sources.<group>` deep-merges over the group, and an explicit `null` removes a key, so a prod target can read the same tables from a catalog. Sources in properties files are rejected for now.
 
 **Models (from 0.9).** A model is a function marked with `@model` in any `*.py` file under `model_paths` (a directory scanned recursively, or a glob) or inside a package named in `model_packages`. Every model file must lie under a `python_paths` root.
 
@@ -220,10 +220,11 @@ models:
 An entry that names no model, or a model another entry already describes, is PLR209 (suppressed while any PLY005 exists). `unit_tests` also live here (ADR-0045).
 
 **Discovery (from 0.9).** One scan of `model_paths` and `model_packages` finds model modules and properties files.
-- An AST pass parses every `.py` file that imports pipeloom. A `@model` on a top-level `def` whose arguments are all literals or calls to known helpers on literals is resolved without importing the module. Any other use makes the module dynamic. Unknown keywords are PLS101 from the AST in both cases.
+- An AST pass parses every `.py` file that imports pipeloom. A `@model` on a top-level `def` whose arguments are all static (literals, containers of static values, or calls to known helpers and re-exported config classes on static values) is resolved without importing the module. Any other use makes the module dynamic. Unknown keywords are PLS101 from the AST in both cases.
 - Dynamic modules, and only those, are imported through `pipeloom.discovery.loader.ModuleLoader`, which puts the `python_paths` roots on `sys.path` under a process-wide lock and purges the project's modules on exit. Each module that cannot be loaded is one PLY005; loading never stops at the first.
 - `<project>/.pipeloom/cache/discovery.json` caches static results per file, keyed by path, `mtime_ns`, size and the pipeloom and Python versions. Dynamic modules are always imported again. The cache is never part of the manifest or the plan hash, and a failed write is ignored.
-- `Discovery.refresh()` re-reads changed files and re-imports dynamic modules for long-lived processes such as `docs serve`. Discovery never runs at run time: a unit imports the one module named by its node's `callable`.
+- `Discovery.refresh()` re-reads changed files and re-imports dynamic modules for long-lived processes such as `docs serve`.
+- An executor running a unit from a manifest never runs discovery: it imports the one module named by its node's `callable`. Any invocation that compiles runs discovery, including `pipeloom run` without `--manifest` and every unit task in Airflow PROJECT mode, so dynamic modules are imported there too.
 
 **Legacy model files (through 0.8, removed before 0.9.0).** Any `*.yml` under `model_paths` with `sources:` and `models:` lists, each model with a SQL body or a `python: module:function` pointer and an `inputs` map. Both paths coexist on main, with no warning, until the removal; one project may mix them.
 
@@ -283,7 +284,7 @@ Legacy `_defaults.yml` files set folder-level defaults. They cascade from the mo
 - Runtime settings (highest first): CLI flags; `PIPELOOM_*` environment variables (for example `PIPELOOM_TARGET`, `PIPELOOM_WORKERS`); an optional git-ignored user file `~/.pipeloom/profiles.yml` with per-target overrides; the `targets.<t>` block; then top-level project keys.
 - Model config, from 0.9: the `@model` decorator; then the `config` of the model's properties entry; then the `models:` tree from the folder nearest the model up to the root; then the root `+keys`; then built-in defaults. Mappings deep-merge, lists replace, `tags` is an ordered union and an explicit `null` removes a key (YAML only). `columns` is a model key that the folder tree cannot set, and decorator columns replace properties columns whole. `ResolvedModel.origins` records the layer and location of each top-level key, so a diagnostic points at the layer that set the value; origins are not in the manifest.
 - Model config, through 0.8: the model entry; `_defaults.yml` files from the nearest folder up to the `model_paths` root; then `defaults.models`; then built-in defaults.
-- Targets may change runtime keys only (engine options, catalog, naming, state, workers, artifacts, deploy). `deploy` is a runtime key like the others: the target block wins over the top-level one. The core validates its options with the `config_model` of the `renderers` plugin it names (the factory is never called), records them in the manifest as `metadata.deploy` (not part of the plan hash) and resolves nothing in them at runtime except `${secret:...}` references in plugin options. They may not change model semantics, so plans differ across targets only in physical names and runtime settings.
+- Targets may change runtime keys (engine options, catalog, naming, state, workers, artifacts, deploy) and, from 0.9, override source groups (`targets.<t>.sources`: format, location, schema, options, tables). `deploy` is a runtime key like the others: the target block wins over the top-level one. The core validates its options with the `config_model` of the `renderers` plugin it names (the factory is never called), records them in the manifest as `metadata.deploy` (not part of the plan hash) and resolves nothing in them at runtime except `${secret:...}` references in plugin options. They may not change model semantics, so plans differ across targets only in physical names, source relations and runtime settings.
 - Interpolation: `${env:NAME}`, `${env:NAME:-default}` and `${var:name}` resolve at compile time and are recorded in the manifest. `${secret:provider/path}` resolves only at runtime (section 14).
 
 ## 5. Core protocols
@@ -826,7 +827,7 @@ shop_daily = PipeloomDag(
 
 **Load methods (parse time):**
 - `MANIFEST` (recommended): reads a precompiled `manifest.json`.
-- `PROJECT`: compiles the project, cached by a hash of the inputs. Through 0.8 no user code runs (ADR-0003). From 0.9 static model modules are still read without importing, but the dynamic ones are imported inside the DAG processor, and the cache key adds the `model_packages` directories ([ADR-0037](adr/0037-airflow-packaging-and-rendering.md) amendment, [ADR-0050](adr/0050-python-first-authoring.md)).
+- `PROJECT`: compiles the project, cached by a hash of the inputs. Through 0.8 no user code runs (ADR-0003). From 0.9 static model modules are still read without importing, but the dynamic ones are imported inside the DAG processor and in every unit task, which compiles, and the cache key adds the `model_packages` directories ([ADR-0037](adr/0037-airflow-packaging-and-rendering.md) amendment, [ADR-0050](adr/0050-python-first-authoring.md)).
 - Neither imports engines or connects to anything. `MANIFEST` imports no user code.
 
 **Execution modes:**

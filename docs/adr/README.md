@@ -49,4 +49,4 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0043 | [Docs site](0043-docs-site.md) | Accepted | 2026-11-06 |
 | 0044 | [Model contracts](0044-model-contracts.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-06 |
 | 0047 | [Run history and the webhook sink](0047-run-history-and-webhook.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-06 |
-| 0050 | [Python-first model authoring](0050-python-first-authoring.md) | Accepted. Supersedes 0003. | 2026-11-16 |
+| 0050 | [Python-first model authoring](0050-python-first-authoring.md) | Accepted. Supersedes 0003. | 2026-11-15 |

@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: plan as of 2026-11-06, written against 0.7.0, and updated on 2026-11-16 for Python-first authoring. This
+Status: plan as of 2026-11-06, written against 0.7.0, and updated on 2026-11-15 for Python-first authoring. This
 page replaces the planned versions that section 16 of [architecture.md](architecture.md#16-roadmap) used to list;
 section 16 keeps the record of what each delivered version contains. Items that change a decision name the ADR they
 need: ADRs up to 0044, 0047 and 0050 exist, and 0045, 0046, 0048 and 0049 are proposed.
