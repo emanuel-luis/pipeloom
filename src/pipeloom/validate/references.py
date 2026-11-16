@@ -86,9 +86,7 @@ def check_references(
             report.add(
                 "PLR201" if is_ref else "PLR203",
                 f"unknown {key} '{name}' in data test '{test.name}' of model '{m.name}'",
-                location=project.locate(
-                    m.file, f"{m.pointer}/data_tests/{i}/check/relationships/to/{key}"
-                ),
+                location=project.locate_data_test(m, i, f"/check/relationships/to/{key}"),
                 hint=suggest(name or "", model_names if is_ref else source_names),
                 context={"model": m.name, "data_test": test.name, key: name},
             )

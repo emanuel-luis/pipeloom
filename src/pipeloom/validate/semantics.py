@@ -256,7 +256,7 @@ def _check_data_tests(pg: ProjectGraph, ephemeral: frozenset[str], report: Repor
             report.add(
                 "PLP415",
                 why,
-                location=project.locate(m.file, f"{m.pointer}/data_tests/{i}"),
+                location=project.locate_data_test(m, i),
                 hint="test the relationship on a table that is not upstream of the parent"
                 if uid not in ephemeral
                 else "move the data tests to a table that reads it",

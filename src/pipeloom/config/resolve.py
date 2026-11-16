@@ -98,6 +98,8 @@ class ResolvedModel:
     """YAML keys the entry sets itself."""
     origins: Mapping[str, Origin] = field(default_factory=dict)
     """The winning layer of each setting, `description` and `columns` that some layer sets."""
+    data_tests_at: tuple[str, str] | None = None
+    """File and JSON pointer of the `data_tests` list in `entry` (the model's or its properties)."""
 
 
 @dataclass(frozen=True)
@@ -153,6 +155,11 @@ class ResolvedProject:
             return origin.location
         leaf = field if field is not None and field in model.own_fields else "name"
         return self.locate(model.file, f"{model.pointer}/{leaf}")
+
+    def locate_data_test(self, model: ResolvedModel, index: int, leaf: str = "") -> Location:
+        """Where the `index`th data test of `model` (plus `leaf`, such as `/check`) is written."""
+        file, pointer = model.data_tests_at or (model.file, f"{model.pointer}/data_tests")
+        return self.locate(file, f"{pointer}/{index}{leaf}")
 
 
 @dataclass(frozen=True)
@@ -322,6 +329,14 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
                 columns = Origin("model", locate(lf.path, f"{pointer}/columns"))
             elif columns is not None:
                 entry = entry.model_copy(update={"columns": props[entry.name][2].columns})
+            # data_tests is a model key like columns: the entry's list replaces the properties one.
+            tests: Layer = "model"
+            tests_at = (lf.path, f"{pointer}/data_tests")
+            if entry.data_tests is None and entry.name in props:
+                pfile, ppointer, pe = props[entry.name]
+                if pe.data_tests is not None:
+                    entry = entry.model_copy(update={"data_tests": pe.data_tests})
+                    tests, tests_at = "properties", (pfile, f"{ppointer}/data_tests")
             origins = {
                 key: Origin(layer.name, locate(layer.file, layer.pointers[key]))
                 for layer in layers
@@ -329,6 +344,8 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
             }
             if columns is not None:
                 origins["columns"] = columns
+            if entry.data_tests is not None:
+                origins["data_tests"] = Origin(tests, locate(*tests_at))
             inputs: dict[str, InputBinding] = {}
             for alias, ic in entry.inputs.items():
                 if ic.ref is not None:
@@ -348,6 +365,7 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
                     fields[n].alias or n for n in lf.config.models[i].model_fields_set
                 ),
                 origins=origins,
+                data_tests_at=tests_at,
             )
             for j, case in enumerate(entry.unit_tests or ()):
                 unit_tests.append(
@@ -355,6 +373,14 @@ def resolve_project(bound: BoundProject) -> ResolvedProject:
                         entry.name, case.name, lf.path, f"{m.pointer}/unit_tests/{j}", case
                     )
                 )
+            if entry.name in props and m.unique_id not in models:
+                pfile, ppointer, pe = props[entry.name]
+                for j, case in enumerate(pe.unit_tests or ()):
+                    unit_tests.append(
+                        ResolvedUnitTest(
+                            entry.name, case.name, pfile, f"{ppointer}/unit_tests/{j}", case
+                        )
+                    )
             if m.unique_id in models:
                 shadowed_models.append(m)
             else:

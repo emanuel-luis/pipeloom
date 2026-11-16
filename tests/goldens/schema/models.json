@@ -1192,8 +1192,7 @@
           "anyOf": [
             {
               "items": {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/$defs/DataTestConfig"
               },
               "type": "array"
             },
@@ -1202,7 +1201,7 @@
             }
           ],
           "default": null,
-          "description": "Data tests. Accepted and kept as written; a later release checks and runs them.",
+          "description": "Checks run against the written table, used when the model sets none itself (ADR-0045).",
           "title": "Data Tests"
         },
         "description": {
@@ -1228,8 +1227,7 @@
           "anyOf": [
             {
               "items": {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/$defs/UnitTestConfig"
               },
               "type": "array"
             },
@@ -1238,7 +1236,7 @@
             }
           ],
           "default": null,
-          "description": "Unit tests. Accepted and kept as written; a later release checks and runs them.",
+          "description": "Cases `pipeloom test` runs on given rows, keyed by input alias (ADR-0045).",
           "title": "Unit Tests"
         }
       },

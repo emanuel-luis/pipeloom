@@ -517,10 +517,10 @@ class PropertiesEntry(_Model):
     """Model settings, below the model's own and above the `models:` tree."""
     columns: list[ColumnConfig] | None = None
     """Model contract, used when the model declares none itself."""
-    data_tests: list[dict[str, Any]] | None = None
-    """Data tests. Accepted and kept as written; a later release checks and runs them."""
-    unit_tests: list[dict[str, Any]] | None = None
-    """Unit tests. Accepted and kept as written; a later release checks and runs them."""
+    data_tests: list[DataTestConfig] | None = None
+    """Checks run against the written table, used when the model sets none itself (ADR-0045)."""
+    unit_tests: list[UnitTestConfig] | None = None
+    """Cases `pipeloom test` runs on given rows, keyed by input alias (ADR-0045)."""
 
     @field_validator("columns")
     @classmethod

@@ -7,6 +7,7 @@ from collections.abc import Callable
 
 from pipeloom import (
     Column,
+    DataTest,
     Deletes,
     Expectation,
     Incremental,
@@ -25,7 +26,7 @@ from pipeloom import (
     unique,
     var,
 )
-from pipeloom.config.models import CheckConfig
+from pipeloom.config.models import CheckConfig, DataCheckConfig
 
 
 @model
@@ -42,6 +43,13 @@ def bare(ctx: ModelContext, orders: list[int]) -> list[int]:
     partition_by=["d"],
     columns=[Column(name="id", dtype="int64", nullable=False), {"name": "d", "dtype": "date"}],
     expectations=[Expectation(name="keys", check=not_null("id"), on_violation="fail")],
+    data_tests=[
+        DataTest(name="id_unique", check=DataCheckConfig(unique=["id"])),
+        {
+            "name": "has_parent",
+            "check": {"relationships": {"column": "id", "to": {"ref": "p"}, "field": "id"}},
+        },
+    ],
     quality=Quality(quarantine=True),
     tags=["silver"],
     retries=2,
