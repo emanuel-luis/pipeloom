@@ -4,32 +4,63 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Mapping
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from typing import Any, Literal
 
 from pipeloom.config.bind import BoundProject, bind_project
 from pipeloom.config.load import LoadedProject, ProjectOptions, load_project
-from pipeloom.config.resolve import resolve_project
+from pipeloom.config.resolve import model_id, resolve_project
 from pipeloom.diagnostics import Diagnostic, Outcome, Report
 from pipeloom.discovery import Discovery
+from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.discovery.project import python_models
+from pipeloom.engine.protocols import Catalog, Engine
 from pipeloom.events.bus import EventBus
+from pipeloom.events.model import (
+    EventPayload,
+    UnitTestFailed,
+    UnitTestPassed,
+    UnitTestsCompleted,
+)
 from pipeloom.graph.dag import ProjectGraph, build_graph
 from pipeloom.graph.selectors import Selection
 from pipeloom.plan.compile import compile_plan
 from pipeloom.plan.model import Plan
 from pipeloom.platform import Clock, Identity, IdentityProvider, LocalIdentity, SystemClock
 from pipeloom.plugins import PluginRegistry
+from pipeloom.runtime.context import RuntimeContext
 from pipeloom.runtime.control import RunControl
 from pipeloom.runtime.finalize_run import FinalizeOptions, finalize_run
 from pipeloom.runtime.rerun import inherited_vars, retry_options
-from pipeloom.runtime.run import RunOptions, RunOutcome, _early, execute_run
+from pipeloom.runtime.run import (
+    USAGE_CODES,
+    RunOptions,
+    RunOutcome,
+    _early,
+    _missing,
+    execute_run,
+)
+from pipeloom.runtime.unit_tests import run_unit_test
 from pipeloom.secrets.redaction import Redactor
-from pipeloom.secrets.resolve import SecretResolver
+from pipeloom.secrets.resolve import SecretError, SecretResolver, secret_diagnostic
 from pipeloom.validate import validate_project
 from pipeloom.validate.references import check_references
 
-__all__ = ["Project", "ProjectOptions"]
+__all__ = ["Project", "ProjectOptions", "TestRunOutcome"]
+
+
+@dataclass(frozen=True)
+class TestRunOutcome:
+    """What `Project.test` found. Exit code 0 when every case passed, 1 when one failed or the
+    project does not validate, 2 for a usage error."""
+
+    __test__ = False  # not a pytest class
+
+    exit_code: int
+    events: tuple[EventPayload, ...]
+    """`unit_test.passed` or `unit_test.failed` per case, then `unit_tests.completed`."""
+    diagnostics: tuple[Diagnostic, ...]
+    failed: int = 0
 
 
 class Project:
@@ -236,6 +267,116 @@ class Project:
         finally:
             if own:
                 events.close()
+
+    def build(
+        self,
+        opts: RunOptions | None = None,
+        bus: EventBus | None = None,
+        control: RunControl | None = None,
+    ) -> RunOutcome:
+        """Run the unit tests of the selected models, then, when every case passed, `run` them
+        with data tests on (ADR-0045). A failed case stops the build with exit 1 before a run id
+        exists and before any write."""
+        opts = opts or RunOptions()
+        tested = self.test(opts.selection)
+        own = bus is None
+        events = bus or EventBus(
+            [], clock=self.clock, invocation_id=self.invocation_id, redactor=self.redactor
+        )
+        try:
+            if tested.exit_code:
+                outcome = _early(events, tested.diagnostics)
+                for payload in tested.events:
+                    events.emit(payload)
+                return replace(outcome, exit_code=tested.exit_code, extra_errors=tested.failed)
+            for payload in tested.events:
+                events.emit(payload)
+            return self.run(replace(opts, data_tests=True), events, control)
+        finally:
+            if own:
+                events.close()
+
+    def test(self, selection: Selection | None = None) -> TestRunOutcome:
+        """Run the unit tests of the selected models (ADR-0045). It writes nothing: no run id, no
+        lock, no artifacts. The outcome holds one event payload per case and a summary."""
+        compiled = self.compile(selection)
+        diags = list(compiled.diagnostics)
+        plan, bound = compiled.value, self.bind().value
+        if plan is None or bound is None:
+            usage = any(d.code in USAGE_CODES for d in diags)
+            return TestRunOutcome(2 if usage else 1, (), tuple(diags))
+        validated = self.validate().value
+        assert validated is not None
+        project = validated.project
+        order = {uid: i for i, uid in enumerate(plan.nodes)}
+        chosen = set(plan.selection.selected)
+        cases = sorted(
+            (c for c in project.unit_tests if model_id(plan.metadata.project, c.model) in chosen),
+            key=lambda c: order[model_id(plan.metadata.project, c.model)],
+        )
+        events: list[EventPayload] = []
+        failed = 0
+        if cases:
+            engine_plugin, catalog_plugin = (
+                bound.plugins.get("engines"),
+                bound.plugins.get("catalogs"),
+            )
+            if engine_plugin is None or catalog_plugin is None:
+                missing = _missing(bound, "engine" if engine_plugin is None else "catalog")
+                return TestRunOutcome(1, (), (*diags, missing))
+            try:
+                engine: Engine = engine_plugin.create(self.secrets)
+                catalog: Catalog = catalog_plugin.create(self.secrets)
+            except SecretError as err:
+                return TestRunOutcome(1, (), (*diags, secret_diagnostic(err)))
+            project_dir = bound.loaded.project_dir.resolve()
+            rt = RuntimeContext(
+                run_id=self.invocation_id,
+                invocation_id=self.invocation_id,
+                project=plan.metadata.project,
+                target=plan.metadata.target,
+                project_dir=project_dir,
+                clock=self.clock,
+                identity=self.identity,
+                vars=plan.metadata.vars,
+            )
+            with (
+                engine.session(rt, catalog=catalog) as session,
+                ModuleLoader(project_dir, plan.metadata.python_paths) as loader,
+            ):
+                for case in cases:
+                    node = plan.nodes[model_id(plan.metadata.project, case.model)]
+                    upstream = {
+                        alias: plan.nodes[uid].columns if uid in plan.nodes else None
+                        for alias, uid in node.inputs.items()
+                    }
+                    result = run_unit_test(
+                        session,
+                        node,
+                        case.config,
+                        load=loader.load,
+                        rt=rt,
+                        upstream=upstream,
+                        sql_dialect=engine.capabilities.sql_dialect,
+                    )
+                    if result.passed:
+                        events.append(UnitTestPassed(model=case.model, unit_test=case.name))
+                        continue
+                    failed += 1
+                    where = project.locate(case.file, f"{case.pointer}/name")
+                    events.append(
+                        UnitTestFailed(
+                            model=case.model,
+                            unit_test=case.name,
+                            code=result.code or "PLX115",
+                            message=result.message,
+                            location=where.to_json(),
+                            missing=result.missing,
+                            unexpected=result.unexpected,
+                        )
+                    )
+        events.append(UnitTestsCompleted(passed=len(cases) - failed, failed=failed))
+        return TestRunOutcome(1 if failed else 0, tuple(events), tuple(diags), failed)
 
     def finalize(self, opts: FinalizeOptions, bus: EventBus | None = None) -> RunOutcome:
         """Close a run an orchestrator drove unit by unit: merge the unit results, record the run

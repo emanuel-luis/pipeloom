@@ -1,0 +1,30 @@
+cli:
+  - test
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
+  models/m.yml: |
+    sources:
+      - name: raw
+        location: raw
+    models:
+      - name: a
+        sql: select id from src
+        inputs:
+          src:
+            source: raw
+        unit_tests:
+          - name: from_csv
+            given:
+              src:
+                csv: data/missing.csv
+            expect:
+              rows:
+                - id: 1

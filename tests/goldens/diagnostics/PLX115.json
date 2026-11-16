@@ -1,0 +1,27 @@
+[
+  {
+    "schema": "pipeloom.event/1",
+    "run_id": null,
+    "seq": 2,
+    "type": "unit_test.failed",
+    "level": "error",
+    "unit_id": null,
+    "model": null,
+    "attempt": null,
+    "data": {
+      "model": "a",
+      "unit_test": "from_csv",
+      "code": "PLX115",
+      "message": "unit test 'from_csv' of model 'a' cannot run: given 'src': cannot read CSV 'data/missing.csv': No such file or directory",
+      "location": {
+        "file": "models/m.yml",
+        "line": 11,
+        "col": 15,
+        "json_pointer": "/models/0/unit_tests/0/name"
+      },
+      "missing": [],
+      "unexpected": []
+    },
+    "context": {}
+  }
+]

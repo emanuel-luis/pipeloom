@@ -38,7 +38,8 @@
     "boundary": "process",
     "lock": true,
     "state": null,
-    "defer": false
+    "defer": false,
+    "data_tests": false
   },
   "run": {
     "run_id": "run1",

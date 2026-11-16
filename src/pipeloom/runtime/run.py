@@ -93,6 +93,9 @@ class RunOptions:
     parent run built, so the retry reads what that run wrote here."""
     parent_run_id: str | None = None
     """The run this one retries (`Project.retry`). A reused run id keeps the parent it recorded."""
+    data_tests: bool = False
+    """Run each model's data tests after its write (`pipeloom build`, ADR-0045). Relationship
+    parents then also order the units."""
 
     def __post_init__(self) -> None:
         if self.defer and self.state is None:
@@ -106,6 +109,21 @@ class RunOptions:
                 raise ValueError("run_started_at needs run_id")
 
 
+def _unit_parents(plan: Plan, data_tests: bool) -> dict[str, tuple[str, ...]]:
+    """The unit edges, plus one from each relationships parent unit when data tests run, so a
+    child is tested after its parent was written. The plan's own edges are unchanged."""
+    parents = {u: unit.parents for u, unit in plan.units.items()}
+    if not data_tests:
+        return parents
+    for u, unit in plan.units.items():
+        for test in plan.nodes[unit.nodes[-1]].data_tests or ():
+            check = test.check.relationships
+            ref = None if check is None else check.to.ref
+            if ref is not None and ref in plan.units and ref != u:
+                parents[u] = (*parents[u], ref)
+    return parents
+
+
 @dataclass(frozen=True)
 class RunOutcome:
     status: RunStatus
@@ -113,6 +131,8 @@ class RunOutcome:
     run_results: Path | None
     diagnostics: tuple[Diagnostic, ...]
     """What validation found, and one diagnostic per failed unit."""
+    extra_errors: int = 0
+    """Errors carried by events rather than diagnostics, such as failed unit tests of a build."""
 
 
 def new_run_id(now: datetime) -> str:
@@ -494,6 +514,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                         plugins=project.options.plugins,
                         cancel_grace=grace,
                         orchestrator_ids=opts.orchestrator_ids,
+                        data_tests=opts.data_tests,
                     ),
                     paths=paths,
                     bus=bus,
@@ -523,6 +544,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                         policies=policies,
                         redactor=project.redactor,
                         deferred=deferred,
+                        data_tests=opts.data_tests,
                     )
                     executor = ThreadExecutor(
                         runner.run_unit,
@@ -531,7 +553,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                         on_interrupt=runner.record_interrupt,
                     )
                 scheduler = Scheduler(
-                    UnitGraph.from_plan(plan, units),
+                    UnitGraph.from_parents(_unit_parents(plan, opts.data_tests), units),
                     executor,
                     workers=workers,
                     fail_fast=opts.fail_fast,
@@ -642,6 +664,7 @@ def _finish(
         if opts.state is None
         else _rel((rt.project_dir / opts.state).resolve(), rt.project_dir),
         "defer": opts.defer,
+        "data_tests": opts.data_tests,
     }
     header = RunHeader(
         run_id=rt.run_id,

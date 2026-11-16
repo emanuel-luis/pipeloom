@@ -48,6 +48,7 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0042 | [Selection by state and --defer](0042-state-selection-and-defer.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-06 |
 | 0043 | [Docs site](0043-docs-site.md) | Accepted | 2026-11-06 |
 | 0044 | [Model contracts](0044-model-contracts.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-06 |
+| 0045 | [Unit tests, post-write data tests and pipeloom build](0045-unit-and-data-tests.md) | Accepted | 2026-11-16 |
 | 0046 | [OpenLineage](0046-openlineage.md) | Accepted | 2026-11-15 |
 | 0047 | [Run history and the webhook sink](0047-run-history-and-webhook.md) | Accepted. Amended in 0.9 (ADR-0050). | 2026-11-06 |
 | 0049 | [Artifact schemas, the unit graph and the orchestrator protocol](0049-artifact-schemas-and-orchestrator-protocol.md) | Accepted | 2026-11-15 |

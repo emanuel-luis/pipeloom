@@ -141,6 +141,7 @@ def retry_options(
             ),
             state=state,
             defer=defer,
+            data_tests=base.data_tests or bool(args.get("data_tests", False)),
             not_deferred=frozenset(
                 uid for uid, status in reference.results.items() if status == "succeeded"
             )

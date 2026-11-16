@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import tzinfo
 from typing import Any
@@ -66,6 +67,22 @@ def _quality_lines(stamp: str, model: str, d: dict[str, Any]) -> str:
             lines.append(
                 f"{stamp} WARN   {model}: {what} failed on {r['failed']} of {d['total_rows']} rows"
             )
+    return "\n".join(lines)
+
+
+def _unit_test_lines(stamp: str, kind: str, d: dict[str, Any]) -> str:
+    """A PASS or FAIL line per case; a row diff (10 rows of each side) under a PLX114."""
+    if kind == "unit_tests.completed":
+        return f"{stamp} unit tests: {d['passed']} passed, {d['failed']} failed"
+    case = f"{d['model']}: {d['unit_test']}"
+    if kind == "unit_test.passed":
+        return f"{stamp} PASS   {case}"
+    if d["code"] != "PLX114" or not (d["missing"] or d["unexpected"]):
+        return f"{stamp} FAIL   {case} {d['code']} {d['message']}"
+    counts = f"{len(d['missing'])} missing, {len(d['unexpected'])} unexpected row(s)"
+    lines = [f"{stamp} FAIL   {case} {d['code']} {counts}"]
+    for sign, rows in (("-", d["missing"]), ("+", d["unexpected"])):
+        lines.extend(f"{_INDENT}{sign} {json.dumps(r)}" for r in rows[:10])
     return "\n".join(lines)
 
 
@@ -148,6 +165,8 @@ class ConsoleSink:
             return f"{stamp} {event.model or 'model'}: {_schema_line(d)}", style
         if event.type == "model.quality_evaluated":
             return _quality_lines(stamp, event.model or "model", d), style
+        if event.type.startswith("unit_test"):
+            return _unit_test_lines(stamp, event.type, d), style
         if event.type == "model.log":
             return f"{stamp} {event.model or 'model'}: {d['message']}", style
         if event.type == "artifact.written" and self._in_run:

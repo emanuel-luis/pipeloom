@@ -12,7 +12,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from pipeloom.config.models import ColumnConfig, InputConfig
+from pipeloom.config.models import ColumnConfig, DataTestConfig, InputConfig
 from pipeloom.diagnostics import Location
 
 if TYPE_CHECKING:
@@ -57,6 +57,7 @@ class PythonModel:
     settings: Mapping[str, Any]
     """Model settings by YAML key, plus `description` when set."""
     columns: list[ColumnConfig] | None
+    data_tests: list[DataTestConfig] | None
     inputs: Mapping[str, InputConfig | str]
     """`inputs=` entries: a `ref`/`source` binding, or a bare name to resolve."""
     params: tuple[Param, ...]

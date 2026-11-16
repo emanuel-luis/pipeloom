@@ -1,0 +1,84 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine:
+          kind: memory
+  models/m.yml: |
+    models:
+      - name: a
+        sql: select 1 as id
+        materialized: ephemeral
+        data_tests:
+          - name: id_set
+            check:
+              not_null:
+                - id
+      - name: b
+        sql: select id from a
+        inputs:
+          a:
+            ref: a
+        data_tests:
+          - name: b_in_c
+            check:
+              relationships:
+                column: id
+                to:
+                  ref: c
+                field: id
+      - name: c
+        sql: select id from b
+        inputs:
+          b:
+            ref: b
+      - name: d
+        sql: select 1 as id
+        data_tests:
+          - name: d_in_d
+            check:
+              relationships:
+                column: id
+                to:
+                  ref: d
+                field: id
+      - name: i
+        sql: select 1 as id
+        materialized: intermediate
+      - name: e
+        sql: select 1 as id
+        data_tests:
+          - name: e_in_i
+            check:
+              relationships:
+                column: id
+                to:
+                  ref: i
+                field: id
+      - name: g
+        sql: select 1 as id
+        data_tests:
+          - name: g_in_h
+            check:
+              relationships:
+                column: id
+                to:
+                  ref: h
+                field: id
+      - name: h
+        sql: select 1 as id
+        data_tests:
+          - name: h_in_k
+            check:
+              relationships:
+                column: id
+                to:
+                  ref: k
+                field: id
+      - name: k
+        sql: select id from g
+        inputs:
+          g:
+            ref: g

@@ -23,6 +23,7 @@ from pipeloom.cli._options import (
     state_option,
     target_option,
 )
+from pipeloom.cli._select import reference_state
 from pipeloom.config.types import parse_duration
 from pipeloom.diagnostics import Report
 from pipeloom.graph.selectors import Selection
@@ -155,6 +156,13 @@ def _started_at(ctx: click.Context, param: click.Parameter, value: str | None) -
     help="After a stop request (Ctrl+C, SIGTERM) or a timeout, how long running units may "
     "finish before they are killed, as 30s, 2m or 30. Default: the setting, else 30s.",
 )
+@click.option(
+    "--data-tests",
+    type=click.BOOL,
+    default=False,
+    hidden=True,
+    help="Run data tests after each write; pipeloom build sets it for its child processes.",
+)
 def run(
     project_dir: Path,
     vars_: dict[str, Any],
@@ -177,6 +185,7 @@ def run(
     boundary: str | None,
     warn_error: bool,
     cancel_grace: int | None,
+    data_tests: bool = False,
 ) -> None:
     """Run the selected models. Exit codes: 0 ok, 1 a unit or a check failed, 2 bad usage, 130 stopped.
 
@@ -205,11 +214,17 @@ def run(
         boundary=chosen,
         env=os.environ,
     )
-    inv = Invocation("run", log_format)
+    building = click.get_current_context().command.name == "build"  # cli/build.py reuses this
+    inv = Invocation("build" if building else "run", log_format)
     project = Project(opts, invocation_id=inv.invocation_id)
     bound = project.bind().value
+    ref = (  # the unit tests of a build select with --state before any run starts
+        reference_state(inv, project_dir, state, bound.loaded.config.name, bound)
+        if building and bound is not None
+        else None
+    )
     run_opts = RunOptions(
-        selection=Selection(select, exclude),
+        selection=Selection(select, exclude, ref),
         manifest=manifest,
         expect_plan_hash=expect_plan_hash,
         run_id=run_id,
@@ -224,5 +239,7 @@ def run(
         cancel_grace=cancel_grace,
         state=state,
         defer=defer,
+        data_tests=data_tests,
     )
-    drive(inv, project, bound, orchestrator_ids, lambda bus, ctl: project.run(run_opts, bus, ctl))
+    call = project.build if building else project.run
+    drive(inv, project, bound, orchestrator_ids, lambda bus, ctl: call(run_opts, bus, ctl))

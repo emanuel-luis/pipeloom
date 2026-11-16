@@ -120,6 +120,23 @@ class EngineSession(Protocol):
         """Cooperative; a no-op for engines that cannot cancel."""
         ...
 
+    def from_rows(self, rows: Sequence[Mapping[str, Any]], schema: Schema) -> Relation:
+        """A relation holding `rows`, typed by `schema`. Values are already plain Python values of
+        the logical types (aware UTC datetimes for `timestamp[..., UTC]`). Plugin API 0.5, used by
+        unit tests (ADR-0045); an engine without it gets PLX115 when a unit test runs."""
+        ...
+
+    def to_rows(self, rel: Relation) -> list[dict[str, Any]]:
+        """The rows of `rel` as plain Python values (never numpy, pandas or engine types); null is
+        None and timestamps with a time zone are aware UTC. Plugin API 0.5 (ADR-0045)."""
+        ...
+
+    def orphans(self, rel: Relation, column: str, parent: Relation, field: str) -> int:
+        """Rows of `rel` whose non-null `column` (NaN is null) matches no `field` value of
+        `parent`; parent nulls never match. Plugin API 0.5, used by relationships data tests
+        (ADR-0045)."""
+        ...
+
 
 @runtime_checkable
 class Engine(Protocol):
