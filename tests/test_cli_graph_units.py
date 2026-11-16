@@ -76,7 +76,11 @@ def test_select_narrows_units_and_edges(tmp_path: Path) -> None:
     compile_to(SHOP, tmp_path / "manifest.json")
     for extra in ([], ["--manifest", str(tmp_path / "manifest.json")]):
         doc = units(*SHOP, *extra, "--select", "fct_orders+", "--exclude", "tag:staging")
-        assert [u["unit_id"] for u in doc["units"]] == ["fct_orders", "rpt_revenue", "top_customers"]
+        assert [u["unit_id"] for u in doc["units"]] == [
+            "fct_orders",
+            "rpt_revenue",
+            "top_customers",
+        ]
         assert [u["parents"] for u in doc["units"]] == [[], ["fct_orders"], ["rpt_revenue"]]
         assert doc["edges"] == [
             {"from": "fct_orders", "to": "rpt_revenue"},

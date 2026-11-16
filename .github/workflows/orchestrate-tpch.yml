@@ -1,0 +1,110 @@
+name: orchestrate-tpch
+
+# The orchestrator protocol on a CI runner: a shell loop plays the orchestrator and runs the TPC-H
+# polars example one unit at a time, from the unit graph. See docs/guide/recipe-github-actions.md.
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "plugins/pipeloom-polars/**"
+      - "examples/**"
+      - "uv.lock"
+      - ".github/workflows/orchestrate-tpch.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "plugins/pipeloom-polars/**"
+      - "examples/**"
+      - "uv.lock"
+      - ".github/workflows/orchestrate-tpch.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: orchestrate-tpch-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  orchestrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      PROJECT_DIR: examples/tpch_polars
+      # fills the placeholders of an argv from the unit graph
+      FILL: '.argv[] | gsub("\\{project_dir\\}"; $p) | gsub("\\{manifest\\}"; $m) | gsub("\\{run_id\\}"; $r)'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+
+      # The only step tied to this repository. Outside it, install the released packages instead:
+      #   pip install "pipeloom[polars]"
+      - name: Install pipeloom
+        run: |
+          uv sync --locked --all-packages
+          echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Generate the TPC-H data
+        run: uv run examples/tpch_data.py
+
+      # One run id and one start time for every invocation of this orchestrator run.
+      - name: Pick the run id and start time
+        run: |
+          echo "RUN_ID=gha-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
+          echo "PIPELOOM_RUN_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
+      - name: Prepare the plan and the unit graph
+        run: |
+          pipeloom compile --project-dir "$PROJECT_DIR" --target dev --stable --out "$RUNNER_TEMP/manifest.json"
+          pipeloom graph --units --output json --project-dir "$PROJECT_DIR" --target dev --manifest "$RUNNER_TEMP/manifest.json" > "$RUNNER_TEMP/units.json"
+
+      # A unit starts after all its parents succeeded; a unit with a failed or skipped parent is
+      # skipped. Units run one at a time here, in the graph's topological order. Retries are the
+      # orchestrator's job: this graph sets none, so a failed unit stays failed.
+      - name: Run the units
+        run: |
+          : > "$RUNNER_TEMP/not-ok"
+          while read -r unit; do
+            id=$(jq -r '.unit_id' <<< "$unit")
+            blocked=""
+            for parent in $(jq -r '.parents[]' <<< "$unit"); do
+              if grep -qxF "$parent" "$RUNNER_TEMP/not-ok"; then blocked="$parent"; fi
+            done
+            if [ -n "$blocked" ]; then
+              echo "skip $id: parent $blocked did not succeed"
+              echo "$id" >> "$RUNNER_TEMP/not-ok"
+              continue
+            fi
+            mapfile -t argv < <(jq -r --arg p "$PROJECT_DIR" --arg m "$RUNNER_TEMP/manifest.json" --arg r "$RUN_ID" "$FILL" <<< "$unit")
+            echo "run $id"
+            if ! "${argv[@]}" < /dev/null; then
+              echo "::error::unit $id failed"
+              echo "$id" >> "$RUNNER_TEMP/not-ok"
+            fi
+          done < <(jq -c '.units[]' "$RUNNER_TEMP/units.json")
+          test ! -s "$RUNNER_TEMP/not-ok"
+
+      # Always runs, so a failed run still gets its run_results.json.
+      - name: Finalize the run
+        if: always()
+        run: |
+          mapfile -t argv < <(jq -r --arg p "$PROJECT_DIR" --arg m "$RUNNER_TEMP/manifest.json" --arg r "$RUN_ID" ".finalize | $FILL" "$RUNNER_TEMP/units.json")
+          "${argv[@]}" --orchestrator-id "gha_run_id=${{ github.run_id }}"
+
+      - name: Check the results
+        run: jq -e '.run.status == "succeeded" and .run.counts.succeeded == 9' "$PROJECT_DIR/target/runs/$RUN_ID/run_results.json"
+
+      - name: Upload the run folder
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tpch-run
+          path: examples/tpch_polars/target/runs
+          if-no-files-found: warn
+          retention-days: 7
