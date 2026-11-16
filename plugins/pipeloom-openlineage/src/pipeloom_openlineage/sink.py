@@ -340,11 +340,18 @@ class OpenLineageSink:
         return InputDataset(namespace=self._relation_namespace(job_ns), name=relation)
 
     def _location(self, location: str) -> tuple[str, str]:
-        """OpenLineage naming for a path: `scheme://authority` and the path, or `file` and an
-        absolute local path."""
+        """OpenLineage naming for a path (https://openlineage.io/docs/spec/naming): a URI with a
+        host is `scheme://host` and the path without its leading slash; `file:` is namespace
+        `file` and the absolute path; another scheme without a host is the scheme and the path
+        as reported; a relative path is joined to the project dir."""
         parts = urlsplit(location)
-        if parts.scheme and parts.netloc:
-            return f"{parts.scheme}://{parts.netloc}", parts.path or "/"
+        # a Windows drive letter ("C:/x") parses as a one-letter scheme: treat it as a path
+        if len(parts.scheme) > 1:
+            if parts.scheme == "file":
+                return "file", parts.path
+            if parts.netloc:
+                return f"{parts.scheme}://{parts.netloc}", parts.path.lstrip("/")
+            return parts.scheme, parts.path
         path = PurePosixPath(location)
         if not path.is_absolute() and self._project_dir is not None:
             return "file", (self._project_dir / location).as_posix()

@@ -26,7 +26,7 @@ events:
 | Option | Default | Meaning |
 |---|---|---|
 | `namespace` | `pipeloom.{target}` | namespace of the jobs; `{project}` and `{target}` are filled in |
-| `dataset_namespace` | the job namespace | namespace of catalog relations; sources with a location use its `scheme://authority`, or `file` for a local path |
+| `dataset_namespace` | the job namespace | namespace of catalog relations; sources with a location follow the OpenLineage naming: `s3://bucket` and `raw/s` for `s3://bucket/raw/s`, `file` and the absolute path for local files, `dbfs` and the path for `dbfs:/...` |
 | `transport` | none | an openlineage-python transport config |
 | `inside_airflow` | `skip` | `skip` leaves Airflow tasks to the Airflow OpenLineage provider; `emit` reports them here too |
 

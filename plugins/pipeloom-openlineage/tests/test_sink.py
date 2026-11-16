@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+import pytest
 from openlineage.client import OpenLineageClient
 from openlineage.client.event_v2 import RunEvent, RunState
 from openlineage.client.serde import Serde
@@ -224,6 +225,28 @@ def emit_unit(bus: EventBus) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("location", "expected"),
+    [
+        ("s3://bucket/raw/s", ("s3://bucket", "raw/s")),
+        ("gs://bucket/a/b", ("gs://bucket", "a/b")),
+        (
+            "abfss://box@acct.dfs.core.windows.net/p/q",
+            ("abfss://box@acct.dfs.core.windows.net", "p/q"),
+        ),
+        ("file:///data/x", ("file", "/data/x")),
+        ("file:/data/x", ("file", "/data/x")),
+        ("dbfs:/Volumes/c/s/v/x", ("dbfs", "/Volumes/c/s/v/x")),
+        ("/abs/x", ("file", "/abs/x")),
+        ("rel/x", ("file", "/proj/rel/x")),
+    ],
+)
+def test_location_follows_the_openlineage_naming(location: str, expected: tuple[str, str]) -> None:
+    sink, _ = make_sink()
+    sink._project_dir = Path("/proj")
+    assert sink._location(location) == expected
+
+
 def test_quality_contract_schema_and_naming_from_the_manifest() -> None:
     sink, transport = make_sink(namespace="{project}-{target}", dataset_namespace="warehouse")
     with EventBus([(sink, 1)], clock=CLOCK, invocation_id="i", run_id="r") as bus:
@@ -233,7 +256,7 @@ def test_quality_contract_schema_and_naming_from_the_manifest() -> None:
     assert done.run.runId == unit_uuid("p", "r", "m", 2)
     assert (done.job.namespace, done.job.name) == ("p-t", "p.m")
     assert done.inputs is not None and done.outputs is not None
-    assert [(i.namespace, i.name) for i in done.inputs] == [("s3://bucket", "/raw/s")]
+    assert [(i.namespace, i.name) for i in done.inputs] == [("s3://bucket", "raw/s")]
     [out] = done.outputs
     assert (out.namespace, out.name) == ("warehouse", "main.m")
     fields = facet(out.facets, "schema").fields
@@ -261,7 +284,7 @@ def test_unit_lineage_replays_a_unit_or_falls_back_to_the_manifest() -> None:
     static = unit_lineage(MANIFEST, Path("/p"), "m")
     assert static.eventType is RunState.START and static.job.name == "p.m"
     assert static.inputs is not None and static.outputs is not None
-    assert [i.name for i in static.inputs] == ["/raw/s"]
+    assert [i.name for i in static.inputs] == ["raw/s"]
     assert [o.name for o in static.outputs] == ["main.m"]
 
 
