@@ -978,6 +978,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#json-schemas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON Schemas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#events" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1201,6 +1212,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#json-schemas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON Schemas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#events" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1373,8 +1395,44 @@ use to judge its intermediates) and <code>warnings</code> (run-level messages, s
 and <code>warnings</code> carries <code>watermark_seeded: target</code> when the state store had no watermark.
 Fields that later versions fill stay null or empty: <code>rows_dropped</code>, <code>rows_quarantined</code>,
 <code>bytes_read</code>, <code>schema_changes</code> and <code>expectations</code>. <code>orchestrator_ids</code> holds the ids from <code>--orchestrator-id</code>.</p>
-<p>There is no published JSON Schema for this file yet. It is described here and covered by golden
-tests; a schema under <code>schema/v1/</code> will follow once the field set stops moving.</p>
+<h2 id="json-schemas">JSON Schemas<a class="headerlink" href="#json-schemas" title="Permanent link">&para;</a></h2>
+<p>Each document names its schema in a <code>schema</code> property, and each schema is published next to the
+config schemas (<a href="../../adr/0049-artifact-schemas-and-orchestrator-protocol/">ADR-0049</a>):</p>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Schema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run_results.json</code> (<code>pipeloom.run_results/1</code>)</td>
+<td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/run_results.json">run_results.json</a></td>
+</tr>
+<tr>
+<td>an attempt file</td>
+<td><code>#/$defs/result</code> of run_results.json</td>
+</tr>
+<tr>
+<td>one event (<code>pipeloom.event/1</code>)</td>
+<td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/event.json">event.json</a></td>
+</tr>
+<tr>
+<td><code>--unit-states</code> (<code>pipeloom.unit_states/1</code>)</td>
+<td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_states.json">unit_states.json</a></td>
+</tr>
+</tbody>
+</table>
+<p>Compatibility within a version: consumers must ignore fields they do not know, since the schemas
+leave objects open. A 1.x release may add optional fields, new event types and new skip reasons
+and stays on <code>/1</code>: skip reasons are open strings both in the row <code>skip_reason</code> and in the
+<code>unit.skipped</code> event. Every other enumerated value is closed: <code>status</code> of a row, of the run, of
+<code>run.completed</code> and of a unit state, the event <code>level</code>, the error <code>category</code> (<code>transient</code> or
+<code>permanent</code>), <code>unit.cancelled</code> <code>reason</code>, <code>model.input_read</code> <code>kind</code>, <code>model.schema_changed</code>
+<code>action</code>, <code>run.started</code> <code>boundary</code>, <code>state.watermark_committed</code> <code>source</code> and <code>model.log</code>
+<code>level</code>. A new value of one of them, or any change a consumer must understand, moves the
+document to <code>/2</code>.</p>
 <h2 id="events">Events<a class="headerlink" href="#events" title="Permanent link">&para;</a></h2>
 <p><code>events/&lt;invocation_id&gt;.jsonl</code> holds the events of one invocation, one JSON object per line. An
 invocation that runs a single unit writes only its own file; the owning invocation forwards the

@@ -1198,7 +1198,7 @@
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <p>An orchestrator plugin can carry its options in the manifest without touching the plan hash, and can ship a manifest whose bytes do not depend on when it was compiled. A project with a <code>deploy</code> block fails with PLR204 where the renderer plugin is not installed, which is the point. Masking is by exact value: a plugin that transforms a secret (encodes or truncates it) before logging it defeats the redactor, and values shorter than four characters are never masked. A <code>${secret:</code> reference in a place the core does not bind as plugin options (model SQL, vars) stays literal.</p>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted.</p>
+<p>Accepted. Amended by <a href="../0049-artifact-schemas-and-orchestrator-protocol/">ADR-0049</a>: the unit-states schema, the unit graph and the orchestrator protocol.</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
 <p>2026-11-04</p>
 
