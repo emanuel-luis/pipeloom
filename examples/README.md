@@ -81,6 +81,10 @@ or 21 and `pipeloom[spark]`:
 $ pipeloom run --project-dir examples/tpch_spark --target dev
 ```
 
+Its `region` table comes from `data/region.csv`, a five-row CSV committed with the project, so one
+source shows sample data on Spark. To read a copy on a Databricks volume instead, pass
+`--vars '{"region_csv": "/Volumes/<catalog>/<schema>/<volume>/region.csv"}'`.
+
 To run all four projects from Airflow, see [airflow/README.md](airflow/README.md).
 
 ## Run on Databricks

@@ -21,14 +21,24 @@ ROOT = "/Volumes/main/ops/live/artifacts"
 
 
 def row(
-    unit: str, status: str, attempt: int, job_run_id: int, ids: str | None = None
+    unit: str,
+    status: str,
+    attempt: int,
+    job_run_id: int,
+    ids: str | None = None,
+    rows_written: int | None = None,
 ) -> dict[str, Any]:
     return {
         "unit_id": unit,
         "status": status,
         "attempt": attempt,
         "orchestrator_ids": {"databricks_job_run_id": ids or str(job_run_id)},
+        "rows_written": rows_written,
     }
+
+
+def region(job_run_id: int, rows_written: int = live.SAMPLE_ROWS) -> dict[str, Any]:
+    return row("r", "succeeded", 1, job_run_id, rows_written=rows_written)
 
 
 def doc(
@@ -59,13 +69,24 @@ def facts(checks: list[live.Check]) -> dict[str, bool]:
 
 def test_full_run_checks_pass_and_fail() -> None:
     run = run_info(500, "SUCCESS")
-    good = doc("dbx-500", "succeeded", row("a", "succeeded", 1, 500), row("b", "succeeded", 1, 500))
+    a, b = row("a", "succeeded", 1, 500), row("b", "succeeded", 1, 500)
+    good = doc("dbx-500", "succeeded", a, b, region(500))
     assert all(c.ok for c in live.check_full_run(run, good, 0))
     bad = doc("literal", "succeeded", row("a", "succeeded", 1, 500, ids="{{job.run_id}}"))
     got = facts(live.check_full_run(run, bad, 0))
     assert not got["empty_parameter_default_resolves_run_id"]
     assert not got["dynamic_references_in_wheel_parameters"]
     assert not got["spark_session_in_wheel_task"]
+    assert not got["csv_source_on_volume"]
+    short = doc("dbx-500", "succeeded", a, b, region(500, rows_written=4))
+    assert not facts(live.check_full_run(run, short, 0))["csv_source_on_volume"]
+
+
+def test_the_sample_goes_next_to_the_wheels() -> None:
+    assert live.SAMPLE.is_file()
+    assert live.sample_path("/Volumes/c/s/v/", "abc") == "/Volumes/c/s/v/samples/abc/region.csv"
+    lines = live.SAMPLE.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == live.SAMPLE_ROWS + 1  # a header, then the rows the check expects
 
 
 def test_select_check_needs_an_excluded_task_and_a_green_finalize() -> None:
@@ -228,7 +249,10 @@ class Script:
             else:
                 self._set(run_id, job, "SUCCESS")
                 self._results(
-                    name, row("a", "succeeded", 1, run_id), row("b", "succeeded", 1, run_id)
+                    name,
+                    row("a", "succeeded", 1, run_id),
+                    row("b", "succeeded", 1, run_id),
+                    region(run_id),
                 )
                 code = 0
             return code, json.dumps(
@@ -351,7 +375,12 @@ def test_the_fixture_renders_both_pipelines(tmp_path: Path) -> None:
     )
     wheels = [f"/Volumes/c/s/v/wheels/x/{w}.whl" for w in live.WHEELS]
     vars_json = live._vars(
-        catalog="c", schema="s1", volume="/Volumes/c/s/v", environment_version="5", wheels=wheels
+        catalog="c",
+        schema="s1",
+        volume="/Volumes/c/s/v",
+        environment_version="5",
+        wheels=wheels,
+        sample_csv=live.sample_path("/Volumes/c/s/v", "x"),
     )
     for pipeline in ("stable", "flaky"):
         result = CliRunner().invoke(

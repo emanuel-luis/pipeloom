@@ -91,6 +91,32 @@ fails and tells you to use mode `active`. Classic and Connect cannot share one P
 `csv` reads a header and infers types; `json` is one multi-line document and `ndjson` is one
 document per line. Reader options pass through as strings.
 
+### CSV sample data
+
+A small CSV committed with the project works as sample data, the way dbt seeds do, without a new
+materialization. Declare it as a source:
+
+```yaml
+sources:
+  samples:
+    format: csv
+    tables:
+      region:
+        location: ${var:region_csv}
+```
+
+The location can be a path relative to the project directory (`data/region.csv`), an absolute
+path, a `file:` URI or a Databricks volume path (`/Volumes/<catalog>/<schema>/<volume>/...` or
+`dbfs:/Volumes/...`). Only relative paths are resolved against the project directory; the others
+reach Spark as written. On Databricks the project files are not on the cluster, so copy the CSV to
+a volume and point the var at it, for example
+`--vars '{"region_csv": "/Volumes/main/ops/samples/region.csv"}'`.
+
+Options are Spark's own CSV options: `header` and `inferSchema` default to true, and `sep` sets the
+delimiter. The polars and pandas engines read the same file with their defaults; their option
+names differ (`separator` and `has_header` for polars, `sep` and `header` for pandas). The
+`tpch_spark` example reads its `region` table this way.
+
 ## Write strategies
 
 Every write is a DataFrameWriter option or a SQL statement. No Spark conf is touched.

@@ -47,6 +47,7 @@ from pipeloom.events.model import (
     UnitSucceeded,
 )
 from pipeloom.plan.model import Plan, PlanNode, PlanSource, PythonBody, SqlBody, default_strategy
+from pipeloom.platform import is_absolute_location
 from pipeloom.quality import (
     QualityReport,
     build_specs,
@@ -972,7 +973,7 @@ class ModelRunner:
         if source.table is not None:
             return ReadSpec("table", table=_target_ref(source.table), options=options)
         location = source.location or ""
-        if "://" not in location and not location.startswith("/") and ":" not in location[:2]:
+        if not is_absolute_location(location):
             location = (self._rt.project_dir / location).as_posix()
         return ReadSpec(source.format or "", location=location, options=options)
 
