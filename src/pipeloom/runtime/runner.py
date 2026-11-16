@@ -1291,7 +1291,7 @@ class ModelRunner:
                 f"cannot write '{target.relation_name}' for model '{node.name}'",
                 "check that the target can be written, then run again",
             )
-        self._written(node, target, strategy, result, t0)
+        self._written(node, target, strategy, result, t0, stored)
         return result
 
     def _schema_changed(
@@ -1343,6 +1343,7 @@ class ModelRunner:
         strategy: str | None,
         result: WriteResult,
         t0: float,
+        columns: Schema | None = None,
     ) -> None:
         self._bus.emit(
             ModelWritten(
@@ -1354,6 +1355,9 @@ class ModelRunner:
                 bytes_written=result.bytes_written,
                 duration_ms=max(0, int((self._rt.clock.monotonic() - t0) * 1000)),
                 skipped=result.skipped,
+                columns=None
+                if columns is None
+                else [{"name": c.name, "dtype": c.dtype, "nullable": c.nullable} for c in columns],
             ),
             unit_id=node.name,
             model=node.name,

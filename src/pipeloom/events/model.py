@@ -319,6 +319,10 @@ class ModelWritten(EventPayload):
     duration_ms: int
     skipped: bool = False
     """The write token had been applied before: nothing was written."""
+    columns: list[dict[str, JsonValue]] | None = None
+    """The table's columns after the write (name, dtype, nullable), as the schema policy
+    resolved them. None when the write path does not know them: intermediates, views and
+    replayed writes."""
 
 
 class StateWatermarkCommitted(EventPayload):
