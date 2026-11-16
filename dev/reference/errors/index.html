@@ -2461,6 +2461,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pla008" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA008
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla009" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA009
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pld001" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4158,6 +4180,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#pla008" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA008
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla009" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA009
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pld001" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4659,10 +4703,10 @@
 <h2 id="renderers">Renderers<a class="headerlink" href="#renderers" title="Permanent link">&para;</a></h2>
 <h3 id="pla001">PLA001<a class="headerlink" href="#pla001" title="Permanent link">&para;</a></h3>
 <p>Unsupported execution mode. Severity: error. Status: active. Since: 0.6.</p>
-<p>The Airflow plugin was configured with an execution mode it does not support. DOCKER is not supported in 0.6; use local, virtualenv, kubernetes or databricks.</p>
+<p>The Airflow plugin was configured with an execution mode it does not support. DOCKER is not supported in 0.6; use local, virtualenv, kubernetes, databricks or watcher.</p>
 <h3 id="pla002">PLA002<a class="headerlink" href="#pla002" title="Permanent link">&para;</a></h3>
 <p>Invalid Airflow plugin configuration. Severity: error. Status: active. Since: 0.6.</p>
-<p>A configuration of the Airflow plugin cannot be used: the manifest load method without a manifest path, a relative path, a virtualenv mode without a directory, a kubernetes mode without an image, a pod_kwargs or operator_args key that pipeloom sets itself, an unknown asset_uri placeholder, or a full_refresh param that is not a boolean.</p>
+<p>A configuration of the Airflow plugin cannot be used: the manifest load method without a manifest path, a relative path, a virtualenv mode without a directory, a kubernetes mode without an image, a pod_kwargs or operator_args key that pipeloom sets itself, an unknown asset_uri placeholder, a WATCHER setting out of range or a WATCHER selection made only of unit: selectors, or a full_refresh param that is not a boolean.</p>
 <h3 id="pla003">PLA003<a class="headerlink" href="#pla003" title="Permanent link">&para;</a></h3>
 <p>Selection renders no units. Severity: warning. Status: active. Since: 0.6.</p>
 <p>The DAG's select and exclude selectors match no unit of the plan, so the DAG would hold no unit task.</p>
@@ -4678,6 +4722,12 @@
 <h3 id="pla007">PLA007<a class="headerlink" href="#pla007" title="Permanent link">&para;</a></h3>
 <p>Target boundary is not task. Severity: warning. Status: active. Since: 0.6.</p>
 <p>Each unit runs in its own process, so the target should set boundary: task. Then PLC503 checks that the state store is shared between workers.</p>
+<h3 id="pla008">PLA008<a class="headerlink" href="#pla008" title="Permanent link">&para;</a></h3>
+<p>WATCHER artifacts root not resolved. Severity: error. Status: active. Since: 0.9.</p>
+<p>In WATCHER mode the DAG reads the artifacts root from pipeloom.yml at parse time, so the watchers can read the attempt files. The file could not be read, or its artifacts.root holds a ${...} reference; set execution.watcher_artifacts_root to the absolute path. At run time, the producer's run left no run_results.json under that root: the root differs from the one the run writes to.</p>
+<h3 id="pla009">PLA009<a class="headerlink" href="#pla009" title="Permanent link">&para;</a></h3>
+<p>WATCHER producer ended without run results. Severity: error. Status: active. Since: 0.9.</p>
+<p>The producer task of a WATCHER DAG ended, but neither an attempt file of the unit nor run_results.json appeared under the artifacts root within the grace period. The producer was killed or failed before it ran the unit. The watcher fails, and a retry of the watcher runs the unit itself.</p>
 <h3 id="pld001">PLD001<a class="headerlink" href="#pld001" title="Permanent link">&para;</a></h3>
 <p>Task limit exceeded. Severity: error. Status: active. Since: 0.5.</p>
 <p>A Databricks job would hold more than 1,000 tasks, its finalize task included. Set task_grouping in the deploy block, or split the project into pipelines.</p>

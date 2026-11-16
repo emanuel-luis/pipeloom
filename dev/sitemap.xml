@@ -213,6 +213,10 @@
          <lastmod>2026-11-16</lastmod>
     </url>
     <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0048-airflow-watcher-mode/</loc>
+         <lastmod>2026-11-16</lastmod>
+    </url>
+    <url>
          <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0049-artifact-schemas-and-orchestrator-protocol/</loc>
          <lastmod>2026-11-16</lastmod>
     </url>

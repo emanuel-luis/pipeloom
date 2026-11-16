@@ -1438,6 +1438,10 @@
 <td>the static datasets of the manifest: the pod's events stay in the pod</td>
 </tr>
 <tr>
+<td>WATCHER</td>
+<td>each watcher reports the static datasets of its unit from the manifest, and a watcher that reruns its unit reports the facets of its own child, as LOCAL does; the producer's child carries the Airflow ids, so the sink stays silent</td>
+</tr>
+<tr>
 <td>DATABRICKS</td>
 <td>nothing from the operators: the sink in the Databricks task reports the units, since its events carry no Airflow ids</td>
 </tr>

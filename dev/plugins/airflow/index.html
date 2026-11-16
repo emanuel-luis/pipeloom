@@ -957,6 +957,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#watcher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Watcher
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1484,6 +1495,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#watcher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Watcher
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1769,7 +1791,7 @@ touched at parse time unless a load method reads them.</p>
 <tr>
 <td><code>mode</code></td>
 <td><code>ExecutionMode.LOCAL</code></td>
-<td><code>LOCAL</code>, <code>VIRTUALENV</code>, <code>KUBERNETES</code>, <code>DATABRICKS</code>. <code>DOCKER</code> is PLA001.</td>
+<td><code>LOCAL</code>, <code>VIRTUALENV</code>, <code>KUBERNETES</code>, <code>DATABRICKS</code>, <code>WATCHER</code>. <code>DOCKER</code> is PLA001.</td>
 </tr>
 <tr>
 <td><code>project_dir</code>, <code>manifest_path</code></td>
@@ -1820,6 +1842,26 @@ touched at parse time unless a load method reads them.</p>
 <td><code>databricks_timeout</code></td>
 <td><code>86400.0</code></td>
 <td>Seconds any single wait on the job run may last.</td>
+</tr>
+<tr>
+<td><code>watcher_workers</code></td>
+<td><code>None</code></td>
+<td>WATCHER: <code>--workers</code> of the producer's run. <code>None</code> keeps the target's.</td>
+</tr>
+<tr>
+<td><code>watcher_poll_interval</code></td>
+<td><code>10.0</code></td>
+<td>WATCHER: seconds between reads of a unit's files.</td>
+</tr>
+<tr>
+<td><code>watcher_timeout</code></td>
+<td><code>86400.0</code></td>
+<td>WATCHER: the producer's execution timeout and each watcher's deadline for one try.</td>
+</tr>
+<tr>
+<td><code>watcher_artifacts_root</code></td>
+<td><code>None</code></td>
+<td>WATCHER: absolute path that replaces the artifacts root read from <code>pipeloom.yml</code>.</td>
 </tr>
 </tbody>
 </table>
@@ -1875,6 +1917,11 @@ crosses a process boundary. Prefer <code>MANIFEST</code> for large projects.</p>
 <td>a task of the Databricks job that <code>pipeloom-databricks</code> renders</td>
 <td>see below</td>
 </tr>
+<tr>
+<td><code>WATCHER</code></td>
+<td>one <code>pipeloom run</code> for the whole selection, reported by one deferrable watcher per unit</td>
+<td>pipeloom on the worker and the triggerer, one artifacts root shared with both; see below</td>
+</tr>
 </tbody>
 </table>
 <p>In LOCAL and VIRTUALENV, killing the task sends SIGTERM to the child's process group and SIGKILL
@@ -1893,6 +1940,48 @@ worker, checks its plan hash against the DAG's (PLX103), and starts the job run 
 run. A missing job is PLD007 and a job deployed from other settings is PLD008, unless
 <code>databricks_ensure_job=True</code> deploys it. A retried or cleared launch finds the same run: it attaches
 to it, or repairs it when a task failed. Databricks owns the task retries.</p>
+<h3 id="watcher">Watcher<a class="headerlink" href="#watcher" title="Permanent link">&para;</a></h3>
+<p>LOCAL starts one Python process per unit. On a wide DAG of short models that start-up dominates.
+WATCHER runs the whole selection once and keeps one Airflow task per model for its state, retries,
+logs and asset events.</p>
+<pre><code class="language-python">execution_config=ExecutionConfig(
+    mode=ExecutionMode.WATCHER,
+    watcher_workers=4,
+    watcher_poll_interval=10.0,
+)
+</code></pre>
+<p>The DAG has a root task <code>pipeloom_run</code> (the producer), one watcher per unit and <code>pipeloom_finalize</code>.
+The producer has no edge to the watchers. Watchers follow the plan's edges, so a failed unit leaves
+its descendants <code>upstream_failed</code>. Finalize runs after the producer and every leaf. <code>virtualenv_dir</code>
+is optional, as in VIRTUALENV.</p>
+<ul>
+<li>The producer runs <code>python -m pipeloom run</code> with the rendered selection (<code>--select name:*</code> when it
+  is empty), the plan hash, the run id and <code>--workers</code> when <code>watcher_workers</code> is set. Exit 0 or 1
+  is a success for the producer: the results belong to the watchers, and finalize fails the DAG run
+  when the pipeloom run failed. Exit 2 or 130 fails it. Once the child exits, the producer checks that
+  <code>runs/&lt;run id&gt;/run_results.json</code> is visible under the artifacts root, and raises PLA008 if it is
+  not. A producer try above 1 is skipped, so it runs once per DAG run.</li>
+<li>Each watcher defers on a trigger that only reads the unit's attempt files. It succeeds when the
+  latest attempt succeeded, and fails (without Airflow retry) when the attempt failed and the unit's
+  <code>retries</code> and <code>retry_on</code> allow no more, or timed out, or was cancelled. If the producer ended and
+  left no run results, the watcher raises PLA009 after a short grace, and a retry runs again.</li>
+<li>The watcher's log shows the attempt summary and the last 200 lines of the unit's log, or the error
+  code, message and trace excerpt.</li>
+<li>To rerun a unit, clear its failed watcher with Downstream. At try 2 or later, when the producer is
+  no longer running the unit, the watcher runs the unit itself (same run id, one attempt), and the
+  cleared descendants follow. Finalize then merges the new attempt.</li>
+<li>The watchers have no <code>execution_timeout</code>. <code>watcher_timeout</code> bounds one try, and a watcher that
+  waits longer raises an Airflow exception and retries.</li>
+<li>The artifacts root is read at parse time from <code>&lt;project_dir&gt;/pipeloom.yml</code> as plain YAML:
+  <code>targets.&lt;target&gt;.artifacts</code> replaces the top-level block, <code>root</code> falls back to <code>target</code>, and a
+  relative root joins the execution <code>project_dir</code>. An unreadable file, or a <code>${...}</code> reference in the
+  root, is PLA008 unless <code>watcher_artifacts_root</code> is set. The project is not bound in the worker for
+  this.</li>
+<li>PLA002 covers <code>watcher_workers</code> below 1, a non-positive interval or timeout, and a selection made
+  only of <code>unit:</code> selectors. PLA007 is not reported.</li>
+<li>Limit: a producer worker that dies can leave its child running, so PLA009 and a watcher retry may
+  run a unit twice. A retry after a watch timeout can rerun a unit the producer finished meanwhile.</li>
+</ul>
 <h2 id="artifact-store">Artifact store<a class="headerlink" href="#artifact-store" title="Permanent link">&para;</a></h2>
 <p>All units of a run and the finalize task must see one <code>artifacts.root</code> directory: unit result files
 are how the finalize task learns what happened. pipeloom 0.6 supports a shared POSIX path only; URI
@@ -1927,6 +2016,12 @@ portable across their backends. State stores and filesystem catalogs need shared
 <p>A unit task that Airflow saw succeed, with no attempt file visible under the root, fails the run
 with PLA004. That is the sign of a root that is not shared. PLA007 warns when the target's boundary
 is not <code>task</code>, since each unit runs in its own process.</p>
+<p>In WATCHER mode the triggerer reads the unit files too. It needs <code>pipeloom-airflow</code> installed and the
+artifacts root mounted at the same path as on the workers. On NFS, a stale directory listing can
+hide a fresh attempt file, so the watcher also opens <code>attempt-1</code> up to <code>attempt-&lt;retries + 1&gt;</code> by
+name and treats partial JSON as not visible. Mount with <code>lookupcache=positive</code> and a low <code>acdirmax</code>
+(a few seconds) to keep the delay short. A file still hidden after the grace of 120 seconds is
+PLA004.</p>
 <h2 id="run-id">Run id<a class="headerlink" href="#run-id" title="Permanent link">&para;</a></h2>
 <p>All tasks of a DAG run share one pipeloom run id: <code>af-</code> plus the first 16 hex characters of the
 sha256 of <code>dag_id</code>, the Airflow <code>run_id</code> and, inside a <code>PipeloomTaskGroup</code>, the group id, joined by
@@ -1959,6 +2054,11 @@ DAG id, run id, task id and try number as orchestrator ids.</p>
 <td>Databricks</td>
 <td>Sensors have no retries. A sensor fails once the task's last attempt failed or the run is over. The launch retries twice and attaches to the same run.</td>
 </tr>
+<tr>
+<td>WATCHER</td>
+<td>The core scheduler, then Airflow</td>
+<td>The producer has <code>retries=0</code> and the core applies the model's retries inside the one run. A watcher gets the model's <code>retries</code> and <code>retry_delay</code>: a failure the producer already reported fails it without retry, while PLA004, PLA009 and a watch timeout retry. A rerun at try 2 or later maps exit codes as LOCAL does.</td>
+</tr>
 </tbody>
 </table>
 <p>The task execution timeout is the model timeout plus the cancel grace plus 300 seconds, so the core
@@ -1970,7 +2070,7 @@ the DAG with <code>full_refresh</code> set to true to run every incremental mode
 that is not a boolean is PLA002 at run time. Task groups read the param of the enclosing DAG and
 use false when it is missing.</p>
 <h2 id="assets">Assets<a class="headerlink" href="#assets" title="Permanent link">&para;</a></h2>
-<p>With <code>emit_assets=True</code>, each model task declares <code>Asset(name=uri, uri=uri)</code> outlets, one per
+<p>With <code>emit_assets=True</code>, each model task (in WATCHER mode, each watcher) declares <code>Asset(name=uri, uri=uri)</code> outlets, one per
 persisted model of the task. The URI comes from <code>asset_uri</code>. In DATABRICKS mode the sensor of a task
 carries them.</p>
 <h2 id="finalize-and-dag-failure">Finalize and DAG failure<a class="headerlink" href="#finalize-and-dag-failure" title="Permanent link">&para;</a></h2>
@@ -2059,7 +2159,9 @@ use <code>shared</code>.</p>
 <h2 id="diagnostics">Diagnostics<a class="headerlink" href="#diagnostics" title="Permanent link">&para;</a></h2>
 <p>PLA001 unsupported mode or missing extra, PLA002 invalid configuration, PLA003 the selection renders
 no unit, PLA004 a task ended without a unit result, PLA005 unsupported Airflow version, PLA006 the
-compile cache is unusable, PLA007 the target boundary is not <code>task</code>. See the
+compile cache is unusable, PLA007 the target boundary is not <code>task</code>, PLA008 the WATCHER artifacts
+root is not resolved or the producer's run left no <code>run_results.json</code> under it, PLA009 the WATCHER
+producer ended without run results. See the
 <a href="../../reference/errors/">error code reference</a>.</p>
 <p><img alt="Airflow execution modes" src="../../diagrams/07-airflow-modes.svg" /></p>
 
