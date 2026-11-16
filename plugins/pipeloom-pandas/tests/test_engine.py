@@ -108,9 +108,9 @@ def codes(tmp_path: Path, model: str, *, convert: bool = True) -> set[str]:
     return {d.code for d in outcome.diagnostics}
 
 
-def test_a_sql_model_on_pandas_is_plc502(tmp_path: Path) -> None:
-    # the legacy `sql:` entry itself: it goes with the legacy path, so it is not converted
-    assert "PLC502" in codes(tmp_path, "{name: a, sql: select 1}", convert=False)
+def test_a_legacy_sql_entry_is_pls101_not_the_retired_plc502(tmp_path: Path) -> None:
+    # the legacy `sql:` entry itself, not converted: the key is unknown since 0.9
+    assert codes(tmp_path, "{name: a, sql: select 1}", convert=False) == {"PLS101"}
 
 
 def test_a_view_on_pandas_is_plc507(tmp_path: Path) -> None:

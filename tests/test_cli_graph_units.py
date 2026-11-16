@@ -98,7 +98,7 @@ def test_state_selectors_become_units_in_finalize(tmp_path: Path) -> None:
     shutil.copytree(FIXTURES / "shop", root, ignore=shutil.ignore_patterns("target"))
     project = ["--project-dir", str(root), "--target", "ci"]
     compile_to(project, tmp_path / "ref" / "manifest.json")
-    marts = root / "models" / "marts" / "marts.yml"
+    marts = root / "models" / "marts" / "rpt_revenue.py"
     text = marts.read_bytes().decode("utf-8").replace("sum(amount)", "sum(amount) + 0")
     marts.write_bytes(text.encode("utf-8"))
     state = ["--state", str(tmp_path / "ref")]

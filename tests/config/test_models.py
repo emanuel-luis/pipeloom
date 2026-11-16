@@ -17,6 +17,8 @@ from pipeloom.config.models import (
 )
 from pipeloom.config.types import parse_duration
 
+BODY = {"name": "m", "python": "mod:fn"}
+
 
 @pytest.mark.parametrize(
     ("value", "seconds"),
@@ -96,16 +98,16 @@ def test_exclusive_fields() -> None:
 @pytest.mark.parametrize("alias", ["ctx", "class", "for"])
 def test_input_alias_rejected(alias: str) -> None:
     with pytest.raises(ValidationError):
-        ModelConfig.model_validate({"name": "m", "sql": "x", "inputs": {alias: {"ref": "a"}}})
+        ModelConfig.model_validate({**BODY, "inputs": {alias: {"ref": "a"}}})
 
 
 def test_schema_alias() -> None:
-    cfg = ModelConfig.model_validate({"name": "m", "sql": "x", "schema": "mart"})
+    cfg = ModelConfig.model_validate({**BODY, "schema": "mart"})
     assert cfg.schema_ == "mart"
 
 
 def test_expectation_needs_check_or_expr() -> None:
-    base = {"name": "m", "sql": "x"}
+    base = BODY
     good = {"name": "e", "check": {"not_null": ["id"]}}
     assert ModelConfig.model_validate({**base, "expectations": [good]})
     for bad in (
@@ -126,4 +128,4 @@ def test_resolved_fields_match_settings() -> None:
 
 
 def test_attribute_docstrings_become_descriptions() -> None:
-    assert ModelConfig.model_fields["sql"].description == "SQL body."
+    assert ModelConfig.model_fields["python"].description == "Python body as `module:function`."
