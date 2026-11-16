@@ -241,7 +241,16 @@ def test_render_errors_stop_before_any_upload(sim: Callable[..., Sim]) -> None:
 
 def test_collect_skips_caches_dot_entries_and_the_artifacts_root(sim: Callable[..., Sim]) -> None:
     s = sim()
-    for rel in ("__pycache__/x.pyc", ".hidden/a.txt", ".env", "out/run.json", "mod.py", "mod.pyc"):
+    for rel in (
+        "__pycache__/x.pyc",
+        ".hidden/a.txt",
+        ".env",
+        "out/run.json",
+        "mod.py",
+        "mod.pyc",
+        "models/marts/_properties.yml",
+        "models/notes.txt",
+    ):
         path = s.root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("x", encoding="utf-8")
@@ -251,6 +260,7 @@ def test_collect_skips_caches_dot_entries_and_the_artifacts_root(sim: Callable[.
         MANIFEST_PATH,
         "mod.py",
         "models/m.yml",
+        "models/marts/_properties.yml",
         "pipeloom.yml",
     ]
     again = collect(s.root, s.plan, (s.root / "out").as_posix(), Report())

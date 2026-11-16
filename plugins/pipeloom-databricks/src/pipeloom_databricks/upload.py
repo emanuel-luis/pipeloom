@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
+import yaml
+
 from pipeloom.diagnostics import Location, Report, Severity
 from pipeloom.plan.manifest import manifest_bytes
 from pipeloom.plan.model import Plan
@@ -58,7 +60,8 @@ def collect(
     """The files to upload, or None with PLD012 for each file that cannot be a plain file.
 
     The set is `pipeloom.yml`, the model and source files of the plan, the `*.py` files below
-    `python_paths` and the stable manifest. Below `python_paths` the walk skips dot entries, the
+    `python_paths`, the `*.yml` and `*.yaml` files below `model_paths` (properties files) and
+    the stable manifest. Below `python_paths` the walk skips dot entries, the
     folders in `SKIPPED_FOLDERS`, any folder holding `pyvenv.cfg` (a virtual environment) and the
     artifacts root, so data files, wheels and credentials of the project folder stay local.
     """
@@ -78,14 +81,20 @@ def collect(
     add(root / CONFIG_FILE)
     for rel_file in [n.file for n in plan.nodes.values()] + [s.file for s in plan.sources.values()]:
         add(root / rel_file)
-    for entry in plan.metadata.python_paths:
+    # Properties YAML under model_paths, for parity with the project folder (ADR-0050 point 17).
+    entries = [(e, (".py",)) for e in plan.metadata.python_paths]
+    entries += [(e, (".yml", ".yaml")) for e in _model_paths(root)]
+    for entry, suffixes in entries:
         base = (root / entry).resolve()
         if not base.is_dir():
             continue
         try:
             base.relative_to(root)
         except ValueError:
-            report.add("PLD012", f"python_paths entry '{entry}' lies outside the project folder")
+            if suffixes == (".py",):
+                report.add(
+                    "PLD012", f"python_paths entry '{entry}' lies outside the project folder"
+                )
             continue
         for folder, dirs, names in os.walk(base):
             dirs[:] = sorted(
@@ -97,7 +106,7 @@ def collect(
                 and (skip is None or (Path(folder) / d).resolve() != skip)
             )
             for name in sorted(names):
-                if name.endswith(".py") and not name.startswith("."):
+                if name.endswith(suffixes) and not name.startswith("."):
                     add(Path(folder) / name)
 
     files: list[tuple[str, bytes]] = []
@@ -110,6 +119,16 @@ def collect(
     files.append((MANIFEST_PATH, manifest_bytes(plan, stable=True)))
     ordered = tuple(sorted(files))
     return Payload(ordered, _digest(ordered))
+
+
+def _model_paths(root: Path) -> list[str]:
+    """The `model_paths` of pipeloom.yml; the plan does not record them."""
+    try:
+        doc = yaml.safe_load((root / CONFIG_FILE).read_bytes())
+    except (OSError, yaml.YAMLError):
+        return []
+    paths = doc.get("model_paths") if isinstance(doc, dict) else None
+    return [str(p) for p in paths] if isinstance(paths, list) else ["models"]
 
 
 def _read(path: Path, rel: str, report: Report) -> bytes | None:
