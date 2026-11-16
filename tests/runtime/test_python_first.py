@@ -12,6 +12,8 @@ from pipeloom.runtime.run import RunOptions
 from pipeloom.testing.clock import FakeClock
 from tests.conftest import make_project
 
+LEGACY_YAML = True  # mixes a YAML `python:` model with decorated ones (ADR-0050 point 19)
+
 FILES = {
     "pipeloom.yml": """\
 config_version: 1

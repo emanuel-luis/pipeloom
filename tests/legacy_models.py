@@ -175,7 +175,7 @@ def _import_line(helpers: set[str]) -> str:
 def _decorate(text: str, path: str, fns: list[tuple[str, dict[str, Any]]]) -> str:
     """Decorate the named top-level functions of one module in place."""
     tree = ast.parse(text, path)
-    defs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    defs = {n.name: n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
     lines = text.splitlines(keepends=True)
     helpers: set[str] = set()
     inserts: list[tuple[int, str]] = []

@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.config.models import ModelConfig
 from pipeloom.plan.manifest import manifest_bytes
+from tests.conftest import make_project
 
 Factory = Callable[[Mapping[str, Any]], Path]
 
@@ -58,11 +59,14 @@ def test_any_dialect_is_accepted_without_sqlglot(monkeypatch: pytest.MonkeyPatch
 
 
 def test_plc513_ignores_a_sql_model_with_an_inherited_dialect(
-    project_factory: Factory, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr("pipeloom.validate.capabilities.sqlglot_installed", lambda: False)
-    root = project_factory(
-        {"pipeloom.yml": PROJECT, "models/a.yml": "models:\n  - name: a\n    sql: select 1\n"}
+    # Legacy subject (a `sql:` model); goes with the removal change.
+    root = make_project(
+        tmp_path,
+        {"pipeloom.yml": PROJECT, "models/a.yml": "models:\n  - name: a\n    sql: select 1\n"},
+        convert=False,
     )
     out = Project(ProjectOptions(project_dir=root, env={})).validate()
     assert "PLC513" not in {d.code for d in out.diagnostics}

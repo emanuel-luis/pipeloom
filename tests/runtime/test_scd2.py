@@ -143,7 +143,7 @@ def test_a_full_refresh_drops_the_history(tmp_path: Path) -> None:
 def test_a_target_without_system_columns_needs_a_full_refresh(tmp_path: Path) -> None:
     root = project(tmp_path, "id,name,op\n1,a,\n", strategy="overwrite")
     assert run(root, "r1", 0).exit_code == 0
-    (root / "models" / "m.yml").write_text(SCD2.replace("STRATEGY", "scd2"), encoding="utf-8")
+    project(tmp_path, "id,name,op\n1,a,\n")  # the same model, now scd2 (state is kept)
     outcome = run(root, "r2", 1)
     errors = [d for d in outcome.diagnostics if d.severity == "error"]
     assert [d.code for d in errors] == ["PLM206"]
