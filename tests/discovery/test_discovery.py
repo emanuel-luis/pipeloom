@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import textwrap
+import types
 from pathlib import Path
 from typing import Any
 
@@ -192,6 +193,19 @@ def test_globs_packages_and_skipped_directories(tmp_path: Path) -> None:
     ]
     assert {m.module for m in result.models if m.file.startswith("src")} == {"mypkg.layer.three"}
     assert [(f.file, f.kind) for f in result.failures] == [("nope_pkg_xyz", "not_found")]
+
+
+@pytest.mark.parametrize("name", ["__main__", "__mp_main__"])
+def test_main_module_is_never_purged(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, name: str
+) -> None:
+    write(tmp_path, {"run.py": "x = 1\n"})
+    fake = types.ModuleType(name)
+    fake.__file__ = str(tmp_path / "run.py")
+    monkeypatch.setitem(sys.modules, name, fake)
+    with ModuleLoader(tmp_path, ["."]):
+        assert sys.modules[name] is fake
+    assert sys.modules[name] is fake
 
 
 def test_load_one_callable(tmp_path: Path) -> None:

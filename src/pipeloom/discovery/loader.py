@@ -27,6 +27,9 @@ from pipeloom.discovery.model import DiscoveredModel, DiscoveryFailure, FailureK
 _LOCK = threading.RLock()
 
 
+_NEVER_PURGED = frozenset({"pipeloom", "__main__", "__mp_main__"})
+
+
 def _norm(path: str | Path) -> str:
     return os.path.normcase(os.path.abspath(path))
 
@@ -103,7 +106,7 @@ class ModuleLoader:
         owned = [
             name
             for name, module in list(sys.modules.items())
-            if name != "pipeloom"
+            if name not in _NEVER_PURGED
             and not name.startswith("pipeloom.")
             and module is not None
             and self._owned(module)
