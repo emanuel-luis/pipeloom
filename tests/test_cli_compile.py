@@ -69,9 +69,9 @@ def test_select_and_exclude(tmp_path: Path) -> None:
     assert data["selectors"] == {
         "select": ["tag:mart"],
         "exclude": ["dim_customers"],
-        "selected": ["model.shop.fct_orders"],
+        "selected": ["model.shop.fct_orders", "model.shop.top_customers"],
     }
-    assert len(data["units"]) == 6
+    assert len(data["units"]) == 7
 
 
 def test_boundary_values(tmp_path: Path) -> None:
@@ -141,9 +141,9 @@ def test_target_and_log_format_events(tmp_path: Path) -> None:
     ]
     compiled, artifact = events[1]["data"], events[2]["data"]
     assert (
-        compiled["units"] == 6 and compiled["ephemeral_inlined"] == 1 and compiled["selected"] == 7
+        compiled["units"] == 7 and compiled["ephemeral_inlined"] == 1 and compiled["selected"] == 8
     )
-    assert compiled["by_materialization"] == {"table": 6}
+    assert compiled["by_materialization"] == {"table": 7}
     assert artifact["kind"] == "manifest" and artifact["bytes"] == out.stat().st_size
     assert manifest(out)["metadata"]["target"] == "dev"
 

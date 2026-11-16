@@ -55,9 +55,11 @@ def _body(pg: ProjectGraph, m: ResolvedModel) -> tuple[SqlBody | PythonBody, byt
 
 def _config(m: ResolvedModel) -> ResolvedModelConfig:
     """The model config with the strategy a run applies, decided here so later versions only read it."""
+    # `description` is not part of the manifest, so a plan read back from one must not hold it.
     return m.config.model_copy(
         update={
-            "write": m.config.write.model_copy(update={"strategy": effective_strategy(m.config)})
+            "write": m.config.write.model_copy(update={"strategy": effective_strategy(m.config)}),
+            "description": None,
         }
     )
 
