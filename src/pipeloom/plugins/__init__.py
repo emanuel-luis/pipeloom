@@ -22,7 +22,7 @@ from pydantic import BaseModel, ConfigDict
 from pipeloom.diagnostics import Location, Report
 from pipeloom.engine.types import CatalogCapabilities, EngineCapabilities, StateStoreCapabilities
 
-API_VERSION: Final = (0, 5)
+API_VERSION: Final = (1, 0)
 
 Group = Literal[
     "engines",
@@ -99,12 +99,10 @@ class PluginEntry:
 def check_api(spec: PluginSpec[Any]) -> str | None:
     """None when the spec fits this core, else the reason.
 
-    While the major version is 0 the versions must match exactly. From 1.0 the major must match
-    and the minor must not exceed the core's.
+    The major must match and the minor must not exceed the core's (ADR-0016).
     """
     core, got = API_VERSION, spec.api_version
-    fits = got == core if core[0] == 0 else got[0] == core[0] and got[1] <= core[1]
-    if fits:
+    if got[0] == core[0] and got[1] <= core[1]:
         return None
     return (
         f"plugin '{spec.kind}' targets plugin API {got[0]}.{got[1]}, "

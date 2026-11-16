@@ -74,6 +74,10 @@ airflow = [
 ]
 docs = ["mkdocs-material", "mkdocstrings[python]", "mkdocs-click", "mike"]
 
+[tool.pipeloom]
+config-version = 1
+plugin-api = "1.0"
+
 [tool.uv.workspace]
 members = ["plugins/*"]
 

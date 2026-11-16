@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Version check and `[tool.pipeloom]` ([ADR-0016](docs/adr/0016-versioning-and-plugin-api.md#version-check)): every distribution declares `config-version = 1` and `plugin-api = "1.0"`. `tools/versions.py check` compares the declarations with `CONFIG_VERSION` and `API_VERSION` in the source, requires every distribution to match the root, and requires every `PluginSpec` to pass `API_VERSION`. `check`, `bump` and `--tag` accept prereleases such as `1.0.0rc1`, with members pinned `pipeloom~=1.0.0rc1`; the lint job of CI runs the check, and the release workflow marks a prerelease tag as a GitHub prerelease.
+
+### Changed
+
+- Breaking for plugin authors: the plugin API is (1, 0). A plugin built for (0, 5) fails with PLU001. From now on the core accepts a plugin with the same major and a minor not above its own. `config_version: 1` stays the only accepted value, now named by `CONFIG_VERSION` in `pipeloom.config.types`.
+
 ## [0.9.0] - 2026-11-16
 
 pipeloom 0.9 makes models Python-first. A model is a function marked with `@model`; `pipeloom.yml` holds the project and a `models:` tree of folder defaults, and properties files next to the models configure and describe them, with the decorator winning as in dbt. The compiler reads model files with `ast` and imports only the modules whose decorators have dynamic arguments, and SQL runs through `ctx.sql`, translated to the target engine. YAML model declarations are removed: see the [migration guide](docs/guide/migrate-0.9.md). The release also adds model contracts, `pipeloom test` and `pipeloom build` with post-write data tests, the `scd2` write strategy, run history and the `webhook` sink, the new `pipeloom-openlineage` distribution with Airflow facets, CSV sample data on Spark and Databricks, and the Airflow WATCHER mode.
