@@ -252,7 +252,17 @@ def test_source_groups_and_target_overrides(project_factory: Factory, target: st
     assert loc.line == line_of({"p": SOURCES}, "p", "tags: [small]")
 
 
-@pytest.mark.parametrize("location", ["D:/data/orders.parquet", "C:\\\\data\\\\x.parquet"])
+@pytest.mark.parametrize(
+    "location",
+    [
+        "D:/data/orders.parquet",
+        "C:\\\\data\\\\x.parquet",
+        "/Volumes/main/ops/orders.parquet",
+        "dbfs:/Volumes/main/ops/orders.parquet",
+        "file:/x/orders.parquet",
+        "s3://bucket/orders.parquet",
+    ],
+)
 def test_absolute_table_location_ignores_the_group_location(
     project_factory: Factory, location: str
 ) -> None:

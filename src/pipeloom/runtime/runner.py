@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-import re
 import threading
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, replace
@@ -48,6 +47,7 @@ from pipeloom.events.model import (
     UnitSucceeded,
 )
 from pipeloom.plan.model import Plan, PlanNode, PlanSource, PythonBody, SqlBody, default_strategy
+from pipeloom.platform import is_absolute_location
 from pipeloom.quality import (
     QualityReport,
     build_specs,
@@ -83,9 +83,6 @@ from pipeloom.secrets.redaction import Redactor
 from pipeloom.state.types import StateKey, StateStore, UnitRecord
 
 DEFAULT_SCHEMA = "main"
-# A source location left as written: an absolute path (/x, /Volumes/...), a Windows drive (C:)
-# or a URI with a scheme of two letters or more (s3://, file:/x, dbfs:/Volumes/...).
-_ABSOLUTE = re.compile(r"/|[A-Za-z]:|[A-Za-z][A-Za-z0-9+.-]+:")
 
 
 @dataclass(frozen=True)
@@ -976,7 +973,7 @@ class ModelRunner:
         if source.table is not None:
             return ReadSpec("table", table=_target_ref(source.table), options=options)
         location = source.location or ""
-        if not _ABSOLUTE.match(location):
+        if not is_absolute_location(location):
             location = (self._rt.project_dir / location).as_posix()
         return ReadSpec(source.format or "", location=location, options=options)
 

@@ -28,6 +28,16 @@ class SystemClock:
         return time.monotonic()
 
 
+# A location kept as written: an absolute path (/x, /Volumes/...), a Windows drive (C:) or a URI
+# with a scheme of two letters or more (s3://, file:/x, dbfs:/Volumes/...).
+_ABSOLUTE_LOCATION = re.compile(r"/|[A-Za-z]:|[A-Za-z][A-Za-z0-9+.-]+:")
+
+
+def is_absolute_location(location: str) -> bool:
+    """True when a source location must not be joined to a base directory or location."""
+    return _ABSOLUTE_LOCATION.match(location) is not None
+
+
 _ORCHESTRATOR_KEY = re.compile(r"[a-z][a-z0-9_]{0,63}")
 
 
