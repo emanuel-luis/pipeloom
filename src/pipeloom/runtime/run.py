@@ -460,7 +460,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
             # A unit invocation has no run.started, but its unit events still need the plan.
             bus.plan_ready(PlanInfo(manifest_dict(plan), project_dir))
             if not unit_mode:
-                persisted =[plan.nodes[u.nodes[-1]] for u in plan.units.values()]
+                persisted = [plan.nodes[u.nodes[-1]] for u in plan.units.values()]
                 bus.emit(
                     RunCompiled(
                         units=len(plan.units),
