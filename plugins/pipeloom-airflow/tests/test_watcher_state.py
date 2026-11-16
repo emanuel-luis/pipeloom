@@ -109,6 +109,17 @@ def test_a_terminal_row_without_its_file_is_invisible(tmp_path: Path) -> None:
     assert (d.kind, d.code) == ("invisible", "PLA004")
 
 
+@pytest.mark.parametrize("status", ["failed", "timed_out", "cancelled"])
+def test_a_terminal_row_for_the_visible_attempt_uses_its_status(
+    tmp_path: Path, status: str
+) -> None:
+    # retries_used says one retry is left, but the row says attempt 1 was the last
+    attempt(tmp_path, 1, "failed", category="transient")
+    results(tmp_path, [{"unit_id": "u", "status": status, "attempt": 1}])
+    d = verdict(tmp_path)
+    assert (d.kind, d.code, d.message) == ("failed", "PLM204", "boom")
+
+
 def test_no_row_for_the_unit_is_invisible(tmp_path: Path) -> None:
     results(tmp_path, [{"unit_id": "other", "status": "succeeded"}])
     assert verdict(tmp_path).kind == "invisible"

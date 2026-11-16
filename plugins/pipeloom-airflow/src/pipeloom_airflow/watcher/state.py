@@ -174,6 +174,16 @@ def decide(view: UnitView, policy: UnitPolicy, *, producer_ended: bool) -> Decis
             )
         if status == "skipped":
             return Decision("run")
+        if status in ("failed", "timed_out", "cancelled") and latest is not None:
+            if row.get("attempt") == latest.number:
+                # the row confirms the visible attempt was the last one: its status is final
+                error = _error(row)
+                return Decision(
+                    "failed",
+                    latest,
+                    error.get("code") or latest.code,
+                    error.get("message") or latest.message,
+                )
         if status == "cancelled":
             error = _error(row)
             return Decision(
