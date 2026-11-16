@@ -50,16 +50,22 @@ def _calls_ctx_sql(fn: _Def) -> bool:
     )
 
 
-def _literal_queries(
-    project_dir: Path, m: ResolvedModel
-) -> list[tuple[str, set[str], Location, str | None]]:
-    """The literal `ctx.sql("...")` queries of a decorated model's function, with the names its
-    literal `inputs=` mapping adds, the call's location and its literal `dialect=`."""
-    attr = m.entry.python.partition(":")[2]
+def _parse(project_dir: Path, file: str) -> ast.Module | None:
     try:
-        tree = ast.parse((project_dir / m.file).read_bytes(), filename=m.file)
+        return ast.parse((project_dir / file).read_bytes(), filename=file)
     except (OSError, SyntaxError, ValueError):
+        return None
+
+
+def _literal_queries(
+    tree: ast.Module | None, m: ResolvedModel
+) -> list[tuple[str, set[str], Location, str | None]]:
+    """The literal `ctx.sql("...")` queries of a decorated model's function in its module's
+    `tree`, with the names its literal `inputs=` mapping adds, the call's location and its literal
+    `dialect=`."""
+    if tree is None:
         return []
+    attr = m.entry.python.partition(":")[2]
     fns = [s for s in tree.body if isinstance(s, _Def) and s.name == attr]
     out: list[tuple[str, set[str], Location, str | None]] = []
     for node in ast.walk(fns[-1]) if fns else ():
@@ -107,11 +113,15 @@ def check_sql(pg: ProjectGraph, report: Report) -> None:
     caps = None if engine is None else engine.spec.capabilities
     engine_dialect = caps.sql_dialect if isinstance(caps, EngineCapabilities) else None
     queries: list[tuple[ResolvedModel, str, set[str], Location, str | None]] = []
+    # one parse per module: a module can hold many models
+    trees: dict[str, ast.Module | None] = {}
     for m in project.models.values():
+        if m.file not in trees:
+            trees[m.file] = _parse(project.bound.loaded.project_dir, m.file)
         # the same order as the runtime: the call's dialect=, the model's, the engine's
         queries += [
             (m, sql, set(m.inputs) | extra, loc, dialect or m.config.sql_dialect or engine_dialect)
-            for sql, extra, loc, dialect in _literal_queries(project.bound.loaded.project_dir, m)
+            for sql, extra, loc, dialect in _literal_queries(trees[m.file], m)
         ]
     for m, sql, aliases, loc, dialect in queries:
         ctx = {"model": m.name}
