@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -80,6 +81,32 @@ def test_select_narrows_units_and_edges(tmp_path: Path) -> None:
         argv = doc["finalize"]["argv"]
         assert argv[argv.index("--select") + 1] == "fct_orders+"
         assert argv[argv.index("--exclude") + 1] == "tag:staging"
+
+
+def test_state_selectors_become_units_in_finalize(tmp_path: Path) -> None:
+    """finalize has no --state, so a state: or result: selection reaches it as unit: selectors."""
+    root = tmp_path / "shop"
+    shutil.copytree(FIXTURES / "shop", root, ignore=shutil.ignore_patterns("target"))
+    project = ["--project-dir", str(root), "--target", "ci"]
+    compile_to(project, tmp_path / "ref" / "manifest.json")
+    marts = root / "models" / "marts" / "marts.yml"
+    text = marts.read_bytes().decode("utf-8").replace("sum(amount)", "sum(amount) + 0")
+    marts.write_bytes(text.encode("utf-8"))
+    state = ["--state", str(tmp_path / "ref")]
+    doc = units(*project, *state, "-s", "state:modified", "-s", "stg_orders")
+    assert [u["unit_id"] for u in doc["units"]] == ["rpt_revenue", "stg_orders"]  # no edge
+    assert doc["selectors"]["select"] == ["state:modified", "stg_orders"]
+    argv = doc["finalize"]["argv"]
+    assert "state:modified" not in argv
+    picked = [argv[i + 1] for i, a in enumerate(argv) if a == "--select"]
+    assert picked == ["unit:rpt_revenue", "unit:stg_orders"]
+    manifest = root / "target" / "manifest.json"
+    compile_to(project, manifest)
+    values = {"{project_dir}": str(root), "{manifest}": str(manifest), "{run_id}": "r1"}
+    r = invoke(*(values.get(a, a) for a in argv[1:]))
+    assert r.exit_code == 0, r.stderr
+    nothing = units(*project, *state, "--select", "state:new")
+    assert nothing["units"] == [] and "--exclude" in nothing["finalize"]["argv"]
 
 
 @pytest.mark.parametrize("output", [None, "text", "dot", "mermaid"])

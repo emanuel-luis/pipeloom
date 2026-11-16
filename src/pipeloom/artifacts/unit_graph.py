@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from pipeloom import __version__
 from pipeloom.graph.dag import Graph
+from pipeloom.graph.selectors import parse
 from pipeloom.plan.model import Plan, PlanNode
 
 UNIT_GRAPH_SCHEMA: Final = "pipeloom.unit_graph/1"
@@ -129,6 +130,12 @@ def _common(plan: Plan) -> tuple[str, ...]:
     return ("--project-dir", "{project_dir}", "--target", target, "--manifest", "{manifest}")
 
 
+def _needs_state(exprs: tuple[str, ...]) -> bool:
+    """True when a selector uses `state:` or `result:`, which only work with --state."""
+    terms = [term for expr in exprs for term in parse(expr)]
+    return any(a.method in ("state", "result") for term in terms for a in term)
+
+
 def build_unit_graph(plan: Plan) -> UnitGraph:
     """The units whose persisted node the plan selects, with parents and edges among them."""
     meta, sel = plan.metadata, plan.selection
@@ -139,10 +146,17 @@ def build_unit_graph(plan: Plan) -> UnitGraph:
     kinds: dict[str, Literal["model", "source"]] = dict.fromkeys(scope, "model")
     order = Graph(parents, children, kinds).topo_order()
     selectors: list[str] = []
-    for s in sel.select:
-        selectors += ["--select", s]
-    for s in sel.exclude:
-        selectors += ["--exclude", s]
+    if _needs_state(sel.select + sel.exclude):
+        # finalize has no --state: name the resolved units instead; "*" excludes every model.
+        for u in order:
+            selectors += ["--select", f"unit:{u}"]
+        if not order:
+            selectors = ["--exclude", "*"]
+    else:
+        for s in sel.select:
+            selectors += ["--select", s]
+        for s in sel.exclude:
+            selectors += ["--exclude", s]
     return UnitGraph(
         pipeloom_version=__version__,
         project=meta.project,

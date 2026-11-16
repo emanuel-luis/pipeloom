@@ -111,7 +111,7 @@ when its persisted model is selected; `parents` and `edges` only name units in s
 | Key | Meaning |
 |---|---|
 | `project`, `target`, `plan_hash` | From the plan. |
-| `selectors` | `select` and `exclude` as given; the finalize command repeats them. |
+| `selectors` | `select` and `exclude` as given; the finalize command repeats them. `finalize` has no `--state`, so when a selector uses `state:` or `result:` it gets `--select unit:<id>` for each unit instead. |
 | `placeholders` | `project_dir`, `manifest` and `run_id`: written as `{name}` in every `argv`. |
 | `units` | Topological order, ties broken by unit id. Each has `unit_id`, `unique_id`, `nodes`, `materialized`, `relation` (`catalog`, `schema`, `name`) and `relation_name` (null without a relation), `assets`, `parents`, `tags`, `retries`, `retry_delay_s`, `retry_on`, `timeout_s` and `argv`. |
 | `edges` | `{"from": parent, "to": child}`. |
