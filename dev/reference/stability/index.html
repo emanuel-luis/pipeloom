@@ -2489,7 +2489,11 @@ defined in <a href="../../adr/0049-artifact-schemas-and-orchestrator-protocol/">
   types.</li>
 <li>Plugin API 1.0 for plugin authors: the protocols, <code>PluginSpec</code>, the capabilities and
   <code>pipeloom.testing</code>. A plugin works with a core that has the same major and a minor equal to or
-  above the plugin's; otherwise you get PLU001.</li>
+  above the plugin's; otherwise you get PLU001. Plugin API 1.1 (pipeloom 1.3) adds the capability
+  <code>interval_writes</code>, the <code>WriteConfig.replace_range</code> field and the optional
+  <code>SupportsFilterBetween</code> protocol (<a href="../../adr/0054-interval-incrementals/">ADR-0054</a>). An optional
+  member lives in its own protocol and is reached through a core helper with a fallback, so a
+  plugin built for 1.0 keeps loading and simply does not declare <code>interval_writes</code>.</li>
 <li>The engine conformance kit: the <code>-p pipeloom.testing.pytest_plugin</code> plugin, its
   <code>--pipeloom-harness</code> option, <code>EngineContract</code> and <code>EngineHarness</code>, and the kit version in the
   report header. Within 1.x the kit changes only additively: a minor kit version adds cells and
