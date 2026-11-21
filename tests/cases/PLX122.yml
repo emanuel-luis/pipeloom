@@ -1,0 +1,25 @@
+run: true
+plugins: ["pipeloom_polars.spec:SPEC"]
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    model_paths:
+    - src
+    targets:
+      dev:
+        engine:
+          kind: polars
+        catalog:
+          kind: filesystem
+          root: wh
+  src/m.py: |
+    import narwhals.stable.v2 as nw
+    from pipeloom import model
+
+    @model(
+        frame_api="narwhals",
+    )
+    def a(ctx):
+        raise nw.exceptions.InvalidOperationError("specify order_by for cum_sum")

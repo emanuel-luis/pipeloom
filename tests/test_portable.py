@@ -298,3 +298,14 @@ def test_decode_partition_value() -> None:
 def test_rewrite_qualified_skips_literals() -> None:
     cond = "source.v > target.v and label != 'source.x'"
     assert portable.rewrite_qualified(cond) == "v > __pipeloom_t_v and label != 'source.x'"
+
+
+def test_is_order_error_only_matches_the_order_by_refusal() -> None:
+    import narwhals.stable.v2 as nw
+
+    lazy = nw.from_native(polars_frame(lazy=True))
+    with pytest.raises(Exception) as order:
+        lazy.with_columns(nw.col("id").cum_sum().alias("c"))
+    assert portable.is_order_error(order.value)
+    assert not portable.is_order_error(ValueError("order_by"))
+    assert not portable.is_order_error(nw.exceptions.InvalidOperationError("another refusal"))

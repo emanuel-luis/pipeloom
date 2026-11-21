@@ -822,6 +822,12 @@ _ACTIVE_11: Final = (
         "Demo engine not installed",
         "pipeloom demo runs on the DuckDB engine and found no duckdb engine plugin. The message lists the engine plugins that are installed, and the hint is the install command. The demo never falls back to another engine. Exit code 1.",
     ),
+    (
+        "PLX122",
+        E,
+        "Order-dependent operation on a lazy frame",
+        "A Python model with frame_api narwhals used an operation that needs a row order (cum_sum, shift, diff, first or last) on a lazy frame (DuckDB, Spark or polars lazy), which has none. Give the expression an explicit order with .over(order_by=...), or sort first; see the portable models guide.",
+    ),
 )
 
 

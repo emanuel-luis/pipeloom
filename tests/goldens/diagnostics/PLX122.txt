@@ -1,0 +1,2 @@
+error PLX122 src/m.py:8 model 'a' needs a row order a lazy frame does not have: narwhals.exceptions.InvalidOperationError: specify order_by for cum_sum
+      hint: add .over(order_by=...) to the expression, or sort first; see https://emanuel-luis.github.io/pipeloom/latest/guide/portable-models/

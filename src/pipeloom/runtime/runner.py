@@ -16,6 +16,7 @@ from pipeloom.artifacts.layout import RunPaths
 from pipeloom.artifacts.results import result_row, schema_hash
 from pipeloom.config.resolve import model_id, source_id
 from pipeloom.diagnostics import JsonValue, Location
+from pipeloom.diagnostics.codes import DOCS_BASE_URL
 from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine import portable
 from pipeloom.engine.errors import WriteKeyError, WriteRefusedError
@@ -744,6 +745,15 @@ class ModelRunner:
                 "write the model with frames, or choose an engine with SQL",
             )
         except Exception as exc:  # noqa: BLE001 - the body is user code
+            if portable.is_order_error(exc):
+                self._fail(
+                    "PLX122",
+                    "body",
+                    exc,
+                    f"model '{node.name}' needs a row order a lazy frame does not have",
+                    "add .over(order_by=...) to the expression, or sort first; see "
+                    f"{DOCS_BASE_URL}guide/portable-models/",
+                )
             self._fail("PLX101", "body", exc, failed)
         self._check()
         try:
