@@ -6,13 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A performance budget: a generated 1,000-model project (static decorators, `ctx.sql` bodies, a DAG with fan-in and fan-out, properties files with data tests) must discover, resolve, validate, compile and write a stable manifest inside wall-clock budgets, with cold discovery under 2 s as ADR-0050 promised. It runs in its own ubuntu CI job (`PIPELOOM_TEST_PERF=1`); `PIPELOOM_TEST_PERF_BUDGET_SCALE` multiplies the budgets for slow machines.
+
+### Changed
+
+- The published run_results schemas require only the frozen 1.0 field set; fields added later are optional ([ADR-0049](docs/adr/0049-artifact-schemas-and-orchestrator-protocol.md) amendment). Tests check frozen 1.0 documents against the current schemas and current goldens against the frozen 1.0 schemas. No change to what pipeloom writes.
+
 ## [1.1.0] - 2026-11-21
 
 pipeloom 1.1.0 adds a DuckDB engine and a one-command demo. The new `pipeloom-duckdb` distribution brings the `duckdb` engine and catalog, `pipeloom demo` builds a sample project and its docs site on DuckDB, and `pipeloom init --engine duckdb` is a new choice. The engine conformance kit lets any project run `EngineContract` against its own engine, and the portable models guide and a cross-engine matrix show one `frame_api: narwhals` model returning the same rows on polars, pandas, DuckDB and Spark. Airflow 3.4 is supported and tested, and the stability policy gains an experimental tier. 1.1.0 needs no config change, and the plugin API stays (1, 0). The 1.0.x patch items (Databricks CLI documentation, the Airflow 3.4 matrix and Polars 2 guards) ship here instead of a 1.0.1 release, because nothing was broken for users.
 
 ### Added
 
-- A performance budget: a generated 1,000-model project (static decorators, `ctx.sql` bodies, a DAG with fan-in and fan-out, properties files with data tests) must discover, resolve, validate, compile and write a stable manifest inside wall-clock budgets, with cold discovery under 2 s as ADR-0050 promised. It runs in its own ubuntu CI job (`PIPELOOM_TEST_PERF=1`); `PIPELOOM_TEST_PERF_BUDGET_SCALE` multiplies the budgets for slow machines.
 - The engine conformance kit ([ADR-0067](docs/adr/0067-conformance-kit.md)): an opt-in pytest plugin, `pytest -p pipeloom.testing.pytest_plugin --pipeloom-harness MODULE:CALLABLE`, runs `EngineContract` against a harness from any project that has pipeloom and the engine installed. The report header prints the kit version (`KIT_VERSION`, 1.0). The plugin joins the stability surface list, and existing subclasses of `EngineContract` keep working.
 - An engine author guide, [Writing an engine](docs/plugins/writing-an-engine.md), and a generated [capability matrix](docs/reference/engine-capabilities.md) built from the `EngineCapabilities` of every installed engine.
 - CI installs only the pipeloom and pipeloom-polars wheels in a fresh venv and runs the kit against polars from outside the repository tree.
@@ -27,7 +34,6 @@ pipeloom 1.1.0 adds a DuckDB engine and a one-command demo. The new `pipeloom-du
 
 ### Changed
 
-- The published run_results schemas require only the frozen 1.0 field set; fields added later are optional ([ADR-0049](docs/adr/0049-artifact-schemas-and-orchestrator-protocol.md) amendment). Tests check frozen 1.0 documents against the current schemas and current goldens against the frozen 1.0 schemas. No change to what pipeloom writes.
 - Airflow 3.4 is supported and tested: the lock moves to `apache-airflow` 3.4.0 and the `airflow` CI job gains a 3.3 leg next to the 3.2.2 floor. The `>=3.2,<4` requirement is unchanged.
 
 ### Fixed
