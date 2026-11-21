@@ -42,6 +42,22 @@ The CHANGELOG lists it under Security or Fixed.
 3. The item keeps working for the rest of the major version. It is removed only in the next
    major, and only after at least one minor release that warned.
 
+## Experimental features
+
+A feature, flag, config field or artifact field can be marked experimental. It is outside the
+guarantees above and can change or disappear in any release. You can tell by three marks: the docs
+say so, the CLI help says so, and the JSON Schema description of the field says so.
+
+- Using an experimental item prints a warning diagnostic with a `PLW` code. The run still works.
+- It is promoted to stable or removed within two minor releases after the one that added it. The
+  CHANGELOG says which.
+- Do not depend on an experimental item in a pipeline you cannot edit when it changes.
+
+## Supported releases
+
+Only the latest minor release gets patch releases. Security fixes go to the latest minor. If you
+run an older minor, upgrade to the latest one to get fixes.
+
 ## Deprecations
 
 | Item | Deprecated in | Replacement | Earliest removal |
