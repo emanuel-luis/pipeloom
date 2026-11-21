@@ -7,12 +7,12 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from tests.portable.matrix import EXPECTED, open_session, run_model
 
 from pipeloom.testing.reference import sort_key
 from pipeloom_spark.catalog import DeltaPathCatalog
 from pipeloom_spark.engine import SparkEngine
 from pipeloom_spark.spec import SparkEngineOptions
-from tests.portable.matrix import EXPECTED, open_session, run_model
 
 pytestmark = [pytest.mark.spark, pytest.mark.timeout(300)]
 

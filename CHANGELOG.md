@@ -17,6 +17,8 @@ All notable changes to this project are documented here. The format follows
 - `pipeloom init --engine duckdb` is a new choice, with a unit test in the template. The default stays polars.
 - CI installs the built pipeloom and pipeloom-duckdb wheels in a fresh venv and runs `pipeloom demo` on Linux, macOS and Windows.
 - CI runs the DuckDB plugin tests on Linux, macOS and Windows with the `delta` extension preinstalled, without network on Linux.
+- A new diagnostic, PLX122: a Python model with `frame_api: narwhals` used an operation that needs a row order (`cum_sum`, `shift`, `diff`, `first`, `last`) on a lazy frame. The unit fails with this code and a hint pointing at the portable models guide, instead of a raw Narwhals traceback. The order rule is now in the engine contract of portable frames: a lazy frame has no row order.
+- A cross-engine matrix: one portable model (filter, join, `with_columns`, `group_by` aggregate) runs on the same rows through polars, pandas and DuckDB in the normal test run, and through Spark in the `spark` CI job, and every engine must return the same rows.
 
 ### Fixed
 
@@ -24,6 +26,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Documentation
 
+- A guide, [Portable models](docs/guide/portable-models.md): writing one model that runs on every engine with `frame_api: narwhals`, lazy and eager frames, the row order rule, and when to use `ctx.sql`.
 - ADR-0016 amendment 1.1 and the stability page: the experimental tier (reserved `PLW` prefix), supported releases, and the optional protocol member rule. The architecture non-goals list for after 1.0 is updated.
 - The Databricks plugin page states which Databricks CLI versions the generated bundle files work with: the job uses only Jobs API fields, valid under the Terraform and the direct engine, and a bundle that sets `bundle.engine: terraform` fails on CLI 1.20.0 or later ([ADR-0035](docs/adr/0035-databricks-rendering-and-job-lifecycle.md)).
 

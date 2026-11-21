@@ -16,8 +16,8 @@ from pipeloom.artifacts.layout import RunPaths
 from pipeloom.artifacts.results import result_row, schema_hash
 from pipeloom.config.resolve import model_id, source_id
 from pipeloom.diagnostics import JsonValue, Location
-from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.diagnostics.codes import DOCS_BASE_URL
+from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine import portable
 from pipeloom.engine.errors import WriteKeyError, WriteRefusedError
 from pipeloom.engine.protocols import Catalog, Engine, EngineSession
