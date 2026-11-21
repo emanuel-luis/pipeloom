@@ -17,11 +17,11 @@ from typing import Any
 import pytest
 
 from pipeloom.api import Project
-from pipeloom.config.load import ProjectOptions
-from pipeloom.discovery import Discovery
 from pipeloom.artifacts.plan_diff import diff_plans
 from pipeloom.artifacts.reference import load_reference
+from pipeloom.config.load import ProjectOptions
 from pipeloom.diagnostics import Report
+from pipeloom.discovery import Discovery
 from pipeloom.graph.selectors import Selection
 from pipeloom.plan.manifest import manifest_bytes, write_manifest
 from tests.conftest import make_project

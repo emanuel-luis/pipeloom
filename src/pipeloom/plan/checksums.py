@@ -136,7 +136,8 @@ def sql_record(source: bytes, callable_ref: str) -> PlanSql | None:
             isinstance(dialect, ast.Constant) and isinstance(dialect.value, str)
         ):
             return None
-        queries.append(SqlQuery(sql=arg.value, dialect=None if dialect is None else dialect.value))
+        literal = None if dialect is None else str(dialect.value)
+        queries.append(SqlQuery(sql=str(arg.value), dialect=literal))
         arg.value = ""
     if not queries:
         return None

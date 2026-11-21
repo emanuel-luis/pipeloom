@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import importlib.util
 from pathlib import Path
+from typing import Any
 
 from pipeloom.config.resolve import ResolvedModel
 from pipeloom.diagnostics import Location, Report
@@ -173,8 +174,8 @@ def sql_change(old: str, new: str, dialect: str | None) -> tuple[str, str]:
         return "breaking", "the SQL is not one statement"
     before, after = a[0], b[0]
 
-    def text(e: exp.Expression) -> str:
-        return e.sql(dialect=dialect, comments=False)
+    def text(e: Any) -> str:
+        return str(e.sql(dialect=dialect, comments=False))
 
     if text(before) == text(after):
         return "same", ""

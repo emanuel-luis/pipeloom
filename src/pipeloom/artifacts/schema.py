@@ -1,5 +1,5 @@
 """JSON Schemas of the artifacts (ADR-0049): `manifest`, `run_results`, `event`, `unit_states`,
-`unit_graph` and `table_diff` (ADR-0053).
+`unit_graph`, `table_diff` (ADR-0053) and `plan_diff` (ADR-0052).
 
 Events come from the pydantic models in `pipeloom.events.model`, the unit graph from
 `pipeloom.artifacts.unit_graph`, and the manifest's `$defs` from the plan models (its top level
