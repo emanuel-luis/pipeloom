@@ -9,7 +9,7 @@ from pipeloom.plugins import API_VERSION, GROUPS, PluginRegistry, PluginSpec, ch
 from tests.plugins.fakes import (
     API05,
     API10,
-    API11,
+    API12,
     API20,
     FakeDist,
     FakeEntryPoint,
@@ -114,11 +114,11 @@ def test_unknown_kind_is_none_without_a_diagnostic() -> None:
 
 
 def test_plu001_api_mismatch(monkeypatch: pytest.MonkeyPatch) -> None:
-    install_entry_points(monkeypatch, [ep("engines", "future", "API11")])
+    install_entry_points(monkeypatch, [ep("engines", "future", "API12")])
     report = Report()
     assert PluginRegistry.discover(env={}).load("engines", "future", report) is None
     (d,) = report.sorted()
-    assert d.code == "PLU001" and "1.1" in d.message and "1.0" in d.message
+    assert d.code == "PLU001" and "1.2" in d.message and "1.1" in d.message
 
 
 def test_a_plugin_for_the_current_api_loads(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -168,12 +168,12 @@ def test_check_api_rules() -> None:
     def spec(v: tuple[int, int]) -> PluginSpec[object]:
         return PluginSpec("x", "x", "engines", v, lambda o: o, FakeOptions)
 
-    assert API_VERSION == (1, 0)
+    assert API_VERSION == (1, 1)
     assert check_api(spec(API_VERSION)) is None
     assert check_api(API10) is None
     assert check_api(API05) is not None  # built for 0.x: another major
     assert check_api(spec((0, 0))) is not None
-    assert check_api(API11) is not None  # minor above the core's
+    assert check_api(API12) is not None  # minor above the core's
     assert check_api(API20) is not None  # another major
 
 
@@ -182,7 +182,7 @@ def test_load_all_skips_duplicates_and_reports_failures(monkeypatch: pytest.Monk
         monkeypatch,
         [
             ep("engines", "memory", "MEMORY_CLONE", "other"),
-            ep("engines", "future", "API11"),
+            ep("engines", "future", "API12"),
             ep("engines", "fake", "FAKE_ENGINE"),
         ],
     )

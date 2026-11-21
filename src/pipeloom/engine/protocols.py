@@ -139,6 +139,29 @@ class EngineSession(Protocol):
 
 
 @runtime_checkable
+class SupportsFilterBetween(Protocol):
+    """Optional session member, plugin API (1, 1) (ADR-0054). Reach it through
+    `filter_between`, which falls back to a Narwhals filter."""
+
+    def filter_between(self, rel: Relation, column: str, start: Any, end: Any) -> Relation:
+        """Rows with `start <= column < end`; null rows are dropped. The bounds are values of
+        the column's type."""
+        ...
+
+
+def filter_between(
+    session: EngineSession, rel: Relation, column: str, start: Any, end: Any
+) -> Relation:
+    """The session's own `filter_between`, else the portable filter (Narwhals frames)."""
+    if isinstance(session, SupportsFilterBetween):
+        return session.filter_between(rel, column, start, end)
+    from pipeloom.engine import portable  # narwhals loads only when a run needs it
+
+    native = portable.filter_between(rel.native, column, start, end)
+    return Relation(native, rel.engine, rel.lazy)
+
+
+@runtime_checkable
 class Engine(Protocol):
     name: str
     version: str

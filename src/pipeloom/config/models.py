@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import keyword
+from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -136,6 +137,24 @@ class DeletesConfig(_Model):
     """Remove the row, or keep it flagged."""
 
 
+class IntervalConfig(_Model):
+    """Interval incrementals (ADR-0054): the model runs one half-open UTC window at a time."""
+
+    event_time: str = Field(min_length=1)
+    """Column of the input and of the output that places a row in a window."""
+    grain: Literal["hour", "day", "week", "month", "year"]
+    """Window length. Windows start at the grain boundary in UTC; weeks start on Monday."""
+    begin: datetime
+    """ISO date or date-time; the first window is the one that holds it. Naive means UTC."""
+    lookback: int = Field(default=0, ge=0)
+    """Windows before the first missing one that run again."""
+
+    @field_validator("begin")
+    @classmethod
+    def _utc(cls, value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+
 class IncrementalConfig(_Model):
     input: Identifier
     """Alias of the input that is filtered."""
@@ -145,6 +164,8 @@ class IncrementalConfig(_Model):
     """Reprocess this much before the watermark."""
     watermark_source: Literal["state", "target"] = "state"
     """Where the watermark is read from."""
+    interval: IntervalConfig | None = None
+    """Process the input in windows of event_time instead of after a watermark (since 1.3)."""
 
 
 class CheckConfig(_Model):

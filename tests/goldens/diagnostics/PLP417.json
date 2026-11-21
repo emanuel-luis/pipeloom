@@ -1,0 +1,33 @@
+[
+  {
+    "code": "PLC514",
+    "severity": "error",
+    "message": "engine 'memory' has no interval writes (model 'daily')",
+    "hint": "use an engine with the interval_writes capability, or remove incremental.interval",
+    "location": {
+      "file": "src/m.py",
+      "line": 7,
+      "col": 5,
+      "json_pointer": "/@model/incremental/interval"
+    },
+    "context": {
+      "model": "daily",
+      "engine": "memory"
+    }
+  },
+  {
+    "code": "PLP417",
+    "severity": "error",
+    "message": "interval options of model 'daily' conflict: write.strategy is merge, not append; incremental.column is set too",
+    "hint": "an interval model is materialized incremental, appends (each window replaces its own range) and places rows by incremental.interval.event_time only",
+    "location": {
+      "file": "src/m.py",
+      "line": 7,
+      "col": 5,
+      "json_pointer": "/@model/incremental/interval"
+    },
+    "context": {
+      "model": "daily"
+    }
+  }
+]

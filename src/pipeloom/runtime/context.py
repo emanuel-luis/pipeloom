@@ -61,6 +61,9 @@ class ModelContext:
         default=None, repr=False, compare=False
     )
     """Private: set by the runner; backs `sql`."""
+    interval: tuple[datetime, datetime] | None = None
+    """Since 1.3: the UTC window `[start, end)` an interval model is running, else None. The
+    incremental input is already filtered to it (ADR-0054)."""
 
     def sql(
         self, query: str, *, dialect: str | None = None, inputs: Mapping[str, Any] | None = None

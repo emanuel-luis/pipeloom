@@ -166,28 +166,28 @@ def test_the_prerelease_pin_accepts_the_rc_and_the_final_version() -> None:
 
 def test_the_root_declaration_must_match_the_source(workspace: Path) -> None:
     root = workspace / "pyproject.toml"
-    _edit(root, 'plugin-api = "1.0"', 'plugin-api = "0.5"')
+    _edit(root, 'plugin-api = "1.1"', 'plugin-api = "0.5"')
     _edit(root, "config-version = 1", "config-version = 2")
     errors = versions.check(workspace)
     assert "the root [tool.pipeloom] config-version is 2, the source has 1" in errors
-    assert "the root [tool.pipeloom] plugin-api is '0.5', the source has '1.0'" in errors
+    assert "the root [tool.pipeloom] plugin-api is '0.5', the source has '1.1'" in errors
     assert any(e.startswith("pipeloom-polars [tool.pipeloom] plugin-api") for e in errors)
 
 
 def test_a_member_must_declare_what_the_root_declares(workspace: Path) -> None:
     plugin = workspace / "plugins" / "pipeloom-spark" / "pyproject.toml"
-    _edit(plugin, 'plugin-api = "1.0"', 'plugin-api = "1.1"')
+    _edit(plugin, 'plugin-api = "1.1"', 'plugin-api = "1.2"')
     assert versions.check(workspace) == [
-        "pipeloom-spark [tool.pipeloom] plugin-api is '1.1', the root has '1.0'"
+        "pipeloom-spark [tool.pipeloom] plugin-api is '1.2', the root has '1.1'"
     ]
 
 
 def test_a_missing_declaration_is_reported(workspace: Path) -> None:
     plugin = workspace / "plugins" / "pipeloom-pandas" / "pyproject.toml"
-    _edit(plugin, '[tool.pipeloom]\nconfig-version = 1\nplugin-api = "1.0"\n', "")
+    _edit(plugin, '[tool.pipeloom]\nconfig-version = 1\nplugin-api = "1.1"\n', "")
     assert versions.check(workspace) == ["pipeloom-pandas has no [tool.pipeloom] table"]
     root = workspace / "pyproject.toml"
-    _edit(root, '[tool.pipeloom]\nconfig-version = 1\nplugin-api = "1.0"\n', "")
+    _edit(root, '[tool.pipeloom]\nconfig-version = 1\nplugin-api = "1.1"\n', "")
     assert "the root pyproject.toml has no [tool.pipeloom] table" in versions.check(workspace)
 
 

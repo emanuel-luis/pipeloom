@@ -41,7 +41,7 @@ pipeloom = { workspace = true }
 
 [tool.pipeloom]
 config-version = 1
-plugin-api = "1.0"
+plugin-api = "1.1"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pipeloom_duckdb"]

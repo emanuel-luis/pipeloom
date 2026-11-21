@@ -47,6 +47,18 @@ def _check_model(
             "retries",
             "set retries to 0 or use another strategy",
         )
+    if (
+        c.incremental is not None
+        and c.incremental.interval is not None
+        and not caps.interval_writes
+    ):
+        err(
+            "PLC514",
+            f"engine '{engine.kind}' has no interval writes (model '{m.name}')",
+            "incremental",
+            "use an engine with the interval_writes capability, or remove incremental.interval",
+            "/interval",
+        )
     if c.materialized == "view" and not caps.views:
         err(
             "PLC507",

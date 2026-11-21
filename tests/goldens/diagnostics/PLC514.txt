@@ -1,0 +1,2 @@
+error PLC514 src/m.py:6:5 engine 'memory' has no interval writes (model 'daily')
+      hint: use an engine with the interval_writes capability, or remove incremental.interval

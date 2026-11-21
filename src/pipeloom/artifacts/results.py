@@ -59,6 +59,10 @@ ROW_DEFAULTS: Final[Mapping[str, Any]] = {
 }
 
 
+ROW_OPTIONAL: Final = ("intervals",)
+"""Row fields added after 1.0 that only some rows carry (absent, not null, elsewhere)."""
+
+
 def result_row(**fields: Any) -> dict[str, Any]:
     """A results row: the defaults, then `fields`. An unknown field is a bug."""
     unknown = fields.keys() - ROW_DEFAULTS.keys()

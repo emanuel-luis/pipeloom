@@ -19,6 +19,7 @@ CAPABILITIES = EngineCapabilities(
     bytes_metrics=True,
     portable=True,
     quality=True,
+    interval_writes=True,
     # sqlglot has no polars dialect. pl.SQLContext follows PostgreSQL syntax (its docs say so):
     # `::` casts, `||`, ILIKE, LIMIT, `DATE '...'` literals. tests/test_sql_dialect.py pins the
     # constructs that matter.

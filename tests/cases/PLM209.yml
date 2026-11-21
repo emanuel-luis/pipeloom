@@ -1,0 +1,34 @@
+run: true
+plugins: ["pipeloom_polars.spec:SPEC"]
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    model_paths:
+    - src
+    targets:
+      dev:
+        engine:
+          kind: polars
+        catalog:
+          kind: filesystem
+          root: wh
+  src/m.py: |
+    import polars as pl
+    from pipeloom import model, ref
+
+    @model
+    def raw(ctx):
+        return pl.LazyFrame({"id": [1, 2]})
+
+    @model(
+        inputs={"raw": ref("raw")},
+        materialized="incremental",
+        incremental={
+            "input": "raw",
+            "interval": {"event_time": "ts", "grain": "day", "begin": "2026-01-01"},
+        },
+    )
+    def daily(ctx, raw):
+        return raw

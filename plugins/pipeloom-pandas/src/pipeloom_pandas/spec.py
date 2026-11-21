@@ -24,6 +24,7 @@ CAPABILITIES = EngineCapabilities(
     bytes_metrics=True,
     portable=True,
     quality=True,
+    interval_writes=True,
     # Without DuckDB there is no SQL: ctx.sql raises SqlUnsupportedError (PLK606 warns first).
     sql_dialect="duckdb" if SQL else None,
 )

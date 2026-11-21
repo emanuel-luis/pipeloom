@@ -1,0 +1,33 @@
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    model_paths:
+    - src
+    sources:
+      raw:
+        tables:
+          raw:
+            table: main.raw
+    targets:
+      dev:
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
+  src/m.py: |
+    from pipeloom import model, source
+
+    @model(
+        inputs={"raw": source("raw", "raw")},
+        materialized="incremental",
+        write={"strategy": "merge", "unique_key": ["id"]},
+        incremental={
+            "input": "raw",
+            "column": "ts",
+            "interval": {"event_time": "ts", "grain": "day", "begin": "2026-01-01"},
+        },
+    )
+    def daily(ctx, raw):
+        return raw

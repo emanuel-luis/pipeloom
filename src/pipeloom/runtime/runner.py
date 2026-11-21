@@ -20,7 +20,7 @@ from pipeloom.diagnostics.codes import DOCS_BASE_URL
 from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine import portable
 from pipeloom.engine.errors import WriteKeyError, WriteRefusedError
-from pipeloom.engine.protocols import Catalog, Engine, EngineSession
+from pipeloom.engine.protocols import Catalog, Engine, EngineSession, filter_between
 from pipeloom.engine.types import (
     ROW_CHECKS,
     SCD2_COLUMNS,
@@ -32,6 +32,7 @@ from pipeloom.engine.types import (
     QuarantineMeta,
     ReadSpec,
     Relation,
+    ReplaceRange,
     Schema,
     TargetRef,
     WriteConfig,
@@ -60,12 +61,13 @@ from pipeloom.quality import (
     quarantine_target,
     quarantine_token,
 )
-from pipeloom.runtime import incremental
+from pipeloom.runtime import incremental, intervals
 from pipeloom.runtime.context import ModelContext, RuntimeContext
 from pipeloom.runtime.control import CancelToken, Reason, UnitInterrupted, interrupt_error
 from pipeloom.runtime.errors import ErrorInfo, Phase, build_error, full_traceback
 from pipeloom.runtime.executors import UnitCompletion, UnitHandle
 from pipeloom.runtime.incremental import IncrementalError, IncrementalState, WatermarkConflict
+from pipeloom.runtime.intervals import IntervalError, Window
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.retry import NO_POLICY, UnitPolicy
 from pipeloom.runtime.schema_policy import (
@@ -139,6 +141,45 @@ class _Inc:
     state: IncrementalState | None = None
     batch: Relation | None = None
     """The filtered input: the rows this attempt processes."""
+    window: Window | None = None
+    """An interval model: the window this input is filtered to (ADR-0054)."""
+
+
+@dataclass
+class _QualitySum:
+    """The quality fields of an interval unit's row, summed over its windows."""
+
+    dropped: int | None = None
+    quarantined: int | None = None
+    results: dict[tuple[Any, Any], dict[str, Any]] | None = None
+
+    def add(self, row: Mapping[str, Any]) -> None:
+        """Fold in the fields one window left in `row`."""
+        if row["rows_dropped"] is not None:
+            self.dropped = (self.dropped or 0) + row["rows_dropped"]
+        if row["rows_quarantined"] is not None:
+            self.quarantined = (self.quarantined or 0) + row["rows_quarantined"]
+        results = self.results if self.results is not None else {}
+        for e in row["expectations"]:
+            seen = results.get((e["name"], e.get("scope")))
+            if seen is None:
+                results[(e["name"], e.get("scope"))] = dict(e)
+                continue
+            for count in ("passed", "failed"):
+                if seen[count] is not None and e[count] is not None:
+                    seen[count] += e[count]
+                else:
+                    seen[count] = None
+            seen["value"] = e["value"]  # an aggregate's value is the last window's
+        self.results = results
+
+    def store(self, row: dict[str, Any]) -> None:
+        if self.results is not None:
+            row.update(
+                expectations=list(self.results.values()),
+                rows_dropped=self.dropped,
+                rows_quarantined=self.quarantined,
+            )
 
 
 def _scd2_target(existing: Schema | None, batch: Schema, full_refresh: bool) -> Schema | None:
@@ -566,6 +607,10 @@ class ModelRunner:
             result = self._execute_intermediate(unit_id, node, attempt, started, row)
         elif node.materialized in ("table", "incremental") and strategy is not None:
             assert target is not None
+            inc_cfg = node.config.incremental
+            if node.materialized == "incremental" and inc_cfg and inc_cfg.interval is not None:
+                self._execute_intervals(unit_id, node, target, attempt, started, row)
+                return
             token = f"{self._rt.run_id}:{node.name}"
             # Step 1: a token already applied means a finished write; skip everything but the
             # watermark, which the write stored with the token.
@@ -623,6 +668,208 @@ class ModelRunner:
             bytes_written=result.bytes_written,
             target_version=result.target_version,
         )
+
+    # -- interval models (ADR-0054) -----------------------------------------------------------
+
+    def _interval_fail(self, node: PlanNode, exc: Exception, what: str) -> NoReturn:
+        self._fail(
+            "PLM209",
+            "read",
+            exc,
+            f"cannot run the intervals of model '{node.name}': {what}",
+            "check incremental.interval.event_time against the input and the output, and the "
+            "state store",
+        )
+
+    def _execute_intervals(
+        self,
+        unit_id: str,
+        node: PlanNode,
+        target: TargetRef,
+        attempt: int,
+        started: datetime,
+        row: dict[str, Any],
+    ) -> None:
+        """Run the windows first to last inside this one unit. Each window has its own token
+        and ledger entry, so a failure leaves the earlier windows committed."""
+        rt = self._rt
+        cfg = node.config.incremental
+        assert cfg is not None and cfg.interval is not None
+        iv = cfg.interval
+        now = intervals.to_utc(rt.run_started_at or rt.clock.now())
+        key = self._key(node)
+        try:
+            ledger = intervals.load(self._state, key)
+        except IntervalError as exc:
+            self._interval_fail(node, exc, str(exc))
+        todo = intervals.to_run(
+            iv.begin, now, iv.grain, ledger, iv.lookback, full_refresh=rt.full_refresh
+        )
+        entries: list[dict[str, JsonValue]] = []
+        row["intervals"] = entries
+        row["is_incremental"] = bool(ledger) and not rt.full_refresh
+        totals: dict[str, int] = {}
+        rows_read: dict[str, int | None] = {}
+        row["rows_read"] = rows_read
+        # A full refresh overwrites with its first window once per run. A retry of the run must
+        # not overwrite again: an fs table keeps only its newest tokens, so the first window's
+        # token can be gone while later windows are committed. Look for any of them, newest first.
+        # ponytail: one token lookup per window on a first attempt; fine for runs of a few
+        # hundred windows
+        overwrite_first = rt.full_refresh and not any(
+            self._replayed(target, f"{rt.run_id}:{node.name}:{w.id}") is not None
+            for w in reversed(todo)
+        )
+        quality = _QualitySum()
+        try:
+            for i, window in enumerate(todo):
+                self._interval_step(
+                    unit_id,
+                    node,
+                    target,
+                    attempt,
+                    started,
+                    row,
+                    window,
+                    i == 0 and overwrite_first,
+                    entries,
+                    totals,
+                    quality,
+                    now,
+                    key,
+                )
+        finally:
+            quality.store(row)
+        if not todo:
+            row["rows_written"] = 0
+        self._data_tests(unit_id, node, attempt, row)
+
+    def _interval_step(
+        self,
+        unit_id: str,
+        node: PlanNode,
+        target: TargetRef,
+        attempt: int,
+        started: datetime,
+        row: dict[str, Any],
+        window: Window,
+        overwrite: bool,
+        entries: list[dict[str, JsonValue]],
+        totals: dict[str, int],
+        quality: _QualitySum,
+        now: datetime,
+        key: StateKey,
+    ) -> None:
+        """One window: replay or run it, add its counts, then record it in the ledger."""
+        rt = self._rt
+        self._check()
+        token = f"{rt.run_id}:{node.name}:{window.id}"
+        entry: dict[str, JsonValue] = {
+            "interval_id": window.id,
+            "start": _iso(window.start),
+            "end": _iso(window.end),
+            "idempotency_token": token,
+            "skipped": False,
+            "rows_written": None,
+        }
+        entries.append(entry)
+        result = self._replayed(target, token)
+        if result is not None:
+            self._written(node, target, "append", result, rt.clock.monotonic())
+            entry["skipped"] = True
+        else:
+            row.update(expectations=[], rows_dropped=None, rows_quarantined=None)
+            try:
+                result = self._interval_window(
+                    unit_id, node, target, attempt, started, row, window, token, overwrite
+                )
+            finally:  # a failing window's results are reported too
+                quality.add(row)
+        entry["rows_written"] = result.rows_written
+        for name in ("rows_written", "rows_inserted", "rows_updated", "rows_deleted"):
+            value = getattr(result, name)
+            if value is not None:
+                totals[name] = totals.get(name, 0) + value
+        row.update(totals, target_version=result.target_version)
+        try:  # the window is committed: never behind a cancel checkpoint
+            intervals.record(
+                self._state,
+                key,
+                window.start,
+                min(window.end, now),
+                run_id=rt.run_id,
+                clock=rt.clock,
+            )
+        except IntervalError as exc:
+            self._interval_fail(node, exc, f"{exc}; window {window.id} was written")
+
+    def _interval_window(
+        self,
+        unit_id: str,
+        node: PlanNode,
+        target: TargetRef,
+        attempt: int,
+        started: datetime,
+        row: dict[str, Any],
+        window: Window,
+        token: str,
+        overwrite: bool,
+    ) -> WriteResult:
+        cfg = node.config.incremental
+        assert cfg is not None and cfg.interval is not None
+        column, grain = cfg.interval.event_time, cfg.interval.grain
+        inc = _Inc(cfg.input, column, window=window)
+        read: dict[str, int | None] = {}
+        rel = self._compute(node, unit_id, attempt, started, {}, read, inc)
+        total: dict[str, int | None] = row["rows_read"]
+        for alias, n in read.items():
+            total[alias] = None if n is None else (total.get(alias) or 0) + n
+        rel, before_write, finish = self._quality(node, target, unit_id, rel, row, token=token)
+        try:
+            dtype = next((c.dtype for c in self._session.schema(rel) if c.name == column), None)
+            if dtype is None:
+                self._interval_fail(
+                    node, KeyError(column), f"the output has no event_time column '{column}'"
+                )
+            try:
+                start, end = intervals.bounds(dtype, column, window, grain)
+            except IntervalError as exc:
+                self._interval_fail(node, exc, str(exc))
+            rel = self._contract(node, rel)
+            return self._write(
+                node,
+                target,
+                "overwrite" if overwrite else "append",
+                rel,
+                row,
+                {"interval": window.id},
+                before_write,
+                token=token,
+                replace_range=None if overwrite else ReplaceRange(column, start, end),
+            )
+        finally:
+            if finish is not None:
+                finish()
+
+    def _window_input(self, node: PlanNode, rel: Relation, inc: _Inc, window: Window) -> Relation:
+        cfg = node.config.incremental
+        assert cfg is not None and cfg.interval is not None
+        dtype = next((c.dtype for c in self._session.schema(rel) if c.name == inc.column), None)
+        if dtype is None:
+            self._interval_fail(
+                node,
+                KeyError(inc.column),
+                f"event_time column '{inc.column}' is not in input '{inc.alias}'",
+            )
+        try:
+            start, end = intervals.bounds(dtype, inc.column, window, cfg.interval.grain)
+            rel = filter_between(self._session, rel, inc.column, start, end)
+        except IntervalError as exc:
+            self._interval_fail(node, exc, str(exc))
+        except Exception as exc:  # noqa: BLE001 - engines raise their own errors
+            self._interval_fail(node, exc, f"cannot filter input '{inc.alias}' by '{inc.column}'")
+        inc.batch = rel
+        return rel
 
     # -- idempotency token and watermark ------------------------------------------------------
 
@@ -731,6 +978,8 @@ class ModelRunner:
         ctx = self._context(
             node, unit_id, attempt, started, None if inc is None else inc.state, run_sql
         )
+        if inc is not None and inc.window is not None:
+            ctx = replace(ctx, is_incremental=True, interval=(inc.window.start, inc.window.end))
         failed = f"model '{node.name}' raised"
         try:
             out = self._call(
@@ -768,7 +1017,10 @@ class ModelRunner:
             )
 
     def _incremental_input(self, node: PlanNode, rel: Relation, inc: _Inc) -> Relation:
-        """Step 2: resolve the watermark, then keep only the rows after it."""
+        """Step 2: resolve the watermark, then keep only the rows after it. An interval model
+        keeps the rows of its window instead."""
+        if inc.window is not None:
+            return self._window_input(node, rel, inc, inc.window)
         rt = self._rt
         try:
             st = incremental.resolve(
@@ -995,7 +1247,14 @@ class ModelRunner:
     # -- quality ------------------------------------------------------------------------------
 
     def _quality(
-        self, node: PlanNode, target: TargetRef, unit_id: str, rel: Relation, row: dict[str, Any]
+        self,
+        node: PlanNode,
+        target: TargetRef,
+        unit_id: str,
+        rel: Relation,
+        row: dict[str, Any],
+        *,
+        token: str | None = None,
     ) -> tuple[Relation, Callable[[], None] | None, Callable[[], None] | None]:
         """Steps 5, 6 and 8: count the output, drop rows, judge. Returns the rows to write and
         the quarantine write to run just before the table write, if rows were dropped, and a
@@ -1075,7 +1334,7 @@ class ModelRunner:
         quarantined = pending
 
         def write_quarantine() -> None:
-            self._write_quarantine(node, target, quarantined)
+            self._write_quarantine(node, target, quarantined, token)
             row["rows_quarantined"] = report.rows_dropped
 
         return kept, write_quarantine, finish
@@ -1205,7 +1464,9 @@ class ModelRunner:
             model=node.name,
         )
 
-    def _write_quarantine(self, node: PlanNode, target: TargetRef, rows: Relation) -> None:
+    def _write_quarantine(
+        self, node: PlanNode, target: TargetRef, rows: Relation, token: str | None = None
+    ) -> None:
         """Append the dropped rows to `<model>__quarantine` under its own token. Its schema
         policy is append_new_columns, so a changed model output never blocks the quarantine."""
         qt = quarantine_target(target)
@@ -1220,7 +1481,7 @@ class ModelRunner:
             )
             if not diff.empty and action != "none":
                 self._schema_changed(node, qt, policy, action, diff.to_json())
-            token = quarantine_token(f"{self._rt.run_id}:{node.name}")
+            token = quarantine_token(token or f"{self._rt.run_id}:{node.name}")
             self._catalog.ensure_namespace(qt.namespace)
             self._session.materializer("append").materialize(
                 self._session.align(rows, columns),
@@ -1285,9 +1546,12 @@ class ModelRunner:
         row: dict[str, Any],
         meta: Mapping[str, JsonValue],
         before_write: Callable[[], None] | None = None,
+        *,
+        token: str | None = None,
+        replace_range: ReplaceRange | None = None,
     ) -> WriteResult:
         write = node.config.write
-        token = f"{self._rt.run_id}:{node.name}"
+        token = token or f"{self._rt.run_id}:{node.name}"
         t0 = self._rt.clock.monotonic()
         try:
             batch = self._session.schema(rel)
@@ -1342,6 +1606,7 @@ class ModelRunner:
                 run_started_at=self._rt.run_started_at,
                 tracked_columns=tracked,
                 full_refresh=self._rt.full_refresh,
+                replace_range=replace_range,
             )
             self._check()
             if before_write is not None:

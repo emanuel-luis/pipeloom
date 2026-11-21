@@ -1,0 +1,2 @@
+error PLM209 src/m.py:8 cannot run the intervals of model 'daily': event_time column 'ts' is not in input 'raw': KeyError: 'ts'
+      hint: check incremental.interval.event_time against the input and the output, and the state store

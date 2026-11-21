@@ -86,6 +86,10 @@ def materialize(
             batch = ops.align(batch, cfg.columns)
         if cfg.partition_by:
             portable.check_columns(batch, cfg.partition_by, "partition_by")
+        if cfg.replace_range is not None:
+            if cfg.strategy != "append":
+                raise ValueError(f"replace_range needs the append strategy, not {cfg.strategy}")
+            return _replace_range(writer, previous, batch, cfg, token)
         if cfg.strategy in ("append", "overwrite"):
             return _plain(writer, batch, cfg, token)
         if cfg.strategy == "merge":
@@ -248,6 +252,75 @@ def _replace_partitions(
         drop=drop,
         removed_rows=removed,
         partition_by=cfg.partition_by,
+        expected_version=previous.version,
+    )
+    return commit.result
+
+
+def _replace_range(
+    w: _Writer, previous: FsCommit | None, batch: Any, cfg: WriteConfig, token: str
+) -> WriteResult:
+    """Rewrite the files that hold rows in the range without those rows, then add the batch.
+    One commit, so a reader sees the old interval or the new one (ADR-0054)."""
+    rng = cfg.replace_range
+    assert rng is not None
+    portable.check_columns(batch, (rng.column,), "replace_range")
+    _, inside = portable.split_range(batch, rng.column, rng.start, rng.end)
+    n = portable.count(batch)
+    if inside != n:
+        raise WriteKeyError(
+            f"the batch has {n - inside} row(s) with '{rng.column}' outside "
+            f"[{rng.start}, {rng.end}) or null"
+        )
+    meta = dict(cfg.commit_meta)
+    if previous is None:
+        w.put_partitioned(batch, cfg.partition_by)
+        commit = w.table.commit(
+            mode="overwrite",
+            files=w.files,
+            columns=portable.schema(batch),
+            rows=n,
+            token=token,
+            result=WriteResult(n, n, 0, 0, commit_meta=meta),
+            file_info=w.info,
+            partition_by=cfg.partition_by,
+            expected_version=0,
+        )
+        return commit.result
+    columns = _final_schema(previous, batch, cfg)
+    drop: list[str] = []
+    deleted = removed = added = 0
+    # ponytail: reads every file of the table; per-file min/max stats would skip most of them
+    for name in previous.files:
+        frame = w.ops.collect(
+            w.ops.align(
+                w.ops.read_file(w.table.path / name, previous.format or "", previous.columns),
+                previous.columns,
+            )
+        )
+        kept, gone = portable.split_range(frame, rng.column, rng.start, rng.end)
+        if not gone:
+            continue
+        drop.append(name)
+        total = portable.count(frame)
+        deleted += gone
+        removed += total
+        if total - gone:
+            w.put_partitioned(w.ops.align(kept, columns), cfg.partition_by)
+            added += total - gone
+    if n:
+        w.put_partitioned(w.ops.align(batch, columns), cfg.partition_by)
+    commit = w.table.commit(
+        mode="append",
+        files=w.files,
+        columns=columns,
+        rows=n + added,
+        token=token,
+        result=WriteResult(n, n, 0, deleted, commit_meta=meta),
+        file_info=w.info,
+        drop=drop,
+        removed_rows=removed,
+        partition_by=cfg.partition_by or previous.partition_by,
         expected_version=previous.version,
     )
     return commit.result

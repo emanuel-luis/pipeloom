@@ -18,10 +18,11 @@ import time
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -42,7 +43,7 @@ from pipeloom.config.models import (
 )
 from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine.errors import WriteKeyError
-from pipeloom.engine.protocols import Catalog, Engine, EngineSession
+from pipeloom.engine.protocols import Catalog, Engine, EngineSession, filter_between
 from pipeloom.engine.types import (
     Column,
     DeleteSpec,
@@ -51,6 +52,7 @@ from pipeloom.engine.types import (
     QuarantineMeta,
     ReadSpec,
     Relation,
+    ReplaceRange,
     Schema,
     TargetRef,
     WriteConfig,
@@ -170,6 +172,10 @@ QUALITY_ROWS = (
     {"id": 2, "f": -1.0, "s": "ab1", "ts": _T[1]},  # duplicate id
     {"id": None, "f": 3.0, "s": "abx", "ts": _T[0]},  # two null keys are not duplicates
 )
+
+
+RANGE_SCHEMA = (Column("ts", "timestamp[us, UTC]"), Column("month", "string"), Column("v", "int64"))
+_D = [datetime(2026, 1, d, tzinfo=UTC) for d in (1, 2, 3)]
 
 
 MATRIX_SCHEMA = (Column("id", "int64"), Column("part", "string"), Column("v", "int64"))
@@ -769,6 +775,99 @@ class EngineContract:
         want, deleted = reference.replace_partitions_rows(current, batch, ("part",))
         assert got == _key(_norm(want))
         assert result.rows_deleted == deleted == 3
+
+    # -- replace_range (interval_writes, ADR-0054) ---------------------------------------------
+
+    def range_case(
+        self, h: EngineHarness, tmp_path: Path, name: str, batch: Rows, *, partitioned: bool
+    ) -> tuple[list[dict[str, Any]], WriteResult]:
+        """Seed three days in one month partition, then replace day 2 with `batch`."""
+        requires(h, "interval_writes")
+        seed = (
+            {"ts": _D[0], "month": "2026-01", "v": 1},
+            {"ts": _D[1], "month": "2026-01", "v": 2},
+            {"ts": _D[1], "month": "2026-01", "v": 3},
+            {"ts": _D[2], "month": "2026-01", "v": 4},
+            {"ts": None, "month": "2026-01", "v": 5},
+        )
+        parts = ("month",) if partitioned else ()
+        rng = ReplaceRange("ts", _D[1], _D[2])
+        cfg = WriteConfig("append", partition_by=parts, replace_range=rng)
+        with self.session(h, tmp_path) as s:
+            self.put(
+                s, h, name, seed, RANGE_SCHEMA, WriteConfig("overwrite", partition_by=parts), "seed"
+            )
+            result = self.put(s, h, name, batch, RANGE_SCHEMA, cfg, "r:day2")
+            again = self.put(s, h, name, batch, RANGE_SCHEMA, cfg, "r:day2")
+            assert again.skipped
+            rows = self.table_rows(s, h, name)
+        return rows, result
+
+    def test_replace_range_replaces_one_window(self, h: EngineHarness, tmp_path: Path) -> None:
+        batch = ({"ts": _D[1], "month": "2026-01", "v": 9},)
+        rows, result = self.range_case(h, tmp_path, "t_rr", batch, partitioned=False)
+        assert sorted(r["v"] for r in rows) == [1, 4, 5, 9]
+        assert result.rows_deleted == 2
+
+    def test_replace_range_with_an_empty_window_only_deletes_it(
+        self, h: EngineHarness, tmp_path: Path
+    ) -> None:
+        rows, result = self.range_case(h, tmp_path, "t_rr_empty", (), partitioned=False)
+        assert sorted(r["v"] for r in rows) == [1, 4, 5]
+        assert result.rows_deleted == 2
+
+    def test_replace_range_in_a_coarser_partition_keeps_the_rest(
+        self, h: EngineHarness, tmp_path: Path
+    ) -> None:
+        requires(h, "strategies", "replace_partitions")  # the engine partitions tables
+        batch = ({"ts": _D[1], "month": "2026-01", "v": 9},)
+        rows, _ = self.range_case(h, tmp_path, "t_rr_part", batch, partitioned=True)
+        assert sorted(r["v"] for r in rows) == [1, 4, 5, 9]
+
+    def test_replace_range_rejects_a_row_outside_the_range(
+        self, h: EngineHarness, tmp_path: Path
+    ) -> None:
+        requires(h, "interval_writes")
+        cfg = WriteConfig("append", replace_range=ReplaceRange("ts", _D[1], _D[2]))
+        batch = ({"ts": _D[2], "month": "2026-01", "v": 9},)
+        with self.session(h, tmp_path) as s, pytest.raises(WriteKeyError):
+            self.put(s, h, "t_rr_out", batch, RANGE_SCHEMA, cfg, "r:out")
+
+    def test_replace_range_rerun_is_idempotent_across_tokens(
+        self, h: EngineHarness, tmp_path: Path
+    ) -> None:
+        requires(h, "interval_writes")
+        cfg = WriteConfig("append", replace_range=ReplaceRange("ts", _D[1], _D[2]))
+        batch = ({"ts": _D[1], "month": "2026-01", "v": 9},)
+        with self.session(h, tmp_path) as s:
+            self.put(s, h, "t_rr_twice", batch, RANGE_SCHEMA, cfg, "run1:m:day2")
+            self.put(s, h, "t_rr_twice", batch, RANGE_SCHEMA, cfg, "run2:m:day2")
+            assert [r["v"] for r in self.table_rows(s, h, "t_rr_twice")] == [9]
+
+    def test_filter_between_keeps_the_window(self, h: EngineHarness, tmp_path: Path) -> None:
+        requires(h, "interval_writes")
+        rows = ({"ts": d, "month": "m", "v": i} for i, d in enumerate([*_D, None]))
+        with self.session(h, tmp_path) as s:
+            rel = s.relation(h.make_native(list(rows), RANGE_SCHEMA))
+            got = h.to_rows(filter_between(s, rel, "ts", _D[1], _D[2]).native)
+        assert [r["v"] for r in got] == [1]
+
+    def test_replace_range_on_a_zoned_event_time(self, h: EngineHarness, tmp_path: Path) -> None:
+        """UTC window bounds against a column in another zone (ADR-0054)."""
+        requires(h, "interval_writes")
+        zone = ZoneInfo("America/Sao_Paulo")
+        schema = (Column("ts", "timestamp[us, America/Sao_Paulo]"), Column("v", "int64"))
+        seed = [{"ts": (d + timedelta(hours=1)).astimezone(zone), "v": i} for i, d in enumerate(_D)]
+        rng = ReplaceRange("ts", _D[1], _D[2])
+        batch = [{"ts": (_D[1] + timedelta(hours=5)).astimezone(zone), "v": 9}]
+        with self.session(h, tmp_path) as s:
+            rel = s.relation(h.make_native(seed, schema))
+            got = h.to_rows(filter_between(s, rel, "ts", rng.start, rng.end).native)
+            assert [r["v"] for r in got] == [1]
+            self.put(s, h, "t_rr_zone", seed, schema, WriteConfig("overwrite"), "seed")
+            cfg = WriteConfig("append", replace_range=rng)
+            self.put(s, h, "t_rr_zone", batch, schema, cfg, "r:zone")
+            assert sorted(r["v"] for r in self.table_rows(s, h, "t_rr_zone")) == [0, 2, 9]
 
     @pytest.mark.parametrize("strategy", ["append", "overwrite", "merge", "replace_partitions"])
     def test_a_replayed_token_writes_once(

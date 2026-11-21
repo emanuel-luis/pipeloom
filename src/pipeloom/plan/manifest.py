@@ -49,9 +49,13 @@ def node_checksum(
 
 
 def drop_unset(dumped: dict[str, Any]) -> dict[str, Any]:
-    """Additive setting: `sql_dialect` is absent while unset, so plans without it keep their hash."""
+    """Additive settings: `sql_dialect` and `incremental.interval` are absent while unset, so
+    plans without them keep their hash."""
     if dumped.get("sql_dialect") is None:
         dumped.pop("sql_dialect", None)
+    inc = dumped.get("incremental")
+    if isinstance(inc, dict) and inc.get("interval") is None:
+        inc.pop("interval", None)
     return dumped
 
 
