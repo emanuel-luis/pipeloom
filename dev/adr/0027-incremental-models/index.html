@@ -2330,6 +2330,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#null-cursor-values-amendment-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Null cursor values (amendment, 1.3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2412,6 +2429,18 @@
 <li>The batch maximum is computed on the filtered input, so a lazy engine scans it twice.</li>
 <li>A first build that fails the merge key check does so on the first run, not the second.</li>
 </ul>
+<h3 id="null-cursor-values-amendment-13">Null cursor values (amendment, 1.3)<a class="headerlink" href="#null-cursor-values-amendment-13" title="Permanent link">&para;</a></h3>
+<p>Until 1.3 a row whose cursor column is null never reached the body once a watermark existed: the filter is <code>column &gt;= bound</code> or <code>column &gt; bound</code>, a comparison with null is not true, and every engine drops the row (polars, pandas, DuckDB, Spark and the memory engine; the engine contract already checks <code>filter_since</code> with a null row, and the <code>EngineSession.filter_since</code> docstring says null rows are dropped). Nothing reported it. A first batch, with no watermark and no filter, kept such rows. The watermark ignores nulls because <code>max</code> does.</p>
+<p><code>incremental.on_cursor_value_missing</code> makes the choice explicit. It is optional and watermark models only:</p>
+<ul>
+<li>Unset: the behavior above, unchanged and unreported. This is the default, so no existing project changes.</li>
+<li><code>raise</code>: the unit fails with PLM210 (permanent, never retried unless <code>retry_on: any</code>) when the input holds a null cursor, on the first batch too. The message names the model, the input and the count. Nothing is written.</li>
+<li><code>include</code>: null rows pass the filter in every batch. They are reprocessed every run, because no watermark can exclude them; use merge on a key, or accept duplicates with append. The null never moves the watermark.</li>
+<li><code>exclude</code>: null rows are dropped from every batch, the first included. The count goes to the optional run_results field <code>rows_null_cursor</code> and to a <code>model.log</code> warning event, and <code>null_cursor_excluded: N rows</code> joins <code>warnings[]</code>. <code>rows_dropped</code> is not reused: it means quality drops and feeds quarantine.</li>
+</ul>
+<p><code>raise</code> and <code>exclude</code> count the nulls of the whole input before the filter, one more scan of a lazy input. <code>include</code> and the default need no count. Validation rejects the setting where it cannot act. On an interval model it is PLP417, because a null event_time is already refused with PLM206 on write (ADR-0054) and the window filter drops it. An incremental model with no <code>column</code> is already PLP402, which covers the setting too.</p>
+<p>Plugin API stays (1, 1). The two operations live in the optional protocol <code>SupportsNullCursor</code> (<code>count_nulls</code>, <code>filter_cursor</code>) with Narwhals defaults in <code>pipeloom.engine.protocols</code>; DuckDB, Spark and the memory engine implement them natively. The engine contract has a cell per mode. The JSON Schema of the config gains the optional field; the frozen 1.0 schema is unchanged.</p>
+<p>Provenance of the amendment: designed from the roadmap item and the filter behavior above. No code from other projects was used.</p>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
 <p>Accepted.</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>

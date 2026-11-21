@@ -1081,6 +1081,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#rows-with-a-null-cursor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rows with a null cursor
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-the-run-records" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2512,6 +2523,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#rows-with-a-null-cursor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rows with a null cursor
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-the-run-records" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2699,6 +2721,25 @@ rows that arrived in between are not skipped, because the retry never looked at 
 <p>If the stored watermark changed while the unit ran, which usually means a second run on the same
 target, the unit fails with PLM203. The data is already written. Do not use <code>--no-lock</code> to run two
 runs of one target at once.</p>
+<h2 id="rows-with-a-null-cursor">Rows with a null cursor<a class="headerlink" href="#rows-with-a-null-cursor" title="Permanent link">&para;</a></h2>
+<p>A row whose cursor column is null cannot be compared with the watermark. By default pipeloom
+drops it without a word once a watermark exists. Set <code>on_cursor_value_missing</code> to choose:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">incremental</span><span class="p">:</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">raw</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">updated_at</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">on_cursor_value_missing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exclude</span><span class="w">   </span><span class="c1"># raise | include | exclude</span>
+</code></pre></div>
+<ul>
+<li><code>raise</code>: the unit fails with PLM210 and writes nothing. It also fails on the first batch.</li>
+<li><code>include</code>: null rows are in every batch. Nothing can mark them as done, so they are
+  reprocessed on every run. Pair this with a merge on a key, or you will append them again each
+  time. They never move the watermark.</li>
+<li><code>exclude</code>: null rows are dropped, counted in <code>rows_null_cursor</code> of <code>run_results.json</code> and
+  reported as a warning event.</li>
+</ul>
+<p><code>raise</code> and <code>exclude</code> count the nulls over the whole input, which is one more scan. The setting
+needs <code>column</code> (PLP402 without it). Interval models cannot set it (PLP417): a null event_time
+already fails the write (PLM206).</p>
 <h2 id="what-the-run-records">What the run records<a class="headerlink" href="#what-the-run-records" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Event <code>state.watermark_committed</code> with the column, type, before and after values, the source
@@ -2706,23 +2747,24 @@ runs of one target at once.</p>
 <li>In <code>run_results.json</code>: <code>is_incremental</code>, <code>watermark_before</code> and <code>watermark_after</code>, plus
   <code>rows_inserted</code>, <code>rows_updated</code> and <code>rows_deleted</code> for merge. See
   <a href="../../reference/artifacts/">Run artifacts</a>.</li>
+<li>With <code>on_cursor_value_missing: exclude</code>, the optional <code>rows_null_cursor</code>.</li>
 <li>Engines that can run incremental models: polars and pandas (and the in-memory test engine).</li>
 </ul>
 <h2 id="interval-models">Interval models<a class="headerlink" href="#interval-models" title="Permanent link">&para;</a></h2>
 <p>An interval model processes its input in time windows instead of after a watermark. pipeloom
 remembers which windows it has processed, so a later run fills a gap or reprocesses one window
 without duplicates (<a href="../../adr/0054-interval-incrementals/">ADR-0054</a>, since 1.3).</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@model</span><span class="p">(</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">inputs</span><span class="o">=</span><span class="p">{</span><span class="s2">"raw"</span><span class="p">:</span> <span class="n">source</span><span class="p">(</span><span class="s2">"raw"</span><span class="p">,</span> <span class="s2">"events"</span><span class="p">)},</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">materialized</span><span class="o">=</span><span class="s2">"incremental"</span><span class="p">,</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">incremental</span><span class="o">=</span><span class="p">{</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        <span class="s2">"input"</span><span class="p">:</span> <span class="s2">"raw"</span><span class="p">,</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        <span class="s2">"interval"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"event_time"</span><span class="p">:</span> <span class="s2">"ts"</span><span class="p">,</span> <span class="s2">"grain"</span><span class="p">:</span> <span class="s2">"day"</span><span class="p">,</span> <span class="s2">"begin"</span><span class="p">:</span> <span class="s2">"2026-01-01"</span><span class="p">,</span> <span class="s2">"lookback"</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="p">},</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="p">)</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">daily_events</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">raw</span><span class="p">):</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">interval</span>  <span class="c1"># the window this call runs, in UTC</span>
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="k">return</span> <span class="n">raw</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nd">@model</span><span class="p">(</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">inputs</span><span class="o">=</span><span class="p">{</span><span class="s2">"raw"</span><span class="p">:</span> <span class="n">source</span><span class="p">(</span><span class="s2">"raw"</span><span class="p">,</span> <span class="s2">"events"</span><span class="p">)},</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">materialized</span><span class="o">=</span><span class="s2">"incremental"</span><span class="p">,</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">incremental</span><span class="o">=</span><span class="p">{</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        <span class="s2">"input"</span><span class="p">:</span> <span class="s2">"raw"</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        <span class="s2">"interval"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"event_time"</span><span class="p">:</span> <span class="s2">"ts"</span><span class="p">,</span> <span class="s2">"grain"</span><span class="p">:</span> <span class="s2">"day"</span><span class="p">,</span> <span class="s2">"begin"</span><span class="p">:</span> <span class="s2">"2026-01-01"</span><span class="p">,</span> <span class="s2">"lookback"</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="p">},</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="p">)</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">daily_events</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">raw</span><span class="p">):</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">interval</span>  <span class="c1"># the window this call runs, in UTC</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="k">return</span> <span class="n">raw</span>
 </code></pre></div>
 <ul>
 <li><code>event_time</code> is a column of the input and of the output. It must be a timestamp or a date;
@@ -2767,7 +2809,7 @@ Each entry of a failed window also has <code>failed: true</code>.</p>
 <h2 id="backfilling-a-range">Backfilling a range<a class="headerlink" href="#backfilling-a-range" title="Permanent link">&para;</a></h2>
 <p><code>pipeloom backfill</code> runs interval models over a range you name instead of from <code>begin</code> to now
 (since 1.3):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pipeloom<span class="w"> </span>backfill<span class="w"> </span>--select<span class="w"> </span>daily_events<span class="w"> </span>--start<span class="w"> </span><span class="m">2026</span>-01-01<span class="w"> </span>--end<span class="w"> </span><span class="m">2026</span>-02-01
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>pipeloom<span class="w"> </span>backfill<span class="w"> </span>--select<span class="w"> </span>daily_events<span class="w"> </span>--start<span class="w"> </span><span class="m">2026</span>-01-01<span class="w"> </span>--end<span class="w"> </span><span class="m">2026</span>-02-01
 </code></pre></div>
 <ul>
 <li><code>--start</code> and <code>--end</code> are ISO dates or date-times; a value without an offset is UTC. The range
