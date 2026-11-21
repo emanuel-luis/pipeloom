@@ -8,7 +8,6 @@ All notable changes to this project are documented here. The format follows
 
 ### Documentation
 
-- A new example, [Late-arriving events](docs/examples/events_incremental.md): an incremental model with a watermark, a lookback and a merge on a key, run on DuckDB and polars, with a walkthrough test that asserts watermarks, row counts and an idempotent rerun.
 
 ## [1.1.0] - 2026-11-21
 

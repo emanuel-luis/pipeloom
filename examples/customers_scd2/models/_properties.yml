@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+models:
+  - name: dim_customers
+    description: >-
+      Customer history from daily CRM snapshots. A change in name, city or tier closes the current
+      version and opens a new one. A closed customer has its current version closed.
