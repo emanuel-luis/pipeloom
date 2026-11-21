@@ -12,6 +12,10 @@ All notable changes to this project are documented here. The format follows
 - An engine author guide, [Writing an engine](docs/plugins/writing-an-engine.md), and a generated [capability matrix](docs/reference/engine-capabilities.md) built from the `EngineCapabilities` of every installed engine.
 - CI installs only the pipeloom and pipeloom-polars wheels in a fresh venv and runs the kit against polars from outside the repository tree.
 
+### Fixed
+
+- pipeloom-polars depends on `tzdata` on Windows. Windows has no system time zone database, so in an environment without pandas, reading timezone-aware timestamps back as Python rows failed with `ZoneInfoNotFoundError`.
+
 ### Documentation
 
 - ADR-0016 amendment 1.1 and the stability page: the experimental tier (reserved `PLW` prefix), supported releases, and the optional protocol member rule. The architecture non-goals list for after 1.0 is updated.

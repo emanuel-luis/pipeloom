@@ -3978,12 +3978,14 @@ source = { editable = "plugins/pipeloom-polars" }
 dependencies = [
     { name = "pipeloom" },
     { name = "polars" },
+    { name = "tzdata", marker = "sys_platform == 'win32'" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "pipeloom", editable = "." },
     { name = "polars", specifier = ">=1.30,<3" },
+    { name = "tzdata", marker = "sys_platform == 'win32'", specifier = ">=2024.1" },
 ]
 
 [[package]]
