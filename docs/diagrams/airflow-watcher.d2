@@ -6,15 +6,15 @@
 
 direction: right
 
-producer: "pipeloom_run producer" {class: process}
-store: "Shared artifacts root" {class: store}
-w1: "stg_orders watcher" {class: process}
-w2: "fct_orders watcher" {class: process}
-fin: pipeloom_finalize {class: process}
+producer: "Producer\ntask" {class: process}
+store: "Shared\nartifacts root" {class: store}
+w1: "stg_orders\nwatcher" {class: process}
+w2: "fct_orders\nwatcher" {class: process}
+fin: "finalize" {class: process}
 
 producer -> store: unit files
-store -> w1: reads {class: meta}
-store -> w2: reads {class: meta}
+store -> w1 {class: meta}
+store -> w2 {class: meta}
 w1 -> w2
-w2 -> fin: all_done
+w2 -> fin
 producer -> fin

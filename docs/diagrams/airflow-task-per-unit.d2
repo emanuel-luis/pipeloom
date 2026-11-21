@@ -7,14 +7,14 @@
 direction: right
 
 manifest: manifest.json {class: source}
-u1: "stg_orders task" {class: process}
-u2: "fct_orders task" {class: process}
-fin: pipeloom_finalize {class: process}
-store: "Shared artifacts root" {class: store}
+u1: "stg_orders\ntask" {class: process}
+u2: "fct_orders\ntask" {class: process}
+fin: "finalize" {class: process}
+store: "Shared\nartifacts root" {class: store}
 
-manifest -> u1: parse time {class: meta}
+manifest -> u1 {class: meta}
 u1 -> u2: all_success
 u2 -> fin: all_done
-u1 -> store: unit file
-u2 -> store: unit file
-fin -> store: run results
+u1 -> store
+u2 -> store
+fin -> store

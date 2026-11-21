@@ -1,23 +1,25 @@
-# The seven lifecycle stages and the artifacts they write. The error-code prefixes of each stage
-# are a table next to the diagram. Illustrates section 3 (lifecycle) of docs/architecture.md.
+# The seven lifecycle stages and the artifacts they write. The full stage names and the
+# error-code prefixes of each stage are a table next to the diagram. Illustrates section 3
+# (lifecycle) of docs/architecture.md. Artifact edges are written `artifact <- stage` so ELK puts
+# each artifact in an earlier layer instead of adding a column (arrows still point at the file).
 ...@_style
 (** -> **)[*].style.font-size: 14
 
 direction: right
 
 load: "1. Load" {class: process}
-schema: "2. Validate schema" {class: process}
-resolve: "3. Resolve graph" {class: process}
-vplan: "4. Validate plan" {class: process}
+schema: "2. Schema" {class: process}
+resolve: "3. Resolve" {class: process}
+vplan: "4. Validate" {class: process}
 compile: "5. Compile" {class: process}
 execute: "6. Execute" {class: process}
 finalize: "7. Finalize" {class: process}
 
-manifest: manifest.json {class: store}
-units: "Unit attempt files" {class: store}
-results: run_results.json {class: store}
+manifest: "manifest\n.json" {class: store}
+units: "Attempt\nfiles" {class: store}
+results: "run_results\n.json" {class: store}
 
 load -> schema -> resolve -> vplan -> compile -> execute -> finalize
-compile -> manifest
-execute -> units
-finalize -> results
+manifest <- compile
+units <- execute
+results <- finalize

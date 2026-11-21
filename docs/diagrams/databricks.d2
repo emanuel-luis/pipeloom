@@ -1,28 +1,24 @@
 # One plan becomes one Databricks job: rendered as bundle YAML or deployed directly; one task per
-# unit, a finalize task, artifacts on a UC Volume. Illustrates section 12 (ADR-0011, amended by
-# ADR-0035 and ADR-0036) of docs/architecture.md.
+# unit, a finalize task, artifacts on a UC Volume, task values. Illustrates section 12
+# (ADR-0011, amended by ADR-0035 and ADR-0036) of docs/architecture.md.
 ...@_style
 (** -> **)[*].style.font-size: 14
 
 direction: right
 
-plan: "Plan, manifest" {class: process}
-renderer: "Job renderer" {class: process}
-bundle: "Bundle YAML" {class: source}
-deploy: "databricks deploy" {class: process}
-job: "Databricks job" {class: external}
-tasks: "Task per unit" {class: process}
-fin: "Finalize task" {class: process}
-volume: "UC Volume" {class: store}
-tv: "Task values" {class: serving}
+plan: "Plan" {class: process}
+bundle: "Bundle\nYAML" {class: source}
+job: "Databricks\njob" {class: external}
+tasks: "Task per\nunit" {class: process}
+fin: "Finalize\ntask" {class: process}
+volume: "UC\nVolume" {class: store}
+tv: "Task\nvalues" {class: serving}
 
-plan -> renderer
-renderer -> bundle
-renderer -> deploy
-bundle -> job: bundle deploy {class: meta}
-deploy -> job
-job -> tasks: run
-tasks -> fin: all done
-tasks -> volume: unit files
+plan -> bundle
+bundle -> job {class: meta}
+plan -> job: deploy
+job -> tasks
+tasks -> fin
+tasks -> volume
 tasks -> tv
-fin -> volume: run results
+fin -> volume

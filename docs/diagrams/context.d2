@@ -6,14 +6,14 @@
 direction: right
 
 author: Author {class: actor}
-project: "YAML and @model" {class: source}
-core: "pipeloom core" {class: process}
+project: "YAML,\n@model" {class: source}
+core: "pipeloom\ncore" {class: process}
 engines: "polars, pandas,\nDuckDB, Spark" {class: process}
-data: "Tables, state" {class: store}
-artifacts: "Run artifacts" {class: store}
+data: "Tables,\nstate" {class: store}
+artifacts: "Run\nartifacts" {class: store}
 sinks: "Event sinks" {class: serving}
-lineage: OpenLineage {class: external}
-orch: "Databricks, Airflow" {class: external}
+lineage: "OpenLineage" {class: external}
+orch: "Databricks,\nAirflow" {class: external}
 
 author -> project
 project -> core

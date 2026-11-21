@@ -7,14 +7,14 @@
 direction: right
 
 state: "State store" {class: store}
-source: "Input table" {class: source}
-filter: "Filter rows" {class: process}
-body: "Model body" {class: process}
-write: "Merge or append" {class: process}
-target: "Target table" {class: store}
-commit: "Commit watermark" {class: process}
+source: "Input\ntable" {class: source}
+filter: "Filter\nnew rows" {class: process}
+body: "Model\nbody" {class: process}
+write: "Merge or\nappend" {class: process}
+target: "Target\ntable" {class: store}
+commit: "Commit\nwatermark" {class: process}
 
-state -> filter: "watermark - lookback" {class: meta}
+state -> filter: watermark {class: meta}
 source -> filter -> body -> write -> target
-write -> commit: after write
+write -> commit
 commit -> state: batch max {class: meta}

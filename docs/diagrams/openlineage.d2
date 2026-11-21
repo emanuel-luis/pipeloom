@@ -1,20 +1,18 @@
 # Lineage: the openlineage sink turns run and unit events into OpenLineage runs (one job per
-# model) and sends them over a transport to Marquez; under Airflow the provider reports the tasks.
-# Illustrates docs/guide/openlineage.md, ADR-0046 and examples/marquez.
+# model) and sends them over a transport such as HTTP to Marquez; under Airflow the provider
+# reports the tasks. Illustrates docs/guide/openlineage.md, ADR-0046 and examples/marquez.
 ...@_style
 (** -> **)[*].style.font-size: 14
 
 direction: right
 
-run: "pipeloom run" {class: process}
-bus: "Event bus" {class: process}
-sink: "openlineage sink" {class: serving}
-transport: "HTTP transport" {class: process}
+run: "pipeloom\nrun" {class: process}
+sink: "openlineage\nsink" {class: serving}
 marquez: Marquez {class: external}
-ui: "Lineage graph" {class: serving}
-airflow: "Airflow provider" {class: external}
+ui: "Lineage\ngraph" {class: serving}
+airflow: "Airflow\nprovider" {class: external}
 
-run -> bus -> sink
-sink -> transport: "jobs, datasets, facets"
-transport -> marquez -> ui
-airflow -> marquez: Airflow tasks {class: meta}
+run -> sink: events
+sink -> marquez: "jobs, datasets"
+marquez -> ui
+airflow -> marquez {class: meta}

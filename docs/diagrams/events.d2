@@ -5,16 +5,16 @@
 
 direction: right
 
-emit: "Stages, scheduler, models" {class: process}
+emit: "Stages,\nscheduler,\nmodels" {class: process}
 bus: EventBus {class: process}
-redact: "Redaction filter" {class: check}
+redact: "Redaction\nfilter" {class: check}
 console: "console sink" {class: serving}
 jsonl: "jsonl sink" {class: serving}
 file: "file sink" {class: serving}
 arts: "artifacts sink" {class: serving}
 ol: "openlineage sink" {class: serving}
-results: "Run artifacts" {class: store}
-backend: "OpenLineage backend" {class: external}
+results: "Run\nartifacts" {class: store}
+backend: "OpenLineage\nbackend" {class: external}
 
 emit -> bus -> redact
 redact -> console
