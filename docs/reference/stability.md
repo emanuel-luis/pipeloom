@@ -12,7 +12,8 @@ Within a major version these do not change in a breaking way:
 - JSON output that carries a version tag.
 - `config_version: 1`. It is the only accepted value through 1.x.
 - The artifact schemas `pipeloom.manifest/1`, `pipeloom.run_results/1`, `pipeloom.event/1`,
-  `pipeloom.unit_states/1`, `pipeloom.unit_graph/1` and `pipeloom.compile_result/1`, and the event
+  `pipeloom.unit_states/1`, `pipeloom.unit_graph/1`, `pipeloom.compile_result/1` and (from 1.2)
+  `pipeloom.plan_diff/1`, and the event
   types.
 - Plugin API 1.0 for plugin authors: the protocols, `PluginSpec`, the capabilities and
   `pipeloom.testing`. A plugin works with a core that has the same major and a minor equal to or

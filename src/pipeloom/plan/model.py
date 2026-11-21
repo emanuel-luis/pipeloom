@@ -31,6 +31,24 @@ class PythonBody(_Frozen):
     """The module's file, POSIX and relative to the project dir."""
 
 
+class SqlQuery(_Frozen):
+    sql: str
+    """The query text as written."""
+    dialect: str | None = None
+    """The call's literal `dialect=`; None when the call sets none."""
+
+
+class PlanSql(_Frozen):
+    """The literal `ctx.sql("...")` queries of a model's function (ADR-0052), for `plan --diff`."""
+
+    shell: str
+    """The code digest with these query strings blanked."""
+    queries: tuple[SqlQuery, ...]
+    returned: bool = False
+    """True when the function has exactly one literal query, called with at most `dialect=`,
+    and returns that call as it is. Only then can a query change be non-breaking."""
+
+
 class PlanNode(_Frozen):
     unique_id: str
     name: str
@@ -56,6 +74,9 @@ class PlanNode(_Frozen):
     1.0 manifests; never part of the plan hash."""
     checksum_version: int | None = None
     """How `checksums` was computed; absent with it."""
+    sql: PlanSql | None = None
+    """Absent unless the model's function passes a string literal to `ctx.sql`. Never part of
+    the plan hash."""
 
 
 class PlanSource(_Frozen):

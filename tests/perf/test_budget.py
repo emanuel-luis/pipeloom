@@ -17,9 +17,13 @@ from typing import Any
 import pytest
 
 from pipeloom.api import Project
+from pipeloom.artifacts.plan_diff import diff_plans
+from pipeloom.artifacts.reference import load_reference
 from pipeloom.config.load import ProjectOptions
+from pipeloom.diagnostics import Report
 from pipeloom.discovery import Discovery
-from pipeloom.plan.manifest import manifest_bytes
+from pipeloom.graph.selectors import Selection
+from pipeloom.plan.manifest import manifest_bytes, write_manifest
 from tests.conftest import make_project
 
 pytestmark = [
@@ -45,7 +49,7 @@ BUDGETS = {
     "compile": 3.0,
     "compile_stable": 2.0,
     "compile_warm": 6.0,
-    # "plan": filled in with the `plan --diff` change (budget for a 1-model change on N models)
+    "plan": 6.0,  # plan --diff after a 1-model change: reference load, compile and diff
 }
 
 CONFIG = """\
@@ -140,6 +144,20 @@ def test_thousand_model_project_stays_inside_the_budget(tmp_path: Path) -> None:
     timed("compile_stable", t, lambda: manifest_bytes(plan, stable=True))
     # a second process finds the discovery cache the first one wrote
     timed("compile_warm", t, lambda: Project(opts).compile())
+    write_manifest(plan, root / "state/manifest.json", stable=True)
+    m = root / "models/f10/m0500.py"
+    m.write_text(m.read_text().replace("select id from", "select id, 1 as k from"))
+
+    def plan_diff() -> list[Any]:
+        report = Report()
+        ref = load_reference(root / "state", "perf", report)
+        assert ref is not None, report.sorted()
+        current = Project(opts).compile(Selection(state=ref.selector_state())).value
+        assert current is not None
+        return diff_plans(ref.plan, current, None, report)
+
+    changes = timed("plan", t, plan_diff)
+    assert [c.category for c in changes if c.name == "m0500"] == ["non-breaking"]
     print("perf seconds:", {k: round(v, 3) for k, v in t.items()})
     over = {k: (round(t[k], 2), b * scale()) for k, b in BUDGETS.items() if t[k] > b * scale()}
     assert not over, f"over budget (seconds, limit): {over}"

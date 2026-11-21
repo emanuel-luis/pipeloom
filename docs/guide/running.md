@@ -131,6 +131,47 @@ The dev loop:
 pipeloom run --target dev --state state -s "state:modified+" --defer
 ```
 
+## Reviewing a change: plan --diff
+
+`pipeloom plan --diff --state state` compiles the project and sorts each model that differs from
+the reference into one category
+([ADR-0052](../adr/0052-split-checksums-and-change-categories.md)):
+
+| Category | Meaning |
+|---|---|
+| `new` | The reference does not have the model. |
+| `removed` | The project no longer has the model. |
+| `breaking` | The data the model writes may change for its readers. |
+| `non-breaking` | Readers keep what they had: a projected column added to a SQL query, a nullable contract column added, `cluster_by`, or expectations that drop no rows. |
+| `metadata` | Nothing the model writes changes: data tests, `tags`, `meta`, retries or `timeout`. |
+| `indirect-breaking` | A model above it is breaking. |
+| `indirect-non-breaking` | A model above it is non-breaking, and nothing above is breaking. |
+
+An unknown result never counts as safe. A code change is non-breaking only when the model's
+function has one string literal query and returns it as it is (`return ctx.sql("...")`),
+nothing else in its module changed, and sqlglot reads the new query as the old one plus
+projected columns, with no change to the existing columns, filters, joins or grouping. An added
+column that may change the row count (an aggregate, a subquery, a table function or an unknown
+function), or whose name the query already reads elsewhere, is breaking. Python frame code, SQL that
+sqlglot cannot parse, a missing sqlglot, and a reference compiled before 1.2 (PLG309) all count
+as breaking. In the contract, dropping or retyping a column, or changing its nullability, is
+breaking. In the config, everything not listed above is breaking, for example
+`materialized`, `write`, `incremental`, `partition_by`, `schema` and `catalog`.
+
+```text
+$ pipeloom plan --diff --state state
+model   category               parts     reason
+orders  non-breaking           code      added discount
+report  indirect-non-breaking  upstream  downstream of orders
+```
+
+`--fail-on breaking` (the default) exits 1 when a change is `breaking`, `indirect-breaking` or
+`removed`, so the command works as a gate in CI. `--fail-on any` exits 1 on any change and
+`--fail-on none` always exits 0. `--select` and `--exclude` narrow the report, and removed models
+show only without them. `--output json` prints a `pipeloom.plan_diff/1` object
+([schema](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/plan_diff.json)). `--diff` is
+the only mode of `plan` for now and is required.
+
 ## Intermediates
 
 A model with `materialized: intermediate` is persisted for the length of the run, so units in

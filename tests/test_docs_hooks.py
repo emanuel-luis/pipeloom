@@ -18,6 +18,7 @@ PAGES = [
     "schema/v1/compile_result.json",
     "schema/v1/event.json",
     "schema/v1/manifest.json",
+    "schema/v1/plan_diff.json",
     "schema/v1/project.json",
     "schema/v1/properties.json",
     "schema/v1/run_results.json",

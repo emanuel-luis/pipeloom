@@ -1,0 +1,64 @@
+{
+  "schema": "pipeloom.plan_diff/1",
+  "project": "shop",
+  "target": "dev",
+  "fail_on": "any",
+  "failed": true,
+  "counts": {
+    "new": 1,
+    "removed": 1,
+    "breaking": 1,
+    "indirect-breaking": 0,
+    "non-breaking": 1,
+    "indirect-non-breaking": 1,
+    "metadata": 0
+  },
+  "changes": [
+    {
+      "unique_id": "model.shop.a",
+      "name": "a",
+      "category": "non-breaking",
+      "parts": [
+        "code"
+      ],
+      "reason": "added w"
+    },
+    {
+      "unique_id": "model.shop.b",
+      "name": "b",
+      "category": "indirect-non-breaking",
+      "parts": [
+        "upstream"
+      ],
+      "reason": "downstream of a"
+    },
+    {
+      "unique_id": "model.shop.c",
+      "name": "c",
+      "category": "breaking",
+      "parts": [
+        "code",
+        "upstream"
+      ],
+      "reason": "Python code changed"
+    },
+    {
+      "unique_id": "model.shop.d",
+      "name": "d",
+      "category": "removed",
+      "parts": [
+        "removed"
+      ],
+      "reason": "not in the project"
+    },
+    {
+      "unique_id": "model.shop.e",
+      "name": "e",
+      "category": "new",
+      "parts": [
+        "new"
+      ],
+      "reason": "not in the reference"
+    }
+  ]
+}

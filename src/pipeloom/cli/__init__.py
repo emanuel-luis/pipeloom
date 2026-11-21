@@ -14,6 +14,7 @@ from pipeloom.cli.graph import graph
 from pipeloom.cli.init import init
 from pipeloom.cli.ls import ls
 from pipeloom.cli.new import new
+from pipeloom.cli.plan import plan
 from pipeloom.cli.plugins import plugins
 from pipeloom.cli.retry import retry
 from pipeloom.cli.run import run
@@ -35,6 +36,7 @@ main.add_command(new)
 main.add_command(validate)
 main.add_command(compile_, name="compile")
 main.add_command(ls)
+main.add_command(plan)
 main.add_command(run)
 main.add_command(retry)
 main.add_command(unit_tests, name="test")

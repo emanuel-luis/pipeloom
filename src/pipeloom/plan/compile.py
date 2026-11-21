@@ -19,6 +19,7 @@ from pipeloom.plan.checksums import (
     config_view,
     module_tree,
     part_digests,
+    sql_records,
     upstream_digest,
 )
 from pipeloom.plan.manifest import compute_plan_hash, drop_unset, node_checksum
@@ -129,6 +130,10 @@ def compile_plan(
         for uid in unit.nodes:
             unit_ids[uid].append(unit.unit_id)
 
+    refs: dict[str, list[str]] = {}
+    for m in project.models.values():
+        refs.setdefault(m.site.file, []).append(m.entry.python)
+    sql = {f: sql_records((loaded.project_dir / f).read_bytes(), r) for f, r in refs.items()}
     naming: NamingStrategy = bound.plugins["naming"].create()
     nodes: dict[str, PlanNode] = {}
     for uid, m in project.models.items():
@@ -152,6 +157,7 @@ def compile_plan(
             data_tests=None if m.entry.data_tests is None else tuple(m.entry.data_tests),
             checksums=parts[uid],
             checksum_version=CHECKSUM_VERSION,
+            sql=sql[m.site.file][m.entry.python],
         )
     sources = {
         uid: PlanSource(

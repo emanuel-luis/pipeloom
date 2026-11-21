@@ -837,7 +837,7 @@ _ACTIVE_12: Final = (
         "PLG309",
         W,
         "Split checksums missing in the reference",
-        "A state:modified.<part> selector (code, config, contract, tests or upstream) met models whose reference manifest has no split checksums, or has them from another checksum_version, as a 1.0 manifest does. For those models the selector compares the legacy checksum, so any change selects them. The message counts them. Compile the reference again with this pipeloom version.",
+        "A state:modified.<part> selector (code, config, contract, tests or upstream), or `plan --diff`, met models whose reference manifest has no split checksums, or has them from another checksum_version, as a 1.0 manifest does. For those models the selector compares the legacy checksum, so any change selects them. `plan --diff` counts any change of those models as breaking. The message counts them. Compile the reference again with this pipeloom version.",
     ),
     (
         "PLX130",

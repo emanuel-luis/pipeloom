@@ -14,6 +14,7 @@ commands are for. A test keeps this table in step with the commands.
 | `pipeloom validate` | [Inspecting a project](../guide/running.md#inspecting-a-project), [Quickstart](../quickstart.md#check-it) |
 | `pipeloom compile` | [Inspecting a project](../guide/running.md#inspecting-a-project), [Selection by state](../guide/running.md#selection-by-state-and-defer) |
 | `pipeloom ls` | [Inspecting a project](../guide/running.md#inspecting-a-project) |
+| `pipeloom plan` | [Reviewing a change](../guide/running.md#reviewing-a-change-plan-diff) |
 | `pipeloom graph` | [Inspecting a project](../guide/running.md#inspecting-a-project), [Orchestrator protocol](../guide/orchestrators.md) |
 | `pipeloom run` | [Running a pipeline](../guide/running.md) |
 | `pipeloom retry` | [Retrying a run](../guide/running.md#retrying-a-run) |
@@ -103,6 +104,8 @@ Every command takes `--log-format json` (or `PIPELOOM_LOG_FORMAT=json`): stderr 
 `pipeloom.event/1` object per line. A `diagnostic` event has an optional `explain_url`, the link to
 the code's entry on the error-code page. `pipeloom compile --output json` prints a
 `pipeloom.compile_result/1` object (manifest path and hash, plan counts) instead of the bare path.
+`pipeloom plan --diff --output json` prints a `pipeloom.plan_diff/1` object (the change category
+of each changed model).
 `pipeloom init` writes `AGENTS.md` and skills under `.agents/skills/`, and
 `pipeloom init --update-agents [DIRECTORY]` regenerates only those files in an existing project.
 

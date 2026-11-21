@@ -55,7 +55,7 @@ def drop_unset(dumped: dict[str, Any]) -> dict[str, Any]:
     return dumped
 
 
-_UNHASHED = ("checksums", "checksum_version")
+_UNHASHED = ("checksums", "checksum_version", "sql")
 """Node fields added in 1.2 that stay out of the plan hash, so 1.0 plan hashes hold."""
 
 
