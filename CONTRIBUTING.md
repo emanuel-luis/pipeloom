@@ -19,7 +19,7 @@ Run `make help` for the full list. The usual ones:
 
 - `make lint`: ruff check and format check
 - `make test`: pytest
-- `make diagrams`: render `docs/diagrams/*.d2` to SVG (run `make d2-install` once; Linux or WSL)
+- `make diagrams`: render each `docs/diagrams/<name>.d2` to `<name>.light.svg` and `<name>.dark.svg` (run `make d2-install` once; Linux or WSL)
 
 Before a pull request, run `uv run ruff check`, `uv run ruff format --check`,
 `uv run mypy --strict src` and `uv run pytest -q`.
