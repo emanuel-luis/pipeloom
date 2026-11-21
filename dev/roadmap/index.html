@@ -2339,17 +2339,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#13-intervals-and-backfills" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.3: Intervals and backfills
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#14-orchestrators-run-partitions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2642,17 +2631,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#13-intervals-and-backfills" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.3: Intervals and backfills
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#14-orchestrators-run-partitions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2782,7 +2760,7 @@
 
 
 <h1 id="roadmap">Roadmap<a class="headerlink" href="#roadmap" title="Permanent link">&para;</a></h1>
-<p>Status: plan as of 2026-11-21, written against 1.2.0. Versions 0.8 to 1.2 are delivered; this page now plans 1.3 to
+<p>Status: plan as of 2026-11-21, written against 1.3.0. Versions 0.8 to 1.3 are delivered; this page now plans 1.4 to
 1.9 and lists the breaking changes the stability policy holds back. Section 16 of <a href="../architecture/#16-roadmap">architecture.md</a> keeps the record of what each
 delivered version contains. The market research behind the plan is in <a href="../landscape/">Market landscape</a>. Items that
 change a decision name the ADR they need: ADRs up to 0050 exist and are accepted, and new ones continue from 0051.</p>
@@ -2979,7 +2957,7 @@ items are cut first.</p>
 <td>1.3</td>
 <td>Intervals and backfills</td>
 <td>Backfill a date range and rerun only the missing windows</td>
-<td>Planned</td>
+<td>Delivered</td>
 </tr>
 <tr>
 <td>1.4</td>
@@ -3052,23 +3030,15 @@ items are cut first.</p>
 <td>1.2</td>
 <td>Delivered in 1.2.0: split checksums and <code>state:modified.&lt;part&gt;</code> (<a href="../adr/0052-split-checksums-and-change-categories/">ADR-0052</a>), <code>plan --diff</code>, <code>pipeloom diff</code> (<a href="../adr/0053-table-diff/">ADR-0053</a>), canonical dataset identity (<a href="../adr/0055-canonical-dataset-identity/">ADR-0055</a>), machine-readable output and generated <code>AGENTS.md</code>, <code>ctx.sql</code> on pandas through DuckDB (<a href="../adr/0068-pandas-sql-through-duckdb/">ADR-0068</a>), performance budget, docs overhaul. The stretch items Slim CI recipe on DuckDB, <code>validate --dry-run</code>, <code>llms.txt</code> and the Coming from dbt guide did not ship and stay stretch for a later minor</td>
 </tr>
+<tr>
+<td>1.3</td>
+<td>Delivered in 1.3.0: interval incrementals, interval ledger and <code>replace_range</code> writes (<a href="../adr/0054-interval-incrementals/">ADR-0054</a>), Spark/Delta windows (<a href="../adr/0032-delta-writes-and-idempotency/">ADR-0032</a> amendment), <code>pipeloom backfill</code> and the Migrating within 1.x guide, run outcome fields (<a href="../adr/0056-run-outcome-fields/">ADR-0056</a>), <code>on_cursor_value_missing</code> (<a href="../adr/0027-incremental-models/">ADR-0027</a> amendment), plugin API (1, 1). The stretch items <code>sequence_by</code> and ignore-null updates, an EL-then-T recipe with dlt and SIGTERM process-group signaling did not ship and stay stretch for a later minor</td>
+</tr>
 </tbody>
 </table>
 <p>The full list per version is in the CHANGELOG and in section 16 of the architecture.</p>
-<p>Stretch (not shipped in 1.2, kept for a later minor): Slim CI recipe on DuckDB with a step summary and Azure DevOps, <code>validate --dry-run</code>, <code>llms.txt</code>
-from <code>docs generate</code>, a "Coming from dbt" concept-mapping guide.</p>
-<h3 id="13-intervals-and-backfills">1.3: Intervals and backfills<a class="headerlink" href="#13-intervals-and-backfills" title="Permanent link">&para;</a></h3>
-<ul>
-<li><code>incremental.interval</code> with event_time, grain, begin and lookback. Half-open UTC windows follow the rounding rules in the dbt microbatch docs. Batches run first, middle, last inside one unit, so the DAG and the renderers stay unchanged. Each interval gets its own idempotency token (for example <code>run_id:model:interval_id</code>) and its own Delta transaction version, as an amendment to ADR-0032. The range replace is an explicit <code>WriteConfig</code> field (<code>replace_range: column, start, end</code>) under the capability <code>interval_writes</code>, so an empty window or a partition coarser than the grain cannot leave stale rows or delete rows outside the window. A missing event_time fails at validation and never becomes a full scan. ADR: 0054 (amends 0032). Done when: Property tests cover the boundary +1 case, month and year truncation, and DST, and run on windows-latest (with a <code>tzdata</code> dependency). A 90-day backfill on Spark/Delta and polars writes exactly 90 windows. An empty window and a month partition under a day grain both leave other rows untouched.</li>
-<li>Interval ledger: merged intervals stored in the state store under a reserved key (document type <code>pipeloom.intervals/1</code>). The value is a list of ISO-string pairs, because the state codec does not convert datetimes nested in a list. Dev targets never write the prod ledger. The Delta store encodes values through the same codec, so the round trip holds there by code reading. ADR: 0054. Done when: The state contract suite round-trips the ledger on sqlite, json and Delta, and concurrent writers lose no interval.</li>
-<li><code>pipeloom backfill --select --start --end [--rerun missing\|all] [--on-failure stop\|continue]</code>, deterministic interval ids, <code>restate</code> for a range, and <code>--mark-done</code> to seed the ledger for a model converted from a 1.0 watermark. The <code>migrate-1.x</code> guide covers the conversion. ADR: 0054. Done when: A range with one gap reruns only the gap. <code>--rerun missing</code> after success writes nothing. A killed run resumes only the missing intervals. Converting a 1.0 watermark model reruns zero windows.</li>
-<li>Outcome fields: documented open <code>skip_reason</code> values (<code>not_selected</code>, <code>up_to_date</code>, <code>not_due</code>, <code>upstream_incomplete</code>) with their failing class listed next to the existing ones, <code>failed_upstream</code>, <code>blocking</code>, and test summaries capped at N ids. No new status. The row schema first splits into the frozen 1.0 required set and optional additions, because every row property is required today, and the test of row defaults changes in the same release. ADR: 0056. Done when: A failing blocking test gives its descendants <code>upstream_failed</code> and <code>failed_upstream</code>. The 1.0 goldens still validate.</li>
-<li><code>on_cursor_value_missing: raise\|include\|exclude</code>. ADR: 0027 (amendment). Done when: A case file for the raise code (PLM210), and a test and an engine contract cell for each of the three modes.</li>
-</ul>
-<p>Plugin API: (1, 1): optional <code>filter_between</code> in its own <code>Protocol</code> with a portable default, capability <code>interval_writes=False</code>. Validation rejects interval models on engines without it. Fallback: optional StateStore methods in the same bump.</p>
-<p>Stretch: <code>sequence_by</code> and ignore-null updates (capability <code>merge_sequencing</code> in the same (1, 1) bump; ties are an
-error), an EL-then-T recipe with dlt (its <code>end_value</code> overlaps intervals), and, on SIGTERM, signaling the whole
-process group and printing the retry command and the resume set (Job Objects or <code>CTRL_BREAK_EVENT</code> on Windows).</p>
+<p>Stretch (not shipped in 1.2 or 1.3, kept for a later minor): Slim CI recipe on DuckDB with a step summary and Azure DevOps, <code>validate --dry-run</code>, <code>llms.txt</code>
+from <code>docs generate</code>, a "Coming from dbt" concept-mapping guide, <code>sequence_by</code> and ignore-null updates, an EL-then-T recipe with dlt, SIGTERM process-group signaling.</p>
 <h3 id="14-orchestrators-run-partitions">1.4: Orchestrators run partitions<a class="headerlink" href="#14-orchestrators-run-partitions" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Typed partition spec derived from the interval. <code>partition_keys</code> in run_results, events and the OpenLineage run facet. Anchored-regex formats checked at validation. A completeness gate returns (satisfied, unreachable, reason). ADR: 0056. Done when: A bad format fails at validate. A missing upstream interval settles with <code>upstream_incomplete</code>. An up_to_date skip still emits the orchestrator signal (or a documented no-op) and counts as non-failing.</li>
@@ -3089,7 +3059,7 @@ WSL or CI.</p>
 <li><code>schema_contract</code> entities (new_table, new_column, type_change) times modes (evolve, fail, drop_value, quarantine_row), with <code>--schema-contract freeze</code> for CI. <code>on_schema_change</code> maps onto it and is deprecated with a warning code, and it keeps working through 1.x. ADR: 0059. Done when: One case per entity and mode on the shared suite. Schema changes in run_results record the entity and the mode.</li>
 <li>ODCS v3 contract export, sharing one <code>Threshold(op, value)</code> type with the anomaly checks. Lossy mappings are a warning code. Done when: An exported contract validates against the ODCS schema, and a lossy field warns.</li>
 </ul>
-<p>Plugin API: (1, 1) if the 1.3 bump is not reused.</p>
+<p>Plugin API: (1, 2), for the optional <code>Catalog.data_version</code> protocol (1.3 already moved the API to (1, 1)).</p>
 <p>Stretch: ODCS import, unit-test upgrades (partial rows, subset mode, tolerance, mocks), <code>pipeloom prune</code> (dry
 run by default, with a retention floor of at least the largest anomaly window), Unity Catalog metadata push as a diff
 (an optional <code>Catalog.apply_metadata</code> takes the next API bump).</p>
