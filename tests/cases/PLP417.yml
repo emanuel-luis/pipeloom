@@ -26,6 +26,7 @@ files:
         incremental={
             "input": "raw",
             "column": "ts",
+            "on_cursor_value_missing": "exclude",
             "interval": {"event_time": "ts", "grain": "day", "begin": "2026-01-01"},
         },
     )

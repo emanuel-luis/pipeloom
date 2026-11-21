@@ -43,7 +43,14 @@ from pipeloom.config.models import (
 )
 from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine.errors import WriteKeyError
-from pipeloom.engine.protocols import Catalog, Engine, EngineSession, filter_between
+from pipeloom.engine.protocols import (
+    Catalog,
+    Engine,
+    EngineSession,
+    count_nulls,
+    filter_between,
+    filter_cursor,
+)
 from pipeloom.engine.types import (
     Column,
     DeleteSpec,
@@ -1426,6 +1433,41 @@ class EngineContract:
             exclusive = s.filter_since(rel, "x", values[1], inclusive=False)
             assert sorted(r["x"] for r in h.to_rows(inclusive.native)) == values[1:]
             assert [r["x"] for r in h.to_rows(exclusive.native)] == values[2:]
+
+    # -- null cursor values (ADR-0027 amendment 1.3) ----------------------------------------
+
+    def test_null_cursor_raise_cell_counts_the_nulls(
+        self, h: EngineHarness, tmp_path: Path
+    ) -> None:
+        rows: list[dict[str, Any]] = [{"x": 1}, {"x": None}, {"x": 3}, {"x": None}]
+        with self.session(h, tmp_path) as s:
+            rel = s.relation(h.make_native(rows, (Column("x", "int64"),)))
+            assert count_nulls(s, rel, "x") == 2
+            clean = s.relation(h.make_native([{"x": 1}], (Column("x", "int64"),)))
+            assert count_nulls(s, clean, "x") == 0
+
+    def test_null_cursor_include_cell_keeps_the_nulls(
+        self, h: EngineHarness, tmp_path: Path
+    ) -> None:
+        rows: list[dict[str, Any]] = [{"x": 1}, {"x": 2}, {"x": 3}, {"x": None}]
+        with self.session(h, tmp_path) as s:
+            rel = s.relation(h.make_native(rows, (Column("x", "int64"),)))
+            got = filter_cursor(s, rel, "x", 2, keep_nulls=True)
+            assert sorted(r["x"] or 0 for r in h.to_rows(got.native)) == [0, 2, 3]
+            above = filter_cursor(s, rel, "x", 2, inclusive=False, keep_nulls=True)
+            assert sorted(r["x"] or 0 for r in h.to_rows(above.native)) == [0, 3]
+            assert len(h.to_rows(filter_cursor(s, rel, "x", None, keep_nulls=True).native)) == 4
+
+    def test_null_cursor_exclude_cell_drops_the_nulls(
+        self, h: EngineHarness, tmp_path: Path
+    ) -> None:
+        rows: list[dict[str, Any]] = [{"x": 1}, {"x": 2}, {"x": None}]
+        with self.session(h, tmp_path) as s:
+            rel = s.relation(h.make_native(rows, (Column("x", "int64"),)))
+            got = filter_cursor(s, rel, "x", None)
+            assert sorted(r["x"] for r in h.to_rows(got.native)) == [1, 2]
+            bounded = filter_cursor(s, rel, "x", 2)
+            assert [r["x"] for r in h.to_rows(bounded.native)] == [2]
 
     def test_max_value_is_a_plain_python_value(self, h: EngineHarness, tmp_path: Path) -> None:
         expected = {

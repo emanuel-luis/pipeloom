@@ -168,6 +168,10 @@ class IncrementalConfig(_Model):
     """Where the watermark is read from."""
     interval: IntervalConfig | None = None
     """Process the input in windows of event_time instead of after a watermark (since 1.3)."""
+    on_cursor_value_missing: Literal["raise", "include", "exclude"] | None = None
+    """Rows whose `column` is null: fail the unit, keep them in every batch, or drop and count
+    them. Unset keeps the 1.0 behavior (the watermark filter drops them, unreported). Watermark
+    models only (since 1.3)."""
 
 
 class CheckConfig(_Model):

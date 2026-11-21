@@ -322,6 +322,28 @@ class DuckDBSession:
             self._on(rel, f"SELECT * FROM {{r}} WHERE {ident(column)} {op} {literal(lower)}")
         )
 
+    def count_nulls(self, rel: Relation, column: str) -> int:
+        sql = f"SELECT count(*) AS v FROM {{r}} WHERE {ident(column)} IS NULL"
+        return int(self._fetch(self._on(rel, sql))[0]["v"])
+
+    def filter_cursor(
+        self,
+        rel: Relation,
+        column: str,
+        lower: Any,
+        *,
+        inclusive: bool = True,
+        keep_nulls: bool = False,
+    ) -> Relation:
+        c = ident(column)
+        nulls = f"{c} IS NULL"
+        if lower is None:
+            where = "TRUE" if keep_nulls else f"NOT ({nulls})"
+        else:
+            where = f"{c} {'>=' if inclusive else '>'} {literal(lower)}"
+            where = f"({where} OR {nulls})" if keep_nulls else where
+        return _rel(self._on(rel, f"SELECT * FROM {{r}} WHERE {where}"))
+
     def filter_between(self, rel: Relation, column: str, start: Any, end: Any) -> Relation:
         c = ident(column)
         return _rel(

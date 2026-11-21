@@ -59,7 +59,7 @@ ROW_DEFAULTS: Final[Mapping[str, Any]] = {
 }
 
 
-ROW_OPTIONAL: Final = ("intervals", "failed_upstream")
+ROW_OPTIONAL: Final = ("intervals", "failed_upstream", "rows_null_cursor")
 """Row fields added after 1.0 that only some rows carry (absent, not null, elsewhere)."""
 
 MAX_LISTED: Final = 20

@@ -860,7 +860,7 @@ _ACTIVE_13: Final = (
         "PLP417",
         E,
         "Interval options conflict",
-        "A model sets incremental.interval (ADR-0054) with an option the interval run cannot apply: it is not materialized incremental, its write strategy is not append (each window replaces its own range), it also sets incremental.column (the watermark column), or it declares a contract (columns) without the event_time column. The message lists each problem.",
+        "A model sets incremental.interval (ADR-0054) with an option the interval run cannot apply: it is not materialized incremental, its write strategy is not append (each window replaces its own range), it also sets incremental.column (the watermark column) or incremental.on_cursor_value_missing (both act on a watermark), or it declares a contract (columns) without the event_time column. The message lists each problem.",
     ),
     (
         "PLC514",
@@ -873,6 +873,12 @@ _ACTIVE_13: Final = (
         E,
         "Interval cannot be used",
         "An interval model cannot run a window: the event_time column is missing from the incremental input or from the model output, it is not a timestamp or date column (hour grain needs a timestamp), or the interval ledger in the state store holds something else. Nothing is read in full and the failing window writes nothing; earlier windows of the unit stay committed. A model output row whose event_time falls outside its window fails the write with PLM206 instead. Permanent.",
+    ),
+    (
+        "PLM210",
+        E,
+        "Null cursor value",
+        "A watermark model sets incremental.on_cursor_value_missing: raise (ADR-0027 amendment 1.3), and its incremental input holds rows whose cursor column is null. The message names the model and the count. Nothing is written and the watermark does not move. Fix the data, or set exclude (drop and count the rows) or include (keep them in every batch). Permanent.",
     ),
     (
         "PLX132",

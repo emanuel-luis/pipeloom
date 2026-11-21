@@ -1,0 +1,31 @@
+run: true
+plugins: ["pipeloom_polars.spec:SPEC"]
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    model_paths:
+    - src
+    targets:
+      dev:
+        engine:
+          kind: polars
+        catalog:
+          kind: filesystem
+          root: wh
+  src/m.py: |
+    import polars as pl
+    from pipeloom import model, ref
+
+    @model
+    def raw(ctx):
+        return pl.LazyFrame({"id": [1, 2], "updated_at": [1, None]})
+
+    @model(
+        inputs={"raw": ref("raw")},
+        materialized="incremental",
+        incremental={"input": "raw", "column": "updated_at", "on_cursor_value_missing": "raise"},
+    )
+    def events(ctx, raw):
+        return raw

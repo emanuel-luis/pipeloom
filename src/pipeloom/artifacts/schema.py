@@ -318,6 +318,11 @@ def _row() -> dict[str, Any]:
             "failure skipped this one, or <unit_id>.<data_test> when a blocking data test "
             "failed. Absent on other rows.",
         },
+        "rows_null_cursor": {
+            **counter,
+            "description": "Watermark models with on_cursor_value_missing: exclude (since 1.3, "
+            "ADR-0027): input rows dropped because their cursor column is null. Absent otherwise.",
+        },
     }
     return {"type": "object", "properties": props, "required": list(ROW_REQUIRED)}
 
@@ -500,11 +505,12 @@ def manifest_schema() -> dict[str, Any]:
     # `_config` drops `sql_dialect` while it is None.
     config["properties"]["sql_dialect"] = {**_STRING, "description": "Absent while unset."}
     config["required"] = list(MANIFEST_CONFIG_REQUIRED)
-    # `drop_unset` drops `incremental.interval` while it is None (since 1.3).
-    interval = defs["IncrementalConfig"]["properties"]["interval"]
-    interval.pop("default", None)
-    interval["anyOf"] = [a for a in interval["anyOf"] if a.get("type") != "null"]
-    interval["description"] = interval.get("description", "") + " Absent while unset."
+    # `drop_unset` drops these `incremental` settings while they are None (since 1.3).
+    for name in ("interval", "on_cursor_value_missing"):
+        unset = defs["IncrementalConfig"]["properties"][name]
+        unset.pop("default", None)
+        unset["anyOf"] = [a for a in unset["anyOf"] if a.get("type") != "null"]
+        unset["description"] = unset.get("description", "") + " Absent while unset."
     # `DataTestConfig` drops `blocking` while it is None (since 1.3, ADR-0056). Its wrap
     # serializer hides the fields from the serialization schema, so take the validation one.
     test = DataTestConfig.model_json_schema(ref_template=_DEFS + "{model}", mode="validation")

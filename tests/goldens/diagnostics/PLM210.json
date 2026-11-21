@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLM210",
+    "severity": "error",
+    "message": "model 'events': input 'raw' has 1 rows with a null 'updated_at' and on_cursor_value_missing is raise: pipeloom.runtime.incremental.IncrementalError: 1 null values",
+    "hint": "fix the data, or set on_cursor_value_missing to exclude or include",
+    "location": {
+      "file": "src/m.py",
+      "line": 8,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {
+      "unit": "events",
+      "category": "permanent"
+    }
+  }
+]

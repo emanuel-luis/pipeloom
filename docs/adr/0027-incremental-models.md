@@ -40,6 +40,23 @@ New event `state.watermark_committed` (column, dtype, before, after, source, see
 - The batch maximum is computed on the filtered input, so a lazy engine scans it twice.
 - A first build that fails the merge key check does so on the first run, not the second.
 
+### Null cursor values (amendment, 1.3)
+
+Until 1.3 a row whose cursor column is null never reached the body once a watermark existed: the filter is `column >= bound` or `column > bound`, a comparison with null is not true, and every engine drops the row (polars, pandas, DuckDB, Spark and the memory engine; the engine contract already checks `filter_since` with a null row, and the `EngineSession.filter_since` docstring says null rows are dropped). Nothing reported it. A first batch, with no watermark and no filter, kept such rows. The watermark ignores nulls because `max` does.
+
+`incremental.on_cursor_value_missing` makes the choice explicit. It is optional and watermark models only:
+
+- Unset: the behavior above, unchanged and unreported. This is the default, so no existing project changes.
+- `raise`: the unit fails with PLM210 (permanent, never retried unless `retry_on: any`) when the input holds a null cursor, on the first batch too. The message names the model, the input and the count. Nothing is written.
+- `include`: null rows pass the filter in every batch. They are reprocessed every run, because no watermark can exclude them; use merge on a key, or accept duplicates with append. The null never moves the watermark.
+- `exclude`: null rows are dropped from every batch, the first included. The count goes to the optional run_results field `rows_null_cursor` and to a `model.log` warning event, and `null_cursor_excluded: N rows` joins `warnings[]`. `rows_dropped` is not reused: it means quality drops and feeds quarantine.
+
+`raise` and `exclude` count the nulls of the whole input before the filter, one more scan of a lazy input. `include` and the default need no count. Validation rejects the setting where it cannot act. On an interval model it is PLP417, because a null event_time is already refused with PLM206 on write (ADR-0054) and the window filter drops it. An incremental model with no `column` is already PLP402, which covers the setting too.
+
+Plugin API stays (1, 1). The two operations live in the optional protocol `SupportsNullCursor` (`count_nulls`, `filter_cursor`) with Narwhals defaults in `pipeloom.engine.protocols`; DuckDB, Spark and the memory engine implement them natively. The engine contract has a cell per mode. The JSON Schema of the config gains the optional field; the frozen 1.0 schema is unchanged.
+
+Provenance of the amendment: designed from the roadmap item and the filter behavior above. No code from other projects was used.
+
 ## Status
 
 Accepted.

@@ -162,6 +162,58 @@ def filter_between(
 
 
 @runtime_checkable
+class SupportsNullCursor(Protocol):
+    """Optional session members, plugin API (1, 1) (ADR-0027 amendment 1.3). Reach them through
+    `count_nulls` and `filter_cursor`, which fall back to Narwhals."""
+
+    def count_nulls(self, rel: Relation, column: str) -> int:
+        """Rows whose `column` is null."""
+        ...
+
+    def filter_cursor(
+        self,
+        rel: Relation,
+        column: str,
+        lower: Any,
+        *,
+        inclusive: bool = True,
+        keep_nulls: bool = False,
+    ) -> Relation:
+        """`filter_since`, but null rows are kept when `keep_nulls`. `lower` None means no bound:
+        only the nulls are decided."""
+        ...
+
+
+def count_nulls(session: EngineSession, rel: Relation, column: str) -> int:
+    """The session's own `count_nulls`, else the portable count (Narwhals frames)."""
+    if isinstance(session, SupportsNullCursor):
+        return session.count_nulls(rel, column)
+    from pipeloom.engine import portable  # narwhals loads only when a run needs it
+
+    return portable.count_nulls(rel.native, column)
+
+
+def filter_cursor(
+    session: EngineSession,
+    rel: Relation,
+    column: str,
+    lower: Any,
+    *,
+    inclusive: bool = True,
+    keep_nulls: bool = False,
+) -> Relation:
+    """The session's own `filter_cursor`, else the portable filter (Narwhals frames)."""
+    if isinstance(session, SupportsNullCursor):
+        return session.filter_cursor(rel, column, lower, inclusive=inclusive, keep_nulls=keep_nulls)
+    from pipeloom.engine import portable
+
+    native = portable.filter_cursor(
+        rel.native, column, lower, inclusive=inclusive, keep_nulls=keep_nulls
+    )
+    return Relation(native, rel.engine, rel.lazy)
+
+
+@runtime_checkable
 class Engine(Protocol):
     name: str
     version: str

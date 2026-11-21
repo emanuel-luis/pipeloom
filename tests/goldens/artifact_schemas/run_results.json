@@ -260,6 +260,13 @@
             "null"
           ]
         },
+        "rows_null_cursor": {
+          "description": "Watermark models with on_cursor_value_missing: exclude (since 1.3, ADR-0027): input rows dropped because their cursor column is null. Absent otherwise.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "rows_quarantined": {
           "type": [
             "integer",
