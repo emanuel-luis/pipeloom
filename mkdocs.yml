@@ -57,4 +57,5 @@ nav:
       - Stability and deprecations: reference/stability.md
   - Architecture: architecture.md
   - Roadmap: roadmap.md
+  - Market landscape: landscape.md
   - Decisions: adr/README.md

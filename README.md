@@ -68,6 +68,7 @@ Every distribution is released together and carries the same version.
 ## Documentation
 
 - [Documentation site](https://emanuel-luis.github.io/pipeloom/latest/): quickstart, running a pipeline, incremental models, write strategies, data quality, retries and cancellation, command line, JSON Schema, run artifacts and error codes
+- [Roadmap](docs/roadmap.md) and [Market landscape](docs/landscape.md)
 - [Architecture](docs/architecture.md)
 - [Architecture decision records](docs/adr/README.md)
 - [Diagrams](docs/diagrams/)
@@ -87,8 +88,17 @@ Every distribution is released together and carries the same version.
 | 0.8 | `init`, `new model` and editor setup, `explain`, `state:modified` and `--defer`, `retry --from`, `docs generate` and `serve` |
 | 0.9 | Python-first models (`@model`, `ctx.sql`), contracts, unit and data tests, `build`, SCD2, OpenLineage, run history and alerts, Airflow WATCHER mode |
 | 1.0 (current) | Stable config, plugin API (1, 0), published artifact schemas including the manifest, the orchestrator protocol and `graph --units`, the stability and deprecation policy |
+| 1.1 | Planned: DuckDB engine, conformance kit, `pipeloom demo` |
+| 1.2 | Planned: split checksums, `plan --diff`, `pipeloom diff`, machine-readable diagnostics |
+| 1.3 | Planned: interval incrementals, interval ledger, `pipeloom backfill`, outcome fields |
+| 1.4 | Planned: partitions in artifacts, Airflow and Databricks updates, `pipeloom-dagster` |
+| 1.5 | Planned: freshness, anomaly and reconcile checks, `--skip-unchanged`, schema contracts |
+| 1.6 | Planned: column lineage, OpenLineage facets, OpenTelemetry sink |
+| 1.7 | Planned: read layer, MCP server, `pipeloom ui` as 1.7.x |
+| 1.8 | Planned: Delta without a cluster, Iceberg on Spark |
+| 1.9 | Planned: language server and VS Code extension |
 
-Details per milestone are in the [roadmap](docs/roadmap.md).
+The decisions behind the plan are in section 6 of the [roadmap](docs/roadmap.md). Details per milestone are in the roadmap, and the market research behind it is in [Market landscape](docs/landscape.md).
 
 ## Contributing
 
