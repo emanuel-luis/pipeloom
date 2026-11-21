@@ -85,6 +85,7 @@ nav:
       - Retries, timeouts and cancellation: guide/retries-and-cancellation.md
       - Docs site: guide/docs-site.md
       - Run history: guide/run-history.md
+      - Table diff: guide/table-diff.md
       - Alerts with the webhook sink: guide/alerts.md
       - Migrating from 0.8: guide/migrate-0.9.md
       - Lineage with OpenLineage: guide/openlineage.md

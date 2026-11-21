@@ -726,3 +726,108 @@ def split_drops(
         [d.name for d in drops],
         flags,
     )
+
+
+DIFF_PREFIX = "__pipeloom_"
+"""Prefix of the helper columns of `keyed_diff`, so they never collide with a key column."""
+
+
+@dataclass(frozen=True)
+class KeyedDiff:
+    """Native frames of a keyed comparison of two frames (ADR-0053), each of the inputs' kind.
+    Rows with a null key and keys that repeat on either side are left out of the other frames."""
+
+    null_keys: tuple[Any, Any]
+    """Per side, the rows whose key has a null."""
+    duplicates: tuple[Any, Any]
+    """Per side, one row per key that occurs more than once: the key columns."""
+    source_only: Any
+    """Source rows whose key the target lacks."""
+    target_only: Any
+    """Target rows whose key the source lacks."""
+    stats: Any
+    """One row over the key matches: `rows`, `partial`, then `d0`, `d1`, ... per compared column,
+    the number of rows where that column differs."""
+    partial: Any
+    """Key matches with a difference: the key columns, then `s{i}`, `t{i}` and `d{i}` (the
+    source value, the target value and whether they differ) per compared column."""
+
+
+def keyed_diff(source: Any, target: Any, keys: Sequence[str], columns: Sequence[str]) -> KeyedDiff:
+    """Compare two frames by `keys` over `columns` (present on both sides). Equality is
+    null-safe: two nulls are equal, a null and a value differ."""
+    key_cols = list(keys)
+    has_null = nw.any_horizontal(*(nw.col(k).is_null() for k in key_cols), ignore_nulls=True)
+
+    def split(native: Any) -> tuple[Any, Any, Any]:
+        frame = nw.from_native(native)
+        nulls, keyed = frame.filter(has_null), frame.filter(~has_null)
+        dupes = (
+            keyed.group_by(key_cols)
+            .agg(nw.len().alias(DIFF_PREFIX + "n"))
+            .filter(nw.col(DIFF_PREFIX + "n") > 1)
+        ).select(key_cols)
+        return nulls, keyed, dupes
+
+    s_nulls, s_keyed, s_dupes = split(source)
+    t_nulls, t_keyed, t_dupes = split(target)
+    s_single = s_keyed.join(s_dupes, on=key_cols, how="anti").join(t_dupes, on=key_cols, how="anti")
+    t_single = t_keyed.join(t_dupes, on=key_cols, how="anti").join(s_dupes, on=key_cols, how="anti")
+    s_keys, t_keys = s_keyed.select(key_cols).unique(), t_keyed.select(key_cols).unique()
+    named = list(enumerate(columns))
+    joined = s_single.select(
+        *key_cols, *(nw.col(c).alias(f"{DIFF_PREFIX}s{i}") for i, c in named)
+    ).join(
+        t_single.select(*key_cols, *(nw.col(c).alias(f"{DIFF_PREFIX}t{i}") for i, c in named)),
+        on=key_cols,
+        how="inner",
+    )
+    differs = [
+        ~((nw.col(f"{DIFF_PREFIX}s{i}") == nw.col(f"{DIFF_PREFIX}t{i}")).fill_null(False))
+        & ~(nw.col(f"{DIFF_PREFIX}s{i}").is_null() & nw.col(f"{DIFF_PREFIX}t{i}").is_null())
+        for i, _ in named
+    ]
+    if not named:  # only key columns to compare: every key match is a match
+        return KeyedDiff(
+            (nw.to_native(s_nulls), nw.to_native(t_nulls)),
+            (nw.to_native(s_dupes), nw.to_native(t_dupes)),
+            nw.to_native(s_single.join(t_keys, on=key_cols, how="anti")),
+            nw.to_native(t_single.join(s_keys, on=key_cols, how="anti")),
+            nw.to_native(joined.select(nw.len().alias("rows"), nw.len().alias("partial") * 0)),
+            nw.to_native(joined.head(0)),
+        )
+    flagged = joined.with_columns(
+        *(d.alias(f"{DIFF_PREFIX}d{i}") for (i, _), d in zip(named, differs, strict=True))
+    )
+    any_diff = nw.any_horizontal(
+        *(nw.col(f"{DIFF_PREFIX}d{i}") for i, _ in named), ignore_nulls=True
+    )
+    stats = flagged.select(
+        nw.len().alias("rows"),
+        any_diff.cast(nw.Int64).sum().alias("partial"),
+        *(
+            nw.col(f"{DIFF_PREFIX}d{i}").cast(nw.Int64).sum().alias(f"{DIFF_PREFIX}d{i}")
+            for i, _ in named
+        ),
+    )
+    partial = flagged.filter(any_diff).select(
+        *key_cols,
+        *(
+            c
+            for i, _ in named
+            for c in (f"{DIFF_PREFIX}s{i}", f"{DIFF_PREFIX}t{i}", f"{DIFF_PREFIX}d{i}")
+        ),
+    )
+    return KeyedDiff(
+        (nw.to_native(s_nulls), nw.to_native(t_nulls)),
+        (nw.to_native(s_dupes), nw.to_native(t_dupes)),
+        nw.to_native(s_single.join(t_keys, on=key_cols, how="anti")),
+        nw.to_native(t_single.join(s_keys, on=key_cols, how="anti")),
+        nw.to_native(stats),
+        nw.to_native(partial),
+    )
+
+
+def first_rows(native: Any, keys: Sequence[str], n: int) -> Any:
+    """The first `n` rows in `keys` order (nulls last), as a native frame of the same kind."""
+    return nw.to_native(nw.from_native(native).sort(list(keys), nulls_last=True).head(n))

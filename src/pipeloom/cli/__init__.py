@@ -6,6 +6,7 @@ from pipeloom.cli._ext import PipeloomGroup
 from pipeloom.cli.build import build
 from pipeloom.cli.compile import compile_
 from pipeloom.cli.demo import demo
+from pipeloom.cli.diff import diff
 from pipeloom.cli.docs import docs
 from pipeloom.cli.explain import explain
 from pipeloom.cli.finalize import finalize
@@ -45,5 +46,6 @@ main.add_command(docs)
 main.add_command(schema)
 main.add_command(explain)
 main.add_command(plugins)
+main.add_command(diff)
 
 __all__ = ["main"]

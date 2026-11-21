@@ -1,0 +1,1 @@
+error PLX130 cannot diff model 'a': it has no write.unique_key and no --key was given

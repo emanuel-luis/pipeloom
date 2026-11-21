@@ -344,6 +344,8 @@ class ColumnConfig(_Model):
     """False makes a null in the column a contract violation."""
     description: str | None = Field(default=None, exclude=True)
     """What the column holds. Not part of the checksum or the plan hash."""
+    sensitive: bool = Field(default=False, exclude=True)
+    """True masks the column's values in samples (`pipeloom diff --samples`). Not in checksums."""
 
 
 class RelationshipsCheck(_Model):

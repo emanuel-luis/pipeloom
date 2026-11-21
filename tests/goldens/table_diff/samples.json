@@ -1,0 +1,97 @@
+{
+  "schema": "pipeloom.table_diff/1",
+  "model": "orders",
+  "key": [
+    "id"
+  ],
+  "source": {
+    "relation": "main.orders",
+    "rows": 8
+  },
+  "target": {
+    "relation": "dev_main.orders",
+    "rows": 6
+  },
+  "differences": true,
+  "schema_diff": {
+    "added": [
+      {
+        "name": "note",
+        "dtype": "string"
+      }
+    ],
+    "removed": [],
+    "type_changed": []
+  },
+  "counts": {
+    "matched": 2,
+    "partial": 2,
+    "source_only": 1,
+    "target_only": 1,
+    "duplicate_keys": {
+      "source": 1,
+      "target": 0
+    },
+    "null_keys": {
+      "source": 1,
+      "target": 0
+    }
+  },
+  "columns": [
+    {
+      "name": "name",
+      "differs": 1
+    },
+    {
+      "name": "amount",
+      "differs": 1
+    },
+    {
+      "name": "email",
+      "differs": 0
+    }
+  ],
+  "samples": {
+    "source_only": [
+      {
+        "id": 4,
+        "name": "delta",
+        "amount": 404,
+        "email": "***"
+      }
+    ],
+    "target_only": [
+      {
+        "id": 5,
+        "name": "echo",
+        "amount": 505,
+        "email": "***",
+        "note": "n5"
+      }
+    ],
+    "partial": [
+      {
+        "key": {
+          "id": 2
+        },
+        "changes": {
+          "amount": {
+            "source": 202,
+            "target": 2020
+          }
+        }
+      },
+      {
+        "key": {
+          "id": 3
+        },
+        "changes": {
+          "name": {
+            "source": "charlie",
+            "target": null
+          }
+        }
+      }
+    ]
+  }
+}

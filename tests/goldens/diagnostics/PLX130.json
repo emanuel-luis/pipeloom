@@ -1,0 +1,23 @@
+[
+  {
+    "schema": "pipeloom.event/1",
+    "run_id": null,
+    "seq": 2,
+    "type": "diagnostic",
+    "level": "error",
+    "unit_id": null,
+    "model": null,
+    "attempt": null,
+    "data": {
+      "code": "PLX130",
+      "severity": "error",
+      "message": "cannot diff model 'a': it has no write.unique_key and no --key was given",
+      "hint": "name a persisted model, give it write.unique_key or pass --key, and point --state at a reference of the same catalog kind that built it",
+      "location": null,
+      "context": {
+        "model": "a"
+      }
+    },
+    "context": {}
+  }
+]

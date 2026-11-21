@@ -1,0 +1,20 @@
+cli: [diff, a, --state, "{project_dir}/state"]
+setup:
+  - [compile, --stable, --out, state/manifest.json]
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
+  models/m.py: |
+    from pipeloom import model
+
+
+    @model(write={"strategy": "merge", "unique_key": ["x"]})
+    def a(ctx):
+        return ctx.sql("select 1 as x")

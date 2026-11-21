@@ -154,6 +154,20 @@
           "default": true,
           "description": "False makes a null in the column a contract violation.",
           "title": "Nullable"
+        },
+        "sensitive": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            }
+          ],
+          "default": false,
+          "description": "True masks the column's values in samples (`pipeloom diff --samples`). Not in checksums.",
+          "title": "Sensitive"
         }
       },
       "required": [

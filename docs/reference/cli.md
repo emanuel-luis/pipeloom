@@ -31,6 +31,7 @@ commands are for. A test keeps this table in step with the commands.
 | `pipeloom explain` | [Running a pipeline](../guide/running.md#output) |
 | `pipeloom plugins` | [Inspecting a project](../guide/running.md#inspecting-a-project) |
 | `pipeloom plugins list` | [Inspecting a project](../guide/running.md#inspecting-a-project) |
+| `pipeloom diff` | [Table diff](../guide/table-diff.md) |
 | `pipeloom databricks` | [Databricks plugin](../plugins/databricks.md), [Databricks commands](databricks-cli.md) |
 | `pipeloom databricks bundle` | [Bundle and direct deploy](../plugins/databricks.md#bundle-and-direct-deploy) |
 | `pipeloom databricks deploy` | [Bundle and direct deploy](../plugins/databricks.md#bundle-and-direct-deploy) |
