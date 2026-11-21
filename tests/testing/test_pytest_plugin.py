@@ -62,10 +62,10 @@ def test_the_bare_pytest_script_finds_a_harness_in_the_current_directory(tmp_pat
     exe = Path(sys.executable).parent / ("pytest.exe" if os.name == "nt" else "pytest")
     # The repo root stays on PYTHONPATH only for `tests.test_engine_contract`, not for my_harness.
     env = {**os.environ, "PYTHONPATH": str(ROOT), "PYTHONUTF8": "1"}
+    argv = [str(exe), "-p", "pipeloom.testing.pytest_plugin"]
+    argv += ["--pipeloom-harness", "my_harness:harness", "-k", "capabilities_shape"]
     proc = subprocess.run(
-        [str(exe), "-p", "pipeloom.testing.pytest_plugin", "--pipeloom-harness",
-         "my_harness:harness", "-k", "capabilities_shape"],  # fmt: skip
-        cwd=tmp_path, env=env, capture_output=True, text=True, check=False, timeout=120,
-    )  # fmt: skip
+        argv, cwd=tmp_path, env=env, capture_output=True, text=True, check=False, timeout=120
+    )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "1 passed" in proc.stdout
