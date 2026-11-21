@@ -2309,17 +2309,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#12-know-what-a-change-does-before-it-merges" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.2: Know what a change does before it merges
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#13-intervals-and-backfills" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2623,17 +2612,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#12-know-what-a-change-does-before-it-merges" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.2: Know what a change does before it merges
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#13-intervals-and-backfills" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2774,7 +2752,7 @@
 
 
 <h1 id="roadmap">Roadmap<a class="headerlink" href="#roadmap" title="Permanent link">&para;</a></h1>
-<p>Status: plan as of 2026-11-21, written against 1.1.0. Versions 0.8 to 1.1 are delivered; this page now plans 1.2 to
+<p>Status: plan as of 2026-11-21, written against 1.2.0. Versions 0.8 to 1.2 are delivered; this page now plans 1.3 to
 1.9 and lists the breaking changes the stability policy holds back. Section 16 of <a href="../architecture/#16-roadmap">architecture.md</a> keeps the record of what each
 delivered version contains. The market research behind the plan is in <a href="../landscape/">Market landscape</a>. Items that
 change a decision name the ADR they need: ADRs up to 0050 exist and are accepted, and new ones continue from 0051.</p>
@@ -2965,7 +2943,7 @@ items are cut first.</p>
 <td>1.2</td>
 <td>Know what a change does before it merges</td>
 <td>See the effect of a change with plan diff and table diff before merging</td>
-<td>Planned</td>
+<td>Delivered</td>
 </tr>
 <tr>
 <td>1.3</td>
@@ -3040,21 +3018,14 @@ items are cut first.</p>
 <td>1.1</td>
 <td>Delivered in 1.1.0: DuckDB engine (<a href="../adr/0051-duckdb-engine/">ADR-0051</a>), conformance kit (<a href="../adr/0067-conformance-kit/">ADR-0067</a>), portable models guide and cross-engine matrix, <code>pipeloom demo</code>, <code>init --engine duckdb</code>, experimental tier in the stability policy. The stretch items Sail CI recipe and <code>show --limit</code> did not ship and are dropped</td>
 </tr>
+<tr>
+<td>1.2</td>
+<td>Delivered in 1.2.0: split checksums and <code>state:modified.&lt;part&gt;</code> (<a href="../adr/0052-split-checksums-and-change-categories/">ADR-0052</a>), <code>plan --diff</code>, <code>pipeloom diff</code> (<a href="../adr/0053-table-diff/">ADR-0053</a>), canonical dataset identity (<a href="../adr/0055-canonical-dataset-identity/">ADR-0055</a>), machine-readable output and generated <code>AGENTS.md</code>, <code>ctx.sql</code> on pandas through DuckDB (<a href="../adr/0068-pandas-sql-through-duckdb/">ADR-0068</a>), performance budget, docs overhaul. The stretch items Slim CI recipe on DuckDB, <code>validate --dry-run</code>, <code>llms.txt</code> and the Coming from dbt guide did not ship and stay stretch for a later minor</td>
+</tr>
 </tbody>
 </table>
 <p>The full list per version is in the CHANGELOG and in section 16 of the architecture.</p>
-<h3 id="12-know-what-a-change-does-before-it-merges">1.2: Know what a change does before it merges<a class="headerlink" href="#12-know-what-a-change-does-before-it-merges" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Optional <code>checksums{code,config,contract,tests,upstream}</code> and <code>checksum_version</code> on manifest nodes. The 1.0 <code>checksum</code> is unchanged. Sub-selectors <code>state:modified.{code,config,contract,tests,upstream}</code> and <code>ls --why</code>. Config is hashed after <code>${var}</code> resolution and before <code>${env}</code> and <code>${secret}</code>, so secrets are never hashed. ADR: 0052. Done when: A whitespace, comment or docstring edit selects nothing under <code>state:modified.code</code>, while legacy <code>state:modified</code> still selects it. Editing a data test selects only <code>.tests</code>. A 1.0 reference manifest falls back to the legacy checksum with a warning.</li>
-<li><code>plan --diff --state &lt;dir&gt;</code> with categories new, removed, breaking, non-breaking, metadata and indirect. A comparison of the old and new SQL syntax trees where an unknown result never counts as safe. Contract gate, <code>--fail-on breaking</code>, <code>plan_diff/1</code>. ADR: 0052. Done when: Fixture pairs give the expected category per unit. A dropped contract column exits 1, and its descendants are indirect-breaking.</li>
-<li><code>pipeloom diff &lt;model&gt;</code>: same-engine keyed diff with schema diff, counts and samples, <code>table_diff/1</code> and markdown. Runs through <code>session.sql</code> or portable frames. The default markdown carries counts and the schema diff only; <code>--samples</code> adds rows, and columns tagged <code>sensitive</code> in contracts are masked. ADR: 0053. Done when: Seeded fixtures on DuckDB and polars give exact matched, partial, source-only and target-only counts. A duplicate key is reported, not a crash. The default markdown contains no cell values.</li>
-<li>Canonical dataset identity: one pure function in core, with <code>input_assets</code> and <code>output_assets</code> resolved through ephemerals. A hash suffix applies only to names 1.0 rejected. ADR: 0055. Done when: Airflow asset URIs and OpenLineage names for shop and TPC-H are byte-identical to 1.0.0. An ephemeral input resolves to its persisted upstream.</li>
-<li>Machine-readable diagnostics: <code>--log-format json</code> on the commands that lack it (validate, test), an explain URL on the diagnostic event, and <code>--output json</code> for command results of plan, compile and diff. <code>init</code> writes AGENTS.md and skills generated from the code catalog, <code>init --update-agents</code> regenerates them, and nothing is fetched remotely. Done when: One schema-validated golden per command. A test fails when a catalog code is missing from the skills.</li>
-<li>Performance budget: a synthetic 1,000-model project with a compile and plan time budget in CI. Done when: CI fails when the budget is exceeded.</li>
-<li><code>ctx.sql</code> on pandas through DuckDB, as the optional extra <code>pipeloom-pandas[sql]</code>: the input frames are registered as Arrow tables in an in-memory DuckDB connection and the result comes back Arrow-backed; the engine's <code>sql_dialect</code> becomes <code>duckdb</code> when DuckDB is installed. ADR: 0068. Done when: the SQL cells of the engine contract pass on pandas, and without DuckDB the engine still declares no SQL (PLK606, PLX101).</li>
-</ul>
-<p>Plugin API: unchanged.</p>
-<p>Stretch: Slim CI recipe on DuckDB with a step summary and Azure DevOps, <code>validate --dry-run</code>, <code>llms.txt</code>
+<p>Stretch (not shipped in 1.2, kept for a later minor): Slim CI recipe on DuckDB with a step summary and Azure DevOps, <code>validate --dry-run</code>, <code>llms.txt</code>
 from <code>docs generate</code>, a "Coming from dbt" concept-mapping guide.</p>
 <h3 id="13-intervals-and-backfills">1.3: Intervals and backfills<a class="headerlink" href="#13-intervals-and-backfills" title="Permanent link">&para;</a></h3>
 <ul>
