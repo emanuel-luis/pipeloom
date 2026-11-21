@@ -1415,6 +1415,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-12-machine-readable-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment 1.2: machine-readable diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1465,9 +1476,16 @@
 <li>Redaction is in the bus, but nothing registers secret values until providers resolve secrets at run time.</li>
 </ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted</p>
+<p>Accepted. Amended in 1.2 (explain URL, <code>--log-format</code> on every command).</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
 <p>2026-11-04</p>
+<h2 id="amendment-12-machine-readable-diagnostics">Amendment 1.2: machine-readable diagnostics<a class="headerlink" href="#amendment-12-machine-readable-diagnostics" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The <code>diagnostic</code> event gains an optional <code>explain_url</code>: the error-code page entry of the code (<code>docs_url(code)</code>), null for a code outside the catalog. It is additive within <code>pipeloom.event/1</code>: events written before 1.2 have no such field and still validate, and consumers ignore unknown fields.</li>
+<li><code>init</code> and <code>explain</code> accept <code>--log-format json</code> and emit <code>invocation.started</code> and <code>invocation.completed</code>. Every command now has the option.</li>
+<li><code>compile --output json</code> prints one <code>pipeloom.compile_result/1</code> object on stdout: project, target, plan hash, unit counts, the manifest path (relative to the project dir unless absolute) and its sha256. It does not repeat the manifest. The schema is published as <code>schema/v1/compile_result.json</code> with the other artifact schemas (ADR-0049). <code>plan</code> and <code>diff</code> results are left to their own changes.</li>
+</ul>
+<p>Provenance: clean room, designed from this repository's own event schema.</p>
 
 
 

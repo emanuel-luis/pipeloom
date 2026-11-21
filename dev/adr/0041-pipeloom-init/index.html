@@ -1515,6 +1515,56 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-12-agent-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment 1.2: agent files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Amendment 1.2: agent files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-changed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options-considered_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Options considered
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequences_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1571,7 +1621,7 @@
 <li>A plugin cannot add its own template yet. When one needs to, an entry-point group can be added then.</li>
 </ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted. Amended in 0.8 (editor setup, <code>pipeloom new model</code>), in 0.9 by <a href="../0050-python-first-authoring/">ADR-0050</a> and in 1.1 (duckdb template, <code>pipeloom demo</code>).</p>
+<p>Accepted. Amended in 0.8 (editor setup, <code>pipeloom new model</code>), in 0.9 by <a href="../0050-python-first-authoring/">ADR-0050</a>, in 1.1 (duckdb template, <code>pipeloom demo</code>) and in 1.2 (agent files).</p>
 <h2 id="amendment-08-editor-setup-and-pipeloom-new-model">Amendment (0.8): editor setup and pipeloom new model<a class="headerlink" href="#amendment-08-editor-setup-and-pipeloom-new-model" title="Permanent link">&para;</a></h2>
 <h3 id="what-changed">What changed<a class="headerlink" href="#what-changed" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1615,6 +1665,26 @@
 <li><code>uvx --from "pipeloom[duckdb]" pipeloom demo</code> is the whole first run. A user with only the core gets one clear error instead of a validate failure about an unknown engine kind.</li>
 <li>The duckdb template is covered by the same layout and YAML-style tests as the others, plus a build test.</li>
 </ul>
+<h2 id="amendment-12-agent-files">Amendment 1.2: agent files<a class="headerlink" href="#amendment-12-agent-files" title="Permanent link">&para;</a></h2>
+<h3 id="what-changed_2">What changed<a class="headerlink" href="#what-changed_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>init</code> also writes <code>AGENTS.md</code> and three skills under <code>.agents/skills/</code>: <code>pipeloom-fix-diagnostic</code>, <code>pipeloom-read-run-results</code> and <code>pipeloom-add-model</code>. As with every template file, an existing file is kept and listed as skipped.</li>
+<li>The text is generated from the code, not fetched and not hand-copied: the command list comes from the Click command tree, and the fix-diagnostic skill lists every code of <code>pipeloom.diagnostics.codes.CATALOG</code> with its severity and title. A test fails when a catalog code is missing from the skills and when a command is missing from AGENTS.md. Each file starts with a comment that names the pipeloom version that wrote it.</li>
+<li><code>pipeloom init --update-agents [DIRECTORY]</code> rewrites exactly those files in a project that holds <code>pipeloom.yml</code> (default: the current directory) and nothing else. It refuses every other option except <code>--log-format</code>, and a directory without <code>pipeloom.yml</code> is a usage error (exit 2).</li>
+<li><code>init</code> and <code>explain</code> accept <code>--log-format</code>, like every other command.</li>
+</ul>
+<h3 id="options-considered_2">Options considered<a class="headerlink" href="#options-considered_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>.claude/skills/</code>: rejected as the default. One tool reads it. <code>AGENTS.md</code> is a plain Markdown convention several coding agents read, and <code>.agents/skills/&lt;name&gt;/SKILL.md</code> keeps the Agent Skills layout (a folder per skill, a <code>SKILL.md</code> with <code>name</code> and <code>description</code> front matter) in a tool-neutral folder. A user of a tool that wants another folder can symlink or copy it.</li>
+<li>Fetching the latest skills from a remote source: rejected. Content must match the installed version, and the command works offline.</li>
+<li>A hand-written error list in the skills: rejected. It drifts; the catalog is the source.</li>
+</ul>
+<h3 id="consequences_3">Consequences<a class="headerlink" href="#consequences_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Agents get the commands, the layout, how to read diagnostics and run results, and the full code list for the installed version. After an upgrade, <code>init --update-agents</code> refreshes them.</li>
+<li>The catalog table makes the fix-diagnostic skill the largest generated file (about 7 KB).</li>
+</ul>
+<p>Provenance: clean room. The layout follows the public AGENTS.md and Agent Skills conventions as the author knows them; no code from other projects was used.</p>
 
 
 
