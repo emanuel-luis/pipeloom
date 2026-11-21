@@ -10,7 +10,9 @@
 
 **Goals:** Python models with a typed decorator, and YAML project and properties files with layered validation and editor completion; an engine-agnostic core with one plugin per tool; end-to-end events and styled logs; persisted metadata for each run and each model; a Databricks one-job renderer; a cosmos-style Airflow integration; open-source hygiene.
 
-**Non-goals (through 1.0):** streaming; a scheduler service, or any UI that starts, schedules or changes runs ([ADR-0043](adr/0043-docs-site.md)); a portable SQL dialect; Jinja templating; running user code at compile time (from 0.9: user code runs at compile time only for modules with dynamic decorator arguments, [ADR-0050](adr/0050-python-first-authoring.md)); Airflow 2 support.
+**Non-goals (through 1.0, replaced after 1.0 by the list below):** streaming; a scheduler service, or any UI that starts, schedules or changes runs ([ADR-0043](adr/0043-docs-site.md)); a portable SQL dialect; Jinja templating; running user code at compile time (from 0.9: user code runs at compile time only for modules with dynamic decorator arguments, [ADR-0050](adr/0050-python-first-authoring.md)); Airflow 2 support.
+
+**Non-goals (after 1.0, [ADR-0016](adr/0016-versioning-and-plugin-api.md) amendment 1.1 and the roadmap):** streaming (reading Auto Loader or Lakeflow Connect landing tables through `incremental` is supported, checkpoint-based state is not); a scheduler service, or any UI or agent tool that starts, schedules or changes runs (MCP write tools fall under it); a portable SQL dialect; Jinja templating; user code at compile time beyond [ADR-0050](adr/0050-python-first-authoring.md); Airflow 2 support; zero-copy environments (clone-only dev copies are allowed, promotion is not); a semantic layer; cross-engine data diff; ML anomaly models beyond fixed statistics. Engines beyond polars, pandas, Spark and DuckDB are community plugins tested by the conformance kit.
 
 **Principles. Each answers a lesson (L) from the concept spec.**
 1. One event stream. Logs, metrics, artifacts and lineage subscribe to it (L1).
@@ -433,6 +435,7 @@ Each entry point resolves to a `PluginSpec(name, kind, api_version: tuple[int, i
 **Plugin API version.** `pipeloom.plugins.API_VERSION = (MAJOR, MINOR)`, independent of the package version.
 - MINOR covers additive changes: new optional protocol methods with defaults, new capabilities.
 - MAJOR covers breaking protocol changes.
+- In 1.x nothing is added to `EngineSession` or `StateStore`. An optional member gets its own small `typing.Protocol` and a core helper with a fallback, like `pipeloom.state.types.list_runs` ([ADR-0016](adr/0016-versioning-and-plugin-api.md), amendment 1.1).
 - The core accepts plugins with the same MAJOR and MINOR ≤ its own. Otherwise it raises PLU001 naming the installed and required versions.
 - The plugin API is `(1, 0)`. Before 1.0 it was `0.x` with an exact match, so a plugin built for `(0, 5)` fails with PLU001.
 - `config_version: 1` is the only accepted value through 1.x (`CONFIG_VERSION` in `pipeloom.config.types`).

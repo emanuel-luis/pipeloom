@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Documentation
+
+- ADR-0016 amendment 1.1 and the stability page: the experimental tier (reserved `PLW` prefix), supported releases, and the optional protocol member rule. The architecture non-goals list for after 1.0 is updated.
+
 ## [1.0.0] - 2026-11-16
 
 pipeloom 1.0.0 is the first stable release. It has the same content as 1.0.0rc1: from here the CLI, `config_version: 1`, plugin API (1, 0), the artifact schemas (`manifest`, `run_results`, `event`, `unit_states` and `unit_graph`, all `/1`) and the documented Python API follow Semantic Versioning, as the [stability page](docs/reference/stability.md) describes. If you come from 0.9, read the 1.0.0rc1 notes below, in particular the plugin API (1, 0) change for plugin authors.

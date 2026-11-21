@@ -78,9 +78,31 @@ The plugin API becomes `(1, 0)` with pipeloom 1.0. The core accepts a plugin wit
 
 Prereleases such as `1.0.0rc1` are published to PyPI. Version pins between distributions must accept them (`pipeloom~=1.0.0` does not match `1.0.0rc1`), so for a prerelease the members depend on `pipeloom~=1.0.0rc1`, which accepts the rc and the final `1.0.0`. `tools/versions.py` accepts `X.Y.Z` and `X.Y.Z(a|b|rc)N` in `check`, `bump` and `--tag`, and `bump 1.0.0` after `bump 1.0.0rc1` restores the `~=X.Y.0` pins. The release workflow marks a prerelease tag as a GitHub prerelease.
 
+## Amendment (1.1): experimental tier, supported releases, optional protocol members
+
+Decided on 2026-11-20 (roadmap section 6, decision 8). The user-facing summary is [Stability and deprecations](../reference/stability.md).
+
+### Experimental tier
+
+- A feature, flag, config field or artifact field marked experimental is outside the stability guarantee of the 1.0 amendment. Changing or removing it is not breaking.
+- The mark appears in the docs, in the CLI help and in the JSON Schema `description` of the field.
+- An experimental item is promoted to stable or removed within two minor releases after the one that added it. The CHANGELOG says which.
+- At use time pipeloom emits a warning diagnostic with a code in the new reserved prefix `PLW` (layer "Experimental"). A warning never fails a run.
+- Same precedent as `PLV`: this amendment reserves the prefix and adds no code, because a code with no emitter would be dead. The first `PLW` code and its case file (`tests/cases/<CODE>.yml`) arrive with the first experimental feature.
+
+### Supported releases
+
+Only the latest minor release gets patch releases. Security fixes go to the latest minor. Older minors are not patched, so users upgrade to the latest minor.
+
+### Optional protocol members
+
+- Nothing is added to `EngineSession` or `StateStore` in 1.x. A new method on those protocols breaks third-party plugins under mypy, and the 1.0 amendment lists a new required method as breaking.
+- An optional member lives in its own small `typing.Protocol`, for example `SupportsFilterBetween`. Plugins implement it structurally.
+- The core reaches it through a helper that checks for the member and falls back when it is missing, as `pipeloom.state.types.list_runs` does today. The helper is where the default lives.
+
 ## Status
 
-Accepted. Amended by [ADR-0017](0017-plugin-spec-and-builtins.md): while the plugin API major is 0 the versions must match exactly. Amended in 1.0: stability and deprecation policy (see above).
+Accepted. Amended by [ADR-0017](0017-plugin-spec-and-builtins.md): while the plugin API major is 0 the versions must match exactly. Amended in 1.0: stability and deprecation policy. Amended in 1.1: experimental tier, supported releases, optional protocol members (see above).
 
 ## Date
 

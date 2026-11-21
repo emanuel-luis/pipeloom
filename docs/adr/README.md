@@ -19,7 +19,7 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0013 | [Run identity, idempotency, reruns](0013-run-identity-and-reruns.md) | Accepted. Amended in 0.8 (`pipeloom retry`). | 2026-10-29 |
 | 0014 | [Secrets by reference](0014-secrets-by-reference.md) | Accepted | 2026-10-29 |
 | 0015 | [Python 3.11 or newer; click CLI; pydantic v2; hatchling; mypy strict](0015-python-version-and-toolchain.md) | Accepted | 2026-10-29 |
-| 0016 | [Versioning, release, plugin API version](0016-versioning-and-plugin-api.md) | Accepted. Amended in 1.0 (stability and deprecation policy). | 2026-10-29 |
+| 0016 | [Versioning, release, plugin API version](0016-versioning-and-plugin-api.md) | Accepted. Amended in 1.0 (stability and deprecation policy) and in 1.1 (experimental tier, supported releases, optional protocol members). | 2026-10-29 |
 | 0017 | [Plugin spec, built-in plugins and the exact plugin API gate](0017-plugin-spec-and-builtins.md) | Accepted | 2026-11-04 |
 | 0018 | [Events in 0.1: invocation events, nullable run id, jsonl on stderr](0018-events-in-0-1.md) | Accepted | 2026-11-04 |
 | 0019 | [YAML dialect: PyYAML with YAML 1.2 core scalars](0019-yaml-dialect.md) | Accepted | 2026-11-04 |
