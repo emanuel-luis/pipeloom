@@ -1,0 +1,271 @@
+{
+  "$defs": {
+    "ColumnDiff": {
+      "properties": {
+        "differs": {
+          "title": "Differs",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "differs"
+      ],
+      "title": "ColumnDiff",
+      "type": "object"
+    },
+    "ColumnType": {
+      "properties": {
+        "dtype": {
+          "title": "Dtype",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "dtype"
+      ],
+      "title": "ColumnType",
+      "type": "object"
+    },
+    "Counts": {
+      "properties": {
+        "duplicate_keys": {
+          "$ref": "#/$defs/PerSide"
+        },
+        "matched": {
+          "title": "Matched",
+          "type": "integer"
+        },
+        "null_keys": {
+          "$ref": "#/$defs/PerSide"
+        },
+        "partial": {
+          "title": "Partial",
+          "type": "integer"
+        },
+        "source_only": {
+          "title": "Source Only",
+          "type": "integer"
+        },
+        "target_only": {
+          "title": "Target Only",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "matched",
+        "partial",
+        "source_only",
+        "target_only",
+        "duplicate_keys",
+        "null_keys"
+      ],
+      "title": "Counts",
+      "type": "object"
+    },
+    "PerSide": {
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "integer"
+        },
+        "target": {
+          "title": "Target",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source",
+        "target"
+      ],
+      "title": "PerSide",
+      "type": "object"
+    },
+    "Samples": {
+      "description": "Up to `SAMPLE_ROWS` rows each, in key order. Columns tagged `sensitive` read `***`.",
+      "properties": {
+        "partial": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Partial",
+          "type": "array"
+        },
+        "source_only": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Source Only",
+          "type": "array"
+        },
+        "target_only": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Target Only",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source_only",
+        "target_only",
+        "partial"
+      ],
+      "title": "Samples",
+      "type": "object"
+    },
+    "SchemaDiff": {
+      "description": "Columns by name, case-sensitive. Order and nullability are ignored.",
+      "properties": {
+        "added": {
+          "items": {
+            "$ref": "#/$defs/ColumnType"
+          },
+          "title": "Added",
+          "type": "array"
+        },
+        "removed": {
+          "items": {
+            "$ref": "#/$defs/ColumnType"
+          },
+          "title": "Removed",
+          "type": "array"
+        },
+        "type_changed": {
+          "items": {
+            "$ref": "#/$defs/TypeChange"
+          },
+          "title": "Type Changed",
+          "type": "array"
+        }
+      },
+      "required": [
+        "added",
+        "removed",
+        "type_changed"
+      ],
+      "title": "SchemaDiff",
+      "type": "object"
+    },
+    "Side": {
+      "properties": {
+        "relation": {
+          "title": "Relation",
+          "type": "string"
+        },
+        "rows": {
+          "title": "Rows",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "relation",
+        "rows"
+      ],
+      "title": "Side",
+      "type": "object"
+    },
+    "TypeChange": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "source",
+        "target"
+      ],
+      "title": "TypeChange",
+      "type": "object"
+    }
+  },
+  "$id": "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/table_diff.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "A keyed comparison of one model's relation in a reference and a target.",
+  "properties": {
+    "columns": {
+      "items": {
+        "$ref": "#/$defs/ColumnDiff"
+      },
+      "title": "Columns",
+      "type": "array"
+    },
+    "counts": {
+      "$ref": "#/$defs/Counts"
+    },
+    "differences": {
+      "title": "Differences",
+      "type": "boolean"
+    },
+    "key": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Key",
+      "type": "array"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "samples": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Samples"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema": {
+      "const": "pipeloom.table_diff/1",
+      "description": "Schema name and version."
+    },
+    "schema_diff": {
+      "$ref": "#/$defs/SchemaDiff"
+    },
+    "source": {
+      "$ref": "#/$defs/Side"
+    },
+    "target": {
+      "$ref": "#/$defs/Side"
+    }
+  },
+  "required": [
+    "schema",
+    "model",
+    "key",
+    "source",
+    "target",
+    "differences",
+    "schema_diff",
+    "counts",
+    "columns"
+  ],
+  "title": "pipeloom table diff",
+  "type": "object"
+}

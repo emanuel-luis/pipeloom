@@ -237,6 +237,10 @@
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0053-table-diff/</loc>
+         <lastmod>2026-11-21</lastmod>
+    </url>
+    <url>
          <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0055-canonical-dataset-identity/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
@@ -310,6 +314,10 @@
     </url>
     <url>
          <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/running/</loc>
+         <lastmod>2026-11-21</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/table-diff/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>

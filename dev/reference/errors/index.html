@@ -790,6 +790,8 @@
       
         
       
+        
+      
     
     
     
@@ -1074,6 +1076,34 @@
     
   
     Run history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/table-diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Table diff
   
 
     
@@ -3082,6 +3112,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plx130" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX130
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx131" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX131
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4900,6 +4952,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plx130" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX130
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx131" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX131
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -5531,6 +5605,12 @@
 <h3 id="plx122">PLX122<a class="headerlink" href="#plx122" title="Permanent link">&para;</a></h3>
 <p>Order-dependent operation on a lazy frame. Severity: error. Status: active. Since: 1.1.</p>
 <p>A Python model with frame_api narwhals used an operation that needs a row order (cum_sum, shift, diff, first or last) on a lazy frame (DuckDB, Spark or polars lazy), which has none. Give the expression an explicit order with .over(order_by=...), or sort first; see the portable models guide.</p>
+<h3 id="plx130">PLX130<a class="headerlink" href="#plx130" title="Permanent link">&para;</a></h3>
+<p>Model cannot be diffed. Severity: error. Status: active. Since: 1.2.</p>
+<p>pipeloom diff compares one persisted model by key, and this one cannot be compared: the model does not exist, it has no relation (ephemeral or intermediate), it has no key (no write.unique_key and no --key), the reference has no relation for it, or the reference was compiled for another catalog kind. Exit code 2.</p>
+<h3 id="plx131">PLX131<a class="headerlink" href="#plx131" title="Permanent link">&para;</a></h3>
+<p>Table diff failed. Severity: error. Status: active. Since: 1.2.</p>
+<p>pipeloom diff could not read or compare the two relations: a table is missing, a key column is missing on one side, or the engine's frames are not supported by the portable comparison. The message names the cause. Exit code 1.</p>
 <h2 id="renderers">Renderers<a class="headerlink" href="#renderers" title="Permanent link">&para;</a></h2>
 <h3 id="pla001">PLA001<a class="headerlink" href="#pla001" title="Permanent link">&para;</a></h3>
 <p>Unsupported execution mode. Severity: error. Status: active. Since: 0.6.</p>
