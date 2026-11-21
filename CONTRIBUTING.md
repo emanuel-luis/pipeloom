@@ -64,6 +64,8 @@ keep them for inspection. The wheels it uploads stay under `<volume>/wheels/<sha
 
 Every CLI flag has a test that uses `click.testing.CliRunner`. A behavior change comes with a test.
 
+The performance budget (`tests/perf`, a generated 1,000-model project) runs only with `PIPELOOM_TEST_PERF=1`, in its own CI job on ubuntu. `PIPELOOM_TEST_PERF_BUDGET_SCALE` multiplies every budget (default 1); use 3 on a slow disk such as WSL `/mnt/<drive>`.
+
 ## Architecture decisions
 
 A change to the architecture needs an ADR. Copy `docs/adr/0000-template.md`, number it next in

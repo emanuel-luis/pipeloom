@@ -70,6 +70,26 @@ jobs:
       - run: uv sync --locked --all-packages
       - run: uv run pytest -q --cov --cov-report=term-missing
 
+  perf:
+    # Wall-clock budgets for a synthetic 1,000-model project (tests/perf). One job, one OS: timing
+    # on a shared matrix cell is noise. Raise PIPELOOM_TEST_PERF_BUDGET_SCALE only with a reason.
+    needs: [lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked --all-packages
+      - run: uv run pytest -q -s -p no:cacheprovider tests/perf
+        env:
+          PIPELOOM_TEST_PERF: "1"
+
   polars-floor:
     # The oldest polars the plugin declares (>=1.30), outside the lock, which resolves 2.x.
     needs: [lint]

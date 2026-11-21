@@ -12,6 +12,7 @@ pipeloom 1.1.0 adds a DuckDB engine and a one-command demo. The new `pipeloom-du
 
 ### Added
 
+- A performance budget: a generated 1,000-model project (static decorators, `ctx.sql` bodies, a DAG with fan-in and fan-out, properties files with data tests) must discover, resolve, validate, compile and write a stable manifest inside wall-clock budgets, with cold discovery under 2 s as ADR-0050 promised. It runs in its own ubuntu CI job (`PIPELOOM_TEST_PERF=1`); `PIPELOOM_TEST_PERF_BUDGET_SCALE` multiplies the budgets for slow machines.
 - The engine conformance kit ([ADR-0067](docs/adr/0067-conformance-kit.md)): an opt-in pytest plugin, `pytest -p pipeloom.testing.pytest_plugin --pipeloom-harness MODULE:CALLABLE`, runs `EngineContract` against a harness from any project that has pipeloom and the engine installed. The report header prints the kit version (`KIT_VERSION`, 1.0). The plugin joins the stability surface list, and existing subclasses of `EngineContract` keep working.
 - An engine author guide, [Writing an engine](docs/plugins/writing-an-engine.md), and a generated [capability matrix](docs/reference/engine-capabilities.md) built from the `EngineCapabilities` of every installed engine.
 - CI installs only the pipeloom and pipeloom-polars wheels in a fresh venv and runs the kit against polars from outside the repository tree.

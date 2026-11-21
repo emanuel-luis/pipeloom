@@ -167,6 +167,7 @@ pythonpath = ["."]
 markers = [
     "spark: needs local Spark (PIPELOOM_TEST_SPARK=classic, Linux or macOS, Java)",
     "spark_connect: needs a local Spark Connect server (PIPELOOM_TEST_SPARK=connect)",
+    "perf: synthetic 1,000-model performance budget (PIPELOOM_TEST_PERF=1)",
     "examples: runs the polars and pandas example projects on generated TPC-H data (PIPELOOM_TEST_EXAMPLES=1)",
     "duckdb_extensions: needs DuckDB extensions preinstalled in PIPELOOM_TEST_DUCKDB_EXTENSIONS (a directory)",
     "airflow_e2e: migrates a throwaway sqlite Airflow database and runs dag.test() (PIPELOOM_TEST_AIRFLOW=1)",
