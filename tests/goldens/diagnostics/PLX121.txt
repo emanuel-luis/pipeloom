@@ -1,0 +1,2 @@
+error PLX121 DuckDB extension 'delta' is not installed in extension_directory 'duckdb_extensions', and install_extensions is off
+      hint: preinstall it into that directory on a machine with network access (a run with install_extensions: true does it), or copy a preinstalled directory there

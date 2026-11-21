@@ -143,8 +143,6 @@ class DuckDBSession:
         with self._lock:
             if unit is not None and unit in self._cancelled:
                 raise duckdb.InterruptException(f"unit '{unit}' was cancelled")
-            if self._pending is not None:
-                raise self._pending
             prior, self._busy = self._busy, unit
             try:
                 yield self.native
@@ -163,8 +161,15 @@ class DuckDBSession:
 
     def query(self, sql: str) -> Any:
         """A lazy relation; binding errors (an unknown table or column) raise here."""
+        self._ready()
         with self._use() as con:
             return con.sql(sql)
+
+    def _ready(self) -> None:
+        """Data work fails while a listed extension is missing; catalog lookups do not, so the
+        session still opens."""
+        if self._pending is not None:
+            raise self._pending
 
     def _name(self, prefix: str) -> str:
         return f"__pipeloom_{prefix}{next(self._names)}"
@@ -172,6 +177,7 @@ class DuckDBSession:
     def _view(self, rel: Relation | Any) -> str:
         """A temporary view over a relation, under a fresh name. Views live as long as the
         session: a lazy relation built on one reads it again at every execution."""
+        self._ready()
         native = rel.native if isinstance(rel, Relation) else rel
         name = self._name("v")
         with self._use():

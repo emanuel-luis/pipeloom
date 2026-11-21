@@ -808,6 +808,17 @@ _ACTIVE_09: Final = (
 )
 
 
+# Active since 1.1.
+_ACTIVE_11: Final = (
+    (
+        "PLX121",
+        E,
+        "DuckDB extension not installed",
+        "The DuckDB engine needs an extension (delta for a Delta source, or one listed in the engine's extensions option) that is not installed in its extension_directory, and install_extensions is off, so nothing is downloaded. The code appears in the message of the error that the read or write reports (PLM204, PLM201 or PLX101). Preinstall the extension into that directory on a machine with network access, or turn install_extensions on.",
+    ),
+)
+
+
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
@@ -838,6 +849,7 @@ def _build() -> Mapping[str, CodeInfo]:
         ("0.6", _ACTIVE_06),
         ("0.8", _ACTIVE_08),
         ("0.9", _ACTIVE_09),
+        ("1.1", _ACTIVE_11),
     ):
         for code, sev, title, expl in table:
             retired = _RETIRED.get(code)
