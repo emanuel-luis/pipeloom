@@ -9,6 +9,9 @@ from pathlib import Path
 import click
 
 import pipeloom
+from pipeloom.cli._agents import agent_files
+from pipeloom.cli._events import Invocation
+from pipeloom.cli._options import log_format_option
 from pipeloom.config.types import IDENTIFIER_PATTERN
 from pipeloom.scaffold import ENGINES, run_command, scaffold
 
@@ -66,6 +69,13 @@ def _default_name(directory: Path | None) -> str:
     help="Allow a directory that is not empty. Existing files are kept, never overwritten, and "
     "listed as skipped.",
 )
+@click.option(
+    "--update-agents",
+    is_flag=True,
+    help="Regenerate AGENTS.md and the skills in the project at DIRECTORY (default: the current "
+    "directory) and change nothing else. Takes no other option except --log-format.",
+)
+@log_format_option
 def init(
     directory: Path | None,
     name: str | None,
@@ -73,12 +83,28 @@ def init(
     catalog: str | None,
     no_input: bool,
     force: bool,
+    update_agents: bool,
+    log_format: str,
 ) -> None:
     """Create a project in DIRECTORY (default: a new folder named after the project).
 
     When stdin is a terminal and --no-input is not given, asks for the values the flags leave
-    out: the project name, the engine and, on databricks, the catalog.
+    out: the project name, the engine and, on databricks, the catalog. Also writes AGENTS.md and
+    skills under .agents/skills/, generated from the code and never fetched.
     """
+    inv = Invocation("init", log_format)
+    if update_agents:
+        if name or engine or catalog or force or no_input:
+            raise click.UsageError("--update-agents takes no option except --log-format")
+        root = directory if directory is not None else Path(".")
+        if not (root / "pipeloom.yml").is_file():
+            raise click.UsageError(f"{root.as_posix()} holds no pipeloom.yml")
+        for rel, content in agent_files().items():
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_bytes(content)
+            click.echo(f"Updated {rel}")
+        inv.finish([], 0)
+        return
     if catalog is not None and engine not in (None, "databricks"):
         raise click.UsageError("--catalog applies only to --engine databricks")
     ask = not no_input and _interactive()
@@ -114,7 +140,7 @@ def init(
         "version": pipeloom.__version__,
         "run_command": run_command(engine),
     }
-    written = scaffold(target, engine, values)
+    written = scaffold(target, engine, values, agent_files())
     click.echo(f"Created project '{name}' ({engine}) in {target.as_posix()}")
     for rel in written.skipped:
         click.echo(f"Skipped existing file: {rel}")
@@ -122,3 +148,4 @@ def init(
     click.echo(f"  cd {target.as_posix()}")
     click.echo("  pipeloom validate")
     click.echo(f"  {run_command(engine)}")
+    inv.finish([], 0)

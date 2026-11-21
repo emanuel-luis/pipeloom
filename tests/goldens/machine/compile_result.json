@@ -1,0 +1,14 @@
+{
+  "by_materialization": {
+    "table": 7
+  },
+  "ephemeral_inlined": 1,
+  "manifest": "m.json",
+  "manifest_sha256": "<sha256>",
+  "plan_hash": "f05fee053db88c1a06b6b4bcd2b2732330c5b703fb2c4a4678480edb542cc7a0",
+  "project": "shop",
+  "schema": "pipeloom.compile_result/1",
+  "selected": 8,
+  "target": "ci",
+  "units": 7
+}

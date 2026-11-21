@@ -14,7 +14,8 @@
       "message": "run nope not found",
       "hint": "check --target, or list the runs with pipeloom runs ls",
       "location": null,
-      "context": {}
+      "context": {},
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#plx118"
     },
     "context": {}
   }

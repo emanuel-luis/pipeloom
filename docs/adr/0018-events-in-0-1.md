@@ -35,8 +35,16 @@ Every command is an invocation with its own `invocation_id` and an event bus.
 
 ## Status
 
-Accepted
+Accepted. Amended in 1.2 (explain URL, `--log-format` on every command).
 
 ## Date
 
 2026-11-04
+
+## Amendment 1.2: machine-readable diagnostics
+
+- The `diagnostic` event gains an optional `explain_url`: the error-code page entry of the code (`docs_url(code)`), null for a code outside the catalog. It is additive within `pipeloom.event/1`: events written before 1.2 have no such field and still validate, and consumers ignore unknown fields.
+- `init` and `explain` accept `--log-format json` and emit `invocation.started` and `invocation.completed`. Every command now has the option.
+- `compile --output json` prints one `pipeloom.compile_result/1` object on stdout: project, target, plan hash, unit counts, the manifest path (relative to the project dir unless absolute) and its sha256. It does not repeat the manifest. The schema is published as `schema/v1/compile_result.json` with the other artifact schemas (ADR-0049). `plan` and `diff` results are left to their own changes.
+
+Provenance: clean room, designed from this repository's own event schema.

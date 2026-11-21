@@ -367,9 +367,9 @@ def test_serve_a_project_that_does_not_resolve_serves_the_static_page(
     (root / "site" / "index.html").write_text("<html></html>", encoding="utf-8")
     result = cli("docs", "serve", "--project-dir", str(root), "--dir", "site", "--port", "0")
     assert result.exit_code == 0
-    assert result.stderr.splitlines() == [
+    assert result.stderr.splitlines()[0] == (
         "docs serve: the project does not resolve; serving the page without rebuilding it"
-    ]
+    )
     assert result.stdout.startswith("serving ")
 
 
@@ -422,3 +422,21 @@ def test_make_server_serves_the_page(project: Path) -> None:
         server.shutdown()
         thread.join()
         server.server_close()
+
+
+def test_serve_json_log_emits_invocation_events(
+    project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert cli("docs", "generate", "--project-dir", str(project), "--out", "site").exit_code == 0
+
+    def interrupt(self: ThreadingHTTPServer, poll_interval: float = 0.5) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(ThreadingHTTPServer, "serve_forever", interrupt)
+    result = cli(
+        *("docs", "serve", "--project-dir", str(project), "--dir", "site", "--port", "0"),
+        *("--log-format", "json"),
+    )
+    assert result.exit_code == 0
+    types = [json.loads(ln)["type"] for ln in result.stderr.splitlines() if ln.startswith("{")]
+    assert types == ["invocation.started", "invocation.completed"]

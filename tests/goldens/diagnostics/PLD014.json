@@ -17,7 +17,8 @@
       "context": {
         "job_run_id": 900,
         "state": "RUNNING"
-      }
+      },
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#pld014"
     },
     "context": {}
   }

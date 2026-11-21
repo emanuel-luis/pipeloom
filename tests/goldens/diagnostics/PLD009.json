@@ -16,7 +16,8 @@
       "location": null,
       "context": {
         "status": 500
-      }
+      },
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#pld009"
     },
     "context": {}
   }

@@ -14,7 +14,8 @@
       "message": "no Databricks connection: pass --profile, set DATABRICKS_CONFIG_PROFILE, set DATABRICKS_HOST with credentials, or run on a Databricks runtime",
       "hint": null,
       "location": null,
-      "context": {}
+      "context": {},
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#pld010"
     },
     "context": {}
   }

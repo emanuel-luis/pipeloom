@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from collections import Counter
 from pathlib import Path, PurePosixPath
@@ -10,6 +12,7 @@ from typing import Any, Literal, cast
 import click
 
 from pipeloom.api import Project, ProjectOptions
+from pipeloom.artifacts.schema import COMPILE_RESULT_SCHEMA
 from pipeloom.cli._events import Invocation
 from pipeloom.cli._options import (
     log_format_option,
@@ -70,6 +73,14 @@ def _summary(plan: Plan) -> PlanCompiled:
     "always give the same bytes. `run --manifest` then runs every model unless --select or "
     "--exclude is given.",
 )
+@click.option(
+    "--output",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    show_default=True,
+    help="stdout: the manifest path, or a pipeloom.compile_result/1 JSON object with the path, "
+    "the manifest hash and the plan counts.",
+)
 @click.option("--warn-error", is_flag=True, help="Exit 1 on warnings too.")
 def compile_(
     project_dir: Path,
@@ -83,6 +94,7 @@ def compile_(
     boundary: str | None,
     out: Path,
     stable: bool,
+    output: str,
     warn_error: bool,
 ) -> None:
     """Validate the project and write the plan to a manifest file."""
@@ -115,7 +127,17 @@ def compile_(
     path = out if out.is_absolute() else project_dir / out
     content = write_manifest(plan, path, stable=stable)
     shown = out.as_posix() if not out.is_absolute() else path.as_posix()
-    inv.add(_summary(plan))
+    summary = _summary(plan)
+    inv.add(summary)
     inv.artifact(PurePosixPath(shown), content, "manifest")
-    click.echo(path.as_posix())
+    if output == "json":
+        result = {
+            "schema": COMPILE_RESULT_SCHEMA,
+            **summary.to_data(),
+            "manifest": shown,
+            "manifest_sha256": hashlib.sha256(content).hexdigest(),
+        }
+        click.echo(json.dumps(result, indent=2))
+    else:
+        click.echo(path.as_posix())
     inv.finish(diags, 0, bound=bound)

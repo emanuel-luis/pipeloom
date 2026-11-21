@@ -16,7 +16,8 @@
       "location": null,
       "context": {
         "job_id": 101
-      }
+      },
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#pld008"
     },
     "context": {}
   }

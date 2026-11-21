@@ -41,6 +41,18 @@
           "title": "Context",
           "type": "object"
         },
+        "explain_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Explain Url"
+        },
         "hint": {
           "anyOf": [
             {

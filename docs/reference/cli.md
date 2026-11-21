@@ -58,6 +58,11 @@ folder named after the project in the current directory.
   before `pipeloom databricks deploy`.
 - A directory that is not empty needs `--force`. Existing files are never overwritten: they are
   kept and listed as skipped. A directory that already holds `pipeloom.yml` is refused.
+- It also writes `AGENTS.md` and three skills under `.agents/skills/`, generated from the code
+  (the command list and the diagnostic catalog); see
+  [Working with coding agents](../guide/running.md#working-with-coding-agents).
+  `--update-agents` rewrites just those files in the project at DIRECTORY (default: the current
+  directory) and takes no other option except `--log-format`.
 - Exit codes: 0 on success, 2 on a usage error (bad name or engine, `--catalog` without
   databricks, an existing project, a non-empty directory without `--force`).
 
@@ -90,6 +95,15 @@ site and prints where it is and what to try next.
   `--sql` with `--python`, a folder outside the model path, a file outside every `python_paths`
   root, or a name that is already a folder where the file would go, such as `bronze` in an `init`
   project).
+
+## Machine-readable output
+
+Every command takes `--log-format json` (or `PIPELOOM_LOG_FORMAT=json`): stderr then carries one
+`pipeloom.event/1` object per line. A `diagnostic` event has an optional `explain_url`, the link to
+the code's entry on the error-code page. `pipeloom compile --output json` prints a
+`pipeloom.compile_result/1` object (manifest path and hash, plan counts) instead of the bare path.
+`pipeloom init` writes `AGENTS.md` and skills under `.agents/skills/`, and
+`pipeloom init --update-agents [DIRECTORY]` regenerates only those files in an existing project.
 
 ## Reference
 
