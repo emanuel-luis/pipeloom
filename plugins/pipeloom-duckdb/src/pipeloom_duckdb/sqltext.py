@@ -134,7 +134,9 @@ def to_duckdb(logical: str) -> str | None:
         return f"DECIMAL({dec.group(1)},{dec.group(2)})"
     ts = _LOGICAL_TS.fullmatch(logical)
     if ts:
-        return "TIMESTAMP WITH TIME ZONE" if ts.group(2) else _TO_DUCKDB[f"timestamp[{ts.group(1)}]"]
+        return (
+            "TIMESTAMP WITH TIME ZONE" if ts.group(2) else _TO_DUCKDB[f"timestamp[{ts.group(1)}]"]
+        )
     if logical.startswith("list<") and logical.endswith(">"):
         inner = to_duckdb(logical[5:-1])
         return None if inner is None else f"{inner}[]"

@@ -51,7 +51,9 @@ def _table(con: Any, rows: Rows, schema: Schema) -> None:
     con.execute(f"CREATE TABLE t ({cols})")
     if rows:
         marks = ", ".join("?" for _ in schema)
-        con.executemany(f"INSERT INTO t VALUES ({marks})", [[r[c.name] for c in schema] for r in rows])
+        con.executemany(
+            f"INSERT INTO t VALUES ({marks})", [[r[c.name] for c in schema] for r in rows]
+        )
 
 
 _DELTA_TYPES = {
@@ -156,7 +158,7 @@ class TrackedEngine(DuckDBEngine):
 
 
 def _settings() -> dict[str, Any]:
-    return dict(duckdb.sql("SELECT name, value FROM duckdb_settings()").fetchall())
+    return dict(duckdb.execute("SELECT name, value FROM duckdb_settings()").fetchall())
 
 
 def harness(tmp_path: Path) -> EngineHarness:
@@ -170,7 +172,9 @@ def harness(tmp_path: Path) -> EngineHarness:
     def failing(session: EngineSession) -> Relation:
         con = session.native
         return session.relation(
-            con.sql("SELECT CAST(error('cannot produce rows ' || range) AS BIGINT) AS a FROM range(1)")
+            con.sql(
+                "SELECT CAST(error('cannot produce rows ' || range) AS BIGINT) AS a FROM range(1)"
+            )
         )
 
     def slow(session: EngineSession, seconds: float) -> Relation:

@@ -11,8 +11,8 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import TYPE_CHECKING, Any
 
 from pipeloom.engine.types import CatalogCapabilities, Namespace, Schema, TargetRef
-from pipeloom_duckdb.sqltext import ident, schema_of, string
 from pipeloom_duckdb.spec import MEMORY
+from pipeloom_duckdb.sqltext import ident, schema_of, string
 
 if TYPE_CHECKING:
     from pipeloom_duckdb.engine import DuckDBSession

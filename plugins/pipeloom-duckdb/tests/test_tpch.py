@@ -68,8 +68,7 @@ def test_tpch_polars_sql_models_run_on_duckdb(tmp_path: Path) -> None:
             "FROM tpch.revenue_by_region_month ORDER BY nation, order_month"
         ).fetchall()
         top = con.execute(
-            "SELECT customer_key, orders, net_revenue FROM tpch.top_customers "
-            "ORDER BY customer_key"
+            "SELECT customer_key, orders, net_revenue FROM tpch.top_customers ORDER BY customer_key"
         ).fetchall()
     finally:
         con.close()

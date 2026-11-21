@@ -239,7 +239,9 @@ class DuckDBSession:
 
     def sql(self, query: str, inputs: Mapping[str, Relation]) -> Relation:
         # Each alias is a CTE over a fresh view: aliases never leak into another query.
-        ctes = ", ".join(f"{ident(a)} AS (SELECT * FROM {self._view(r)})" for a, r in inputs.items())
+        ctes = ", ".join(
+            f"{ident(a)} AS (SELECT * FROM {self._view(r)})" for a, r in inputs.items()
+        )
         body = query.strip().rstrip(";")
         text = (f"WITH {ctes} " if ctes else "") + f"SELECT * FROM (\n{body}\n)"
         return _rel(self.query(text))
@@ -312,7 +314,9 @@ class DuckDBSession:
         self, rel: Relation, column: str, lower: Any, *, inclusive: bool = True
     ) -> Relation:
         op = ">=" if inclusive else ">"
-        return _rel(self._on(rel, f"SELECT * FROM {{r}} WHERE {ident(column)} {op} {literal(lower)}"))
+        return _rel(
+            self._on(rel, f"SELECT * FROM {{r}} WHERE {ident(column)} {op} {literal(lower)}")
+        )
 
     def align(self, rel: Relation, schema: Schema) -> Relation:
         have = set(self._types(rel))
@@ -347,7 +351,9 @@ class DuckDBSession:
             if spec.kind == "accepted_values":
                 values = spec.params["values"]
                 assert isinstance(values, list)
-                bad = f"{ref} NOT IN ({', '.join(literal(v) for v in values)})" if values else "true"
+                bad = (
+                    f"{ref} NOT IN ({', '.join(literal(v) for v in values)})" if values else "true"
+                )
             elif spec.kind == "range":
                 low, high = spec.params.get("min"), spec.params.get("max")
                 parts = [f"{ref} < {literal(low)}"] if low is not None else []
@@ -369,7 +375,8 @@ class DuckDBSession:
         star = f"* REPLACE ({clean})" if floats else "*"
         flags = [f"__pipeloom_v{i}" for i in range(len(specs))]
         checks = "".join(
-            f", {self._violation(s, types)} AS {ident(f)}" for s, f in zip(specs, flags, strict=True)
+            f", {self._violation(s, types)} AS {ident(f)}"
+            for s, f in zip(specs, flags, strict=True)
         )
         inner = f"SELECT {star}{keep} FROM {self._view(rel)}"
         return self._view(self.query(f"SELECT *{checks} FROM ({inner})")), flags
@@ -418,16 +425,25 @@ class DuckDBSession:
         kept = _rel(self.query(f"SELECT {original} FROM {marked} WHERE NOT ({bad})"))
         if quarantine is None:
             return DropResult(kept, None)
-        dropped = _rel(self.query(f"SELECT {original}, {', '.join(ident(f) for f in flags)} FROM {marked} WHERE {bad}"))
-        return DropResult(kept, self._quarantine(dropped, [d.name for d in drops], flags, quarantine))
+        dropped = _rel(
+            self.query(
+                f"SELECT {original}, {', '.join(ident(f) for f in flags)} FROM {marked} WHERE {bad}"
+            )
+        )
+        return DropResult(
+            kept, self._quarantine(dropped, [d.name for d in drops], flags, quarantine)
+        )
 
     def _quarantine(
         self, rel: Relation, names: list[str], flags: list[str], meta: QuarantineMeta
     ) -> Relation:
-        failed = " || ".join(
-            f"CASE WHEN {ident(f)} THEN [{string(n)}] ELSE CAST([] AS VARCHAR[]) END"
-            for n, f in zip(names, flags, strict=True)
-        ) or "CAST([] AS VARCHAR[])"
+        failed = (
+            " || ".join(
+                f"CASE WHEN {ident(f)} THEN [{string(n)}] ELSE CAST([] AS VARCHAR[]) END"
+                for n, f in zip(names, flags, strict=True)
+            )
+            or "CAST([] AS VARCHAR[])"
+        )
         drop = f" EXCLUDE ({', '.join(ident(f) for f in flags)})" if flags else ""
         ts = literal(meta.ts.astimezone(UTC))
         return _rel(
@@ -488,12 +504,14 @@ class DuckDBSession:
                     result = write.run()
                     commits = self._commits(db)
                     _q(con, f"CREATE SCHEMA IF NOT EXISTS {ident(db)}.{ident(_META_SCHEMA)}")
-                    _q(con, 
+                    _q(
+                        con,
                         f"CREATE TABLE IF NOT EXISTS {commits} "
-                        "(relation VARCHAR, token VARCHAR, result VARCHAR)"
+                        "(relation VARCHAR, token VARCHAR, result VARCHAR)",
                     )
                     result = replace(result, commit_meta=dict(cfg.commit_meta))
-                    _q(con, 
+                    _q(
+                        con,
                         f"INSERT INTO {commits} VALUES (?, ?, ?)",
                         [f"{target.schema}.{target.name}", token, _dump(result)],
                     )
@@ -596,9 +614,10 @@ class _Write:
         cols = ", ".join(ident(k) for k in keys)
         present = " AND ".join(f"{ident(k)} IS NOT NULL" for k in keys)
         return bool(
-            _q(self.con, 
+            _q(
+                self.con,
                 f"SELECT 1 FROM {self.stage} WHERE {present} GROUP BY {cols} "
-                "HAVING count(*) > 1 LIMIT 1"
+                "HAVING count(*) > 1 LIMIT 1",
             )
         )
 
@@ -662,8 +681,9 @@ class _Write:
             duck = to_duckdb(c.dtype) or current.get(c.name, "VARCHAR")
             ref = ident(c.name) if c.name in current else "NULL"
             exprs.append(f"CAST({ref} AS {duck}) AS {ident(c.name)}")
-        _q(self.con, 
-            f"CREATE OR REPLACE TABLE {self.target} AS SELECT {', '.join(exprs)} FROM {self.target}"
+        _q(
+            self.con,
+            f"CREATE OR REPLACE TABLE {self.target} AS SELECT {', '.join(exprs)} FROM {self.target}",
         )
 
     def _replace_partitions(self) -> WriteResult:
@@ -680,14 +700,17 @@ class _Write:
     def _merge(self) -> WriteResult:
         cfg, keys = self.cfg, self.cfg.unique_key
         on = self._keys_match("target", "source", keys)
-        cond = "true" if cfg.update_condition is None else f"coalesce(({cfg.update_condition}), false)"
+        cond = (
+            "true" if cfg.update_condition is None else f"coalesce(({cfg.update_condition}), false)"
+        )
         is_del = self._is_delete("source.")
         matched = f"target.{ident(keys[0])} IS NOT NULL"
-        inserted, updated, deleted = _q(self.con, 
+        inserted, updated, deleted = _q(
+            self.con,
             f"SELECT count_if(NOT ({matched}) AND NOT {is_del}), "
             f"count_if({matched} AND {cond} AND NOT {is_del}), "
             f"count_if({matched} AND {cond} AND {is_del}) "
-            f"FROM {self.stage} AS source LEFT JOIN {self.target} AS target ON {on}"
+            f"FROM {self.stage} AS source LEFT JOIN {self.target} AS target ON {on}",
         )[0]
         cols = list(self.types)
         sets = ", ".join(f"{ident(c)} = source.{ident(c)}" for c in cols)
@@ -699,9 +722,10 @@ class _Write:
             clauses.append(f"WHEN MATCHED AND {cond} AND {is_del} THEN DELETE")
         clauses.append(f"WHEN MATCHED AND {cond} THEN UPDATE SET {sets}")
         clauses.append(f"WHEN NOT MATCHED AND NOT {is_del} THEN INSERT ({names}) VALUES ({values})")
-        _q(self.con, 
+        _q(
+            self.con,
             f"MERGE INTO {self.target} AS target USING {self.stage} AS source ON {on}\n"
-            + "\n".join(clauses)
+            + "\n".join(clauses),
         )
         written = int(inserted) + int(updated) + (int(deleted) if soft else 0)
         return WriteResult(
@@ -717,37 +741,44 @@ class _Write:
         is_del = self._is_delete("source.")
         opened = f"{ts} AS valid_from, CAST(NULL AS {_TSTZ}) AS valid_to, true AS is_current"
         if cfg.full_refresh or not self.exists:  # a first load: every live row opens a version
-            _q(self.con, 
+            _q(
+                self.con,
                 f"CREATE OR REPLACE TABLE {self.target} AS SELECT source.*, {opened} "
-                f"FROM {self.stage} AS source WHERE NOT {is_del}"
+                f"FROM {self.stage} AS source WHERE NOT {is_del}",
             )
             n = int(self._one(f"SELECT count(*) FROM {self.stage} AS source WHERE NOT {is_del}"))
             return WriteResult(rows_written=n, rows_inserted=n, rows_updated=0, rows_deleted=0)
         if cfg.columns is not None:
             self._evolve((*cfg.columns, *SCD2_COLUMNS))
-        same = " AND ".join(
-            f"{_value('target.', c, self.types[c])} IS NOT DISTINCT FROM "
-            f"{_value('source.', c, self.types[c])}"
-            for c in cfg.tracked_columns
-        ) or "true"
+        same = (
+            " AND ".join(
+                f"{_value('target.', c, self.types[c])} IS NOT DISTINCT FROM "
+                f"{_value('source.', c, self.types[c])}"
+                for c in cfg.tracked_columns
+            )
+            or "true"
+        )
         on = self._keys_match("target", "source", keys) + " AND target.is_current"
         matched = f"target.{ident(keys[0])} IS NOT NULL"
-        deleted, changed, inserted = _q(self.con, 
+        deleted, changed, inserted = _q(
+            self.con,
             f"SELECT count_if({matched} AND {is_del}), "
             f"count_if({matched} AND NOT {is_del} AND NOT ({same})), "
             f"count_if(NOT {is_del} AND (NOT ({matched}) OR NOT ({same}))) "
-            f"FROM {self.stage} AS source LEFT JOIN {self.target} AS target ON {on}"
+            f"FROM {self.stage} AS source LEFT JOIN {self.target} AS target ON {on}",
         )[0]
-        _q(self.con, 
+        _q(
+            self.con,
             f"MERGE INTO {self.target} AS target USING {self.stage} AS source ON {on}\n"
             f"WHEN MATCHED AND ({is_del} OR NOT ({same})) THEN UPDATE SET "
-            f"valid_to = {ts}, is_current = false"
+            f"valid_to = {ts}, is_current = false",
         )
         live = self._keys_match("c", "source", keys)
-        _q(self.con, 
+        _q(
+            self.con,
             f"INSERT INTO {self.target} BY NAME SELECT source.*, {opened} "
             f"FROM {self.stage} AS source WHERE NOT {is_del} AND NOT EXISTS "
-            f"(SELECT 1 FROM {self.target} AS c WHERE {live} AND c.is_current)"
+            f"(SELECT 1 FROM {self.target} AS c WHERE {live} AND c.is_current)",
         )
         closed = int(changed) + int(deleted)
         return WriteResult(

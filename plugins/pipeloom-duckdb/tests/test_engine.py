@@ -14,16 +14,16 @@ from tests.conftest import make_project
 
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.engine.types import Column, ReadSpec, TargetRef, WriteConfig
+from pipeloom.platform import Identity
 from pipeloom.runtime.context import RuntimeContext
 from pipeloom.runtime.run import RunOptions
 from pipeloom.testing.clock import FakeClock
-from pipeloom.platform import Identity
 from pipeloom_duckdb.catalog import DuckDBCatalog
-from pipeloom_duckdb.engine import DuckDBEngine
+from pipeloom_duckdb.engine import DuckDBEngine, DuckDBSession
 from pipeloom_duckdb.extensions import ExtensionMissingError
 from pipeloom_duckdb.spec import DuckDBEngineOptions
 
-from .conftest import extension_dir, write_source
+from .conftest import extension_dir, write_source  # type: ignore[import-not-found]
 
 SPEC_CODE = """
 import sys
@@ -108,9 +108,11 @@ def test_a_listed_extension_fails_on_first_use_not_at_open(tmp_path: Path) -> No
             extension_directory=(tmp_path / "ext").as_posix(), extensions=("delta",)
         )
     )
-    with engine.session(_ctx(tmp_path), catalog=DuckDBCatalog(":memory:")) as s:
-        with pytest.raises(ExtensionMissingError):
-            s.count(s.from_rows(ROWS, SCHEMA))
+    with (
+        engine.session(_ctx(tmp_path), catalog=DuckDBCatalog(":memory:")) as s,
+        pytest.raises(ExtensionMissingError),
+    ):
+        s.count(s.from_rows(ROWS, SCHEMA))
 
 
 def test_a_run_reports_plx121_inside_plm204(tmp_path: Path) -> None:
@@ -155,6 +157,7 @@ def test_delta_reads_offline_from_the_pinned_directory(tmp_path: Path) -> None:
         rel = s.reader("delta").read(ReadSpec("delta", location=table.as_posix()))
         assert s.schema(rel) == SCHEMA
         assert sorted(s.to_rows(rel), key=lambda r: r["id"]) == list(ROWS)
+        assert isinstance(s, DuckDBSession)
         installed = s.rows(
             "SELECT installed, loaded FROM duckdb_extensions() WHERE extension_name = 'delta'"
         )
