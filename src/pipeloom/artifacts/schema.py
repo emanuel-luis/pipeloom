@@ -52,6 +52,78 @@ MANIFEST_CONFIG_REQUIRED: Final = (
     "catalog",
     "meta",
 )
+# The run_results keys every 1.0 document writes. Frozen like the manifest config keys: a field
+# added later stays optional (ADR-0049), so it must not join these tuples.
+ROW_REQUIRED: Final = (
+    "unique_id",
+    "unit_id",
+    "ephemeral_inlined",
+    "materialization",
+    "strategy",
+    "relation_name",
+    "status",
+    "attempt",
+    "retries_used",
+    "started_at",
+    "ended_at",
+    "duration_ms",
+    "queue_wait_ms",
+    "rows_read",
+    "rows_written",
+    "rows_inserted",
+    "rows_updated",
+    "rows_deleted",
+    "rows_dropped",
+    "rows_quarantined",
+    "bytes_read",
+    "bytes_written",
+    "target_version",
+    "full_refresh",
+    "is_incremental",
+    "watermark_before",
+    "watermark_after",
+    "schema_hash",
+    "schema_changes",
+    "expectations",
+    "warnings",
+    "error",
+    "engine",
+    "engine_version",
+    "executor",
+    "idempotency_token",
+    "skip_reason",
+    "orchestrator_ids",
+)
+RUN_REQUIRED: Final = (
+    "run_id",
+    "parent_run_id",
+    "invocation_ids",
+    "project",
+    "target",
+    "plan_hash",
+    "selector",
+    "full_refresh",
+    "status",
+    "started_at",
+    "ended_at",
+    "duration_ms",
+    "counts",
+    "totals",
+    "identity",
+    "pipeloom_version",
+    "plugins",
+    "python_version",
+    "git_sha",
+    "exit_code",
+    "intermediate_ttl",
+    "warnings",
+)
+METADATA_REQUIRED: Final = (
+    "pipeloom_version",
+    "generated_at",
+    "invocation_id",
+    "plugins",
+)
 _ORCHESTRATOR_IDS: Final = {
     "type": "object",
     "propertyNames": {"pattern": "^[a-z][a-z0-9_]{0,63}$"},
@@ -211,7 +283,7 @@ def _row() -> dict[str, Any]:
         },
         "orchestrator_ids": _ORCHESTRATOR_IDS,
     }
-    return {"type": "object", "properties": props, "required": list(props)}
+    return {"type": "object", "properties": props, "required": list(ROW_REQUIRED)}
 
 
 def run_results_schema() -> dict[str, Any]:
@@ -266,9 +338,13 @@ def run_results_schema() -> dict[str, Any]:
     body = {
         "description": "The outcome of one run, one row per persisted model.",
         "properties": {
-            "metadata": {"type": "object", "properties": metadata, "required": list(metadata)},
+            "metadata": {
+                "type": "object",
+                "properties": metadata,
+                "required": list(METADATA_REQUIRED),
+            },
             "args": {**_OBJECT, "description": "The options of the invocation."},
-            "run": {"type": "object", "properties": run, "required": list(run)},
+            "run": {"type": "object", "properties": run, "required": list(RUN_REQUIRED)},
             "results": {"type": "array", "items": {"$ref": _DEFS + "result"}},
         },
         "required": ["metadata", "args", "run", "results"],

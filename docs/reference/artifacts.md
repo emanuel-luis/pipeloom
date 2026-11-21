@@ -97,6 +97,8 @@ config schemas ([ADR-0049](../adr/0049-artifact-schemas-and-orchestrator-protoco
 | `--unit-states` (`pipeloom.unit_states/1`) | [unit_states.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_states.json) |
 | `graph --units --output json` (`pipeloom.unit_graph/1`) | [unit_graph.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_graph.json) |
 
+A field added after 1.0 is optional in the schema, so 1.0 documents keep validating; the 1.0 required sets are frozen, and CI validates frozen 1.0 documents against the current schemas and current output against the frozen 1.0 schemas.
+
 Compatibility within a version: consumers must ignore fields they do not know, since the schemas
 leave objects open. A 1.x release may add optional fields, new event types and new skip reasons
 and stays on `/1`: skip reasons are open strings both in the row `skip_reason` and in the

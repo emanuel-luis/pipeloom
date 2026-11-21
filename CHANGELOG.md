@@ -26,6 +26,7 @@ pipeloom 1.1.0 adds a DuckDB engine and a one-command demo. The new `pipeloom-du
 
 ### Changed
 
+- The published run_results schemas require only the frozen 1.0 field set; fields added later are optional ([ADR-0049](docs/adr/0049-artifact-schemas-and-orchestrator-protocol.md) amendment). Tests check frozen 1.0 documents against the current schemas and current goldens against the frozen 1.0 schemas. No change to what pipeloom writes.
 - Airflow 3.4 is supported and tested: the lock moves to `apache-airflow` 3.4.0 and the `airflow` CI job gains a 3.3 leg next to the 3.2.2 floor. The `>=3.2,<4` requirement is unchanged.
 
 ### Fixed
