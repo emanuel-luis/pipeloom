@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The format follows
 ### Documentation
 
 - ADR-0016 amendment 1.1 and the stability page: the experimental tier (reserved `PLW` prefix), supported releases, and the optional protocol member rule. The architecture non-goals list for after 1.0 is updated.
+- The Databricks plugin page states which Databricks CLI versions the generated bundle files work with: the job uses only Jobs API fields, valid under the Terraform and the direct engine, and a bundle that sets `bundle.engine: terraform` fails on CLI 1.20.0 or later ([ADR-0035](docs/adr/0035-databricks-rendering-and-job-lifecycle.md)).
 
 ## [1.0.0] - 2026-11-16
 

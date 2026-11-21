@@ -141,6 +141,15 @@ inside the bundle, next to `databricks.yml`, and the job files must be in its `i
 `${workspace.file_path}`. `--check` writes nothing and exits 1 when a file is stale. Running
 `databricks bundle deploy` stays your step.
 
+**Databricks CLI versions.** The generated job files use only Jobs API fields, which both the
+Terraform and the direct deployment engine accept. They were checked with `databricks bundle
+validate` on CLI 1.18.0, with no unknown-field warning. CLI 1.20.0 removed the Terraform engine,
+so a bundle that sets `bundle.engine: terraform` fails there; remove the setting or pin CLI 1.19.
+pipeloom does not set a CLI floor. To require one, set `bundle.databricks_cli_version` in your own
+`databricks.yml`; an included file overrides the root's value, which is why pipeloom writes none.
+pipeloom never runs the CLI: `deploy`, `run` and `repair` use the Databricks SDK, so it has no
+CLI version check.
+
 **Direct deploy.** `pipeloom databricks deploy --target prod` uploads the project and creates or
 resets one job per pipeline. The job is found by its `pipeloom_job` tag (two matches are PLD006).
 The upload is content addressed, under `<workspace_root>/<project>/<pipeline>/<target>/<hash>`,
