@@ -1,0 +1,11 @@
+order_id,order_date,customer_id,currency,amount,status
+1,2026-03-01,c1,USD,100.00,paid
+2,2026-03-01,c2,EUR,50.00,paid
+3,2026-03-01,c3,BRL,200.00,paid
+4,2026-03-01,c1,EUR,80.00,cancelled
+5,2026-03-02,c2,USD,60.00,paid
+6,2026-03-02,c4,EUR,120.00,paid
+7,2026-03-02,c3,BRL,150.00,paid
+8,2026-03-03,c1,USD,40.00,paid
+9,2026-03-03,c5,EUR,90.00,paid
+10,2026-03-03,c4,BRL,300.00,paid
