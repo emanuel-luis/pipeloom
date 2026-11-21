@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
+config_version: 1
+name: events_incremental
+models:
+  bronze:
+    +materialized: table
+    +tags: [bronze]
+  silver:
+    +tags: [silver]
+  gold:
+    +materialized: table
+    +tags: [gold]
+sources:
+  raw:
+    format: csv
+    # Every daily file that has landed in this folder.
+    location: raw/events
+    tables:
+      events:
+        location: "*.csv"
+targets:
+  duckdb:
+    engine:
+      kind: duckdb
+    catalog:
+      kind: duckdb
+      path: target/duckdb/events.duckdb
+    naming:
+      kind: none
+      schema: web
+    state:
+      kind: json
+      path: .pipeloom/state-duckdb
+  polars:
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+    naming:
+      kind: none
+      schema: web
+    state:
+      kind: json
+      path: .pipeloom/state-polars
