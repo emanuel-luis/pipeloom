@@ -63,7 +63,9 @@ def test_shop_local_runs_end_to_end(tmp_path: Path, af_project: Any) -> None:
 
     run("-m", "airflow", "db", "migrate")
     done = run(str(HERE / "_dag_test_helper.py"), str(HERE / "dags" / "shop_local.py"))
-    outcome = json.loads(done.stdout.strip().splitlines()[-1])
+    # Airflow 3.4 logs a harmless MissingGreenlet from its async sqlite pool at interpreter exit,
+    # after the helper printed its result, so the JSON line is not always the last one.
+    outcome = json.loads([ln for ln in done.stdout.splitlines() if ln.startswith("{")][-1])
     assert outcome["state"] == "success", (done.stdout[-6000:], done.stderr[-3000:])
     rid = naming.airflow_run_id("shop_local", outcome["run_id"])
     results = json.loads(
