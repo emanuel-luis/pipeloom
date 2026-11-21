@@ -8,8 +8,20 @@ This walks through a small project with one source and two models, then runs it 
 $ pip install "pipeloom[polars]"
 ```
 
-Use `pipeloom[pandas]` for the pandas engine. Add the `sqlglot` extra to get warnings about SQL
+Use `pipeloom[pandas]` for the pandas engine and `pipeloom[duckdb]` for DuckDB. Add the `sqlglot` extra to get warnings about SQL
 that reads tables you did not declare (`pipeloom[polars,sqlglot]`).
+
+## Try it in one command
+
+With the DuckDB engine installed, one command writes a sample project, builds it and writes the
+docs site, with nothing else to set up:
+
+```console
+$ uvx --from "pipeloom[duckdb]" pipeloom demo
+```
+
+It prints the path of `target/docs/index.html` in the new `pipeloom_demo` folder and the commands
+to try next. See [pipeloom demo](reference/cli.md#pipeloom-demo).
 
 ## Start from `pipeloom init`
 
@@ -18,7 +30,7 @@ The fastest start is to let pipeloom write the project:
 ```console
 $ pipeloom init shop
 Project name [shop]:
-Engine (polars, pandas, spark, databricks) [polars]:
+Engine (polars, pandas, spark, databricks, duckdb) [polars]:
 Created project 'shop' (polars) in shop
 Next steps:
   cd shop
