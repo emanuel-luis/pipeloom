@@ -1,0 +1,20 @@
+# Incremental run: the stored watermark, minus the lookback, filters the input; the batch is
+# written; the new watermark (never lower than the old one) is committed only after the write.
+# Illustrates docs/guide/incremental.md and section 9 of docs/architecture.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+state: "State store" {class: store}
+source: "Input table" {class: source}
+filter: "Filter rows" {class: process}
+body: "Model body" {class: process}
+write: "Merge or append" {class: process}
+target: "Target table" {class: store}
+commit: "Commit watermark" {class: process}
+
+state -> filter: "watermark - lookback" {class: meta}
+source -> filter -> body -> write -> target
+write -> commit: after write
+commit -> state: batch max {class: meta}

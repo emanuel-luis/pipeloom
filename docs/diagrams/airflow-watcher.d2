@@ -1,0 +1,20 @@
+# PipeloomDag in WATCHER mode: one producer task runs the whole selection, one watcher per unit
+# reads its unit file, finalize waits for the producer and every leaf. Illustrates section 13
+# (ADR-0048) of docs/architecture.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+producer: "pipeloom_run producer" {class: process}
+store: "Shared artifacts root" {class: store}
+w1: "stg_orders watcher" {class: process}
+w2: "fct_orders watcher" {class: process}
+fin: pipeloom_finalize {class: process}
+
+producer -> store: unit files
+store -> w1: reads {class: meta}
+store -> w2: reads {class: meta}
+w1 -> w2
+w2 -> fin: all_done
+producer -> fin

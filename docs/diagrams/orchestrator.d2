@@ -1,0 +1,23 @@
+# The orchestrator protocol: compile once, read the unit graph, run one task per unit, always
+# run finalize. Every invocation shares one artifacts root. Illustrates docs/guide/orchestrators.md
+# and ADR-0049.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+compile: pipeloom compile {class: process}
+manifest: manifest.json {class: store}
+graph: "graph --units" {class: process}
+units: unit_graph.json {class: source}
+orch: Orchestrator {class: external}
+task: "run per unit" {class: process}
+fin: pipeloom finalize {class: process}
+root: "Artifacts root" {class: store}
+
+compile -> manifest -> graph -> units
+units -> orch: plan {class: meta}
+orch -> task: in order
+orch -> fin: always
+task -> root: attempt files
+root -> fin: reads {class: meta}

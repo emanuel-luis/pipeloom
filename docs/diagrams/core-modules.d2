@@ -1,0 +1,29 @@
+# Core modules and their import direction (arrows point at the dependency). The full list of
+# modules is the layer tree in section 3 of docs/architecture.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+api: "CLI, Project API" {class: process}
+plugins: "plugins" {class: process}
+runtime: "runtime" {class: process}
+plan: "plan" {class: process}
+validate: "validate" {class: process}
+graph: "graph" {class: process}
+config: "config, discovery" {class: process}
+engine: "engine protocols" {class: process}
+state: "incremental, quality, state" {class: process}
+events: "events, artifacts" {class: process}
+
+api -> plugins
+api -> runtime
+api -> plan
+runtime -> plan
+runtime -> engine
+runtime -> state
+runtime -> events
+plan -> validate
+plan -> graph
+validate -> config
+graph -> config

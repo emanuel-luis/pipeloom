@@ -1,0 +1,26 @@
+# Distributions and import direction: every plugin depends on the core through entry points, the
+# core never imports a plugin. The entry-point groups are a table in section 6 of
+# docs/architecture.md. Illustrates section 3 (layers) and ADR-0005.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+polars: pipeloom-polars {class: process}
+pandas: pipeloom-pandas {class: process}
+duckdb: pipeloom-duckdb {class: process}
+spark: pipeloom-spark {class: process}
+dbx: pipeloom-databricks {class: process}
+af: pipeloom-airflow {class: process}
+ol: pipeloom-openlineage {class: process}
+core: "pipeloom (core)" {class: process}
+rule: "core imports no plugin" {class: check}
+
+polars -> core
+pandas -> core
+duckdb -> core
+spark -> core
+dbx -> spark: depends {class: meta}
+af -> core
+ol -> core
+core -> rule {class: meta}

@@ -1,0 +1,31 @@
+# Use-case map: who comes to pipeloom, what they want to do, which example shows it. The
+# examples live under examples/ (see examples/README.md).
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+analyst: "Analytics engineer" {class: actor}
+platform: "Platform engineer" {class: actor}
+author: "Plugin author" {class: actor}
+
+laptop: "Laptop lakehouse" {class: process}
+portable: "Same code, any engine" {class: process}
+deploy: "Deploy to orchestrator" {class: process}
+observe: "Track lineage" {class: process}
+engine: "Add an engine" {class: process}
+
+tpch: tpch_polars {class: source}
+engines: "tpch_* projects" {class: source}
+dbx: tpch_databricks {class: source}
+af: examples/airflow {class: source}
+marquez: examples/marquez {class: source}
+kit: "Conformance kit" {class: check}
+
+analyst -> laptop -> tpch
+analyst -> portable -> engines
+platform -> deploy
+deploy -> dbx
+deploy -> af
+platform -> observe -> marquez
+author -> engine -> kit
