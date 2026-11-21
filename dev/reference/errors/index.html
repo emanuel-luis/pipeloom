@@ -5910,7 +5910,7 @@
 <p>The model's sql_dialect differs from the dialect of the target engine, so its ctx.sql queries must be translated, and sqlglot is not installed. Install pipeloom[sqlglot], or remove sql_dialect and write the queries in the engine's dialect.</p>
 <h3 id="plc514">PLC514<a class="headerlink" href="#plc514" title="Permanent link">&para;</a></h3>
 <p>Engine has no interval writes. Severity: error. Status: active. Since: 1.3.</p>
-<p>The model sets incremental.interval, and the selected engine does not declare the interval_writes capability, so it cannot replace one window of the target without touching other rows. Use an engine with interval_writes (polars, pandas or DuckDB), or remove incremental.interval.</p>
+<p>The model sets incremental.interval, and the selected engine does not declare the interval_writes capability, so it cannot replace one window of the target without touching other rows. Use an engine with interval_writes (polars, pandas, DuckDB or Spark), or remove incremental.interval.</p>
 <h2 id="l6-static-code">L6 static code<a class="headerlink" href="#l6-static-code" title="Permanent link">&para;</a></h2>
 <h3 id="plk601">PLK601<a class="headerlink" href="#plk601" title="Permanent link">&para;</a></h3>
 <p>Callable file or function not found. Severity: error. Status: retired. Since: 0.1.</p>

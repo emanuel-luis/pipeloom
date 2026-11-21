@@ -2758,8 +2758,8 @@ because each window has its own idempotency token, <code>&lt;run_id&gt;:&lt;mode
 a list of <code>[start, end]</code> pairs. A dev target never reads or writes the ledger of prod.</p>
 <p>Rules checked before a run: an interval model is materialized incremental, writes with append,
 does not set <code>incremental.column</code>, and has the event_time column in its contract when it declares
-one (PLP417). The engine must declare <code>interval_writes</code>: polars, pandas and DuckDB do; Spark does
-not yet (PLC514). A missing or unusable event_time column at run time is PLM209.</p>
+one (PLP417). The engine must declare <code>interval_writes</code>: polars, pandas, DuckDB and Spark do
+(PLC514). A missing or unusable event_time column at run time is PLM209.</p>
 <p>In <code>run_results.json</code>, an interval model's row has an <code>intervals</code> array with one entry per window:
 <code>interval_id</code>, <code>start</code>, <code>end</code>, <code>idempotency_token</code>, <code>skipped</code> and <code>rows_written</code>. The row's counts
 are the sums over its windows.

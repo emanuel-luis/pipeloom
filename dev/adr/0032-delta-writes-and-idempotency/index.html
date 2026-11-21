@@ -2343,6 +2343,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-13-per-window-transactions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (1.3): per-window transactions
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2407,6 +2418,12 @@
 <li>Delta skips an append of an empty DataFrame unless the commit carries a transaction. When the guard does not apply (no run start time, or <code>txn_guard: false</code>), an empty token commit gets an app id of its own, <code>&lt;app id&gt;@&lt;token&gt;</code> with version 1, so it is still recorded.</li>
 <li>A table that <code>saveAsTable</code> creates does not keep the writer's <code>userMetadata</code>. The <code>spark_catalog</code> catalog therefore creates a missing table empty first, with no token, for append, merge (first load) and replace_partitions, and the tokened write is an ordinary write into it.</li>
 </ul>
+<h2 id="amendment-13-per-window-transactions">Amendment (1.3): per-window transactions<a class="headerlink" href="#amendment-13-per-window-transactions" title="Permanent link">&para;</a></h2>
+<p><a href="../0054-interval-incrementals/">ADR-0054</a> gives each window of an interval model its own token, <code>run_id:model:interval_id</code>, and the Spark engine now declares <code>interval_writes</code>.</p>
+<p>Transaction identity. Every window of a run carries the same <code>txnVersion</code>, the run start in epoch milliseconds. Under the one app id per model, Delta would skip the second window as a replay of the first. A window token therefore gets the app id <code>pipeloom/&lt;project&gt;/&lt;model&gt;/&lt;interval_id&gt;</code>: every part of the token after the run id, joined by <code>/</code>. Tokens without an interval keep <code>pipeloom/&lt;project&gt;/&lt;model&gt;</code>, and the <code>#quarantine</code> suffix still applies, so a window's quarantine write has its own app id too. A rerun of window k in the same run finds its token and replays, and window k+1 is a different app id at the same version, so it is never mistaken for a replay. A later run writes the same window with a newer version, so a stale retry of an older run still gets PLM207 for that window. Delta keeps one transaction entry per app id in the table snapshot, so a daily model adds one small entry a day.</p>
+<p>Finding a window's token. <code>applied_result</code> is unchanged: it matches the exact token in <code>userMetadata</code>, scanning <code>DESCRIBE HISTORY ... LIMIT 100</code> first. A run of many windows makes more than 100 commits, so the first windows of a retried run can be outside that window; the write then reaches Delta, the per-window transaction makes Delta skip it, and the full history scan after the write returns the stored result. No window is written twice.</p>
+<p>The write. <code>replace_range</code> with the append strategy is one <code>mode("overwrite")</code> write with <code>replaceWhere</code> set to <code>column &gt;= start AND column &lt; end</code>. Delta deletes the rows that match, whatever the partitioning, and adds the batch in the same commit, so a table partitioned by month loses only the window's day. An empty batch deletes the window's rows. A batch row outside the range or with a null column raises <code>WriteKeyError</code> (PLM206) before any commit; Delta would refuse it anyway through its replaceWhere constraint check. Bounds are SQL literals: a zoned timestamp is <code>timestamp_micros(...)</code>, so the session time zone never shifts a window. A missing table on the <code>delta_path</code> catalog is created by a plain first append of the batch. The same predicate filters the window's input (<code>SupportsFilterBetween</code>), so Delta can skip files by their statistics.</p>
+<p>Provenance: designed from the public Delta Lake documentation of <code>replaceWhere</code> and idempotent writes (<code>txnAppId</code>, <code>txnVersion</code>). No code from other projects was used.</p>
 
 
 

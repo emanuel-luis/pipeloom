@@ -2959,8 +2959,20 @@ fails and tells you to use mode <code>active</code>. Classic and Connect cannot 
 <td>Portable frames (<code>frame_api: narwhals</code>)</td>
 <td>yes</td>
 </tr>
+<tr>
+<td>Interval writes (<code>incremental.interval</code>)</td>
+<td>yes, one <code>replaceWhere</code> commit per window</td>
+</tr>
 </tbody>
 </table>
+<p>Interval models (<a href="../../guide/incremental/#interval-models">guide</a>) write each window with one Delta
+<code>replaceWhere</code> commit over <code>event_time &gt;= start AND event_time &lt; end</code>: the window's old rows go,
+its new rows land, and rows outside the window stay, whatever the table's partitioning. An empty
+window removes its old rows. Each window commits under its own transaction app id,
+<code>pipeloom/&lt;project&gt;/&lt;model&gt;/&lt;interval_id&gt;</code>, so a retried run replays the windows it wrote and
+writes the rest (<a href="../../adr/0032-delta-writes-and-idempotency/">ADR-0032</a>, amendment 1.3). The input
+is filtered with the same predicate, so Delta can skip files. Spark stores <code>TIMESTAMP</code> in UTC and
+the bounds are UTC instants, so the session time zone never moves a window.</p>
 <p><code>csv</code> reads a header and infers types; <code>json</code> is one multi-line document and <code>ndjson</code> is one
 document per line. Reader options pass through as strings.</p>
 <h3 id="csv-sample-data">CSV sample data<a class="headerlink" href="#csv-sample-data" title="Permanent link">&para;</a></h3>
