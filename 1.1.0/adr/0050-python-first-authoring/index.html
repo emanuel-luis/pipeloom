@@ -1,0 +1,1833 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
+      
+      
+      
+        <link rel="canonical" href="https://emanuel-luis.github.io/pipeloom/1.1.0/adr/0050-python-first-authoring/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>ADR-0050: Python-first model authoring - pipeloom</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#adr-0050-python-first-model-authoring" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="pipeloom" class="md-header__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            pipeloom
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ADR-0050: Python-first model authoring
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="pipeloom" class="md-nav__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    pipeloom
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/running/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/write-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge, replace_partitions, scd2 and schema changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/portable-models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Portable models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/retries-and-cancellation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retries, timeouts and cancellation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/docs-site/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs site
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/run-history/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/alerts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/openlineage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lineage with OpenLineage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/orchestrators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrator protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/recipe-github-actions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipe: GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/polars/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/pandas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pandas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/duckdb/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DuckDB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/spark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spark
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/databricks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/airflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Airflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/writing-an-engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing an engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/databricks-cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/errors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/engine-capabilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engine capabilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stability and deprecations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../landscape/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Market landscape
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#date" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Date
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="adr-0050-python-first-model-authoring">ADR-0050: Python-first model authoring<a class="headerlink" href="#adr-0050-python-first-model-authoring" title="Permanent link">&para;</a></h1>
+<p>Architecture: <a href="../../architecture/#4-configuration">Section 4, Configuration</a>, with changes in sections 1, 2, 3, 5, 7, 11, 12, 13 and 15</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>Since 0.1 a model is declared in YAML (<a href="../0003-model-authoring/">ADR-0003</a>): a model file lists the model, its <code>inputs</code>, its config and either a SQL body or a <code>python: module:function</code> pointer, and folder <code>_defaults.yml</code> files and <code>defaults.models</code> cascade settings onto it. A Python model is therefore written twice, once as an entry in YAML and once as a function whose parameters must match that entry (PLK602), and the config sits in a different file from the code it configures.</p>
+<p>The maintainer reversed that choice for 0.9, before 1.0 freezes the config:</p>
+<ul>
+<li>A model is defined in code, with a decorator on a function, as in the author's earlier prototype. YAML keeps what it is good at, as in dbt: the project file holds project and folder defaults, vars, sources and targets, and properties files describe and configure models. Precedence follows dbt: the decorator wins over properties YAML, which wins over folder and project defaults. YAML alone no longer creates a model.</li>
+<li>Every model is a Python function. There are no <code>sql:</code> models and no <code>.sql</code> files. SQL runs through <code>ctx.sql(query)</code>, which runs the query on the target engine against the model's inputs and returns an engine frame.</li>
+<li>The pivot is the 0.9 headline and is designed first, here. Contracts and the parked test and build work are then adapted to the decorator, followed by OpenLineage, sample data and the Airflow WATCHER mode; 0.9.0 ships with all of it.</li>
+<li>The decorator, its model spec and the module loader may be adapted from the author's earlier prototype, renamed to pipeloom's modules and conventions.</li>
+<li>Discovery is hybrid. A benchmark on Windows with polars models (cold: 50, 200 and 1,000 models) measured 1.9, 3.3 and 11.3 s to import every module against 0.07, 0.22 and 1.4 s to parse them with <code>ast</code>; with a per-file cache and one changed file, parsing took 0.05 to 0.22 s and importing 1.2 to 1.5 s. Reading the decorator from the AST keeps compiles fast and runs no user code, but forbids dynamic config; importing allows it. The chosen design parses every file and imports only the modules whose decorator arguments are not static. Dependencies stay declared, never traced, and Airflow keeps the manifest load mode by default.</li>
+</ul>
+<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Keep YAML-first (<a href="../0003-model-authoring/">ADR-0003</a>).</strong> Validates without running code, but every Python model is declared twice and SQL models need a second body kind on every engine.</li>
+<li><strong>Python-first, static discovery only.</strong> The compiler reads the decorator with <code>ast</code> and never imports. Fast and safe, but every argument must be a literal: no config computed from a loop, a helper or a constant module.</li>
+<li><strong>Python-first, import every model module.</strong> Any Python value works and the code is simple, but a cold compile of 1,000 models takes over 11 s and every compile runs user code, including in the Airflow DAG processor.</li>
+<li><strong>Python-first, hybrid discovery.</strong> Static where the decorator is static, imported where it is not, with a per-file cache. Fast for the common case, dynamic where needed, at the cost of two code paths that must agree on locations and results.</li>
+<li><strong>Decorator arguments.</strong> Typed objects only (verbose in simple cases), plain dicts only (no completion or type checking), or both.</li>
+<li><strong>SQL.</strong> Keep SQL model files beside Python models, or run SQL only through <code>ctx.sql</code> inside a Python model.</li>
+<li><strong>Migration.</strong> A user-facing <code>pipeloom migrate</code> command and a deprecation release, or a hand-written guide and removal before 0.9.0.</li>
+</ul>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>Python-first authoring with hybrid discovery. Every numbered point below is part of the decision.</p>
+<ol>
+<li>
+<p><strong><code>@model</code>.</strong> Keyword-only. Bare <code>@model</code> and <code>@model(...)</code> both work (two overloads). It returns the same function object with a frozen <code>__pipeloom_model__ = ModelSpec(kwargs)</code> that holds only the arguments given, so the function stays callable in a user's own tests; <code>None</code> means not set. Nested config accepts plain dicts with the YAML keys or the pydantic config models re-exported under short names: <code>Write</code>, <code>Incremental</code>, <code>Column</code>, <code>Expectation</code>, <code>Quality</code>, <code>Deletes</code> (pydantic's <code>dataclass_transform</code> gives typed constructors under <code>mypy --strict</code>). Helpers: <code>ref(name)</code>, <code>source(group, table)</code>, <code>var(name, default=...)</code>, and the check helpers <code>not_null(*cols)</code>, <code>unique(*cols)</code>, <code>accepted_values(col, values)</code>, <code>between(col, min=, max=)</code> (the <code>range</code> check), <code>regex(col, pattern)</code>, <code>row_count(min=, max=)</code> and <code>freshness(col, max_age)</code>, which return a <code>CheckConfig</code>. <code>var(name, default=...)</code> returns a <code>Var</code> marker whose value is resolved at resolve time from the project <code>vars</code> and <code>--vars</code>. A <code>Var</code> is accepted as a top-level <code>@model</code> keyword value and anywhere inside a plain list or dict argument (for example <code>write={"unique_key": var("keys")}</code>); the typed constructors and check helpers reject it when called, with a hint to use the plain mapping form, so they stay strictly typed. An explicit <code>None</code> argument means not set and is dropped from the spec; <code>var()</code> without a default is distinct from <code>default=None</code>. Plain values and mappings are validated at resolve time, with located diagnostics. Typed constructors and helpers validate when called: in a static module the AST resolver evaluates them itself and maps a pydantic error to PLS102 (or the matching PLS code) at the call's line and column; in a dynamic module the error is raised during import and is PLY005 at the innermost frame in that file. Applying <code>@model</code> twice raises.</p>
+</li>
+<li>
+<p><strong>Discovery (hybrid).</strong></p>
+</li>
+<li>Where models come from. A <code>model_paths</code> entry is a directory (every <code>*.py</code> below it, skipping dot entries, <code>__pycache__</code> and virtualenvs) or a glob containing <code>*</code>. The new <code>model_packages: [dotted.name]</code> locates each top-level package with <code>importlib.util.find_spec</code> and walks it as files. Python models and properties YAML come from the same scan.</li>
+<li>AST resolver. Each file is parsed. It records the top-level imports <code>from pipeloom import model [as m]</code>, <code>import pipeloom [as pl]</code> (used as <code>pl.model</code>) and <code>from pipeloom.authoring import ...</code>, and recognises the helpers the same way. A static expression is a literal accepted by <code>ast.literal_eval</code>; a list, tuple, set or dict of static expressions; or a call to a known pipeloom helper or re-exported config class (<code>Write</code>, <code>Incremental</code>, <code>Column</code>, <code>Expectation</code>, <code>Quality</code>, <code>Deletes</code>, also in their <code>pipeloom.</code> and alias-qualified forms) whose positional and keyword arguments are all static. A decorator on a top-level <code>def</code> is static when every argument is static; pipeloom's helpers and classes are then called on the literal values, and no user code runs. Anything else makes the module dynamic. A module is dynamic, and is imported, when any <code>@model</code> argument is not static, when <code>model</code> is used other than as a static decorator on a top-level <code>def</code> (factories, loops, <code>model(...)(fn)</code>), on <code>from pipeloom import *</code>, or when it rebinds a helper name. A file that never imports pipeloom is skipped. Keyword names are always checked from the AST, also in dynamic modules: an unknown keyword is PLS101 with a suggestion, and that module is then not imported.</li>
+<li>Import fallback. <code>pipeloom.discovery.loader.ModuleLoader</code> is a context manager grown from today's <code>CallableLoader</code> and adapted from the author's earlier prototype loader. The module name is the file path relative to the longest <code>python_paths</code> root that contains it. It takes a process-wide lock, puts the roots first on <code>sys.path</code>, imports only the dynamic modules and collects the marked functions from <code>vars(module)</code> with their bound global name. A function object seen in several modules is kept where <code>__name__ == fn.__module__</code>, else first in path order. On exit it removes the roots and purges, by path, every module whose <code>__file__</code> or <code>__path__</code> lies under them (namespace packages too), except <code>pipeloom</code>, <code>__main__</code> and <code>__mp_main__</code>, so the case harness can load about a hundred projects in one process without one seeing another's modules.</li>
+<li>Load summary. Loading never stops at the first failure. Each module that cannot be loaded is one PLY005: a syntax error, an exception during import, a file outside every <code>python_paths</code> root, or a module name that resolves to a different file. The location is the innermost traceback frame inside that file, or <code>SyntaxError.lineno</code> and <code>offset</code>.</li>
+<li>Cache. <code>&lt;project&gt;/.pipeloom/cache/discovery.json</code> (already git-ignored), written to a temporary file and then replaced. The key per file is its POSIX path, <code>mtime_ns</code>, size, the pipeloom version, the Python minor version and the cache schema. For a static file it stores the discovered models as JSON (arguments, parameters, locations), with a <code>var()</code> argument stored as its <code>Var</code> marker, never a value, so changing vars never invalidates the cache; for a dynamic file the <code>dynamic</code> flag and its decorator sites (parse data only), because import results are never cached; for a file without models <code>none</code>. Deleted files are dropped. A schema or version mismatch, or a corrupt cache, means a cold run; a failed write (a read-only file system on Airflow or Databricks) is ignored. The cache is never part of the manifest or the plan hash.</li>
+<li>Reload. <code>Discovery.refresh()</code> stats the files again, re-parses changed static files, and purges and re-imports every dynamic module (a changed helper module purges them all). <code>docs serve</code> calls it on each index request and regenerates the site when the snapshot changed.</li>
+<li>
+<p>Seam. Discovery returns <code>DiscoveredModel(name, module, attr, file, line, col, kwargs, kwarg_locations, params, dynamic)</code> records plus a list of failures. A file may hold several models. The default name is the function name; two models with one name are PLR202 at the second decorator.</p>
+</li>
+<li>
+<p><strong>Parameters become inputs.</strong> Each function parameter is bound in this order: (1) an <code>inputs=</code> entry, whose value is <code>ref(...)</code>, <code>source(...)</code> or a bare name (a string, resolved by steps 3 and 4); (2) a parameter with a default is never an input unless <code>inputs=</code> lists it; (3) a model with that name, never the model itself; (4) a source table with that name, when exactly one source group has it; (5) otherwise PLR201 with fuzzy suggestions over models and sources. A table name found in two source groups is PLR210. <code>ctx</code> is reserved and optional: it is passed only when the signature has it, and a model named <code>ctx</code> is PLS102. <code>*args</code>, positional-only parameters, and an <code>inputs=</code> key that is not a parameter (unless the function takes <code>**kwargs</code>) are PLK602. A model never reads its own name, so a bronze <code>orders</code> model with an <code>orders</code> parameter binds the source. <code>incremental.input</code> names an input alias exactly as today, so the incremental filter applies to a source input and to a model input alike.</p>
+</li>
+<li>
+<p><strong>Sources in <code>pipeloom.yml</code>.</strong> <code>sources</code> maps a group name to a group with <code>format</code>, <code>location</code>, <code>schema</code>, <code>options</code>, <code>tags</code>, <code>meta</code> and <code>tables</code>, and each table may set <code>location</code> or <code>table</code>, <code>format</code>, <code>options</code> and the other group keys. A table <code>location</code> is joined to the group <code>location</code>; a table <code>table</code> is qualified by the group <code>schema</code>. A table entry whose merged result has no <code>location</code> and no <code>table</code> uses its key as <code>table</code>, qualified by the group <code>schema</code>; one with both is PLS108. <code>targets.&lt;t&gt;.sources.&lt;group&gt;</code> deep-merges over the group, and an explicit <code>null</code> removes a key. The unique id is <code>source.&lt;project&gt;.&lt;group&gt;.&lt;table&gt;</code>. Sources in properties files are rejected for now.</p>
+</li>
+<li>
+<p><strong>The <code>models:</code> tree in <code>pipeloom.yml</code>.</strong> It mirrors the model folders, with config keys prefixed by <code>+</code> as in dbt. Root-level <code>+keys</code> are project defaults and folder keys nest; for a model found through <code>model_packages</code> the folder path is the dotted module path. <code>vars</code>, <code>targets</code>, <code>default_target</code> and the <code>~/.pipeloom/profiles.yml</code> overrides stay, with no separate profiles file. <code>_defaults.yml</code>, <code>defaults.models</code> and model files with <code>sources:</code> or <code>models:</code> lists are removed (see point 19). <code>python_paths</code> stays, with the default <code>["."]</code>, and every model file must lie under one of its roots (PLY005 otherwise).</p>
+</li>
+<li>
+<p><strong>Properties YAML.</strong> Any <code>*.yml</code> or <code>*.yaml</code> file under <code>model_paths</code> except <code>pipeloom.yml</code>, with any file name. Its shape is a <code>models</code> list whose entries have <code>name</code>, <code>description</code>, <code>config</code> (model settings), <code>columns</code> (the contract), <code>data_tests</code> and <code>unit_tests</code>. An entry never sets <code>inputs</code>. An entry that names no model, or a model that another entry already describes, is PLR209 (error), suppressed while any PLY005 exists. <code>schema export</code> writes <code>project.json</code> and a new <code>properties.json</code>; <code>models.json</code> and <code>defaults.json</code> stop being published under <code>latest/</code> (older version folders keep them). The modeline is <code>$schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json</code>.</p>
+</li>
+<li>
+<p><strong>Precedence.</strong> Decorator, then properties, then the <code>models:</code> tree from the folder nearest the model up to the root, then the project root <code>+keys</code>, then built-in defaults. The merge rules do not change: mappings deep-merge, lists replace, <code>tags</code> is an ordered union, and an explicit <code>null</code> removes a key (in YAML only). <code>columns</code> is a model key, so the folder tree cannot set it, and decorator columns replace properties columns whole. <code>ResolvedModel.origins</code> maps each top-level key to the layer and <code>Location</code> it came from, and <code>locate_model(m, field)</code> uses it. Origins are not in the manifest.</p>
+</li>
+<li>
+<p><strong><code>ctx.sql(query, *, dialect=None, inputs=None)</code>.</strong> The query sees the model's inputs by alias, as read (after the incremental filter); <code>inputs=</code> adds or replaces frames by name. It returns the native frame, or a Narwhals frame under <code>frame_api: narwhals</code>. The dialect is the <code>dialect</code> argument, then the inheritable setting <code>sql_dialect</code>, then the engine's own. sqlglot <code>transpile</code> runs only when the chosen dialect differs from the engine's, in <code>pipeloom.runtime.sql</code>, imported lazily (one more import-linter ignore entry). Translation needed with sqlglot missing is PLC513 (L5). Translation happens only when a dialect is declared and differs from the engine's, so sqlglot stays an optional extra and no core dependency is added; validation tells the user when a model's SQL will be translated. pandas raises <code>SqlUnsupportedError</code> at run time, reported as PLX101 with a hint, and L6 warns with PLK606 when a function's source contains <code>ctx.sql</code> and the engine has no SQL. <code>EngineCapabilities.sql_dialect: str | None = None</code> joins plugin API (0, 5), which is unreleased, so the version does not change. polars has no sqlglot dialect; it maps to the closest one and tests cover the mapping.</p>
+</li>
+<li>
+<p><strong>Views.</strong> A <code>view</code> model is a function that returns <code>ctx.sql(...)</code>. The runner calls it in view mode: input parameters are placeholders, any use of them other than passing them to <code>ctx.sql</code> raises, and <code>ctx.sql</code> returns a <code>ViewQuery</code>, a new internal type, for the unchanged <code>create_view</code>. Input aliases are bound to physical relations as SQL views are today: the runner passes the query with one <code>ReadSpec</code> per alias, and the engine binds each alias to that relation (Spark as a CTE over the table name or path). <code>inputs=</code> frames are rejected in view mode (PLX120), and returning anything other than the <code>ViewQuery</code> is PLX120. PLP409 narrows to "a view cannot inline an ephemeral model". Ephemeral models are unchanged: they are computed inside the consuming unit.</p>
+</li>
+<li>
+<p><strong>Manifest.</strong> The schema stays <code>pipeloom.manifest/1</code>; the change is breaking before 1.0 and the CHANGELOG says so. A node body is <code>PythonBody{kind: "python", callable: "module:attr", file}</code>; <code>node.file</code> is the <code>.py</code> file and <code>node.line</code> the decorator line. <code>SqlBody</code> is removed with the legacy path, after which an old manifest with <code>kind: sql</code> is PLX107. The checksum formula does not change (resolved config, <code>callable</code>, NUL, module file bytes, plus <code>columns</code> without <code>description</code>), so editing any function in a file marks every model of that file modified, which is accepted as conservative. Plan hashes change once. Dynamic config must be deterministic, and PLX103 guards it. <code>meta</code> values must be JSON (PLS102).</p>
+</li>
+<li>
+<p><strong>Diagnostics.</strong> A finding in Python carries the file, the decorator line and column and, for a keyword argument, that argument's own line and column from the AST when the <code>@model(...)</code> call is written directly on the <code>def</code>, in a static or a dynamic module. A model created any other way (factories, loops, <code>model(...)(fn)</code>) is located at the function's file and <code>__code__.co_firstlineno</code>, column 1, with no per-argument location, so a diagnostic on an argument points at the function. The JSON pointer reads <code>/@model/write/unique_key</code>. Pydantic errors map through <code>DecoratorSite.locate(pointer)</code>, which has the same interface as <code>LoadedDocument.locate</code>, so <code>from_validation_error</code> is reused. <code>CodeInfo.status</code> gains <code>"retired"</code> with a <code>retired</code> version; the catalog page says "Retired in 0.9: no longer emitted", and a retired code has no case file (<code>test_catalog</code> changes accordingly). Codes:</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Layer, severity</th>
+<th>Title</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PLY005</td>
+<td>L0 E</td>
+<td>Model module cannot be loaded</td>
+<td>new</td>
+</tr>
+<tr>
+<td>PLR209</td>
+<td>L2 E</td>
+<td>Properties entry names no model, or describes one twice</td>
+<td>new</td>
+</tr>
+<tr>
+<td>PLR210</td>
+<td>L2 E</td>
+<td>Input name matches a table in several source groups</td>
+<td>new</td>
+</tr>
+<tr>
+<td>PLC513</td>
+<td>L5 E</td>
+<td>SQL translation needs the sqlglot extra</td>
+<td>new</td>
+</tr>
+<tr>
+<td>PLK606</td>
+<td>L6 W</td>
+<td><code>ctx.sql</code> on an engine without SQL</td>
+<td>new</td>
+</tr>
+<tr>
+<td>PLX120</td>
+<td>Runtime E</td>
+<td>View model did not return <code>ctx.sql(...)</code>, or passed it <code>inputs=</code></td>
+<td>new</td>
+</tr>
+<tr>
+<td>PLK602</td>
+<td>L6 E</td>
+<td>Parameters do not match inputs</td>
+<td>reused, same meaning</td>
+</tr>
+<tr>
+<td>PLK603, PLK605</td>
+<td>L6 W</td>
+<td>Applied to literal <code>ctx.sql</code> queries</td>
+<td>reused</td>
+</tr>
+<tr>
+<td>PLP409</td>
+<td>L4 E</td>
+<td>A view cannot inline an ephemeral model</td>
+<td>narrowed</td>
+</tr>
+<tr>
+<td>PLR201, PLR202, PLR203, PLS101, PLS102, PLS108, PLG302</td>
+<td></td>
+<td>Also located in Python</td>
+<td>reused</td>
+</tr>
+<tr>
+<td>PLK601, PLK604, PLC502</td>
+<td></td>
+<td></td>
+<td>retired in 0.9</td>
+</tr>
+</tbody>
+</table>
+<p>PLM209, PLX116, PLX119, PLC511, PLC512, PLA008 and PLA009 stay free for other 0.9 items, and PLR208, PLX114, PLX115, PLP415 and PLQ303 for the test and build work.</p>
+</li>
+<li>
+<p><strong>Layers.</strong> L0: YAML codes and PLY005. L1: pydantic over YAML and decorator arguments. L2: references through parameters, PLR209 and PLR210. L3: unchanged. L4: unchanged, with PLP409 narrowed. L5: PLC502 retired, PLC513 added. L6: static checks on the function source: PLK602 (signature against <code>inputs=</code>, emitted while binding), PLK603 and PLK605 on literal <code>ctx.sql</code> strings, and PLK606.</p>
+</li>
+<li>
+<p><strong>Runtime.</strong> Executors and tasks do not change. They read <code>metadata.python_paths</code> and the node's <code>callable</code> from the manifest, and <code>ModuleLoader.load("module:attr")</code> imports that one module. An executor running a unit from a manifest never runs discovery. Any invocation that compiles runs it, including <code>pipeloom run</code> without <code>--manifest</code> and Airflow PROJECT mode, whose unit tasks each compile, so dynamic modules are imported there too. The function is called by keyword: the input aliases, plus <code>ctx</code> when it is a parameter. <code>ModelContext</code> keeps its fields and gains <code>sql()</code>, backed by a private callable that the runner sets.</p>
+</li>
+<li>
+<p><strong>Contracts.</strong> <code>columns</code> comes from the decorator (<code>Column(...)</code>) or from properties. <code>ColumnConfig.description</code> is optional and stays out of the node checksum and the plan hash: <code>columns</code> is hashed without <code>description</code>. Where descriptions appear in the manifest and on the docs site is settled later in 0.9, outside the plan hash. <a href="../0044-model-contracts/">ADR-0044</a> gets an amendment for the sources of <code>columns</code>, their precedence and <code>description</code>; PLP414 does not change.</p>
+</li>
+<li>
+<p><strong>Test and build shape</strong> (for the later ADR-0045). <code>data_tests</code> (the parked <code>DataTestConfig</code>, whose <code>check</code> is a <code>DataCheckConfig</code> with <code>not_null</code>, <code>unique</code> or <code>relationships</code>, not a <code>CheckConfig</code>, so the expectation check helpers do not apply there) is a model key that the decorator (a keyword added by the ADR-0045 change) and properties can set, and a list that replaces. <code>unit_tests</code> live only in properties, with <code>given</code> keyed by input alias (the parameter name) and <code>expect</code>. Plain pytest calls on the function also work.</p>
+</li>
+<li>
+<p><strong><code>init</code> and <code>new model</code></strong> (<a href="../0041-pipeloom-init/">ADR-0041</a> amendment). <code>pipeloom new model NAME [--sql|--python] [--folder]</code> writes <code>models/&lt;folder&gt;/&lt;name&gt;.py</code>. With <code>--sql</code> the body returns <code>ctx.sql("select 1 as id")</code>, with <code>--python</code> a frame stub; the default is <code>--python</code> on pandas and <code>--sql</code> otherwise. The usage error for a missing <code>python_paths</code> goes away. <code>init</code> writes one <code>.py</code> per layer, the <code>models:</code> tree instead of <code>_defaults.yml</code>, <code>models/silver/_properties.yml</code>, and a <code>.vscode/settings.json</code> that maps <code>properties.json</code> to <code>models/**/*.yml</code>.</p>
+</li>
+<li>
+<p><strong>Airflow and Databricks.</strong> <code>MANIFEST</code> stays the default Airflow load mode and imports nothing at parse or run time except the one module of the unit being run. <code>PROJECT</code> imports only the dynamic modules, inside the DAG processor and again in every unit task, which compiles (point 13), and its cache key adds the <code>model_packages</code> directories (<a href="../0037-airflow-packaging-and-rendering/">ADR-0037</a> amendment). The Databricks upload set is <code>pipeloom.yml</code>, the nodes' <code>.py</code> files and every <code>*.py</code> under <code>python_paths</code>, plus the manifest; properties YAML is uploaded too, for parity. Modules from <code>model_packages</code> must be installed in the job environment, and the docs say so (<a href="../0035-databricks-rendering-and-job-lifecycle/">ADR-0035</a> amendment).</p>
+</li>
+<li>
+<p><strong>Docs.</strong> A migration section in the CHANGELOG under 0.9.0 and a new guide, <code>docs/guide/migrate-0.9.md</code>, both written with the removal of the legacy path.</p>
+</li>
+<li>
+<p><strong>Transition.</strong> The legacy YAML <code>models:</code> path and the new path coexist on main, with no warning code, until the change that removes the legacy path; one project may mix both. That change lands before 0.9.0, and 0.9.0 ships Python-first only.</p>
+</li>
+</ol>
+<p><strong>Migration and scope decisions.</strong></p>
+<ul>
+<li>There is no user-facing <code>pipeloom migrate</code> command. The migration guide shows the mapping from YAML to the decorator by hand. The repository's own fixtures, cases and examples were migrated by an internal converter, described in the amendment below.</li>
+<li>Amendment (migration work): the converter becomes a test support utility, <code>tests/legacy_models.py</code>, kept after the legacy path is removed. The shared test project builders use it to turn compact YAML-style models written by tests into Python-first projects on write; it stays out of the package, so there is still no user-facing <code>pipeloom migrate</code>.</li>
+<li>0.9.0 drops YAML models with no deprecation release. Removal before 1.0 is allowed by pre-1.0 SemVer and by <a href="../0016-versioning-and-plugin-api/">ADR-0016</a>.</li>
+<li><code>ctx.sql</code> translates only when a dialect is declared (<code>dialect=</code> or <code>sql_dialect</code>) and differs from the engine's (point 8).</li>
+<li><a href="../0019-yaml-dialect/">ADR-0019</a> does not change; its YAML dialect now covers the project file and properties files only.</li>
+</ul>
+<p><strong>Rejected.</strong></p>
+<ul>
+<li>Keeping YAML-first: the double declaration of Python models is the problem this ADR solves.</li>
+<li>Static-only discovery: forbids any computed config, which the maintainer wants to allow.</li>
+<li>Importing every module: over 11 s for 1,000 models cold, and user code on every compile.</li>
+<li>Typed objects only, or dicts only, for decorator arguments: the first is verbose for simple cases, the second has no completion. Both are accepted.</li>
+<li>SQL model files beside Python models: two body kinds on every engine for no gain over <code>ctx.sql</code>.</li>
+<li>A module-level registry of decorated functions: the decorator only marks the function, and discovery collects marked functions into the project being compiled (principle 3).</li>
+<li>sqlglot as a core dependency, or translating every query: translation runs only when a declared dialect differs from the engine's.</li>
+<li>A user-facing <code>pipeloom migrate</code> command and a deprecation release (see above).</li>
+</ul>
+<p><strong>Example.</strong> The stub of the decorator:</p>
+<pre><code class="language-python">F = TypeVar(&quot;F&quot;, bound=Callable[..., Any])
+
+@overload
+def model(fn: F, /) -&gt; F: ...
+@overload
+def model(*, name: str | None = None, description: str | None = None,
+          inputs: Mapping[str, str | Ref | SourceRef] | None = None,
+          materialized: Literal[&quot;table&quot;, &quot;incremental&quot;, &quot;view&quot;, &quot;ephemeral&quot;, &quot;intermediate&quot;] | None = None,
+          incremental: Incremental | Mapping[str, Any] | None = None,
+          write: Write | Mapping[str, Any] | None = None,
+          partition_by: Sequence[str] | None = None, cluster_by: Sequence[str] | None = None,
+          columns: Sequence[Column | Mapping[str, Any]] | None = None,
+          expectations: Sequence[Expectation | Mapping[str, Any]] | None = None,
+          quality: Quality | Mapping[str, Any] | None = None,
+          tags: Sequence[str] | None = None, retries: int | None = None,
+          retry_delay: str | float | None = None, retry_on: Literal[&quot;transient&quot;, &quot;any&quot;] | None = None,
+          timeout: str | float | None = None, frame_api: Literal[&quot;native&quot;, &quot;narwhals&quot;] | None = None,
+          sql_dialect: str | None = None, schema: str | None = None, catalog: str | None = None,
+          meta: Mapping[str, Any] | None = None) -&gt; Callable[[F], F]: ...
+# ADR-0045 adds: data_tests: Sequence[DataTest | Mapping[str, Any]] | None = None
+</code></pre>
+<p><code>models/silver/orders_enriched.py</code>:</p>
+<pre><code class="language-python">import polars as pl
+from pipeloom import Column, Expectation, ModelContext, Write, model, not_null, source
+
+@model(
+    materialized=&quot;incremental&quot;,
+    inputs={&quot;customer&quot;: source(&quot;tpch&quot;, &quot;customer&quot;)},
+    incremental={&quot;input&quot;: &quot;orders&quot;, &quot;column&quot;: &quot;o_orderdate&quot;, &quot;lookback&quot;: &quot;3d&quot;},
+    write=Write(strategy=&quot;merge&quot;, unique_key=[&quot;order_key&quot;]),
+    columns=[
+        Column(name=&quot;order_key&quot;, dtype=&quot;int64&quot;, nullable=False),
+        Column(name=&quot;customer_name&quot;, dtype=&quot;string&quot;),
+        Column(name=&quot;order_date&quot;, dtype=&quot;date&quot;),
+        Column(name=&quot;total_price&quot;, dtype=&quot;decimal(15,2)&quot;),
+    ],
+    expectations=[Expectation(name=&quot;keys&quot;, check=not_null(&quot;order_key&quot;), on_violation=&quot;fail&quot;)],
+)
+def orders_enriched(ctx: ModelContext, orders: pl.LazyFrame, customer: pl.LazyFrame) -&gt; pl.LazyFrame:
+    return ctx.sql(&quot;&quot;&quot;
+        select o.o_orderkey as order_key, c.c_name as customer_name,
+               o.o_orderdate as order_date, o.o_totalprice as total_price
+        from orders o join customer c on o.o_custkey = c.c_custkey
+    &quot;&quot;&quot;)
+</code></pre>
+<p><code>orders</code> binds to the source table <code>tpch.orders</code> by parameter name (point 3, step 4) and <code>customer</code> through <code>inputs=</code>. <code>orders</code> is both a source input and the incremental input, and the incremental filter applies to it as it does today. Every argument is static, so this file is resolved without being imported.</p>
+<p><code>pipeloom.yml</code>:</p>
+<pre><code class="language-yaml"># yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
+config_version: 1
+name: tpch_polars
+model_paths: [models]
+vars:
+  tpch_dir: ../data/tpch
+models:
+  +materialized: table
+  silver:
+    +catalog: pipeloom_silver
+    +tags: [silver]
+sources:
+  tpch:
+    format: parquet
+    location: ${var:tpch_dir}
+    tables:
+      customer:
+        location: customer.parquet
+      orders:
+        location: orders.parquet
+targets:
+  dev:
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+    state:
+      kind: json
+      path: .pipeloom/state
+  prod:
+    engine:
+      kind: spark
+    catalog:
+      kind: unity
+      catalog: main
+    sources:
+      tpch:
+        format: table
+        location: null
+        schema: samples.tpch
+        tables:
+          customer:
+            location: null
+          orders:
+            location: null
+</code></pre>
+<p><code>models/silver/_properties.yml</code>:</p>
+<pre><code class="language-yaml"># yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+models:
+  - name: orders_enriched
+    description: One row per order with its customer name.
+    config:
+      retries: 2
+    data_tests:
+      - name: order_key_unique
+        check:
+          unique: [order_key]
+        on_violation: fail
+    unit_tests:
+      - name: joins_customer
+        given:
+          orders:
+            rows:
+              - o_orderkey: 1
+                o_custkey: 7
+                o_orderdate: 2024-01-02
+                o_totalprice: 10.5
+          customer:
+            rows:
+              - c_custkey: 7
+                c_name: Ana
+        expect:
+          rows:
+            - order_key: 1
+              customer_name: Ana
+              order_date: 2024-01-02
+              total_price: 10.5
+</code></pre>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<ul>
+<li>A model is written once, in one file, with completion and type checking from the decorator's signature. SQL users write a one-line function around <code>ctx.sql</code>.</li>
+<li>Most projects compile without running user code: only modules with dynamic decorator arguments are imported, and the per-file cache keeps warm compiles fast. Where a module is imported, compiling runs user code, in Airflow PROJECT mode and in <code>docs generate</code> in CI among other places, so the non-goal becomes "user code runs at compile time only for modules with dynamic decorator arguments". Airflow's default MANIFEST mode still imports nothing.</li>
+<li>The engine contract shrinks: SQL model bodies are gone, and engines declare a <code>sql_dialect</code> instead.</li>
+<li>Every existing project must be rewritten before it runs on 0.9.0, every manifest and plan hash changes once, and <code>models.json</code> and <code>defaults.json</code> stop being published. The migration guide covers the mapping.</li>
+<li>Two discovery paths (AST and import) must produce the same <code>DiscoveredModel</code> records and the same locations; the case harness covers both for every Python-located code.</li>
+<li>Editing any function in a module marks every model of that module modified under <code>state:modified</code>.</li>
+<li>ADR-0003 is superseded. ADR-0035, 0037, 0040, 0041, 0042, 0044 and 0047 carry amendments for this change.</li>
+</ul>
+<p>Risks:</p>
+<ul>
+<li>polars has no sqlglot dialect, so translation to polars maps to the closest dialect and may differ on edge cases; tests cover the mapping.</li>
+<li>The cache misses an edit that keeps both mtime and size; a cold run fixes it.</li>
+<li>Non-deterministic dynamic config trips PLX103 and can go stale in the Airflow PROJECT compile cache.</li>
+<li>A model folder named like an installed package is shadowed by it; PLY005 must say why.</li>
+<li>Importing a dynamic module at compile time runs user code (Airflow PROJECT mode, <code>docs generate</code> in CI). In PROJECT mode every unit task compiles, so dynamic modules are also imported on workers.</li>
+</ul>
+<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
+<p>Accepted. Supersedes <a href="../0003-model-authoring/">ADR-0003</a>.</p>
+<h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
+<p>2026-11-15</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
