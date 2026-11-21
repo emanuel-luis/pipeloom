@@ -467,6 +467,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../guide/portable-models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Portable models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../guide/retries-and-cancellation/" class="md-nav__link">
         
   
@@ -2472,6 +2500,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plx122" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX122
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4268,6 +4307,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plx122" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX122
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4893,6 +4943,9 @@
 <h3 id="plx121">PLX121<a class="headerlink" href="#plx121" title="Permanent link">&para;</a></h3>
 <p>DuckDB extension not installed. Severity: error. Status: active. Since: 1.1.</p>
 <p>The DuckDB engine needs an extension (delta for a Delta source, or one listed in the engine's extensions option) that is not installed in its extension_directory, and install_extensions is off, so nothing is downloaded. The code appears in the message of the error that the read or write reports (PLM204, PLM201 or PLX101). Preinstall the extension into that directory on a machine with network access, or turn install_extensions on.</p>
+<h3 id="plx122">PLX122<a class="headerlink" href="#plx122" title="Permanent link">&para;</a></h3>
+<p>Order-dependent operation on a lazy frame. Severity: error. Status: active. Since: 1.1.</p>
+<p>A Python model with frame_api narwhals used an operation that needs a row order (cum_sum, shift, diff, first or last) on a lazy frame (DuckDB, Spark or polars lazy), which has none. Give the expression an explicit order with .over(order_by=...), or sort first; see the portable models guide.</p>
 <h2 id="renderers">Renderers<a class="headerlink" href="#renderers" title="Permanent link">&para;</a></h2>
 <h3 id="pla001">PLA001<a class="headerlink" href="#pla001" title="Permanent link">&para;</a></h3>
 <p>Unsupported execution mode. Severity: error. Status: active. Since: 0.6.</p>
