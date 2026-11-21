@@ -1,0 +1,1452 @@
+{
+  "shop": {
+    "airflow_all_placeholders": {
+      "dim_customers": [
+        "a://shop/ci/dim_customers/main.dim_customers/model.shop.dim_customers"
+      ],
+      "fct_orders": [
+        "a://shop/ci/fct_orders/main.fct_orders/model.shop.fct_orders"
+      ],
+      "rpt_revenue": [
+        "a://shop/ci/rpt_revenue/main.rpt_revenue/model.shop.rpt_revenue"
+      ],
+      "stg_customers": [
+        "a://shop/ci/stg_customers/main.stg_customers/model.shop.stg_customers"
+      ],
+      "stg_orders": [
+        "a://shop/ci/stg_orders/main.stg_orders/model.shop.stg_orders"
+      ],
+      "stg_payments": [
+        "a://shop/ci/stg_payments/main.stg_payments/model.shop.stg_payments"
+      ],
+      "top_customers": [
+        "a://shop/ci/top_customers/main.top_customers/model.shop.top_customers"
+      ]
+    },
+    "airflow_default": {
+      "dim_customers": [
+        "pipeloom://shop/ci/main.dim_customers"
+      ],
+      "fct_orders": [
+        "pipeloom://shop/ci/main.fct_orders"
+      ],
+      "rpt_revenue": [
+        "pipeloom://shop/ci/main.rpt_revenue"
+      ],
+      "stg_customers": [
+        "pipeloom://shop/ci/main.stg_customers"
+      ],
+      "stg_orders": [
+        "pipeloom://shop/ci/main.stg_orders"
+      ],
+      "stg_payments": [
+        "pipeloom://shop/ci/main.stg_payments"
+      ],
+      "top_customers": [
+        "pipeloom://shop/ci/main.top_customers"
+      ]
+    },
+    "openlineage": {
+      "dim_customers": {
+        "inputs": [
+          [
+            "pipeloom.ci",
+            "main.stg_orders"
+          ],
+          [
+            "pipeloom.ci",
+            "main.stg_customers"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.ci",
+            "main.dim_customers"
+          ]
+        ]
+      },
+      "fct_orders": {
+        "inputs": [
+          [
+            "pipeloom.ci",
+            "main.stg_orders"
+          ],
+          [
+            "pipeloom.ci",
+            "main.stg_customers"
+          ],
+          [
+            "pipeloom.ci",
+            "main.stg_payments"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.ci",
+            "main.fct_orders"
+          ]
+        ]
+      },
+      "rpt_revenue": {
+        "inputs": [
+          [
+            "pipeloom.ci",
+            "main.fct_orders"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.ci",
+            "main.rpt_revenue"
+          ]
+        ]
+      },
+      "stg_customers": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/raw/customers"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.ci",
+            "main.stg_customers"
+          ]
+        ]
+      },
+      "stg_orders": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/raw/orders"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.ci",
+            "main.stg_orders"
+          ]
+        ]
+      },
+      "stg_payments": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/raw/payments"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.ci",
+            "main.stg_payments"
+          ]
+        ]
+      },
+      "top_customers": {
+        "inputs": [
+          [
+            "pipeloom.ci",
+            "main.rpt_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.ci",
+            "main.top_customers"
+          ]
+        ]
+      }
+    },
+    "openlineage_dataset_namespace": {
+      "dim_customers": {
+        "inputs": [
+          [
+            "lake",
+            "main.stg_orders"
+          ],
+          [
+            "lake",
+            "main.stg_customers"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "main.dim_customers"
+          ]
+        ]
+      },
+      "fct_orders": {
+        "inputs": [
+          [
+            "lake",
+            "main.stg_orders"
+          ],
+          [
+            "lake",
+            "main.stg_customers"
+          ],
+          [
+            "lake",
+            "main.stg_payments"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "main.fct_orders"
+          ]
+        ]
+      },
+      "rpt_revenue": {
+        "inputs": [
+          [
+            "lake",
+            "main.fct_orders"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "main.rpt_revenue"
+          ]
+        ]
+      },
+      "stg_customers": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/raw/customers"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "main.stg_customers"
+          ]
+        ]
+      },
+      "stg_orders": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/raw/orders"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "main.stg_orders"
+          ]
+        ]
+      },
+      "stg_payments": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/raw/payments"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "main.stg_payments"
+          ]
+        ]
+      },
+      "top_customers": {
+        "inputs": [
+          [
+            "lake",
+            "main.rpt_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "main.top_customers"
+          ]
+        ]
+      }
+    },
+    "unit_graph": {
+      "dim_customers": [
+        "pipeloom://shop/ci/main.dim_customers"
+      ],
+      "fct_orders": [
+        "pipeloom://shop/ci/main.fct_orders"
+      ],
+      "rpt_revenue": [
+        "pipeloom://shop/ci/main.rpt_revenue"
+      ],
+      "stg_customers": [
+        "pipeloom://shop/ci/main.stg_customers"
+      ],
+      "stg_orders": [
+        "pipeloom://shop/ci/main.stg_orders"
+      ],
+      "stg_payments": [
+        "pipeloom://shop/ci/main.stg_payments"
+      ],
+      "top_customers": [
+        "pipeloom://shop/ci/main.top_customers"
+      ]
+    }
+  },
+  "tpch_pandas": {
+    "airflow_all_placeholders": {
+      "customer": [
+        "a://tpch_pandas/dev/customer/pipeloom_bronze.tpch.customer/model.tpch_pandas.customer"
+      ],
+      "lineitem": [
+        "a://tpch_pandas/dev/lineitem/pipeloom_bronze.tpch.lineitem/model.tpch_pandas.lineitem"
+      ],
+      "lineitem_revenue": [
+        "a://tpch_pandas/dev/lineitem_revenue/pipeloom_silver.tpch.lineitem_revenue/model.tpch_pandas.lineitem_revenue"
+      ],
+      "nation": [
+        "a://tpch_pandas/dev/nation/pipeloom_bronze.tpch.nation/model.tpch_pandas.nation"
+      ],
+      "orders": [
+        "a://tpch_pandas/dev/orders/pipeloom_bronze.tpch.orders/model.tpch_pandas.orders"
+      ],
+      "orders_enriched": [
+        "a://tpch_pandas/dev/orders_enriched/pipeloom_silver.tpch.orders_enriched/model.tpch_pandas.orders_enriched"
+      ],
+      "region": [
+        "a://tpch_pandas/dev/region/pipeloom_bronze.tpch.region/model.tpch_pandas.region"
+      ],
+      "revenue_by_region_month": [
+        "a://tpch_pandas/dev/revenue_by_region_month/pipeloom_gold.tpch.revenue_by_region_month/model.tpch_pandas.revenue_by_region_month"
+      ],
+      "top_customers": [
+        "a://tpch_pandas/dev/top_customers/pipeloom_gold.tpch.top_customers/model.tpch_pandas.top_customers"
+      ]
+    },
+    "airflow_default": {
+      "customer": [
+        "pipeloom://tpch_pandas/dev/pipeloom_bronze.tpch.customer"
+      ],
+      "lineitem": [
+        "pipeloom://tpch_pandas/dev/pipeloom_bronze.tpch.lineitem"
+      ],
+      "lineitem_revenue": [
+        "pipeloom://tpch_pandas/dev/pipeloom_silver.tpch.lineitem_revenue"
+      ],
+      "nation": [
+        "pipeloom://tpch_pandas/dev/pipeloom_bronze.tpch.nation"
+      ],
+      "orders": [
+        "pipeloom://tpch_pandas/dev/pipeloom_bronze.tpch.orders"
+      ],
+      "orders_enriched": [
+        "pipeloom://tpch_pandas/dev/pipeloom_silver.tpch.orders_enriched"
+      ],
+      "region": [
+        "pipeloom://tpch_pandas/dev/pipeloom_bronze.tpch.region"
+      ],
+      "revenue_by_region_month": [
+        "pipeloom://tpch_pandas/dev/pipeloom_gold.tpch.revenue_by_region_month"
+      ],
+      "top_customers": [
+        "pipeloom://tpch_pandas/dev/pipeloom_gold.tpch.top_customers"
+      ]
+    },
+    "openlineage": {
+      "customer": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/customer.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.customer"
+          ]
+        ]
+      },
+      "lineitem": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/lineitem.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.lineitem"
+          ]
+        ]
+      },
+      "lineitem_revenue": {
+        "inputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.lineitem"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ]
+      },
+      "nation": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/nation.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.nation"
+          ]
+        ]
+      },
+      "orders": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/orders.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.orders"
+          ]
+        ]
+      },
+      "orders_enriched": {
+        "inputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.orders"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.customer"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.nation"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.region"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.orders_enriched"
+          ]
+        ]
+      },
+      "region": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/region.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.region"
+          ]
+        ]
+      },
+      "revenue_by_region_month": {
+        "inputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.orders_enriched"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_gold.tpch.revenue_by_region_month"
+          ]
+        ]
+      },
+      "top_customers": {
+        "inputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.orders_enriched"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_gold.tpch.top_customers"
+          ]
+        ]
+      }
+    },
+    "openlineage_dataset_namespace": {
+      "customer": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/customer.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.customer"
+          ]
+        ]
+      },
+      "lineitem": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/lineitem.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.lineitem"
+          ]
+        ]
+      },
+      "lineitem_revenue": {
+        "inputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.lineitem"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ]
+      },
+      "nation": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/nation.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.nation"
+          ]
+        ]
+      },
+      "orders": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/orders.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.orders"
+          ]
+        ]
+      },
+      "orders_enriched": {
+        "inputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.orders"
+          ],
+          [
+            "lake",
+            "pipeloom_bronze.tpch.customer"
+          ],
+          [
+            "lake",
+            "pipeloom_bronze.tpch.nation"
+          ],
+          [
+            "lake",
+            "pipeloom_bronze.tpch.region"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_silver.tpch.orders_enriched"
+          ]
+        ]
+      },
+      "region": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/region.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.region"
+          ]
+        ]
+      },
+      "revenue_by_region_month": {
+        "inputs": [
+          [
+            "lake",
+            "pipeloom_silver.tpch.orders_enriched"
+          ],
+          [
+            "lake",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_gold.tpch.revenue_by_region_month"
+          ]
+        ]
+      },
+      "top_customers": {
+        "inputs": [
+          [
+            "lake",
+            "pipeloom_silver.tpch.orders_enriched"
+          ],
+          [
+            "lake",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_gold.tpch.top_customers"
+          ]
+        ]
+      }
+    },
+    "unit_graph": {
+      "customer": [
+        "pipeloom://tpch_pandas/dev/pipeloom_bronze.tpch.customer"
+      ],
+      "lineitem": [
+        "pipeloom://tpch_pandas/dev/pipeloom_bronze.tpch.lineitem"
+      ],
+      "lineitem_revenue": [
+        "pipeloom://tpch_pandas/dev/pipeloom_silver.tpch.lineitem_revenue"
+      ],
+      "nation": [
+        "pipeloom://tpch_pandas/dev/pipeloom_bronze.tpch.nation"
+      ],
+      "orders": [
+        "pipeloom://tpch_pandas/dev/pipeloom_bronze.tpch.orders"
+      ],
+      "orders_enriched": [
+        "pipeloom://tpch_pandas/dev/pipeloom_silver.tpch.orders_enriched"
+      ],
+      "region": [
+        "pipeloom://tpch_pandas/dev/pipeloom_bronze.tpch.region"
+      ],
+      "revenue_by_region_month": [
+        "pipeloom://tpch_pandas/dev/pipeloom_gold.tpch.revenue_by_region_month"
+      ],
+      "top_customers": [
+        "pipeloom://tpch_pandas/dev/pipeloom_gold.tpch.top_customers"
+      ]
+    }
+  },
+  "tpch_polars": {
+    "airflow_all_placeholders": {
+      "customer": [
+        "a://tpch_polars/dev/customer/pipeloom_bronze.tpch.customer/model.tpch_polars.customer"
+      ],
+      "lineitem": [
+        "a://tpch_polars/dev/lineitem/pipeloom_bronze.tpch.lineitem/model.tpch_polars.lineitem"
+      ],
+      "lineitem_revenue": [
+        "a://tpch_polars/dev/lineitem_revenue/pipeloom_silver.tpch.lineitem_revenue/model.tpch_polars.lineitem_revenue"
+      ],
+      "nation": [
+        "a://tpch_polars/dev/nation/pipeloom_bronze.tpch.nation/model.tpch_polars.nation"
+      ],
+      "orders": [
+        "a://tpch_polars/dev/orders/pipeloom_bronze.tpch.orders/model.tpch_polars.orders"
+      ],
+      "orders_enriched": [
+        "a://tpch_polars/dev/orders_enriched/pipeloom_silver.tpch.orders_enriched/model.tpch_polars.orders_enriched"
+      ],
+      "region": [
+        "a://tpch_polars/dev/region/pipeloom_bronze.tpch.region/model.tpch_polars.region"
+      ],
+      "revenue_by_region_month": [
+        "a://tpch_polars/dev/revenue_by_region_month/pipeloom_gold.tpch.revenue_by_region_month/model.tpch_polars.revenue_by_region_month"
+      ],
+      "top_customers": [
+        "a://tpch_polars/dev/top_customers/pipeloom_gold.tpch.top_customers/model.tpch_polars.top_customers"
+      ]
+    },
+    "airflow_default": {
+      "customer": [
+        "pipeloom://tpch_polars/dev/pipeloom_bronze.tpch.customer"
+      ],
+      "lineitem": [
+        "pipeloom://tpch_polars/dev/pipeloom_bronze.tpch.lineitem"
+      ],
+      "lineitem_revenue": [
+        "pipeloom://tpch_polars/dev/pipeloom_silver.tpch.lineitem_revenue"
+      ],
+      "nation": [
+        "pipeloom://tpch_polars/dev/pipeloom_bronze.tpch.nation"
+      ],
+      "orders": [
+        "pipeloom://tpch_polars/dev/pipeloom_bronze.tpch.orders"
+      ],
+      "orders_enriched": [
+        "pipeloom://tpch_polars/dev/pipeloom_silver.tpch.orders_enriched"
+      ],
+      "region": [
+        "pipeloom://tpch_polars/dev/pipeloom_bronze.tpch.region"
+      ],
+      "revenue_by_region_month": [
+        "pipeloom://tpch_polars/dev/pipeloom_gold.tpch.revenue_by_region_month"
+      ],
+      "top_customers": [
+        "pipeloom://tpch_polars/dev/pipeloom_gold.tpch.top_customers"
+      ]
+    },
+    "openlineage": {
+      "customer": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/customer.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.customer"
+          ]
+        ]
+      },
+      "lineitem": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/lineitem.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.lineitem"
+          ]
+        ]
+      },
+      "lineitem_revenue": {
+        "inputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.lineitem"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ]
+      },
+      "nation": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/nation.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.nation"
+          ]
+        ]
+      },
+      "orders": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/orders.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.orders"
+          ]
+        ]
+      },
+      "orders_enriched": {
+        "inputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.orders"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.customer"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.nation"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.region"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.orders_enriched"
+          ]
+        ]
+      },
+      "region": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/region.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.region"
+          ]
+        ]
+      },
+      "revenue_by_region_month": {
+        "inputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.orders_enriched"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_gold.tpch.revenue_by_region_month"
+          ]
+        ]
+      },
+      "top_customers": {
+        "inputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.orders_enriched"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_gold.tpch.top_customers"
+          ]
+        ]
+      }
+    },
+    "openlineage_dataset_namespace": {
+      "customer": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/customer.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.customer"
+          ]
+        ]
+      },
+      "lineitem": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/lineitem.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.lineitem"
+          ]
+        ]
+      },
+      "lineitem_revenue": {
+        "inputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.lineitem"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ]
+      },
+      "nation": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/nation.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.nation"
+          ]
+        ]
+      },
+      "orders": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/orders.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.orders"
+          ]
+        ]
+      },
+      "orders_enriched": {
+        "inputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.orders"
+          ],
+          [
+            "lake",
+            "pipeloom_bronze.tpch.customer"
+          ],
+          [
+            "lake",
+            "pipeloom_bronze.tpch.nation"
+          ],
+          [
+            "lake",
+            "pipeloom_bronze.tpch.region"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_silver.tpch.orders_enriched"
+          ]
+        ]
+      },
+      "region": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/region.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.region"
+          ]
+        ]
+      },
+      "revenue_by_region_month": {
+        "inputs": [
+          [
+            "lake",
+            "pipeloom_silver.tpch.orders_enriched"
+          ],
+          [
+            "lake",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_gold.tpch.revenue_by_region_month"
+          ]
+        ]
+      },
+      "top_customers": {
+        "inputs": [
+          [
+            "lake",
+            "pipeloom_silver.tpch.orders_enriched"
+          ],
+          [
+            "lake",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_gold.tpch.top_customers"
+          ]
+        ]
+      }
+    },
+    "unit_graph": {
+      "customer": [
+        "pipeloom://tpch_polars/dev/pipeloom_bronze.tpch.customer"
+      ],
+      "lineitem": [
+        "pipeloom://tpch_polars/dev/pipeloom_bronze.tpch.lineitem"
+      ],
+      "lineitem_revenue": [
+        "pipeloom://tpch_polars/dev/pipeloom_silver.tpch.lineitem_revenue"
+      ],
+      "nation": [
+        "pipeloom://tpch_polars/dev/pipeloom_bronze.tpch.nation"
+      ],
+      "orders": [
+        "pipeloom://tpch_polars/dev/pipeloom_bronze.tpch.orders"
+      ],
+      "orders_enriched": [
+        "pipeloom://tpch_polars/dev/pipeloom_silver.tpch.orders_enriched"
+      ],
+      "region": [
+        "pipeloom://tpch_polars/dev/pipeloom_bronze.tpch.region"
+      ],
+      "revenue_by_region_month": [
+        "pipeloom://tpch_polars/dev/pipeloom_gold.tpch.revenue_by_region_month"
+      ],
+      "top_customers": [
+        "pipeloom://tpch_polars/dev/pipeloom_gold.tpch.top_customers"
+      ]
+    }
+  },
+  "tpch_spark": {
+    "airflow_all_placeholders": {
+      "customer": [
+        "a://tpch_spark/dev/customer/pipeloom_bronze.tpch.customer/model.tpch_spark.customer"
+      ],
+      "lineitem": [
+        "a://tpch_spark/dev/lineitem/pipeloom_bronze.tpch.lineitem/model.tpch_spark.lineitem"
+      ],
+      "lineitem_revenue": [
+        "a://tpch_spark/dev/lineitem_revenue/pipeloom_silver.tpch.lineitem_revenue/model.tpch_spark.lineitem_revenue"
+      ],
+      "nation": [
+        "a://tpch_spark/dev/nation/pipeloom_bronze.tpch.nation/model.tpch_spark.nation"
+      ],
+      "orders": [
+        "a://tpch_spark/dev/orders/pipeloom_bronze.tpch.orders/model.tpch_spark.orders"
+      ],
+      "orders_enriched": [
+        "a://tpch_spark/dev/orders_enriched/pipeloom_silver.tpch.orders_enriched/model.tpch_spark.orders_enriched"
+      ],
+      "region": [
+        "a://tpch_spark/dev/region/pipeloom_bronze.tpch.region/model.tpch_spark.region"
+      ],
+      "revenue_by_region_month": [
+        "a://tpch_spark/dev/revenue_by_region_month/pipeloom_gold.tpch.revenue_by_region_month/model.tpch_spark.revenue_by_region_month"
+      ],
+      "top_customers": [
+        "a://tpch_spark/dev/top_customers/pipeloom_gold.tpch.top_customers/model.tpch_spark.top_customers"
+      ]
+    },
+    "airflow_default": {
+      "customer": [
+        "pipeloom://tpch_spark/dev/pipeloom_bronze.tpch.customer"
+      ],
+      "lineitem": [
+        "pipeloom://tpch_spark/dev/pipeloom_bronze.tpch.lineitem"
+      ],
+      "lineitem_revenue": [
+        "pipeloom://tpch_spark/dev/pipeloom_silver.tpch.lineitem_revenue"
+      ],
+      "nation": [
+        "pipeloom://tpch_spark/dev/pipeloom_bronze.tpch.nation"
+      ],
+      "orders": [
+        "pipeloom://tpch_spark/dev/pipeloom_bronze.tpch.orders"
+      ],
+      "orders_enriched": [
+        "pipeloom://tpch_spark/dev/pipeloom_silver.tpch.orders_enriched"
+      ],
+      "region": [
+        "pipeloom://tpch_spark/dev/pipeloom_bronze.tpch.region"
+      ],
+      "revenue_by_region_month": [
+        "pipeloom://tpch_spark/dev/pipeloom_gold.tpch.revenue_by_region_month"
+      ],
+      "top_customers": [
+        "pipeloom://tpch_spark/dev/pipeloom_gold.tpch.top_customers"
+      ]
+    },
+    "openlineage": {
+      "customer": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/customer.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.customer"
+          ]
+        ]
+      },
+      "lineitem": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/lineitem.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.lineitem"
+          ]
+        ]
+      },
+      "lineitem_revenue": {
+        "inputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.lineitem"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ]
+      },
+      "nation": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/nation.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.nation"
+          ]
+        ]
+      },
+      "orders": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/orders.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.orders"
+          ]
+        ]
+      },
+      "orders_enriched": {
+        "inputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.orders"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.customer"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.nation"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.region"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.orders_enriched"
+          ]
+        ]
+      },
+      "region": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/data/region.csv"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_bronze.tpch.region"
+          ]
+        ]
+      },
+      "revenue_by_region_month": {
+        "inputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.orders_enriched"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_gold.tpch.revenue_by_region_month"
+          ]
+        ]
+      },
+      "top_customers": {
+        "inputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.orders_enriched"
+          ],
+          [
+            "pipeloom.dev",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "pipeloom.dev",
+            "pipeloom_gold.tpch.top_customers"
+          ]
+        ]
+      }
+    },
+    "openlineage_dataset_namespace": {
+      "customer": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/customer.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.customer"
+          ]
+        ]
+      },
+      "lineitem": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/lineitem.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.lineitem"
+          ]
+        ]
+      },
+      "lineitem_revenue": {
+        "inputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.lineitem"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ]
+      },
+      "nation": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/nation.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.nation"
+          ]
+        ]
+      },
+      "orders": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/../data/tpch/orders.parquet"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.orders"
+          ]
+        ]
+      },
+      "orders_enriched": {
+        "inputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.orders"
+          ],
+          [
+            "lake",
+            "pipeloom_bronze.tpch.customer"
+          ],
+          [
+            "lake",
+            "pipeloom_bronze.tpch.nation"
+          ],
+          [
+            "lake",
+            "pipeloom_bronze.tpch.region"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_silver.tpch.orders_enriched"
+          ]
+        ]
+      },
+      "region": {
+        "inputs": [
+          [
+            "file",
+            "<dir>/data/region.csv"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_bronze.tpch.region"
+          ]
+        ]
+      },
+      "revenue_by_region_month": {
+        "inputs": [
+          [
+            "lake",
+            "pipeloom_silver.tpch.orders_enriched"
+          ],
+          [
+            "lake",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_gold.tpch.revenue_by_region_month"
+          ]
+        ]
+      },
+      "top_customers": {
+        "inputs": [
+          [
+            "lake",
+            "pipeloom_silver.tpch.orders_enriched"
+          ],
+          [
+            "lake",
+            "pipeloom_silver.tpch.lineitem_revenue"
+          ]
+        ],
+        "outputs": [
+          [
+            "lake",
+            "pipeloom_gold.tpch.top_customers"
+          ]
+        ]
+      }
+    },
+    "unit_graph": {
+      "customer": [
+        "pipeloom://tpch_spark/dev/pipeloom_bronze.tpch.customer"
+      ],
+      "lineitem": [
+        "pipeloom://tpch_spark/dev/pipeloom_bronze.tpch.lineitem"
+      ],
+      "lineitem_revenue": [
+        "pipeloom://tpch_spark/dev/pipeloom_silver.tpch.lineitem_revenue"
+      ],
+      "nation": [
+        "pipeloom://tpch_spark/dev/pipeloom_bronze.tpch.nation"
+      ],
+      "orders": [
+        "pipeloom://tpch_spark/dev/pipeloom_bronze.tpch.orders"
+      ],
+      "orders_enriched": [
+        "pipeloom://tpch_spark/dev/pipeloom_silver.tpch.orders_enriched"
+      ],
+      "region": [
+        "pipeloom://tpch_spark/dev/pipeloom_bronze.tpch.region"
+      ],
+      "revenue_by_region_month": [
+        "pipeloom://tpch_spark/dev/pipeloom_gold.tpch.revenue_by_region_month"
+      ],
+      "top_customers": [
+        "pipeloom://tpch_spark/dev/pipeloom_gold.tpch.top_customers"
+      ]
+    }
+  }
+}

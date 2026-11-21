@@ -6,7 +6,11 @@ The design is in [ADR-0035](../adr/0035-databricks-rendering-and-job-lifecycle.m
 [ADR-0036](../adr/0036-databricks-client-and-connection.md); section 12 of the
 [architecture](../architecture.md) has the overview.
 
-![A plan is rendered to Databricks job settings or bundle YAML. Model tasks write unit files to the volume, a finalize task writes run_results.json, and task values carry a summary.](../diagrams/06-databricks.svg)
+<figure markdown="span">
+  ![A plan becomes bundle YAML or is deployed directly as one Databricks job; the job runs one task per unit, then a finalize task; tasks write unit files and finalize writes run_results.json to a UC Volume, and tasks set task values.](../diagrams/databricks.light.svg#only-light)
+  ![A plan becomes bundle YAML or is deployed directly as one Databricks job; the job runs one task per unit, then a finalize task; tasks write unit files and finalize writes run_results.json to a UC Volume, and tasks set task values.](../diagrams/databricks.dark.svg#only-dark)
+  <figcaption>One plan, one Databricks job. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/databricks.d2">databricks.d2</a>.</figcaption>
+</figure>
 
 ## Install
 

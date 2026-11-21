@@ -6,6 +6,12 @@ script) can follow the same protocol with only the command line and the files pi
 protocol is [ADR-0049](../adr/0049-artifact-schemas-and-orchestrator-protocol.md); this page is
 the short version, and [the GitHub Actions recipe](recipe-github-actions.md) is a working example.
 
+<figure markdown="span">
+  ![pipeloom compile and graph --units write the unit graph; the orchestrator runs one pipeloom run per unit in order, each writing attempt files to the artifacts root, and always runs pipeloom finalize, which reads them.](../diagrams/orchestrator.light.svg#only-light)
+  ![pipeloom compile and graph --units write the unit graph; the orchestrator runs one pipeloom run per unit in order, each writing attempt files to the artifacts root, and always runs pipeloom finalize, which reads them.](../diagrams/orchestrator.dark.svg#only-dark)
+  <figcaption>Prepare once, run each unit, always finalize. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/orchestrator.d2">orchestrator.d2</a>.</figcaption>
+</figure>
+
 ## Terms
 
 - **Run**: one orchestrator run of the plan, named by a run id. It has one folder,

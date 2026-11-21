@@ -14,3 +14,9 @@ unit and data tests, retries, timeouts and cancellation.
 - Reference: [command line](reference/cli.md), [JSON Schema](reference/schema.md), [run artifacts](reference/artifacts.md), [error codes](reference/errors.md)
 - [Architecture](architecture.md)
 - [Architecture decision records](adr/README.md)
+
+<figure markdown="span">
+  ![Who uses pipeloom and which example to start from: an analytics engineer builds a laptop lakehouse (tpch_polars) or runs the same code on any engine (the tpch projects); a platform engineer deploys to an orchestrator (tpch_databricks, examples/airflow) or tracks lineage (examples/marquez); a plugin author adds an engine and checks it with the conformance kit.](diagrams/use-cases.light.svg#only-light)
+  ![Who uses pipeloom and which example to start from: an analytics engineer builds a laptop lakehouse (tpch_polars) or runs the same code on any engine (the tpch projects); a platform engineer deploys to an orchestrator (tpch_databricks, examples/airflow) or tracks lineage (examples/marquez); a plugin author adds an engine and checks it with the conformance kit.](diagrams/use-cases.dark.svg#only-dark)
+  <figcaption>Where to start, by role. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/use-cases.d2">use-cases.d2</a>.</figcaption>
+</figure>

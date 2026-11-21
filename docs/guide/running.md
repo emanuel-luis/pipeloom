@@ -191,6 +191,17 @@ Each failure block has an `explain:` line after the hint. `pipeloom explain <COD
 `pipeloom explain PLX101`, any case) prints what the code means and links to its entry on the
 [error codes](../reference/errors.md) page.
 
+## Working with coding agents
+
+`pipeloom init` writes `AGENTS.md` and three skills under `.agents/skills/`: how to fix a
+diagnostic, how to read run results and how to add a model. They are generated from the installed
+pipeloom (its commands and its diagnostic catalog) and fetch nothing. After an upgrade, run
+`pipeloom init --update-agents` to regenerate them; it touches no other file.
+
+For scripts and agents, add `--log-format json` to read diagnostics as one JSON event per line on
+stderr, each with `code`, `hint`, `location` and `explain_url`. `pipeloom compile --output json`
+prints the manifest path, its hash and the plan counts as one JSON object on stdout.
+
 ## Inspecting a project
 
 These commands write no data. The flags of each are in the

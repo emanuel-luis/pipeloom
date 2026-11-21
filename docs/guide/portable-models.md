@@ -10,6 +10,12 @@ The engine must declare portable frames. All four do. On an
 engine that does not, such as the memory engine, `pipeloom validate` stops with
 [PLC508](../reference/errors.md#plc508).
 
+<figure markdown="span">
+  ![One @model function written with Narwhals passes the capability check and runs on polars, DuckDB and Spark (lazy) and pandas (eager), giving the same output rows on each.](../diagrams/portable-models.light.svg#only-light)
+  ![One @model function written with Narwhals passes the capability check and runs on polars, DuckDB and Spark (lazy) and pandas (eager), giving the same output rows on each.](../diagrams/portable-models.dark.svg#only-dark)
+  <figcaption>One model, four engines, the same rows. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/portable-models.d2">portable-models.d2</a>.</figcaption>
+</figure>
+
 ## An example
 
 ```python

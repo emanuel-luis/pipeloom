@@ -1,0 +1,59 @@
+[
+  {
+    "attempt": null,
+    "context": {},
+    "data": {
+      "args": {
+        "log_format": "json",
+        "project_dir": "<path>",
+        "target": "ci"
+      },
+      "command": "test",
+      "pipeloom_version": "X",
+      "project": "shop",
+      "target": "ci"
+    },
+    "level": "info",
+    "model": null,
+    "run_id": null,
+    "schema": "pipeloom.event/1",
+    "seq": 1,
+    "type": "invocation.started",
+    "unit_id": null
+  },
+  {
+    "attempt": null,
+    "context": {},
+    "data": {
+      "failed": 0,
+      "passed": 0
+    },
+    "level": "info",
+    "model": null,
+    "run_id": null,
+    "schema": "pipeloom.event/1",
+    "seq": 2,
+    "type": "unit_tests.completed",
+    "unit_id": null
+  },
+  {
+    "attempt": null,
+    "context": {},
+    "data": {
+      "command": "test",
+      "counts": {
+        "errors": 0,
+        "warnings": 0
+      },
+      "duration_ms": 0,
+      "exit_code": 0
+    },
+    "level": "info",
+    "model": null,
+    "run_id": null,
+    "schema": "pipeloom.event/1",
+    "seq": 3,
+    "type": "invocation.completed",
+    "unit_id": null
+  }
+]

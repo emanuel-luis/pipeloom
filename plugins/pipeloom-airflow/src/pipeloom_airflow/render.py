@@ -8,6 +8,7 @@ from typing import Final, Literal
 
 from pipeloom.diagnostics import Report
 from pipeloom.graph.selectors import Selection, SelectorError, apply_to_plan
+from pipeloom.plan.identity import asset_uri
 from pipeloom.plan.model import Plan
 from pipeloom_airflow import naming
 from pipeloom_airflow.config import ExecutionConfig, ExecutionMode, RenderConfig
@@ -200,7 +201,7 @@ def _task(
     assets: tuple[str, ...] = ()
     if render.emit_assets:
         assets = tuple(
-            naming.asset_uri(
+            asset_uri(
                 render.asset_uri,
                 project=plan.metadata.project,
                 target=target,

@@ -2,6 +2,12 @@
 
 The `openlineage` sink sends pipeloom runs to an [OpenLineage](https://openlineage.io) backend such as [Marquez](https://marquezproject.ai): one job per persisted model, its input and output datasets, and facets for the schema, row counts, data quality results and errors. Decided in [ADR-0046](../adr/0046-openlineage.md).
 
+<figure markdown="span">
+  ![A pipeloom run sends its events to the openlineage sink, which sends jobs, datasets and facets to Marquez, where they show as a lineage graph; under Airflow the Airflow OpenLineage provider reports the tasks to Marquez.](../diagrams/openlineage.light.svg#only-light)
+  ![A pipeloom run sends its events to the openlineage sink, which sends jobs, datasets and facets to Marquez, where they show as a lineage graph; under Airflow the Airflow OpenLineage provider reports the tasks to Marquez.](../diagrams/openlineage.dark.svg#only-dark)
+  <figcaption>From a pipeloom run to the lineage graph in Marquez. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/openlineage.d2">openlineage.d2</a>.</figcaption>
+</figure>
+
 ## Install
 
 ```console

@@ -5,6 +5,12 @@ group. This page walks through the pieces and ends with the conformance kit, whi
 engine does what the core expects. The protocols are `Engine` and `EngineSession` in
 `pipeloom.engine.protocols`; the design is in [ADR-0002](../adr/0002-engine-abstraction.md).
 
+<figure markdown="span">
+  ![An engine plugin declares its capabilities and provides a harness; the conformance kit runs every cell and reports it passed when the engine keeps a declared promise, skipped when the capability is not declared, and failed when a declared promise is broken.](../diagrams/conformance-kit.light.svg#only-light)
+  ![An engine plugin declares its capabilities and provides a harness; the conformance kit runs every cell and reports it passed when the engine keeps a declared promise, skipped when the capability is not declared, and failed when a declared promise is broken.](../diagrams/conformance-kit.dark.svg#only-dark)
+  <figcaption>How the conformance kit judges an engine. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/conformance-kit.d2">conformance-kit.d2</a>.</figcaption>
+</figure>
+
 ## 1. Declare what the engine can do
 
 `EngineCapabilities` is static data that the core reads without importing the engine. Declare

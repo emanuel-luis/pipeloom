@@ -1,0 +1,20 @@
+# PipeloomDag in DATABRICKS mode: a launch task runs the saved job, one mirror sensor per unit
+# follows its task, finalize closes the run; repair stays in Databricks. Illustrates section 13
+# (ADR-0037, ADR-0039) of docs/architecture.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+launch: launch {class: process}
+job: "Databricks job" {class: external}
+s1: "stg_orders sensor" {class: process}
+s2: "fct_orders sensor" {class: process}
+fin: pipeloom_finalize {class: process}
+
+launch -> job: "run-now, repair"
+launch -> s1
+s1 -> s2
+s2 -> fin: all_done
+s1 -> job: poll {class: meta}
+s2 -> job: poll {class: meta}

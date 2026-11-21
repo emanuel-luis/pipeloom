@@ -17,7 +17,8 @@
       "context": {
         "expected": "0000000000000000000000000000000000000000000000000000000000000000",
         "actual": "5189b343c50be1df2732cac009c6702d3769e69873fcfba8becfae96620e8af9"
-      }
+      },
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#plx103"
     },
     "context": {}
   }

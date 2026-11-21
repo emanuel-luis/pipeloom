@@ -1,0 +1,56 @@
+{
+  "$id": "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/compile_result.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "What `compile` wrote: the manifest path and hash, and the plan counts.",
+  "properties": {
+    "by_materialization": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "ephemeral_inlined": {
+      "type": "integer"
+    },
+    "manifest": {
+      "description": "Manifest path, relative to the project dir unless absolute.",
+      "type": "string"
+    },
+    "manifest_sha256": {
+      "type": "string"
+    },
+    "plan_hash": {
+      "type": "string"
+    },
+    "project": {
+      "type": "string"
+    },
+    "schema": {
+      "const": "pipeloom.compile_result/1",
+      "description": "Schema name and version."
+    },
+    "selected": {
+      "type": "integer"
+    },
+    "target": {
+      "type": "string"
+    },
+    "units": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema",
+    "project",
+    "target",
+    "plan_hash",
+    "manifest",
+    "manifest_sha256",
+    "units",
+    "by_materialization",
+    "ephemeral_inlined",
+    "selected"
+  ],
+  "title": "pipeloom compile result",
+  "type": "object"
+}

@@ -16,7 +16,8 @@
       "location": null,
       "context": {
         "selector": "result:fail"
-      }
+      },
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#plg308"
     },
     "context": {}
   }

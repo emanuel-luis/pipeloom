@@ -1,0 +1,4 @@
+### Documentation
+
+- The 7 large diagrams are now 20 small landscape ones (under about 1,300 px wide, labels of a few words, no titles or legends in the image): the old ones split by topic, the context and packages views updated for DuckDB, and new diagrams for the quickstart and demo, one unit attempt, the orchestrator protocol, the conformance kit, portable models, incremental runs, retry and cancel, OpenLineage to Marquez and a use-case map. Error-code prefixes moved to a table under the lifecycle diagram.
+- Each diagram renders to a light and a dark SVG. The docs embed both with Material's `#only-light` and `#only-dark`, with alt text and a caption, so a diagram follows the site's palette toggle; the README uses a `<picture>` element. `make diagrams-check` (CI job "diagrams (D2 render check)") expects both files per source and fails on a missing, stale or orphan SVG. The diagram source links point at GitHub, since the docs site does not publish `.d2` files.

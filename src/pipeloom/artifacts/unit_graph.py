@@ -7,13 +7,13 @@ Everything comes from the plan (compiled or read from a manifest), never from th
 from __future__ import annotations
 
 from typing import Any, Final, Literal
-from urllib.parse import quote
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from pipeloom import __version__
 from pipeloom.graph.dag import Graph
 from pipeloom.graph.selectors import parse
+from pipeloom.plan.identity import default_asset_uri as asset_uri
 from pipeloom.plan.model import Plan, PlanNode
 
 UNIT_GRAPH_SCHEMA: Final = "pipeloom.unit_graph/1"
@@ -78,13 +78,6 @@ class UnitGraph(_Closed):
     """Topological order, ties broken by unit id."""
     edges: tuple[Edge, ...]
     finalize: Finalize
-
-
-def asset_uri(project: str, target: str, relation_name: str) -> str:
-    """Each part percent-encoded with `._-~` kept, the rule of the Airflow plugin's default
-    `asset_uri` (reproduced here: the core never imports a plugin)."""
-    parts = (quote(p, safe="._-~") for p in (project, target, relation_name))
-    return "pipeloom://{}/{}/{}".format(*parts)
 
 
 def _unit(

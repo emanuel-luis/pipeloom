@@ -1,0 +1,23 @@
+# Retry and cancel timeline: a transient failure is retried after a delay without holding a
+# worker; Ctrl+C stops the run gracefully and exits 130. Illustrates
+# docs/guide/retries-and-cancellation.md and section 8 of docs/architecture.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+timeline: "" {
+  shape: sequence_diagram
+  you: You {class: actor}
+  sched: Scheduler
+  unit: Unit
+  files: "Attempt files" {class: store}
+
+  sched -> unit: attempt 1
+  unit -> files: "failed, transient"
+  unit -> sched: retrying {class: meta}
+  sched -> unit: "attempt 2, after delay"
+  unit -> files: succeeded
+  you -> sched: Ctrl+C
+  sched -> unit: "stop, grace period"
+  unit -> files: cancelled
+  sched -> you: exit 130 {class: meta}
+}

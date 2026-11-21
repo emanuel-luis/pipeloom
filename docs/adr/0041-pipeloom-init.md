@@ -39,7 +39,7 @@ A new user starts from an empty folder and has to write `pipeloom.yml`, a target
 
 ## Status
 
-Accepted. Amended in 0.8 (editor setup, `pipeloom new model`), in 0.9 by [ADR-0050](0050-python-first-authoring.md) and in 1.1 (duckdb template, `pipeloom demo`).
+Accepted. Amended in 0.8 (editor setup, `pipeloom new model`), in 0.9 by [ADR-0050](0050-python-first-authoring.md), in 1.1 (duckdb template, `pipeloom demo`) and in 1.2 (agent files).
 
 ## Amendment (0.8): editor setup and pipeloom new model
 
@@ -87,3 +87,25 @@ With Python-first authoring ([ADR-0050](0050-python-first-authoring.md)) `pipelo
 
 - `uvx --from "pipeloom[duckdb]" pipeloom demo` is the whole first run. A user with only the core gets one clear error instead of a validate failure about an unknown engine kind.
 - The duckdb template is covered by the same layout and YAML-style tests as the others, plus a build test.
+
+## Amendment 1.2: agent files
+
+### What changed
+
+- `init` also writes `AGENTS.md` and three skills under `.agents/skills/`: `pipeloom-fix-diagnostic`, `pipeloom-read-run-results` and `pipeloom-add-model`. As with every template file, an existing file is kept and listed as skipped.
+- The text is generated from the code, not fetched and not hand-copied: the command list comes from the Click command tree, and the fix-diagnostic skill lists every code of `pipeloom.diagnostics.codes.CATALOG` with its severity and title. A test fails when a catalog code is missing from the skills and when a command is missing from AGENTS.md. Each file starts with a comment that names the pipeloom version that wrote it.
+- `pipeloom init --update-agents [DIRECTORY]` rewrites exactly those files in a project that holds `pipeloom.yml` (default: the current directory) and nothing else. It refuses every other option except `--log-format`, and a directory without `pipeloom.yml` is a usage error (exit 2).
+- `init` and `explain` accept `--log-format`, like every other command.
+
+### Options considered
+
+- `.claude/skills/`: rejected as the default. One tool reads it. `AGENTS.md` is a plain Markdown convention several coding agents read, and `.agents/skills/<name>/SKILL.md` keeps the Agent Skills layout (a folder per skill, a `SKILL.md` with `name` and `description` front matter) in a tool-neutral folder. A user of a tool that wants another folder can symlink or copy it.
+- Fetching the latest skills from a remote source: rejected. Content must match the installed version, and the command works offline.
+- A hand-written error list in the skills: rejected. It drifts; the catalog is the source.
+
+### Consequences
+
+- Agents get the commands, the layout, how to read diagnostics and run results, and the full code list for the installed version. After an upgrade, `init --update-agents` refreshes them.
+- The catalog table makes the fix-diagnostic skill the largest generated file (about 7 KB).
+
+Provenance: clean room. The layout follows the public AGENTS.md and Agent Skills conventions as the author knows them; no code from other projects was used.

@@ -9,6 +9,7 @@ from typing import Any, ClassVar, Final, Literal
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_serializer
 
 from pipeloom.diagnostics import Diagnostic, Severity
+from pipeloom.diagnostics.codes import CATALOG, docs_url
 
 EVENT_SCHEMA: Final = "pipeloom.event/1"
 
@@ -86,10 +87,13 @@ class DiagnosticEmitted(EventPayload):
     hint: str | None
     location: dict[str, JsonValue] | None
     context: dict[str, JsonValue]
+    explain_url: str | None = None
+    """The error-code page entry of a catalog code (additive, 1.2); absent on older events."""
 
     @classmethod
     def from_diagnostic(cls, d: Diagnostic) -> DiagnosticEmitted:
-        return cls.model_validate(d.to_json())
+        url = docs_url(d.code) if d.code in CATALOG else None
+        return cls.model_validate({**d.to_json(), "explain_url": url})
 
     def to_diagnostic(self) -> Diagnostic:
         return Diagnostic.from_json(self.to_data())

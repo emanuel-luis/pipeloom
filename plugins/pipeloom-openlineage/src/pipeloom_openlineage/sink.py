@@ -12,9 +12,8 @@ import json
 import uuid
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Any, Final, cast
-from urllib.parse import urlsplit
 
 from openlineage.client import OpenLineageClient
 from openlineage.client.event_v2 import (
@@ -42,6 +41,7 @@ from openlineage.client.transport import Transport
 
 from pipeloom.events.bus import PlanInfo
 from pipeloom.events.model import Event, Level
+from pipeloom.plan.identity import relation_name, source_dataset, unit_inputs
 from pipeloom.secrets.resolve import contains_secret
 
 PRODUCER: Final = "https://github.com/emanuel-luis/pipeloom/tree/main/plugins/pipeloom-openlineage"
@@ -95,15 +95,11 @@ def _source(manifest: Mapping[str, Any], unique_id: str) -> Mapping[str, Any] | 
     return source
 
 
-def _node_inputs(node: Mapping[str, Any]) -> list[str]:
-    return list(node.get("inputs", {}).values())
-
-
 def _node_relation(node: Mapping[str, Any]) -> str | None:
     rel = node.get("relation")
     if not rel:
         return None
-    return ".".join(p for p in (rel.get("catalog"), rel.get("schema"), rel.get("name")) if p)
+    return relation_name(rel.get("catalog"), rel.get("schema"), rel.get("name"))
 
 
 def _node_columns(node: Mapping[str, Any]) -> list[Mapping[str, Any]] | None:
@@ -310,16 +306,16 @@ class OpenLineageSink:
 
     def _inputs(self, nodes: Sequence[str], job_ns: str) -> list[InputDataset]:
         assert self._manifest is not None
-        inside = set(nodes)
+        inputs = {
+            uid: node.get("inputs", {})
+            for uid in nodes
+            if (node := _node(self._manifest, uid)) is not None
+        }
         seen: dict[tuple[str, str], InputDataset] = {}
-        for uid in nodes:
-            node = _node(self._manifest, uid)
-            for parent in [] if node is None else _node_inputs(node):
-                if parent in inside:
-                    continue  # an inlined ephemeral model
-                found = self._input(parent, job_ns)
-                if found is not None:
-                    seen.setdefault((found.namespace, found.name), found)
+        for parent in unit_inputs(nodes, inputs):
+            found = self._input(parent, job_ns)
+            if found is not None:
+                seen.setdefault((found.namespace, found.name), found)
         return list(seen.values())
 
     def _input(self, unique_id: str, job_ns: str) -> InputDataset | None:
@@ -327,35 +323,18 @@ class OpenLineageSink:
         source = _source(self._manifest, unique_id)
         if source is not None:
             location, table = _source_location(source)
-            if table:
-                return InputDataset(namespace=self._relation_namespace(job_ns), name=table)
-            if location:
-                ns, name = self._location(location)
-                return InputDataset(namespace=ns, name=name)
-            return None
+            named = source_dataset(
+                self._relation_namespace(job_ns),
+                table=table,
+                location=location,
+                project_dir=self._project_dir,
+            )
+            return None if named is None else InputDataset(namespace=named[0], name=named[1])
         node = _node(self._manifest, unique_id)
         relation = None if node is None else _node_relation(node)
         if relation is None:
             return None
         return InputDataset(namespace=self._relation_namespace(job_ns), name=relation)
-
-    def _location(self, location: str) -> tuple[str, str]:
-        """OpenLineage naming for a path (https://openlineage.io/docs/spec/naming): a URI with a
-        host is `scheme://host` and the path without its leading slash; `file:` is namespace
-        `file` and the absolute path; another scheme without a host is the scheme and the path
-        as reported; a relative path is joined to the project dir."""
-        parts = urlsplit(location)
-        # a Windows drive letter ("C:/x") parses as a one-letter scheme: treat it as a path
-        if len(parts.scheme) > 1:
-            if parts.scheme == "file":
-                return "file", parts.path
-            if parts.netloc:
-                return f"{parts.scheme}://{parts.netloc}", parts.path.lstrip("/")
-            return parts.scheme, parts.path
-        path = PurePosixPath(location)
-        if not path.is_absolute() and self._project_dir is not None:
-            return "file", (self._project_dir / location).as_posix()
-        return "file", path.as_posix()
 
     def _output(
         self, node: Mapping[str, Any], state: RunState, unit_id: str, event: Event, job_ns: str

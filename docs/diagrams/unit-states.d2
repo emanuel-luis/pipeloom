@@ -1,0 +1,27 @@
+# Unit state machine with retry, timeout, skip and cancel. Pending, queued and retrying units
+# are also cancelled when the run stops; the full transition table is next to the diagram and in
+# pipeloom.runtime.states. Illustrates section 8 (execution and scheduler) of docs/architecture.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+pending: pending {class: process}
+queued: queued {class: process}
+running: running {class: process}
+retrying: retrying {class: process}
+succeeded: succeeded {class: store}
+failed: failed {class: process}
+timed_out: timed_out {class: process}
+cancelled: cancelled {class: process}
+skipped: skipped {class: process}
+
+pending -> queued
+queued -> running
+running -> succeeded
+running -> retrying: transient
+retrying -> running: delay {class: meta}
+running -> failed
+running -> timed_out
+running -> cancelled: stop
+pending -> skipped: upstream failed

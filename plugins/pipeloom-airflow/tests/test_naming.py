@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import hashlib
 
+from pipeloom.plan.identity import asset_uri
 from pipeloom_airflow.naming import (
     FINALIZE_ID,
     TASK_ID_MAX,
     airflow_run_id,
-    asset_uri,
     task_ids,
 )
 

@@ -21,7 +21,7 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0015 | [Python 3.11 or newer; click CLI; pydantic v2; hatchling; mypy strict](0015-python-version-and-toolchain.md) | Accepted | 2026-10-29 |
 | 0016 | [Versioning, release, plugin API version](0016-versioning-and-plugin-api.md) | Accepted. Amended in 1.0 (stability and deprecation policy) and in 1.1 (experimental tier, supported releases, optional protocol members). | 2026-10-29 |
 | 0017 | [Plugin spec, built-in plugins and the exact plugin API gate](0017-plugin-spec-and-builtins.md) | Accepted | 2026-11-04 |
-| 0018 | [Events in 0.1: invocation events, nullable run id, jsonl on stderr](0018-events-in-0-1.md) | Accepted | 2026-11-04 |
+| 0018 | [Events in 0.1: invocation events, nullable run id, jsonl on stderr](0018-events-in-0-1.md) | Accepted, amended in 1.2 | 2026-11-04 |
 | 0019 | [YAML dialect: PyYAML with YAML 1.2 core scalars](0019-yaml-dialect.md) | Accepted | 2026-11-04 |
 | 0020 | [Execution model in 0.2](0020-execution-model-0-2.md) | Accepted | 2026-11-04 |
 | 0021 | [Plugin API (0, 2)](0021-plugin-api-0-2.md) | Accepted | 2026-11-04 |
@@ -55,4 +55,5 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0049 | [Artifact schemas, the unit graph and the orchestrator protocol](0049-artifact-schemas-and-orchestrator-protocol.md) | Accepted | 2026-11-15 |
 | 0050 | [Python-first model authoring](0050-python-first-authoring.md) | Accepted. Supersedes 0003. | 2026-11-15 |
 | 0051 | [DuckDB engine](0051-duckdb-engine.md) | Accepted | 2026-11-20 |
+| 0055 | [Canonical dataset identity](0055-canonical-dataset-identity.md) | Accepted | 2026-11-20 |
 | 0067 | [Conformance kit as an opt-in pytest plugin](0067-conformance-kit.md) | Accepted | 2026-11-20 |

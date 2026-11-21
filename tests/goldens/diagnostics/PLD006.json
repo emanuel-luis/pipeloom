@@ -14,7 +14,8 @@
       "message": "2 jobs carry pipeloom_job=shop.main.prod: ids [101, 102]",
       "hint": "delete or untag the extra jobs",
       "location": null,
-      "context": {}
+      "context": {},
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#pld006"
     },
     "context": {}
   }
