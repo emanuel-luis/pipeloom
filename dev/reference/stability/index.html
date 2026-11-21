@@ -1174,6 +1174,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#experimental-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Experimental features
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported releases
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#deprecations" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1368,6 +1390,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#experimental-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Experimental features
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported releases
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#deprecations" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1437,6 +1481,19 @@ The CHANGELOG lists it under Security or Fixed.</p>
 <li>The item keeps working for the rest of the major version. It is removed only in the next
    major, and only after at least one minor release that warned.</li>
 </ol>
+<h2 id="experimental-features">Experimental features<a class="headerlink" href="#experimental-features" title="Permanent link">&para;</a></h2>
+<p>A feature, flag, config field or artifact field can be marked experimental. It is outside the
+guarantees above and can change or disappear in any release. You can tell by three marks: the docs
+say so, the CLI help says so, and the JSON Schema description of the field says so.</p>
+<ul>
+<li>Using an experimental item prints a warning diagnostic with a <code>PLW</code> code. The run still works.</li>
+<li>It is promoted to stable or removed within two minor releases after the one that added it. The
+  CHANGELOG says which.</li>
+<li>Do not depend on an experimental item in a pipeline you cannot edit when it changes.</li>
+</ul>
+<h2 id="supported-releases">Supported releases<a class="headerlink" href="#supported-releases" title="Permanent link">&para;</a></h2>
+<p>Only the latest minor release gets patch releases. Security fixes go to the latest minor. If you
+run an older minor, upgrade to the latest one to get fixes.</p>
 <h2 id="deprecations">Deprecations<a class="headerlink" href="#deprecations" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

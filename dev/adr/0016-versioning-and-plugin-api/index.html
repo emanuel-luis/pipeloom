@@ -1365,6 +1365,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#amendment-11-experimental-tier-supported-releases-optional-protocol-members" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (1.1): experimental tier, supported releases, optional protocol members
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Amendment (1.1): experimental tier, supported releases, optional protocol members">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#experimental-tier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Experimental tier
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supported-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported releases
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optional-protocol-members" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional protocol members
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1472,8 +1522,26 @@
 </ul>
 <h3 id="prereleases">Prereleases<a class="headerlink" href="#prereleases" title="Permanent link">&para;</a></h3>
 <p>Prereleases such as <code>1.0.0rc1</code> are published to PyPI. Version pins between distributions must accept them (<code>pipeloom~=1.0.0</code> does not match <code>1.0.0rc1</code>), so for a prerelease the members depend on <code>pipeloom~=1.0.0rc1</code>, which accepts the rc and the final <code>1.0.0</code>. <code>tools/versions.py</code> accepts <code>X.Y.Z</code> and <code>X.Y.Z(a|b|rc)N</code> in <code>check</code>, <code>bump</code> and <code>--tag</code>, and <code>bump 1.0.0</code> after <code>bump 1.0.0rc1</code> restores the <code>~=X.Y.0</code> pins. The release workflow marks a prerelease tag as a GitHub prerelease.</p>
+<h2 id="amendment-11-experimental-tier-supported-releases-optional-protocol-members">Amendment (1.1): experimental tier, supported releases, optional protocol members<a class="headerlink" href="#amendment-11-experimental-tier-supported-releases-optional-protocol-members" title="Permanent link">&para;</a></h2>
+<p>Decided on 2026-11-20 (roadmap section 6, decision 8). The user-facing summary is <a href="../../reference/stability/">Stability and deprecations</a>.</p>
+<h3 id="experimental-tier">Experimental tier<a class="headerlink" href="#experimental-tier" title="Permanent link">&para;</a></h3>
+<ul>
+<li>A feature, flag, config field or artifact field marked experimental is outside the stability guarantee of the 1.0 amendment. Changing or removing it is not breaking.</li>
+<li>The mark appears in the docs, in the CLI help and in the JSON Schema <code>description</code> of the field.</li>
+<li>An experimental item is promoted to stable or removed within two minor releases after the one that added it. The CHANGELOG says which.</li>
+<li>At use time pipeloom emits a warning diagnostic with a code in the new reserved prefix <code>PLW</code> (layer "Experimental"). A warning never fails a run.</li>
+<li>Same precedent as <code>PLV</code>: this amendment reserves the prefix and adds no code, because a code with no emitter would be dead. The first <code>PLW</code> code and its case file (<code>tests/cases/&lt;CODE&gt;.yml</code>) arrive with the first experimental feature.</li>
+</ul>
+<h3 id="supported-releases">Supported releases<a class="headerlink" href="#supported-releases" title="Permanent link">&para;</a></h3>
+<p>Only the latest minor release gets patch releases. Security fixes go to the latest minor. Older minors are not patched, so users upgrade to the latest minor.</p>
+<h3 id="optional-protocol-members">Optional protocol members<a class="headerlink" href="#optional-protocol-members" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Nothing is added to <code>EngineSession</code> or <code>StateStore</code> in 1.x. A new method on those protocols breaks third-party plugins under mypy, and the 1.0 amendment lists a new required method as breaking.</li>
+<li>An optional member lives in its own small <code>typing.Protocol</code>, for example <code>SupportsFilterBetween</code>. Plugins implement it structurally.</li>
+<li>The core reaches it through a helper that checks for the member and falls back when it is missing, as <code>pipeloom.state.types.list_runs</code> does today. The helper is where the default lives.</li>
+</ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted. Amended by <a href="../0017-plugin-spec-and-builtins/">ADR-0017</a>: while the plugin API major is 0 the versions must match exactly. Amended in 1.0: stability and deprecation policy (see above).</p>
+<p>Accepted. Amended by <a href="../0017-plugin-spec-and-builtins/">ADR-0017</a>: while the plugin API major is 0 the versions must match exactly. Amended in 1.0: stability and deprecation policy. Amended in 1.1: experimental tier, supported releases, optional protocol members (see above).</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
 <p>2026-10-29</p>
 
