@@ -119,9 +119,7 @@ def stg_orders(ctx: ModelContext, orders):
 
 @model
 def orders_by_customer(ctx: ModelContext, stg_orders):
-    return ctx.sql(
-        "select customer_id, sum(amount) as total from stg_orders group by customer_id"
-    )
+    return ctx.sql("select customer_id, sum(amount) as total from stg_orders group by customer_id")
 ```
 
 A model is a function marked with `@model`. Its parameters are its inputs: `orders` binds to the

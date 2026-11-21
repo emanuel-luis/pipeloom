@@ -209,9 +209,12 @@ events:
 ```python
 from pipeloom import ModelContext, Write, model
 
-@model(materialized="incremental",
-       incremental={"input": "orders", "column": "updated_at", "lookback": "2d"},
-       write=Write(strategy="merge", unique_key=["order_id"]))
+
+@model(
+    materialized="incremental",
+    incremental={"input": "orders", "column": "updated_at", "lookback": "2d"},
+    write=Write(strategy="merge", unique_key=["order_id"]),
+)
 def fct_orders(ctx: ModelContext, orders, stg_customers):
     return ctx.sql("select o.*, c.name from orders o join stg_customers c using (customer_id)")
 ```
@@ -278,116 +281,210 @@ from typing import Any, Protocol, Mapping, Sequence, Iterator, ContextManager
 from dataclasses import dataclass
 from datetime import datetime
 
-@dataclass(frozen=True)
-class Column: name: str; dtype: str; nullable: bool = True   # logical type: int64, decimal(18,2), timestamp[UTC]...
-Schema = tuple[Column, ...]
 
 @dataclass(frozen=True)
-class Relation:                      # opaque handle; never inspected by core
-    native: Any                      # pandas/polars frame, Spark DataFrame...
+class Column:
+    name: str
+    dtype: str
+    nullable: bool = True  # logical type: int64, decimal(18,2), timestamp[UTC]...
+
+
+Schema = tuple[Column, ...]
+
+
+@dataclass(frozen=True)
+class Relation:  # opaque handle; never inspected by core
+    native: Any  # pandas/polars frame, Spark DataFrame...
     engine: str
     lazy: bool
 
-@dataclass(frozen=True)
-class EngineCapabilities:
-    formats: frozenset[str]; strategies: frozenset[str]
-    sql_models: bool; views: bool; idempotent_writes: bool
-    cancel: bool; bytes_metrics: bool; portable: bool   # Narwhals-compatible frames
-    quality: bool                                       # evaluate and apply_drops (0.3)
-    materializations: frozenset[str]                    # table, view, ephemeral (0.2)
-    sql_dialect: str | None = None                      # sqlglot dialect for ctx.sql (0.9, ADR-0050)
 
 @dataclass(frozen=True)
-class StateStoreCapabilities: shared: bool              # visible to every process and task of a run
+class EngineCapabilities:
+    formats: frozenset[str]
+    strategies: frozenset[str]
+    sql_models: bool
+    views: bool
+    idempotent_writes: bool
+    cancel: bool
+    bytes_metrics: bool
+    portable: bool  # Narwhals-compatible frames
+    quality: bool  # evaluate and apply_drops (0.3)
+    materializations: frozenset[str]  # table, view, ephemeral (0.2)
+    sql_dialect: str | None = None  # sqlglot dialect for ctx.sql (0.9, ADR-0050)
+
+
+@dataclass(frozen=True)
+class StateStoreCapabilities:
+    shared: bool  # visible to every process and task of a run
+
 
 class Engine(Protocol):
     name: str
-    version: str                                       # recorded as engine_version in run_results
+    version: str  # recorded as engine_version in run_results
     capabilities: EngineCapabilities
-    def session(self, ctx: "RuntimeContext", *, catalog: "Catalog") -> ContextManager["EngineSession"]: ...  # one per invocation, thread-safe, cleanup guaranteed (L10)
+
+    def session(
+        self, ctx: "RuntimeContext", *, catalog: "Catalog"
+    ) -> ContextManager[
+        "EngineSession"
+    ]: ...  # one per invocation, thread-safe, cleanup guaranteed (L10)
+
 
 class EngineSession(Protocol):
-    native: Any                                        # escape hatch
+    native: Any  # escape hatch
+
     def reader(self, fmt: str) -> "Reader": ...
     def materializer(self, strategy: str) -> "Materializer": ...
     def sql(self, query: str, inputs: Mapping[str, Relation]) -> Relation: ...
     def schema(self, rel: Relation) -> Schema: ...
     def count(self, rel: Relation) -> int: ...
-    def filter_since(self, rel: Relation, column: str, lower: Any, *, inclusive: bool = True) -> Relation: ...  # strict (>) when not inclusive
-    def relation(self, native: Any) -> Relation: ...   # check a model's return value and wrap it; TypeError for a foreign type
-    def persist(self, rel: Relation) -> Relation: ...  # in-memory copy for results shared by several units
-    def create_view(self, target: "TargetRef", query: str, inputs: Mapping[str, "ReadSpec"]) -> "WriteResult": ...  # catalog view, never a session view
-    def max_value(self, rel: Relation, column: str) -> Any: ...      # a plain Python value, never numpy or pandas
-    def evaluate(self, rel: Relation, checks: Sequence["ExpectationSpec"]) -> "QualityCounts": ...  # raw counts; the core judges
-    def apply_drops(self, rel: Relation, checks: Sequence["ExpectationSpec"], *, quarantine: "QuarantineMeta | None") -> "DropResult": ...
-    def align(self, rel: Relation, schema: Schema) -> Relation: ...  # schema order, missing columns as typed nulls, cast
-    def write_intermediate(self, rel: Relation, ref: "IntermediateRef", token: str) -> "WriteResult": ...  # overwrite at ref.location; a repeated token writes nothing (0.4)
-    def applied_token(self, target: "TargetRef", token: str) -> "WriteResult | None": ...  # stored result with skipped=True
-    def unit_scope(self, unit_id: str) -> ContextManager[None]: ...  # tags this thread's work so cancel can find it
-    def is_transient(self, exc: BaseException) -> bool | None: ...   # True retryable, False permanent, None no opinion
-    def cancel(self, unit_id: str) -> None: ...        # cooperative; no-op if not capable
+    def filter_since(
+        self, rel: Relation, column: str, lower: Any, *, inclusive: bool = True
+    ) -> Relation: ...  # strict (>) when not inclusive
+    def relation(
+        self, native: Any
+    ) -> Relation: ...  # check a model's return value and wrap it; TypeError for a foreign type
+    def persist(
+        self, rel: Relation
+    ) -> Relation: ...  # in-memory copy for results shared by several units
+    def create_view(
+        self, target: "TargetRef", query: str, inputs: Mapping[str, "ReadSpec"]
+    ) -> "WriteResult": ...  # catalog view, never a session view
+    def max_value(
+        self, rel: Relation, column: str
+    ) -> Any: ...  # a plain Python value, never numpy or pandas
+    def evaluate(
+        self, rel: Relation, checks: Sequence["ExpectationSpec"]
+    ) -> "QualityCounts": ...  # raw counts; the core judges
+    def apply_drops(
+        self,
+        rel: Relation,
+        checks: Sequence["ExpectationSpec"],
+        *,
+        quarantine: "QuarantineMeta | None",
+    ) -> "DropResult": ...
+    def align(
+        self, rel: Relation, schema: Schema
+    ) -> Relation: ...  # schema order, missing columns as typed nulls, cast
+    def write_intermediate(
+        self, rel: Relation, ref: "IntermediateRef", token: str
+    ) -> "WriteResult": ...  # overwrite at ref.location; a repeated token writes nothing (0.4)
+    def applied_token(
+        self, target: "TargetRef", token: str
+    ) -> "WriteResult | None": ...  # stored result with skipped=True
+    def unit_scope(
+        self, unit_id: str
+    ) -> ContextManager[None]: ...  # tags this thread's work so cancel can find it
+    def is_transient(
+        self, exc: BaseException
+    ) -> bool | None: ...  # True retryable, False permanent, None no opinion
+    def cancel(self, unit_id: str) -> None: ...  # cooperative; no-op if not capable
+
 
 class Reader(Protocol):
-    def read(self, spec: "ReadSpec") -> Relation: ...            # source or upstream target
-class Writer(Protocol):                                           # format-level primitive
-    def write(self, rel: Relation, target: "TargetRef", mode: str, opts: "WriteOptions") -> None: ...
+    def read(self, spec: "ReadSpec") -> Relation: ...  # source or upstream target
 
-class Materializer(Protocol):                                     # one per strategy
+
+class Writer(Protocol):  # format-level primitive
+    def write(
+        self, rel: Relation, target: "TargetRef", mode: str, opts: "WriteOptions"
+    ) -> None: ...
+
+
+class Materializer(Protocol):  # one per strategy
     strategy: str
-    def materialize(self, rel: Relation, target: "TargetRef", cfg: "WriteConfig",
-                    token: str) -> "WriteResult": ...             # token = idempotency key; cfg.run_started_at = the run's start (the session opens before it is resolved)
+
+    def materialize(
+        self, rel: Relation, target: "TargetRef", cfg: "WriteConfig", token: str
+    ) -> "WriteResult": ...  # token = idempotency key; cfg.run_started_at = the run's start (the session opens before it is resolved)
+
 
 class Catalog(Protocol):
     def exists(self, target: "TargetRef") -> bool: ...
-    def ensure_namespace(self, ns: "Namespace") -> None: ...      # idempotent, cached per invocation
+    def ensure_namespace(self, ns: "Namespace") -> None: ...  # idempotent, cached per invocation
     def table_schema(self, target: "TargetRef") -> Schema | None: ...
     def apply_grants(self, target: "TargetRef", grants: Sequence["Grant"]) -> None: ...
-    def maintain(self, target: "TargetRef", ops: Sequence["MaintenanceOp"]) -> None: ...  # explicit (L8)
+    def maintain(
+        self, target: "TargetRef", ops: Sequence["MaintenanceOp"]
+    ) -> None: ...  # explicit (L8)
 
-class MetricsProvider(Protocol):                      # plugin-internal since 0.4: not part of the core API
+
+class MetricsProvider(Protocol):  # plugin-internal since 0.4: not part of the core API
     def before_write(self, target: "TargetRef") -> "MetricsToken": ...
-    def after_write(self, target: "TargetRef", token: "MetricsToken", result: "WriteResult") -> "WriteMetrics": ...
+    def after_write(
+        self, target: "TargetRef", token: "MetricsToken", result: "WriteResult"
+    ) -> "WriteMetrics": ...
+
 
 class StateStore(Protocol):
     def get_watermark(self, key: "StateKey") -> "Watermark | None": ...
-    def cas_watermark(self, key: "StateKey", expected: "Watermark | None", new: "Watermark") -> bool: ...
-    def record_run(self, record: "RunRecord") -> None: ...           # insert or replace
+    def cas_watermark(
+        self, key: "StateKey", expected: "Watermark | None", new: "Watermark"
+    ) -> bool: ...
+    def record_run(self, record: "RunRecord") -> None: ...  # insert or replace
     def get_run(self, run_id: str) -> "RunRecord | None": ...
-    def record_unit(self, record: "UnitRecord") -> None: ...         # keyed by (run_id, unit_id, attempt)
-    def list_units(self, run_id: str) -> tuple["UnitRecord", ...]: ...  # sorted by (unit_id, attempt)
-    def list_runs(self, project: str, target: str, limit: int, before: str | None = None) -> tuple["RunRecord", ...]: ...  # 0.9: newest first; before is a run id
-    def lock(self, scope: str, run_id: str) -> ContextManager["LockInfo"]: ...  # non-blocking; raises LockHeld; 60 s lease renewed every 20 s
+    def record_unit(self, record: "UnitRecord") -> None: ...  # keyed by (run_id, unit_id, attempt)
+    def list_units(
+        self, run_id: str
+    ) -> tuple["UnitRecord", ...]: ...  # sorted by (unit_id, attempt)
+    def list_runs(
+        self, project: str, target: str, limit: int, before: str | None = None
+    ) -> tuple["RunRecord", ...]: ...  # 0.9: newest first; before is a run id
+    def lock(
+        self, scope: str, run_id: str
+    ) -> ContextManager[
+        "LockInfo"
+    ]: ...  # non-blocking; raises LockHeld; 60 s lease renewed every 20 s
     def close(self) -> None: ...
+
 
 class EventSink(Protocol):
     name: str
+
     def handle(self, event: "Event") -> None: ...
     def flush(self) -> None: ...
     def close(self) -> None: ...
 
+
 class Renderer(Protocol):
     name: str
-    def render(self, plan: "Plan", options: Mapping[str, Any]) -> Mapping[str, bytes]: ...  # path -> content
+
+    def render(
+        self, plan: "Plan", options: Mapping[str, Any]
+    ) -> Mapping[str, bytes]: ...  # path -> content
+
     # 0.5: the core only binds a renderer's options; it never builds one. The Databricks plugin
     # keeps rendering internal (`render_job`) and exposes `pipeloom_databricks.api`, so this
     # protocol stays a plugin-internal convention and is not called by the core.
 
+
 class Executor(Protocol):
     name: str
-    boundary: str                                    # "process" | "task"
+    boundary: str  # "process" | "task"
+
     def submit(self, unit_id: str, *, queued_at: float) -> "UnitHandle": ...
-    def wait_any(self, timeout: float | None) -> "UnitCompletion | None": ...  # None on timeout or wake
-    def cancel(self, handle: "UnitHandle", reason: str, *, final: bool = False) -> bool: ...  # timeout and final also abandon the unit
-    def has_terminal_event(self, handle: "UnitHandle") -> bool: ...  # a child process already emitted its own
-    def wake(self) -> None: ...                      # unblocks wait_any; safe from a signal handler
+    def wait_any(
+        self, timeout: float | None
+    ) -> "UnitCompletion | None": ...  # None on timeout or wake
+    def cancel(
+        self, handle: "UnitHandle", reason: str, *, final: bool = False
+    ) -> bool: ...  # timeout and final also abandon the unit
+    def has_terminal_event(
+        self, handle: "UnitHandle"
+    ) -> bool: ...  # a child process already emitted its own
+    def wake(self) -> None: ...  # unblocks wait_any; safe from a signal handler
     def shutdown(self, *, wait: bool) -> None: ...
 
+
 class Clock(Protocol):
-    def now(self) -> datetime: ...                   # timezone-aware UTC
+    def now(self) -> datetime: ...  # timezone-aware UTC
     def monotonic(self) -> float: ...
 
+
 class IdentityProvider(Protocol):
-    def current(self) -> "Identity": ...             # user, host, orchestrator, orchestrator ids
+    def current(self) -> "Identity": ...  # user, host, orchestrator, orchestrator ids
+
 
 class SecretProvider(Protocol):
     def resolve(self, path: str) -> str: ...
@@ -825,15 +922,29 @@ Long engine (JVM) traces are trimmed to the first user frame and the root cause.
 **`pipeloom-airflow`** supports Airflow 3.2 up to 4.0 (`apache-airflow>=3.2,<4`, installed through the `airflow` extra; the package has no hard Airflow dependency, see [ADR-0037](adr/0037-airflow-packaging-and-rendering.md)). It imports `from airflow.sdk import DAG, TaskGroup, BaseOperator, BaseSensorOperator, Asset`. Triggers come from the Airflow 3 trigger base (verify the module path per minor version).
 
 ```python
-from pipeloom_airflow.config import ProjectConfig, RenderConfig, ExecutionConfig, ExecutionMode, LoadMode
+from pipeloom_airflow.config import (
+    ProjectConfig,
+    RenderConfig,
+    ExecutionConfig,
+    ExecutionMode,
+    LoadMode,
+)
 from pipeloom_airflow.dag import PipeloomDag
 
 shop_daily = PipeloomDag(
-    dag_id="shop_daily", schedule="@daily", start_date=datetime(2026, 1, 1),
-    project_config=ProjectConfig(project_dir="/opt/pipelines/shop", manifest_path="/opt/pipelines/shop/target/manifest.json"),
+    dag_id="shop_daily",
+    schedule="@daily",
+    start_date=datetime(2026, 1, 1),
+    project_config=ProjectConfig(
+        project_dir="/opt/pipelines/shop", manifest_path="/opt/pipelines/shop/target/manifest.json"
+    ),
     target="prod",
-    render_config=RenderConfig(load_method=LoadMode.MANIFEST, select=("tag:daily",), emit_assets=True),
-    execution_config=ExecutionConfig(mode=ExecutionMode.DATABRICKS, databricks_conn_id="databricks_default"),
+    render_config=RenderConfig(
+        load_method=LoadMode.MANIFEST, select=("tag:daily",), emit_assets=True
+    ),
+    execution_config=ExecutionConfig(
+        mode=ExecutionMode.DATABRICKS, databricks_conn_id="databricks_default"
+    ),
 )
 ```
 

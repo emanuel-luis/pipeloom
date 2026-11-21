@@ -22,7 +22,7 @@ The whole pipeline is one model. It returns the snapshot unchanged, and the writ
 the versioning.
 
 ```python
---8<-- "examples/customers_scd2/models/dim_customers.py:model"
+--8 < --"examples/customers_scd2/models/dim_customers.py:model"
 ```
 
 `unique_key` is the customer, `tracked_columns` are the columns whose change opens a new

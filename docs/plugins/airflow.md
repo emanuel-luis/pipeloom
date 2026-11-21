@@ -168,7 +168,7 @@ WATCHER runs the whole selection once and keeps one Airflow task per model for i
 logs and asset events.
 
 ```python
-execution_config=ExecutionConfig(
+execution_config = ExecutionConfig(
     mode=ExecutionMode.WATCHER,
     watcher_workers=4,
     watcher_poll_interval=10.0,

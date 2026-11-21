@@ -9,10 +9,14 @@ from typing import Any
 
 import polars as pl
 import pytest
+from click.testing import CliRunner
 
 from pipeloom.api import Project, ProjectOptions
 from pipeloom.builtins.fs_table import FsTable
+from pipeloom.cli import main
+from pipeloom.graph.selectors import Selection
 from pipeloom.runtime import intervals
+from pipeloom.runtime.executors.process import ChildCommand
 from pipeloom.runtime.run import RunOptions, RunOutcome
 from pipeloom.state.jsondir import JsonDirStore
 from pipeloom.state.types import StateKey
@@ -38,6 +42,7 @@ targets:
     "models/daily.py": """\
 import polars as pl
 import pytest
+from click.testing import CliRunner
 
 from pipeloom import model, source
 
@@ -212,3 +217,252 @@ def test_a_retried_full_refresh_never_overwrites_written_windows(tmp_path: Path)
     assert outcome.exit_code == 0, [d.message for d in outcome.diagnostics]
     assert table(tmp_path).height == 121
     assert table(tmp_path).get_column("ts").to_list() == ts
+
+
+# -- pipeloom backfill (ADR-0054, Backfill) ----------------------------------------------------
+
+NOW = T0 + timedelta(days=9, hours=12)  # inside the 10th day
+
+
+def day(n: int) -> datetime:
+    return T0 + timedelta(days=n)
+
+
+def backfill(
+    root: Path, run_id: str, start: int, end: int, now: datetime = NOW, **kw: Any
+) -> tuple[RunOutcome, dict[str, Any]]:
+    """`pipeloom backfill -s daily --start day(start) --end day(end)`."""
+    clock = FakeClock(now, step=timedelta(0))
+    project = Project(ProjectOptions(project_dir=root, target="dev", env={}), clock=clock)
+    bf = intervals.Backfill(day(start), day(end), **kw)
+    opts = RunOptions(run_id=run_id, workers=1, selection=Selection(("daily",)), backfill=bf)
+    outcome = project.run(opts)
+    doc = json.loads((root / "target" / "runs" / run_id / "run_results.json").read_bytes())
+    assert doc["args"]["backfill"] == bf.to_json()
+    (row,) = doc["results"]
+    return outcome, row
+
+
+def starts(row: dict[str, Any]) -> list[int]:
+    return [(datetime.fromisoformat(i["start"]) - T0).days for i in row["intervals"]]
+
+
+def test_a_range_with_one_gap_reruns_only_the_gap(tmp_path: Path) -> None:
+    setup(tmp_path)
+    feed(tmp_path, 10)
+    assert backfill(tmp_path, "b1", 0, 4)[0].exit_code == 0
+    assert backfill(tmp_path, "b2", 6, 10)[0].exit_code == 0
+    assert ledger(tmp_path) == [(day(0), day(4)), (day(6), NOW)]
+    outcome, row = backfill(tmp_path, "b3", 0, 10)
+    assert outcome.exit_code == 0 and starts(row) == [4, 5]
+    assert table(tmp_path).height == 20 and ledger(tmp_path) == [(day(0), NOW)]
+
+
+def test_rerun_missing_after_success_writes_nothing(tmp_path: Path) -> None:
+    setup(tmp_path)
+    feed(tmp_path, 10)
+    assert backfill(tmp_path, "b1", 2, 5)[0].exit_code == 0
+    files = FsTable(tmp_path / "wh" / "main" / "daily", clock=FakeClock()).files()
+    outcome, row = backfill(tmp_path, "b2", 2, 5)
+    assert outcome.exit_code == 0 and row["intervals"] == [] and row["rows_written"] == 0
+    assert FsTable(tmp_path / "wh" / "main" / "daily", clock=FakeClock()).files() == files
+
+
+def test_bounds_off_a_window_edge_round_outward(tmp_path: Path) -> None:
+    setup(tmp_path)
+    feed(tmp_path, 10)
+    clock = FakeClock(NOW, step=timedelta(0))
+    project = Project(ProjectOptions(project_dir=tmp_path, target="dev", env={}), clock=clock)
+    bf = intervals.Backfill(day(2) + timedelta(hours=5), day(4) + timedelta(hours=1))
+    outcome = project.run(RunOptions(run_id="b1", selection=Selection(("daily",)), backfill=bf))
+    assert outcome.exit_code == 0
+    assert ledger(tmp_path) == [(day(2), day(5))]
+
+
+def test_a_killed_backfill_resumes_only_the_missing_windows(tmp_path: Path) -> None:
+    setup(tmp_path)
+    feed(tmp_path, 10, poison=2)
+    outcome, row = backfill(tmp_path, "b1", 0, 6)
+    assert outcome.exit_code == 1 and starts(row) == [0, 1, 2]
+    assert row["intervals"][2]["failed"] is True and "failed" not in row["intervals"][1]
+    feed(tmp_path, 10)
+    outcome, row = backfill(tmp_path, "b2", 0, 6)
+    assert outcome.exit_code == 0 and starts(row) == [2, 3, 4, 5]
+    assert ledger(tmp_path) == [(day(0), day(6))] and table(tmp_path).height == 12
+
+
+def test_on_failure_continue_reports_every_failed_window(tmp_path: Path) -> None:
+    setup(tmp_path)
+    feed_rows(tmp_path, [day(d) + timedelta(hours=1) for d in range(5)], [1, -1, 1, -1, 1])
+    outcome, row = backfill(tmp_path, "b1", 0, 5, on_failure="continue")
+    assert outcome.exit_code == 1 and starts(row) == [0, 1, 2, 3, 4]
+    assert [i.get("failed", False) for i in row["intervals"]] == [False, True, False, True, False]
+    message = row["error"]["message"]
+    assert "2 of 5 windows" in message
+    assert all(row["intervals"][n]["interval_id"] in message for n in (1, 3))
+    assert ledger(tmp_path) == [(day(0), day(1)), (day(2), day(3)), (day(4), day(5))]
+    assert table(tmp_path).height == 3
+
+
+def test_mark_done_then_backfill_writes_zero_windows(tmp_path: Path) -> None:
+    setup(tmp_path)
+    feed(tmp_path, 10)
+    for run_id in ("m1", "m2"):  # safe to repeat
+        outcome, row = backfill(tmp_path, run_id, 0, 8, mark_done=True)
+        assert outcome.exit_code == 0 and row["intervals"] == [] and row["rows_written"] == 0
+        assert ledger(tmp_path) == [(day(0), day(8))]
+    outcome, row = backfill(tmp_path, "b1", 0, 8)
+    assert outcome.exit_code == 0 and row["intervals"] == []
+    assert not (tmp_path / "wh" / "main" / "daily").exists()
+    outcome, row = run(tmp_path, "r1", NOW)  # the scheduled run picks up after the watermark
+    assert outcome.exit_code == 0 and starts(row) == [8, 9]
+
+
+def test_rerun_all_restates_and_resumes_as_missing(tmp_path: Path) -> None:
+    setup(tmp_path)
+    feed(tmp_path, 10)
+    assert backfill(tmp_path, "b1", 0, 10)[0].exit_code == 0
+    outcome, row = backfill(tmp_path, "b2", 2, 4, rerun="all")
+    assert outcome.exit_code == 0 and starts(row) == [2, 3]
+    assert table(tmp_path).height == 20
+    feed(tmp_path, 10, poison=4)
+    outcome, row = backfill(tmp_path, "b3", 3, 6, rerun="all")  # killed at day 4
+    assert outcome.exit_code == 1 and starts(row) == [3, 4]
+    assert ledger(tmp_path) == [(day(0), day(4)), (day(6), NOW)]
+    feed(tmp_path, 10)
+    outcome, row = backfill(tmp_path, "b4", 0, 10)
+    assert outcome.exit_code == 0 and starts(row) == [4, 5]
+
+
+@pytest.mark.timeout(300)
+def test_backfill_reaches_the_child_processes(tmp_path: Path) -> None:
+    setup(tmp_path)
+    feed(tmp_path, 10)
+    clock = FakeClock(NOW, step=timedelta(0))
+    project = Project(ProjectOptions(project_dir=tmp_path, target="dev", env={}), clock=clock)
+    bf = intervals.Backfill(day(1), day(3))
+    opts = RunOptions(run_id="b1", selection=Selection(("daily",)), backfill=bf, boundary="task")
+    outcome = project.run(opts)
+    assert outcome.exit_code == 0, [d.message for d in outcome.diagnostics]
+    assert ledger(tmp_path) == [(day(1), day(3))]
+
+
+# -- the backfill command ----------------------------------------------------------------------
+
+
+def cli(root: Path, *args: str) -> Any:
+    return CliRunner().invoke(
+        main, [args[0], "--project-dir", str(root), *args[1:]], catch_exceptions=False
+    )
+
+
+def results(root: Path, run_id: str) -> dict[str, Any]:
+    doc: dict[str, Any] = json.loads(
+        (root / "target" / "runs" / run_id / "run_results.json").read_bytes()
+    )
+    return doc
+
+
+def test_backfill_command_and_its_flags(tmp_path: Path) -> None:
+    setup(tmp_path)
+    feed(tmp_path, 10)
+    sel = ("--select", "daily")
+    result = cli(tmp_path, "backfill", *sel, "--start", "2026-01-01", "--end", "2026-01-04",
+                 "--run-id", "c1")  # fmt: skip
+    assert result.exit_code == 0, result.output
+    assert results(tmp_path, "c1")["args"]["backfill"] == {
+        "start": "2026-01-01T00:00:00+00:00",
+        "end": "2026-01-04T00:00:00+00:00",
+        "rerun": "missing",
+        "on_failure": "stop",
+        "mark_done": False,
+    }
+    assert ledger(tmp_path) == [(day(0), day(3))]
+
+    result = cli(tmp_path, "backfill", *sel, "--start", "2026-01-02T00:00:00+00:00",
+                 "--end", "2026-01-03", "--rerun", "all", "--run-id", "c2")  # fmt: skip
+    assert result.exit_code == 0, result.output
+    assert starts(results(tmp_path, "c2")["results"][0]) == [1]
+
+    feed(tmp_path, 10, poison=5)
+    result = cli(tmp_path, "backfill", *sel, "--start", "2026-01-05", "--end", "2026-01-08",
+                 "--on-failure", "continue", "--run-id", "c3")  # fmt: skip
+    assert result.exit_code == 1
+    (row,) = results(tmp_path, "c3")["results"]
+    assert [i.get("failed", False) for i in row["intervals"]] == [False, True, False]
+
+    result = cli(tmp_path, "backfill", *sel, "--start", "2026-01-01", "--end", "2026-01-09",
+                 "--mark-done", "--run-id", "c4")  # fmt: skip
+    assert result.exit_code == 0, result.output
+    assert ledger(tmp_path) == [(day(0), day(8))]
+
+
+def test_backfill_usage_errors(tmp_path: Path) -> None:
+    setup(tmp_path, {"models/plain.py": "from pipeloom import model\n\n\n@model\ndef plain(ctx):\n"
+                     "    return [{'x': 1}]\n"})  # fmt: skip
+    feed(tmp_path, 3)
+    rng = ("--start", "2026-01-01", "--end", "2026-01-02")
+    assert cli(tmp_path, "backfill", *rng).exit_code == 2  # no --select
+    assert cli(tmp_path, "backfill", "-s", "daily", "--start", "2026-01-02",
+               "--end", "2026-01-01").exit_code == 2  # fmt: skip
+    assert cli(tmp_path, "backfill", "-s", "daily", "--start", "soon",
+               "--end", "2026-01-01").exit_code == 2  # fmt: skip
+    assert cli(tmp_path, "backfill", "-s", "daily", *rng, "--rerun", "some").exit_code == 2
+    assert cli(tmp_path, "backfill", "-s", "daily", *rng, "--on-failure", "x").exit_code == 2
+    result = cli(tmp_path, "backfill", "-s", "plain", *rng)
+    assert result.exit_code == 2 and "PLX132" in result.output
+    result = cli(tmp_path, "backfill", "-s", "daily", "-s", "plain", *rng, "--mark-done")
+    assert result.exit_code == 2 and "plain" in result.output
+    assert [p.name for p in (tmp_path / "target" / "runs").iterdir()] == ["_invocations"]
+
+
+def test_hidden_backfill_flag_on_run(tmp_path: Path) -> None:
+    setup(tmp_path)
+    feed(tmp_path, 3)
+    bf = intervals.Backfill(day(0), day(2))
+    spec = json.dumps(bf.to_json())
+    result = cli(tmp_path, "run", "-s", "daily", "--backfill", spec, "--run-id", "h1")
+    assert result.exit_code == 0, result.output
+    assert ledger(tmp_path) == [(day(0), day(2))]
+    assert "--backfill" not in cli(tmp_path, "run", "--help").output
+    assert "--backfill" not in cli(tmp_path, "build", "--help").output
+    assert cli(tmp_path, "run", "--backfill", "{}").exit_code == 2
+    child = ChildCommand(tmp_path, "dev", tmp_path / "m.json", "r", "0" * 64, False, None, (),
+                         backfill=bf)  # fmt: skip
+    argv = child.argv("u")
+    assert json.loads(argv[argv.index("--backfill") + 1]) == bf.to_json()
+
+
+def test_retry_of_a_restate_runs_only_what_is_missing(tmp_path: Path) -> None:
+    setup(tmp_path)
+    feed(tmp_path, 10, poison=3)
+    result = cli(tmp_path, "backfill", "-s", "daily", "--start", "2026-01-01",
+                 "--end", "2026-01-06", "--rerun", "all", "--run-id", "x1")  # fmt: skip
+    assert result.exit_code == 1
+    feed(tmp_path, 10)
+    result = cli(tmp_path, "retry", "--from", "x1", "--run-id", "x2")
+    assert result.exit_code == 0, result.output
+    doc = results(tmp_path, "x2")
+    assert doc["args"]["backfill"]["rerun"] == "missing"
+    assert starts(doc["results"][0]) == [3, 4]
+
+
+def test_retry_of_a_backfill_whose_failed_unit_has_no_interval(tmp_path: Path) -> None:
+    after = (
+        "from pipeloom import model, ref\n\n\n"
+        '@model(inputs={"d": ref("daily")})\n'
+        "def after(ctx, d):\n"
+        '    if ctx.vars.get("act") == "fail":\n'
+        '        raise ValueError("boom")\n'
+        "    return d\n"
+    )
+    setup(tmp_path, {"models/after.py": after})
+    feed(tmp_path, 10)
+    result = cli(tmp_path, "backfill", "-s", "daily+", "--start", "2026-01-01",
+                 "--end", "2026-01-03", "--vars", '{"act": "fail"}', "--run-id", "y1")  # fmt: skip
+    assert result.exit_code == 1
+    result = cli(tmp_path, "retry", "--from", "y1", "--run-id", "y2", "--vars", '{"act": "ok"}')
+    assert result.exit_code == 0, result.output
+    doc = results(tmp_path, "y2")
+    assert [r["unique_id"].rsplit(".", 1)[-1] for r in doc["results"]] == ["after"]
+    assert doc["args"]["backfill"]["rerun"] == "missing"

@@ -301,6 +301,11 @@ def _row() -> dict[str, Any]:
                         "description": "The token was already applied: nothing was written.",
                     },
                     "rows_written": counter,
+                    "failed": {
+                        **_BOOLEAN,
+                        "description": "Since 1.3: the window failed; the unit's error names it. "
+                        "Absent on the windows that did not fail.",
+                    },
                 },
                 "required": ["interval_id", "start", "end", "idempotency_token"],
             },

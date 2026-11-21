@@ -13,15 +13,15 @@ Each model is a portable function (`frame_api="narwhals"`), so the same code run
 engines. See [Portable models](../guide/portable-models.md).
 
 ```python
---8<-- "examples/tested_models/models/revenue.py:orders_usd"
+--8 < --"examples/tested_models/models/revenue.py:orders_usd"
 ```
 
 ```python
---8<-- "examples/tested_models/models/revenue.py:net_revenue"
+--8 < --"examples/tested_models/models/revenue.py:net_revenue"
 ```
 
 ```python
---8<-- "examples/tested_models/models/revenue.py:daily_revenue"
+--8 < --"examples/tested_models/models/revenue.py:daily_revenue"
 ```
 
 ## Unit tests
@@ -109,7 +109,7 @@ polars frame, pass `None` for `ctx` and check the rows. This is the fastest loop
 project run.
 
 ```python
---8<-- "examples/tested_models/tests/test_revenue.py:direct"
+--8 < --"examples/tested_models/tests/test_revenue.py:direct"
 ```
 
 ```console

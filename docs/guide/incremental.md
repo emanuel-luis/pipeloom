@@ -217,3 +217,38 @@ not yet (PLC514). A missing or unusable event_time column at run time is PLM209.
 In `run_results.json`, an interval model's row has an `intervals` array with one entry per window:
 `interval_id`, `start`, `end`, `idempotency_token`, `skipped` and `rows_written`. The row's counts
 are the sums over its windows.
+Each entry of a failed window also has `failed: true`.
+
+## Backfilling a range
+
+`pipeloom backfill` runs interval models over a range you name instead of from `begin` to now
+(since 1.3):
+
+```bash
+pipeloom backfill --select daily_events --start 2026-01-01 --end 2026-02-01
+```
+
+- `--start` and `--end` are ISO dates or date-times; a value without an offset is UTC. The range
+  is `[start, end)`. Each model runs the windows of its own grain that overlap it, so a bound that
+  is not on a window edge rounds outward: the whole window that holds it runs. The range is
+  clipped to the model's `begin` and to the run's start. `lookback` does not apply.
+- `--rerun missing` (the default) runs only the windows the ledger does not cover. Run the same
+  backfill again after a failure, or after you stopped it, and it picks up the missing windows
+  only. After a backfill that succeeded it writes nothing.
+- `--rerun all` restates the range: it removes the range from the ledger, then runs every window
+  in it. Use it when the windows are wrong, for example after a fix to the model or to late data
+  upstream. If it stops halfway, `--rerun missing` over the same range (or `pipeloom retry`)
+  finishes it.
+- `--on-failure stop` (the default) ends a model at its first failing window; the earlier windows
+  stay written and recorded. `--on-failure continue` runs the rest of the windows and then fails
+  the unit with a message that lists every failed window.
+- `--mark-done` records the range in the ledger exactly as given, without rounding, and runs
+  nothing. It is for a model converted from a watermark: see
+  [Migrating within 1.x](migrate-1.x.md). Repeating it changes nothing.
+
+Each window keeps its token and its ledger entry, exactly as in `pipeloom run`. A selected model
+without `incremental.interval` runs as it would in `pipeloom run`, so `--select daily_events+`
+also rebuilds what reads it. A selection with no interval model is PLX132, and so is
+`--mark-done` with a selected model that has no interval. `backfill` takes the flags of `run`
+except `--full-refresh`, `--manifest`, `--state` and `--defer`. The `args` of
+`run_results.json` record the range under `backfill`.

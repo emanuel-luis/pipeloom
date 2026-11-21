@@ -874,6 +874,12 @@ _ACTIVE_13: Final = (
         "Interval cannot be used",
         "An interval model cannot run a window: the event_time column is missing from the incremental input or from the model output, it is not a timestamp or date column (hour grain needs a timestamp), or the interval ledger in the state store holds something else. Nothing is read in full and the failing window writes nothing; earlier windows of the unit stay committed. A model output row whose event_time falls outside its window fails the write with PLM206 instead. Permanent.",
     ),
+    (
+        "PLX132",
+        E,
+        "Nothing to backfill",
+        "pipeloom backfill runs interval models (ADR-0054), and the selection holds none, or --mark-done was given with selected models that have no incremental.interval (mark-done runs nothing, so it cannot run them). The message lists those models. Nothing runs and no run id is used. Select the interval models, and run the others with pipeloom run. Exit code 2.",
+    ),
 )
 
 

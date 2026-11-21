@@ -113,23 +113,37 @@ Python-first authoring with hybrid discovery. Every numbered point below is part
 ```python
 F = TypeVar("F", bound=Callable[..., Any])
 
+
 @overload
 def model(fn: F, /) -> F: ...
 @overload
-def model(*, name: str | None = None, description: str | None = None,
-          inputs: Mapping[str, str | Ref | SourceRef] | None = None,
-          materialized: Literal["table", "incremental", "view", "ephemeral", "intermediate"] | None = None,
-          incremental: Incremental | Mapping[str, Any] | None = None,
-          write: Write | Mapping[str, Any] | None = None,
-          partition_by: Sequence[str] | None = None, cluster_by: Sequence[str] | None = None,
-          columns: Sequence[Column | Mapping[str, Any]] | None = None,
-          expectations: Sequence[Expectation | Mapping[str, Any]] | None = None,
-          quality: Quality | Mapping[str, Any] | None = None,
-          tags: Sequence[str] | None = None, retries: int | None = None,
-          retry_delay: str | float | None = None, retry_on: Literal["transient", "any"] | None = None,
-          timeout: str | float | None = None, frame_api: Literal["native", "narwhals"] | None = None,
-          sql_dialect: str | None = None, schema: str | None = None, catalog: str | None = None,
-          meta: Mapping[str, Any] | None = None) -> Callable[[F], F]: ...
+def model(
+    *,
+    name: str | None = None,
+    description: str | None = None,
+    inputs: Mapping[str, str | Ref | SourceRef] | None = None,
+    materialized: Literal["table", "incremental", "view", "ephemeral", "intermediate"]
+    | None = None,
+    incremental: Incremental | Mapping[str, Any] | None = None,
+    write: Write | Mapping[str, Any] | None = None,
+    partition_by: Sequence[str] | None = None,
+    cluster_by: Sequence[str] | None = None,
+    columns: Sequence[Column | Mapping[str, Any]] | None = None,
+    expectations: Sequence[Expectation | Mapping[str, Any]] | None = None,
+    quality: Quality | Mapping[str, Any] | None = None,
+    tags: Sequence[str] | None = None,
+    retries: int | None = None,
+    retry_delay: str | float | None = None,
+    retry_on: Literal["transient", "any"] | None = None,
+    timeout: str | float | None = None,
+    frame_api: Literal["native", "narwhals"] | None = None,
+    sql_dialect: str | None = None,
+    schema: str | None = None,
+    catalog: str | None = None,
+    meta: Mapping[str, Any] | None = None,
+) -> Callable[[F], F]: ...
+
+
 # ADR-0045 adds: data_tests: Sequence[DataTest | Mapping[str, Any]] | None = None
 ```
 
@@ -138,6 +152,7 @@ def model(*, name: str | None = None, description: str | None = None,
 ```python
 import polars as pl
 from pipeloom import Column, Expectation, ModelContext, Write, model, not_null, source
+
 
 @model(
     materialized="incremental",
@@ -152,7 +167,9 @@ from pipeloom import Column, Expectation, ModelContext, Write, model, not_null, 
     ],
     expectations=[Expectation(name="keys", check=not_null("order_key"), on_violation="fail")],
 )
-def orders_enriched(ctx: ModelContext, orders: pl.LazyFrame, customer: pl.LazyFrame) -> pl.LazyFrame:
+def orders_enriched(
+    ctx: ModelContext, orders: pl.LazyFrame, customer: pl.LazyFrame
+) -> pl.LazyFrame:
     return ctx.sql("""
         select o.o_orderkey as order_key, c.c_name as customer_name,
                o.o_orderdate as order_date, o.o_totalprice as total_price

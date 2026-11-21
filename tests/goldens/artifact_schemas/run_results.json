@@ -167,6 +167,10 @@
                 "description": "RFC 3339, UTC; exclusive.",
                 "type": "string"
               },
+              "failed": {
+                "description": "Since 1.3: the window failed; the unit's error names it. Absent on the windows that did not fail.",
+                "type": "boolean"
+              },
               "idempotency_token": {
                 "type": "string"
               },

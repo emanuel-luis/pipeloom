@@ -144,8 +144,7 @@ from pipeloom import model
 
 
 @model(retries=2)
-def enriched(orders_clean):
-    ...
+def enriched(orders_clean): ...
 ```
 
 The parameter `orders_clean` binds to the model of that name. To keep the old alias, write

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 from datetime import datetime
@@ -28,6 +29,7 @@ from pipeloom.config.types import parse_duration
 from pipeloom.diagnostics import Report
 from pipeloom.graph.selectors import Selection
 from pipeloom.plan.manifest import read_manifest
+from pipeloom.runtime.intervals import Backfill
 from pipeloom.runtime.run import RunOptions
 
 _HASH = re.compile(r"^[0-9a-fA-F]{64}$")
@@ -76,6 +78,17 @@ def _started_at(ctx: click.Context, param: click.Parameter, value: str | None) -
             param=param,
         )
     return parsed
+
+
+def _backfill_spec(
+    ctx: click.Context, param: click.Parameter, value: str | None
+) -> Backfill | None:
+    if value is None:
+        return None
+    try:
+        return Backfill.from_json(json.loads(value))
+    except (ValueError, KeyError, TypeError) as err:
+        raise click.BadParameter(str(err), ctx=ctx, param=param) from err
 
 
 @click.command()
@@ -163,6 +176,13 @@ def _started_at(ctx: click.Context, param: click.Parameter, value: str | None) -
     hidden=True,
     help="Run data tests after each write; pipeloom build sets it for its child processes.",
 )
+@click.option(
+    "--backfill",
+    callback=_backfill_spec,
+    default=None,
+    hidden=True,
+    help="The range of pipeloom backfill as JSON; set for its child processes.",
+)
 def run(
     project_dir: Path,
     vars_: dict[str, Any],
@@ -186,6 +206,7 @@ def run(
     warn_error: bool,
     cancel_grace: int | None,
     data_tests: bool = False,
+    backfill: Backfill | None = None,
 ) -> None:
     """Run the selected models. Exit codes: 0 ok, 1 a unit or a check failed, 2 bad usage, 130 stopped.
 
@@ -214,8 +235,9 @@ def run(
         boundary=chosen,
         env=os.environ,
     )
-    building = click.get_current_context().command.name == "build"  # cli/build.py reuses this
-    inv = Invocation("build" if building else "run", log_format)
+    name = click.get_current_context().command.name or "run"  # build and backfill reuse this
+    building = name == "build"
+    inv = Invocation(name, log_format)
     project = Project(opts, invocation_id=inv.invocation_id)
     bound = project.bind().value
     ref = (  # the unit tests of a build select with --state before any run starts
@@ -240,6 +262,7 @@ def run(
         state=state,
         defer=defer,
         data_tests=data_tests,
+        backfill=backfill,
     )
     call = project.build if building else project.run
     drive(inv, project, bound, orchestrator_ids, lambda bus, ctl: call(run_opts, bus, ctl))

@@ -37,6 +37,7 @@ from pipeloom.events.bus import EventBus
 from pipeloom.events.model import ErrorInfo, Event, UnitFailed
 from pipeloom.runtime.control import Reason, interrupt_error
 from pipeloom.runtime.executors import UnitCompletion, UnitHandle, _winjob
+from pipeloom.runtime.intervals import Backfill
 from pipeloom.runtime.runner import ModelResult
 
 PARENT_ENV = "PIPELOOM_PARENT_INVOCATION_ID"
@@ -65,6 +66,8 @@ class ChildCommand:
     orchestrator_ids: Mapping[str, str] = field(default_factory=dict)
     data_tests: bool = False
     """Passed as the hidden `--data-tests true`, so each child tests what it wrote."""
+    backfill: Backfill | None = None
+    """Passed as the hidden `--backfill JSON`, so each child runs the same range."""
 
     def argv(self, unit_id: str) -> list[str]:
         out = [
@@ -91,6 +94,8 @@ class ChildCommand:
         ]
         if self.data_tests:
             out += ["--data-tests", "true"]
+        if self.backfill is not None:
+            out += ["--backfill", json.dumps(self.backfill.to_json())]
         if self.cancel_grace is not None:
             out += ["--cancel-grace", str(math.ceil(self.cancel_grace))]
         if self.vars:

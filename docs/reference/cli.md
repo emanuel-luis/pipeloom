@@ -20,6 +20,7 @@ commands are for. A test keeps this table in step with the commands.
 | `pipeloom retry` | [Retrying a run](../guide/running.md#retrying-a-run) |
 | `pipeloom test` | [Testing models](../guide/testing.md#running-them) |
 | `pipeloom build` | [Testing models](../guide/testing.md#build) |
+| `pipeloom backfill` | [Backfilling a range](../guide/incremental.md#backfilling-a-range), [Migrating within 1.x](../guide/migrate-1.x.md) |
 | `pipeloom runs` | [Run history](../guide/run-history.md) |
 | `pipeloom runs ls` | [Run history](../guide/run-history.md#list-runs) |
 | `pipeloom runs show` | [Run history](../guide/run-history.md#show-one-run) |

@@ -44,6 +44,7 @@ from pipeloom.runtime.errors import ErrorInfo, to_diagnostic
 from pipeloom.runtime.executors import Executor
 from pipeloom.runtime.executors.process import ChildCommand, ProcessExecutor
 from pipeloom.runtime.executors.thread import ThreadExecutor
+from pipeloom.runtime.intervals import Backfill
 from pipeloom.runtime.memo import EphemeralMemo
 from pipeloom.runtime.retry import UnitPolicy
 from pipeloom.runtime.runner import ModelRunner
@@ -58,7 +59,7 @@ if TYPE_CHECKING:
 DEFAULT_ARTIFACTS_ROOT = "target"
 DEFAULT_CANCEL_GRACE = 30.0
 MAX_DEFAULT_WORKERS = 4
-USAGE_CODES = frozenset({"PLG304", "PLG305", "PLG307", "PLG308", "PLX108", "PLX111"})
+USAGE_CODES = frozenset({"PLG304", "PLG305", "PLG307", "PLG308", "PLX108", "PLX111", "PLX132"})
 
 
 @dataclass(frozen=True)
@@ -96,10 +97,14 @@ class RunOptions:
     data_tests: bool = False
     """Run each model's data tests after its write (`pipeloom build`, ADR-0045). Relationship
     parents then also order the units."""
+    backfill: Backfill | None = None
+    """`pipeloom backfill`: run the selected interval models over this range (ADR-0054)."""
 
     def __post_init__(self) -> None:
         if self.defer and self.state is None:
             raise ValueError("defer needs state")
+        if self.backfill is not None and self.full_refresh:
+            raise ValueError("a backfill cannot be a full refresh")
         for key, value in self.orchestrator_ids.items():
             check_orchestrator_id(key, value)
         if self.run_started_at is not None:
@@ -297,6 +302,34 @@ def _plan_from_manifest(
     return plan, bound
 
 
+def _backfill_refusal(plan: Plan, backfill: Backfill) -> Diagnostic | None:
+    """A backfill needs an interval model in the selection; `--mark-done` runs nothing, so
+    every selected model must be one."""
+    picked = [plan.nodes[u] for u in plan.selection.selected]
+    picked = [n for n in picked if n.materialized != "ephemeral"]
+    other = sorted(
+        n.name
+        for n in picked
+        if n.materialized != "incremental"
+        or n.config.incremental is None
+        or n.config.incremental.interval is None
+    )
+    if len(other) < len(picked) and not (backfill.mark_done and other):
+        return None
+    what = (
+        "--mark-done runs nothing, and these selected models have no incremental.interval: "
+        + ", ".join(other)
+        if len(other) < len(picked)
+        else "the selection holds no model with incremental.interval"
+    )
+    return Report().add(
+        "PLX132",
+        f"cannot backfill: {what}",
+        hint="select interval models (ADR-0054); `pipeloom run` runs the others",
+        context={"not_interval": list(other)},
+    )
+
+
 def _early(bus: EventBus, diags: Iterable[Diagnostic]) -> RunOutcome:
     """A run that stopped before any unit started: report what was found."""
     found = tuple(diags)
@@ -350,6 +383,11 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                 plan, run_units, reference.plan, opts.not_deferred
             )
             diags.extend(warnings)
+    # A retry selects what failed, which may hold no interval model: the parent was checked.
+    if opts.backfill is not None and plan is not None and not unit_mode and not opts.parent_run_id:
+        refusal = _backfill_refusal(plan, opts.backfill)
+        if refusal is not None:
+            return _early(bus, [*diags, refusal])
     warned = any(d.severity is Severity.WARNING for d in diags)
     if plan is None or bound is None or (opts.warn_error and warned):
         return _early(bus, diags)
@@ -421,6 +459,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                 full_refresh=opts.full_refresh,
                 orchestrator=dict(identity.orchestrator_ids),
                 artifacts_root=paths.root.as_posix(),
+                backfill=opts.backfill,
             )
             # The engine session opens before any state-store call: a store that lives in the
             # engine (a table) reuses the engine's own session. It opens without the start time,
@@ -515,6 +554,7 @@ def execute_run(project: Project, opts: RunOptions, bus: EventBus) -> RunOutcome
                         cancel_grace=grace,
                         orchestrator_ids=opts.orchestrator_ids,
                         data_tests=opts.data_tests,
+                        backfill=opts.backfill,
                     ),
                     paths=paths,
                     bus=bus,
@@ -666,6 +706,8 @@ def _finish(
         "defer": opts.defer,
         "data_tests": opts.data_tests,
     }
+    if opts.backfill is not None:
+        args["backfill"] = opts.backfill.to_json()
     header = RunHeader(
         run_id=rt.run_id,
         parent_run_id=opts.parent_run_id,

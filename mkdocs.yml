@@ -97,6 +97,7 @@ nav:
       - Alerts with the webhook sink: guide/alerts.md
       - Docs site: guide/docs-site.md
       - "Recipe: GitHub Actions": guide/recipe-github-actions.md
+      - Migrating within 1.x: guide/migrate-1.x.md
       - Migrating from 0.8: guide/migrate-0.9.md
   - Integrations:
       - Engines:
