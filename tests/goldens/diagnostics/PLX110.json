@@ -19,7 +19,8 @@
         "col": null,
         "json_pointer": null
       },
-      "context": {}
+      "context": {},
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#plx110"
     },
     "context": {}
   }

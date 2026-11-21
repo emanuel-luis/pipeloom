@@ -16,7 +16,8 @@
       "location": null,
       "context": {
         "group": "tag_g"
-      }
+      },
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#pld015"
     },
     "context": {}
   }

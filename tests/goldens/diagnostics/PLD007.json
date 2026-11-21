@@ -14,7 +14,8 @@
       "message": "no job carries pipeloom_job=shop.main.prod",
       "hint": "deploy it with 'pipeloom databricks deploy', or pass --ensure",
       "location": null,
-      "context": {}
+      "context": {},
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#pld007"
     },
     "context": {}
   }

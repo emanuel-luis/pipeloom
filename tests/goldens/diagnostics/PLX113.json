@@ -14,7 +14,8 @@
       "message": "run nope cannot be retried: it has no run_results.json",
       "hint": "a run that never finished, is still running or never existed has nothing to retry",
       "location": null,
-      "context": {}
+      "context": {},
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#plx113"
     },
     "context": {}
   }

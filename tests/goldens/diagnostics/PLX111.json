@@ -14,7 +14,8 @@
       "message": "--defer refused: the boundary is task, so each unit would rerun without the reference",
       "hint": "use --boundary process, run without -s unit:, and a reference of the same catalog kind",
       "location": null,
-      "context": {}
+      "context": {},
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#plx111"
     },
     "context": {}
   }
