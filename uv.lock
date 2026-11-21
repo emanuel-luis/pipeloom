@@ -3809,7 +3809,7 @@ wheels = [
 
 [[package]]
 name = "pipeloom"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -3927,7 +3927,7 @@ spark = [{ name = "pipeloom-spark", extras = ["local"], editable = "plugins/pipe
 
 [[package]]
 name = "pipeloom-airflow"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "plugins/pipeloom-airflow" }
 dependencies = [
     { name = "pipeloom" },
@@ -3959,7 +3959,7 @@ provides-extras = ["airflow", "kubernetes", "databricks"]
 
 [[package]]
 name = "pipeloom-databricks"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "plugins/pipeloom-databricks" }
 dependencies = [
     { name = "databricks-sdk" },
@@ -3976,7 +3976,7 @@ requires-dist = [
 
 [[package]]
 name = "pipeloom-duckdb"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "plugins/pipeloom-duckdb" }
 dependencies = [
     { name = "duckdb" },
@@ -3991,7 +3991,7 @@ requires-dist = [
 
 [[package]]
 name = "pipeloom-openlineage"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "plugins/pipeloom-openlineage" }
 dependencies = [
     { name = "openlineage-python" },
@@ -4006,7 +4006,7 @@ requires-dist = [
 
 [[package]]
 name = "pipeloom-pandas"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "plugins/pipeloom-pandas" }
 dependencies = [
     { name = "pandas" },
@@ -4023,7 +4023,7 @@ requires-dist = [
 
 [[package]]
 name = "pipeloom-polars"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "plugins/pipeloom-polars" }
 dependencies = [
     { name = "pipeloom" },
@@ -4040,7 +4040,7 @@ requires-dist = [
 
 [[package]]
 name = "pipeloom-spark"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "plugins/pipeloom-spark" }
 dependencies = [
     { name = "pipeloom" },

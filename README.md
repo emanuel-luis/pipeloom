@@ -3,15 +3,15 @@
 Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.
 
 Models are Python functions marked with `@model`; YAML holds the project and the properties files that configure and describe them. pipeloom compiles them into an immutable plan. The same plan runs on pandas,
-polars, PySpark or later engines, and runs locally, as one Databricks job, or as an Airflow DAG.
+polars, PySpark, DuckDB or later engines, and runs locally, as one Databricks job, or as an Airflow DAG.
 Every run produces a single event stream and artifacts you can query.
 
-**Status: 1.0, stable.** From 1.0 the config, the plugin API, the artifact
+**Status: 1.1, stable.** From 1.0 the config, the plugin API, the artifact
 schemas and the CLI are stable within the major version; see
 [Stability and deprecations](docs/reference/stability.md). pipeloom discovers the `@model` functions of a project, validates it in
 layers (YAML, schema, references, graph, plan semantics, engine capabilities, Python callables),
 builds the dependency graph, compiles the execution plan into a manifest and runs it on polars,
-pandas or Spark. It writes incremental models with a watermark, merge, replace_partitions and
+pandas, DuckDB or Spark. It writes incremental models with a watermark, merge, replace_partitions and
 scd2, checks contracts, applies schema-change policies and expectations with quarantine, runs
 unit and data tests (`pipeloom test`, `pipeloom build`), and retries, times out and cancels
 units. Every run writes `run_results.json`. The `pipeloom-databricks` and `pipeloom-airflow` plugins deploy a
@@ -88,8 +88,8 @@ Every distribution is released together and carries the same version.
 | 0.7 | Per-model catalogs, reproducible manifests (`compile --stable`) |
 | 0.8 | `init`, `new model` and editor setup, `explain`, `state:modified` and `--defer`, `retry --from`, `docs generate` and `serve` |
 | 0.9 | Python-first models (`@model`, `ctx.sql`), contracts, unit and data tests, `build`, SCD2, OpenLineage, run history and alerts, Airflow WATCHER mode |
-| 1.0 (current) | Stable config, plugin API (1, 0), published artifact schemas including the manifest, the orchestrator protocol and `graph --units`, the stability and deprecation policy |
-| 1.1 | Planned: DuckDB engine, conformance kit, `pipeloom demo` |
+| 1.0 | Stable config, plugin API (1, 0), published artifact schemas including the manifest, the orchestrator protocol and `graph --units`, the stability and deprecation policy |
+| 1.1 (current) | DuckDB engine (`pipeloom-duckdb`), conformance kit, portable models guide, `pipeloom demo`, Airflow 3.4 |
 | 1.2 | Planned: split checksums, `plan --diff`, `pipeloom diff`, machine-readable diagnostics |
 | 1.3 | Planned: interval incrementals, interval ledger, `pipeloom backfill`, outcome fields |
 | 1.4 | Planned: partitions in artifacts, Airflow and Databricks updates, `pipeloom-dagster` |

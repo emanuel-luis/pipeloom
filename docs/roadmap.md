@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: plan as of 2026-11-20, written against 1.0.0. Versions 0.8 to 1.0 are delivered; this page now plans 1.1 to
+Status: plan as of 2026-11-21, written against 1.1.0. Versions 0.8 to 1.1 are delivered; this page now plans 1.2 to
 1.9 and lists the breaking changes the stability policy holds back. Section 16 of [architecture.md](architecture.md#16-roadmap) keeps the record of what each
 delivered version contains. The market research behind the plan is in [Market landscape](landscape.md). Items that
 change a decision name the ADR they need: ADRs up to 0050 exist and are accepted, and new ones continue from 0051.
@@ -117,8 +117,8 @@ Summary by version:
 | Version | Headline | What you can do after it | Status |
 |---|---|---|---|
 | 0.8 to 1.0 | First hour, Python-first authoring, stable contracts | Author, validate, run and export projects with published schemas | Delivered |
-| 1.0.x | Upstream patches | Run on Polars 2.0, the current Databricks CLI and Airflow 3.3 and 3.4 | Planned |
-| 1.1 | DuckDB and a one-command demo | Run a project and a demo on a laptop with DuckDB | Planned |
+| 1.0.x | Upstream patches | Run on Polars 2.0, the current Databricks CLI and Airflow 3.3 and 3.4 | Delivered in 1.1.0 |
+| 1.1 | DuckDB and a one-command demo | Run a project and a demo on a laptop with DuckDB | Delivered |
 | 1.2 | Know what a change does before it merges | See the effect of a change with plan diff and table diff before merging | Planned |
 | 1.3 | Intervals and backfills | Backfill a date range and rerun only the missing windows | Planned |
 | 1.4 | Orchestrators run partitions | Run one partition from Airflow, Databricks or Dagster | Planned |
@@ -135,33 +135,10 @@ Summary by version:
 | 0.8 | First hour and fast loops: `init`, `new model`, `explain`, `state:modified` and `--defer`, `retry --from`, `docs generate` and `serve` ([ADR-0042](adr/0042-state-selection-and-defer.md), [ADR-0043](adr/0043-docs-site.md)) |
 | 0.9 | Python-first authoring ([ADR-0050](adr/0050-python-first-authoring.md)), contracts, unit and data tests, `build`, SCD2, OpenLineage, run history and webhook, Airflow WATCHER mode ([migration guide](guide/migrate-0.9.md)) |
 | 1.0 | Stable contracts: published schemas including the manifest, the [orchestrator protocol](guide/orchestrators.md), `graph --units`, plugin API (1, 0) and the [stability policy](reference/stability.md) ([ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md)) |
+| 1.0.x | Delivered in 1.1.0, with no 1.0.1 release because nothing was broken for users: Databricks CLI version documentation, the Airflow 3.4 matrix and Polars 2 guards |
+| 1.1 | Delivered in 1.1.0: DuckDB engine ([ADR-0051](adr/0051-duckdb-engine.md)), conformance kit ([ADR-0067](adr/0067-conformance-kit.md)), portable models guide and cross-engine matrix, `pipeloom demo`, `init --engine duckdb`, experimental tier in the stability policy. The stretch items Sail CI recipe and `show --limit` did not ship and are dropped |
 
 The full list per version is in the CHANGELOG and in section 16 of the architecture.
-
-### Patch now: 1.0.x
-
-Upstream changes are already out, so they should not wait for 1.4. A 1.0.x patch runs the Databricks CLI range
-check (Terraform was removed in CLI 1.20.0 and the direct engine has been GA since 1.3.0) and the Airflow 3.3 and
-3.4 matrix. Only the new features (window parameters, partitioned assets) stay in 1.4. Polars 2.0 is released
-(post dated 2026-10-06, streaming is now the default `LazyFrame` engine and can change row order), so CI also runs
-against it now; check the row-order and `profile` removal notes in the
-[upgrade guide](https://docs.pola.rs/releases/upgrade/2/) before writing acceptance tests.
-
-### 1.1: DuckDB and a one-command demo
-
-- Conformance suites as an opt-in pytest plugin (`-p pipeloom.testing.pytest_plugin`, or a separate distribution), a versioned kit that prints its version in the report, an engine-author guide, and a capability matrix generated from `EngineCapabilities`. The suite joins the stability surface list. Done when: A scratch project with only pipeloom and the plugin runs the engine suite in CI. `mkdocs build --strict` renders the matrix.
-- `pipeloom-duckdb` (in-tree, released in lockstep): `sql_dialect="duckdb"`, portable defaults, and merge, scd2 and replace_partitions pushed down as SQL. Reads Parquet and CSV, plus read-only Delta. Extensions are installed from a pinned `extension_directory`, with a clear diagnostic when one is missing offline. ADR: 0051 (file database vs attached lakehouse). Done when: The full engine contract suite passes, and the `tpch_polars` SQL models run on DuckDB through `sql_dialect` translation. One CI job runs with extensions preinstalled and no network. A Delta read test runs on all three operating systems, or the gap is documented.
-- Narwhals documentation and matrix. `narwhals.stable.v2` is already the portable layer with a single import point enforced by `lint-imports`, so this is the guide, a mapping of order errors to a code, and a cross-engine CI matrix. Done when: One portable model gives identical `to_rows` on polars, pandas, DuckDB and Spark.
-- `pipeloom demo`: DuckDB sample, tests and docs site. A `duckdb` extra on the core, and a diagnostic with an install hint when no engine is found. Done when: `uvx --from "pipeloom[duckdb]" pipeloom demo` exits 0 and writes `target/docs/index.html` in a clean venv on 3 OS.
-- `pipeloom init --engine duckdb` as a choice. The default stays polars, since only a new major can change a default. Done when: `init --no-input` still uses polars.
-- Experimental tier in stability.md, with a warning code for experimental flags and fields, and the optional-member mechanism above. ADR: stability ADR amendment. Done when: A case file for the new warning code.
-
-Plugin API: unchanged.
-
-Stretch: Sail CI recipe, `show --limit [--defer]` with no writes.
-
-Changed from the earlier plan: `pipeloom ui` was promised for 1.1 and moves to 1.7.x, after the read layer
-(decided 2026-11-20, see section 6).
 
 ### 1.2: Know what a change does before it merges
 
