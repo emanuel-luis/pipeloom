@@ -1,0 +1,6272 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
+      
+      
+      
+        <link rel="canonical" href="https://emanuel-luis.github.io/pipeloom/latest/1.3.0/reference/errors/">
+      
+      
+        <link rel="prev" href="../artifacts/">
+      
+      
+        <link rel="next" href="../engine-capabilities/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Error codes - pipeloom</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+   <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+    html.glightbox-open { overflow: initial; height: 100%; }
+    .gslide-title { margin-top: 0px; user-select: text; }
+    .gslide-desc { color: #666; user-select: text; }
+    .gslide-image img { background: white; }
+    .gscrollbar-fixer { padding-right: 15px; }
+    .gdesc-inner { font-size: 0.75rem; }
+    body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
+    body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../assets/javascripts/glightbox.min.js"></script></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#error-codes" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You are not viewing the latest version.
+  <a href="../../..">
+    <strong>Click here to go to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="pipeloom" class="md-header__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            pipeloom
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Error codes
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+    
+  
+  Get started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../examples/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guide/running/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../plugins/duckdb/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Integrations
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../cli/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="pipeloom" class="md-nav__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="logo">
+
+    </a>
+    pipeloom
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../.." class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Get started
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_1" id="__nav_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Get started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compare/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compared with other tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting and FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../examples/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/events_incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Late-arriving events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/customers_scd2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customer dimension with history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/orders_quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    An untrusted partner feed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/tested-models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing transformation logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/running/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/write-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge, replace_partitions, scd2 and schema changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/portable-models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Portable models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/retries-and-cancellation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retries, timeouts and cancellation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/run-history/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/table-diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Table diff
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/alerts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/docs-site/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs site
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/recipe-github-actions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipe: GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-1.x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating within 1.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/duckdb/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DuckDB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/polars/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/pandas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pandas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/spark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spark
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/writing-an-engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing an engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platforms
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Platforms
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/databricks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/airflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Airflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/openlineage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lineage with OpenLineage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/orchestrators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrator protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../databricks-cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error codes
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#l0-parse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L0 parse
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L0 parse">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ply001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLY001
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ply002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLY002
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ply003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLY003
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ply004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLY004
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ply005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLY005
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l1-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L1 schema
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L1 schema">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pls101" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS101
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls102" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS102
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls103" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS103
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls104" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS104
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls105" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS105
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls106" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS106
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls107" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS107
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls108" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS108
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l2-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L2 references
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L2 references">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plr201" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR201
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr202" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR202
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr203" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR203
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr204" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR204
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr205" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR205
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr206" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR206
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr207" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR207
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr208" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR208
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr209" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR209
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr210" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR210
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l3-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L3 graph
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L3 graph">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plg301" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG301
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg302" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG302
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg303" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG303
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg304" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG304
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg305" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG305
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg306" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG306
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg307" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG307
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg308" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG308
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg309" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG309
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l4-plan-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L4 plan semantics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L4 plan semantics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plp401" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP401
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp402" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP402
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp403" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP403
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp404" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP404
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp405" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP405
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp406" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP406
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp407" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP407
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp408" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP408
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp409" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP409
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp410" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP410
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp411" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP411
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp412" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP412
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp413" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP413
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp414" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP414
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp415" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP415
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp416" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP416
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp417" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP417
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l5-capability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L5 capability
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L5 capability">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plc501" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC501
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc502" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC502
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc503" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC503
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc504" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC504
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc505" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC505
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc506" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC506
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc507" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC507
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc508" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC508
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc509" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC509
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc510" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC510
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc513" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC513
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc514" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC514
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l6-static-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L6 static code
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L6 static code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plk601" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK601
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plk602" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK602
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plk603" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK603
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plk604" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK604
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plk605" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK605
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plk606" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK606
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l7-preflight" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L7 preflight
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L7 preflight">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plf701" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLF701
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plf702" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLF702
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plf703" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLF703
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugins
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plu001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLU001
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plu002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLU002
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plu003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLU003
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plu004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLU004
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Events
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Events">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ple401" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLE401
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Runtime">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plm201" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM201
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm202" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM202
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm203" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM203
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm204" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM204
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm205" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM205
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm206" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM206
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm207" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM207
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm208" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM208
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm209" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM209
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm210" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM210
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plq301" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLQ301
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plq302" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLQ302
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plq303" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLQ303
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx101" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX101
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx102" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX102
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx103" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX103
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx104" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX104
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx105" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX105
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx106" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX106
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx107" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX107
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx108" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX108
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx109" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX109
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx110" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX110
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx111" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX111
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx112" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX112
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx113" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX113
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx114" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX114
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx115" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX115
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx117" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX117
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx118" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX118
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx120" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX120
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx121" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX121
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx122" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX122
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx130" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX130
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx131" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX131
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx132" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX132
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#renderers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Renderers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Renderers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pla001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA001
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA002
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA003
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA004
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA005
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla006" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA006
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla007" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA007
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla008" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA008
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla009" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA009
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD001
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD002
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD003
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD004
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD005
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld006" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD006
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld007" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD007
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld008" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD008
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld009" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD009
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld010" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD010
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld011" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD011
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld012" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD012
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld013" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD013
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld014" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD014
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld015" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD015
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine-capabilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engine capabilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stability and deprecations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../adr/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../landscape/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Market landscape
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/emanuel-luis/pipeloom/blob/main/CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#l0-parse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L0 parse
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L0 parse">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ply001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLY001
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ply002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLY002
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ply003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLY003
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ply004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLY004
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ply005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLY005
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l1-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L1 schema
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L1 schema">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pls101" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS101
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls102" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS102
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls103" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS103
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls104" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS104
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls105" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS105
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls106" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS106
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls107" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS107
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pls108" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLS108
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l2-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L2 references
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L2 references">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plr201" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR201
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr202" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR202
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr203" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR203
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr204" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR204
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr205" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR205
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr206" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR206
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr207" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR207
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr208" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR208
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr209" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR209
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plr210" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLR210
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l3-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L3 graph
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L3 graph">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plg301" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG301
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg302" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG302
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg303" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG303
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg304" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG304
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg305" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG305
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg306" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG306
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg307" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG307
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg308" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG308
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plg309" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLG309
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l4-plan-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L4 plan semantics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L4 plan semantics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plp401" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP401
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp402" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP402
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp403" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP403
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp404" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP404
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp405" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP405
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp406" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP406
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp407" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP407
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp408" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP408
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp409" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP409
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp410" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP410
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp411" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP411
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp412" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP412
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp413" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP413
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp414" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP414
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp415" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP415
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp416" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP416
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plp417" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLP417
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l5-capability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L5 capability
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L5 capability">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plc501" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC501
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc502" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC502
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc503" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC503
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc504" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC504
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc505" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC505
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc506" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC506
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc507" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC507
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc508" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC508
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc509" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC509
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc510" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC510
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc513" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC513
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plc514" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLC514
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l6-static-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L6 static code
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L6 static code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plk601" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK601
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plk602" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK602
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plk603" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK603
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plk604" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK604
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plk605" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK605
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plk606" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLK606
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#l7-preflight" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L7 preflight
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L7 preflight">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plf701" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLF701
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plf702" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLF702
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plf703" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLF703
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugins
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plu001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLU001
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plu002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLU002
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plu003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLU003
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plu004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLU004
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Events
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Events">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ple401" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLE401
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Runtime">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plm201" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM201
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm202" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM202
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm203" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM203
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm204" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM204
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm205" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM205
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm206" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM206
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm207" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM207
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm208" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM208
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm209" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM209
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plm210" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLM210
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plq301" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLQ301
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plq302" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLQ302
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plq303" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLQ303
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx101" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX101
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx102" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX102
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx103" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX103
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx104" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX104
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx105" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX105
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx106" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX106
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx107" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX107
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx108" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX108
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx109" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX109
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx110" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX110
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx111" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX111
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx112" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX112
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx113" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX113
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx114" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX114
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx115" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX115
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx117" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX117
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx118" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX118
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx120" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX120
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx121" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX121
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx122" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX122
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx130" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX130
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx131" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX131
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx132" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX132
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#renderers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Renderers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Renderers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pla001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA001
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA002
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA003
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA004
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA005
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla006" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA006
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla007" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA007
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla008" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA008
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pla009" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLA009
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD001
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD002
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD003
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD004
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld005" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD005
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld006" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD006
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld007" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD007
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld008" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD008
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld009" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD009
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld010" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD010
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld011" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD011
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld012" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD012
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld013" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD013
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld014" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD014
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pld015" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLD015
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="error-codes">Error codes<a class="headerlink" href="#error-codes" title="Permanent link">&para;</a></h1>
+<h2 id="l0-parse">L0 parse<a class="headerlink" href="#l0-parse" title="Permanent link">&para;</a></h2>
+<h3 id="ply001">PLY001<a class="headerlink" href="#ply001" title="Permanent link">&para;</a></h3>
+<p>YAML syntax error. Severity: error. Status: active. Since: 0.1.</p>
+<p>The file is not valid YAML, holds more than one document, contains a recursive alias, expands an alias above 100000 nodes, or uses an unsupported construct.</p>
+<h3 id="ply002">PLY002<a class="headerlink" href="#ply002" title="Permanent link">&para;</a></h3>
+<p>Duplicate key. Severity: error. Status: active. Since: 0.1.</p>
+<p>A mapping repeats a key. Keys that arrive through a merge key are exempt: explicit keys win.</p>
+<h3 id="ply003">PLY003<a class="headerlink" href="#ply003" title="Permanent link">&para;</a></h3>
+<p>Invalid encoding. Severity: error. Status: active. Since: 0.1.</p>
+<p>The file is not valid UTF-8 (a UTF-8 BOM is accepted) or has characters YAML forbids.</p>
+<h3 id="ply004">PLY004<a class="headerlink" href="#ply004" title="Permanent link">&para;</a></h3>
+<p>File missing or unreadable. Severity: error. Status: active. Since: 0.1.</p>
+<p>pipeloom.yml or a properties file does not exist or cannot be read.</p>
+<h3 id="ply005">PLY005<a class="headerlink" href="#ply005" title="Permanent link">&para;</a></h3>
+<p>Model module cannot be loaded. Severity: error. Status: active. Since: 0.9.</p>
+<p>A Python file under model_paths or model_packages has a syntax error, raised an exception while it was imported, lies outside every python_paths root, or resolves to another file under its module name (an installed package or another module shadows it, or its top-level name is a standard library module). Every such file is reported; the location is the innermost traceback frame in that file, or the syntax error. While any is reported, PLR209 is not, since the missing models may be the ones a properties entry describes.</p>
+<h2 id="l1-schema">L1 schema<a class="headerlink" href="#l1-schema" title="Permanent link">&para;</a></h2>
+<h3 id="pls101">PLS101<a class="headerlink" href="#pls101" title="Permanent link">&para;</a></h3>
+<p>Unknown field. Severity: error. Status: active. Since: 0.1.</p>
+<p>A key is not part of the schema. The message suggests the closest known field.</p>
+<h3 id="pls102">PLS102<a class="headerlink" href="#pls102" title="Permanent link">&para;</a></h3>
+<p>Invalid value. Severity: error. Status: active. Since: 0.1.</p>
+<p>A value has the wrong type or fails a constraint.</p>
+<h3 id="pls103">PLS103<a class="headerlink" href="#pls103" title="Permanent link">&para;</a></h3>
+<p>Unsupported config_version. Severity: error. Status: active. Since: 0.1.</p>
+<p>config_version is missing or not 1. It is checked first and stops schema validation.</p>
+<h3 id="pls104">PLS104<a class="headerlink" href="#pls104" title="Permanent link">&para;</a></h3>
+<p>Literal value in a secret-like field. Severity: error. Status: active. Since: 0.1.</p>
+<p>A field whose name suggests a secret holds a literal. Use ${secret:...} or ${env:...}.</p>
+<h3 id="pls105">PLS105<a class="headerlink" href="#pls105" title="Permanent link">&para;</a></h3>
+<p>Required field missing. Severity: error. Status: active. Since: 0.1.</p>
+<p>A mapping lacks a required field.</p>
+<h3 id="pls106">PLS106<a class="headerlink" href="#pls106" title="Permanent link">&para;</a></h3>
+<p>Unresolved interpolation. Severity: error. Status: active. Since: 0.1.</p>
+<p>${env:NAME} is unset with no default, or ${var:name} names an unknown variable.</p>
+<h3 id="pls107">PLS107<a class="headerlink" href="#pls107" title="Permanent link">&para;</a></h3>
+<p>Malformed interpolation. Severity: error. Status: active. Since: 0.1.</p>
+<p>A ${env:...} or ${var:...} expression is malformed.</p>
+<h3 id="pls108">PLS108<a class="headerlink" href="#pls108" title="Permanent link">&para;</a></h3>
+<p>Exactly one of several fields required. Severity: error. Status: active. Since: 0.1.</p>
+<p>At most one, or exactly one, of a set of fields may be given, for example location or table on a source table.</p>
+<h2 id="l2-references">L2 references<a class="headerlink" href="#l2-references" title="Permanent link">&para;</a></h2>
+<h3 id="plr201">PLR201<a class="headerlink" href="#plr201" title="Permanent link">&para;</a></h3>
+<p>Unknown ref. Severity: error. Status: active. Since: 0.1.</p>
+<p>An input names a model that does not exist. The hint suggests the closest name.</p>
+<h3 id="plr202">PLR202<a class="headerlink" href="#plr202" title="Permanent link">&para;</a></h3>
+<p>Duplicate model name. Severity: error. Status: active. Since: 0.1.</p>
+<p>Two models share a name. Names are unique per project.</p>
+<h3 id="plr203">PLR203<a class="headerlink" href="#plr203" title="Permanent link">&para;</a></h3>
+<p>Unknown source. Severity: error. Status: active. Since: 0.1.</p>
+<p>An input names a source table that no source group in pipeloom.yml declares.</p>
+<h3 id="plr204">PLR204<a class="headerlink" href="#plr204" title="Permanent link">&para;</a></h3>
+<p>Unknown target or plugin kind. Severity: error. Status: active. Since: 0.1.</p>
+<p>The selected target is not in targets, or an engine, catalog, naming or sink block names a kind that no installed plugin provides.</p>
+<h3 id="plr205">PLR205<a class="headerlink" href="#plr205" title="Permanent link">&para;</a></h3>
+<p>Duplicate source. Severity: error. Status: retired. Since: 0.1.</p>
+<p>Retired in 0.9: no longer emitted.</p>
+<p>Two sources share a name. Names are unique per project.</p>
+<h3 id="plr206">PLR206<a class="headerlink" href="#plr206" title="Permanent link">&para;</a></h3>
+<p>model_paths entry does not exist. Severity: warning. Status: active. Since: 0.1.</p>
+<p>A directory listed in model_paths is missing, so no models are read from it.</p>
+<h3 id="plr207">PLR207<a class="headerlink" href="#plr207" title="Permanent link">&para;</a></h3>
+<p>No target selected. Severity: error. Status: active. Since: 0.1.</p>
+<p>Several targets exist and none was chosen. Use --target, PIPELOOM_TARGET or default_target.</p>
+<h3 id="plr208">PLR208<a class="headerlink" href="#plr208" title="Permanent link">&para;</a></h3>
+<p>Unit test reference. Severity: error. Status: active. Since: 0.9.</p>
+<p>A unit test in a properties entry gives rows for an alias that is not an input of the model, leaves an input alias without rows, or reuses a case name of its model.</p>
+<h3 id="plr209">PLR209<a class="headerlink" href="#plr209" title="Permanent link">&para;</a></h3>
+<p>Properties entry names no model, or describes one twice. Severity: error. Status: active. Since: 0.9.</p>
+<p>An entry of a properties file names a model that does not exist, or a model that another properties entry already describes. Each model has at most one properties entry. The hint suggests the closest model name, or points at the first entry.</p>
+<h3 id="plr210">PLR210<a class="headerlink" href="#plr210" title="Permanent link">&para;</a></h3>
+<p>Input name matches a table in several source groups. Severity: error. Status: active. Since: 0.9.</p>
+<p>A parameter of a Python model binds by name to a source table, and tables with that name exist in more than one source group. Bind it explicitly with inputs={'name': source('group', 'table')}.</p>
+<h2 id="l3-graph">L3 graph<a class="headerlink" href="#l3-graph" title="Permanent link">&para;</a></h2>
+<h3 id="plg301">PLG301<a class="headerlink" href="#plg301" title="Permanent link">&para;</a></h3>
+<p>Cycle in the graph. Severity: error. Status: active. Since: 0.1.</p>
+<p>Models depend on each other in a loop. The message lists the path.</p>
+<h3 id="plg302">PLG302<a class="headerlink" href="#plg302" title="Permanent link">&para;</a></h3>
+<p>Self-reference. Severity: error. Status: active. Since: 0.1.</p>
+<p>A model lists itself among its own inputs.</p>
+<h3 id="plg303">PLG303<a class="headerlink" href="#plg303" title="Permanent link">&para;</a></h3>
+<p>Selector matched nothing. Severity: warning. Status: active. Since: 0.1.</p>
+<p>A selector atom matched no model. This is a warning, not an error.</p>
+<h3 id="plg304">PLG304<a class="headerlink" href="#plg304" title="Permanent link">&para;</a></h3>
+<p>Unknown selector method. Severity: error. Status: active. Since: 0.1.</p>
+<p>A selector uses a method other than name, tag, path, materialized, unit, state or result. Exit code 2.</p>
+<h3 id="plg305">PLG305<a class="headerlink" href="#plg305" title="Permanent link">&para;</a></h3>
+<p>Malformed selector. Severity: error. Status: active. Since: 0.1.</p>
+<p>A selector cannot be parsed, for example an empty atom or a depth of 0. Exit code 2.</p>
+<h3 id="plg306">PLG306<a class="headerlink" href="#plg306" title="Permanent link">&para;</a></h3>
+<p>Unknown unit. Severity: error. Status: active. Since: 0.2.</p>
+<p>A unit: selector names a unit that the project does not have. Ephemeral models are not units.</p>
+<h3 id="plg307">PLG307<a class="headerlink" href="#plg307" title="Permanent link">&para;</a></h3>
+<p>State selector without reference. Severity: error. Status: active. Since: 0.8.</p>
+<p>A state: or result: selector atom was used without --state. Point --state at a folder that holds the reference manifest.json. Exit code 2.</p>
+<h3 id="plg308">PLG308<a class="headerlink" href="#plg308" title="Permanent link">&para;</a></h3>
+<p>No run results in the reference. Severity: error. Status: active. Since: 0.8.</p>
+<p>A result: selector atom needs the reference's run_results.json, and the --state folder has none. Exit code 2.</p>
+<h3 id="plg309">PLG309<a class="headerlink" href="#plg309" title="Permanent link">&para;</a></h3>
+<p>Split checksums missing in the reference. Severity: warning. Status: active. Since: 1.2.</p>
+<p>A state:modified.<part> selector (code, config, contract, tests or upstream), or <code>plan --diff</code>, met models whose reference manifest has no split checksums, or has them from another checksum_version, as a 1.0 manifest does. For those models the selector compares the legacy checksum, so any change selects them. <code>plan --diff</code> counts any change of those models as breaking. The message counts them. Compile the reference again with this pipeloom version.</p>
+<h2 id="l4-plan-semantics">L4 plan semantics<a class="headerlink" href="#l4-plan-semantics" title="Permanent link">&para;</a></h2>
+<h3 id="plp401">PLP401<a class="headerlink" href="#plp401" title="Permanent link">&para;</a></h3>
+<p>merge or scd2 without unique_key. Severity: error. Status: active. Since: 0.1.</p>
+<p>A model writes with merge or scd2 but sets no write.unique_key.</p>
+<h3 id="plp402">PLP402<a class="headerlink" href="#plp402" title="Permanent link">&para;</a></h3>
+<p>incremental without column. Severity: error. Status: active. Since: 0.1.</p>
+<p>A model is materialized as incremental but sets no incremental.column to compare with the watermark.</p>
+<h3 id="plp403">PLP403<a class="headerlink" href="#plp403" title="Permanent link">&para;</a></h3>
+<p>Aggregate expectation with drop. Severity: error. Status: active. Since: 0.1.</p>
+<p>An aggregate check (unique, row_count, freshness) cannot drop rows. Use warn or fail.</p>
+<h3 id="plp404">PLP404<a class="headerlink" href="#plp404" title="Permanent link">&para;</a></h3>
+<p>incremental.input not in inputs. Severity: error. Status: active. Since: 0.1.</p>
+<p>incremental.input names an alias that is not one of the model's inputs.</p>
+<h3 id="plp405">PLP405<a class="headerlink" href="#plp405" title="Permanent link">&para;</a></h3>
+<p>Write option not applied by this strategy. Severity: error. Status: active. Since: 0.1.</p>
+<p>A declared write option would be ignored: unique_key, update_condition or deletes with a strategy that does not use them, tracked_columns outside scd2, write on an ephemeral model, or incremental on a model that is not incremental.</p>
+<h3 id="plp406">PLP406<a class="headerlink" href="#plp406" title="Permanent link">&para;</a></h3>
+<p>Ephemeral fan-out above threshold. Severity: warning. Status: active. Since: 0.1.</p>
+<p>An ephemeral model is inlined in more units than ephemeral_fanout_warn. Make it an intermediate to compute it once.</p>
+<h3 id="plp407">PLP407<a class="headerlink" href="#plp407" title="Permanent link">&para;</a></h3>
+<p>replace_partitions without partition_by. Severity: error. Status: active. Since: 0.1.</p>
+<p>The replace_partitions strategy needs partition_by to know which partitions to replace.</p>
+<h3 id="plp408">PLP408<a class="headerlink" href="#plp408" title="Permanent link">&para;</a></h3>
+<p>Ephemeral model with no consumer. Severity: warning. Status: active. Since: 0.1.</p>
+<p>No persisted model reads this ephemeral model, directly or through other ephemeral models, so it never runs.</p>
+<h3 id="plp409">PLP409<a class="headerlink" href="#plp409" title="Permanent link">&para;</a></h3>
+<p>View inlines an ephemeral model. Severity: error. Status: active. Since: 0.2.</p>
+<p>A view cannot read an ephemeral model, because its query is stored in the catalog and an ephemeral model has no relation to name. A view is a model function that returns ctx.sql(...).</p>
+<h3 id="plp410">PLP410<a class="headerlink" href="#plp410" title="Permanent link">&para;</a></h3>
+<p>append with lookback reloads rows. Severity: warning. Status: active. Since: 0.3.</p>
+<p>An incremental model appends with a lookback above zero, so rows inside the window are written again. Use merge with a unique_key.</p>
+<h3 id="plp411">PLP411<a class="headerlink" href="#plp411" title="Permanent link">&para;</a></h3>
+<p>Expectations on a view or ephemeral model. Severity: error. Status: active. Since: 0.3.</p>
+<p>A view or an ephemeral model writes no rows of its own, so it cannot carry expectations. Put them on a table that reads it.</p>
+<h3 id="plp412">PLP412<a class="headerlink" href="#plp412" title="Permanent link">&para;</a></h3>
+<p>Quarantine relation collides with a model. Severity: error. Status: active. Since: 0.3.</p>
+<p>A model's quarantine table is named <model>__quarantine, and another model already has that name in the same catalog and schema.</p>
+<h3 id="plp413">PLP413<a class="headerlink" href="#plp413" title="Permanent link">&para;</a></h3>
+<p>Intermediate model with a write option. Severity: error. Status: active. Since: 0.3.</p>
+<p>An intermediate model is rewritten whole at a location of its own. It cannot be incremental, use a strategy other than overwrite, or set partition_by.</p>
+<h3 id="plp414">PLP414<a class="headerlink" href="#plp414" title="Permanent link">&para;</a></h3>
+<p>Contract on a view or ephemeral model. Severity: error. Status: active. Since: 0.9.</p>
+<p>A view or an ephemeral model writes no batch of its own, so its columns cannot be checked. Put the contract on a table that reads it.</p>
+<h3 id="plp415">PLP415<a class="headerlink" href="#plp415" title="Permanent link">&para;</a></h3>
+<p>Data tests that cannot run. Severity: error. Status: active. Since: 0.9.</p>
+<p>data_tests is set on an ephemeral model, which writes no table to test, or a relationships check names as its parent the model itself, a descendant, an ephemeral model, an intermediate model (an intermediate table is not there when its model is not built in the run), or a model that closes a cycle among input and relationship edges. Test the relationship on a table that is not upstream of its parent.</p>
+<h3 id="plp416">PLP416<a class="headerlink" href="#plp416" title="Permanent link">&para;</a></h3>
+<p>scd2 options conflict. Severity: error. Status: active. Since: 0.9.</p>
+<p>A model writing with scd2 sets an option the strategy cannot apply: an empty tracked_columns, a tracked column that is part of unique_key, deletes with mode: soft, or a unique_key, tracked_columns, partition_by, cluster_by, deletes.column or contract column named valid_from, valid_to or is_current (scd2 adds those columns itself).</p>
+<h3 id="plp417">PLP417<a class="headerlink" href="#plp417" title="Permanent link">&para;</a></h3>
+<p>Interval options conflict. Severity: error. Status: active. Since: 1.3.</p>
+<p>A model sets incremental.interval (ADR-0054) with an option the interval run cannot apply: it is not materialized incremental, its write strategy is not append (each window replaces its own range), it also sets incremental.column (the watermark column) or incremental.on_cursor_value_missing (both act on a watermark), or it declares a contract (columns) without the event_time column. The message lists each problem.</p>
+<h2 id="l5-capability">L5 capability<a class="headerlink" href="#l5-capability" title="Permanent link">&para;</a></h2>
+<h3 id="plc501">PLC501<a class="headerlink" href="#plc501" title="Permanent link">&para;</a></h3>
+<p>Strategy unsupported by engine. Severity: error. Status: active. Since: 0.1.</p>
+<p>The write strategy is not in the selected engine's capabilities.</p>
+<h3 id="plc502">PLC502<a class="headerlink" href="#plc502" title="Permanent link">&para;</a></h3>
+<p>SQL model on an engine without SQL. Severity: error. Status: retired. Since: 0.1.</p>
+<p>Retired in 0.9: no longer emitted.</p>
+<p>A SQL model targets an engine that cannot run SQL.</p>
+<h3 id="plc503">PLC503<a class="headerlink" href="#plc503" title="Permanent link">&para;</a></h3>
+<p>boundary task with a non-shared state store. Severity: error. Status: active. Since: 0.1.</p>
+<p>Units run as separate tasks, but the state store is local to one process or machine.</p>
+<h3 id="plc504">PLC504<a class="headerlink" href="#plc504" title="Permanent link">&para;</a></h3>
+<p>Catalog incompatible with engine. Severity: error. Status: active. Since: 0.1.</p>
+<p>The catalog plugin does not list the selected engine in its compatible engines.</p>
+<h3 id="plc505">PLC505<a class="headerlink" href="#plc505" title="Permanent link">&para;</a></h3>
+<p>Non-idempotent append with retries. Severity: error. Status: active. Since: 0.1.</p>
+<p>An append model retries on an engine without idempotent writes, which could write the same rows twice.</p>
+<h3 id="plc506">PLC506<a class="headerlink" href="#plc506" title="Permanent link">&para;</a></h3>
+<p>Source format unsupported. Severity: error. Status: active. Since: 0.1.</p>
+<p>A source declares a format the selected engine cannot read.</p>
+<h3 id="plc507">PLC507<a class="headerlink" href="#plc507" title="Permanent link">&para;</a></h3>
+<p>View without views support. Severity: error. Status: active. Since: 0.1.</p>
+<p>A model is materialized as a view on an engine without catalog views.</p>
+<h3 id="plc508">PLC508<a class="headerlink" href="#plc508" title="Permanent link">&para;</a></h3>
+<p>frame_api narwhals without portable engine. Severity: error. Status: active. Since: 0.1.</p>
+<p>A Python model asks for Narwhals frames on an engine whose frames are not portable.</p>
+<h3 id="plc509">PLC509<a class="headerlink" href="#plc509" title="Permanent link">&para;</a></h3>
+<p>Materialization unsupported by engine. Severity: error. Status: active. Since: 0.2.</p>
+<p>The materialization is not in the selected engine's capabilities.</p>
+<h3 id="plc510">PLC510<a class="headerlink" href="#plc510" title="Permanent link">&para;</a></h3>
+<p>Expectations on an engine without quality. Severity: error. Status: active. Since: 0.3.</p>
+<p>The selected engine does not declare the quality capability, so it cannot evaluate expectations or data tests, or count nulls in non-nullable contract columns.</p>
+<h3 id="plc513">PLC513<a class="headerlink" href="#plc513" title="Permanent link">&para;</a></h3>
+<p>SQL translation needs the sqlglot extra. Severity: error. Status: active. Since: 0.9.</p>
+<p>The model's sql_dialect differs from the dialect of the target engine, so its ctx.sql queries must be translated, and sqlglot is not installed. Install pipeloom[sqlglot], or remove sql_dialect and write the queries in the engine's dialect.</p>
+<h3 id="plc514">PLC514<a class="headerlink" href="#plc514" title="Permanent link">&para;</a></h3>
+<p>Engine has no interval writes. Severity: error. Status: active. Since: 1.3.</p>
+<p>The model sets incremental.interval, and the selected engine does not declare the interval_writes capability, so it cannot replace one window of the target without touching other rows. Use an engine with interval_writes (polars, pandas, DuckDB or Spark), or remove incremental.interval.</p>
+<h2 id="l6-static-code">L6 static code<a class="headerlink" href="#l6-static-code" title="Permanent link">&para;</a></h2>
+<h3 id="plk601">PLK601<a class="headerlink" href="#plk601" title="Permanent link">&para;</a></h3>
+<p>Callable file or function not found. Severity: error. Status: retired. Since: 0.1.</p>
+<p>Retired in 0.9: no longer emitted.</p>
+<p>The Python module is not under python_paths, cannot be parsed, or does not define the function.</p>
+<h3 id="plk602">PLK602<a class="headerlink" href="#plk602" title="Permanent link">&para;</a></h3>
+<p>Callable parameters do not match inputs. Severity: error. Status: active. Since: 0.1.</p>
+<p>Inputs are passed by keyword, so a model function cannot take *args or positional-only parameters, and every inputs= key must name a parameter (any key is accepted with **kwargs).</p>
+<h3 id="plk603">PLK603<a class="headerlink" href="#plk603" title="Permanent link">&para;</a></h3>
+<p>SQL references undeclared table. Severity: warning. Status: active. Since: 0.2.</p>
+<p>A model's SQL reads a table that is neither an input alias nor a CTE. Checked only when sqlglot is installed (extra: sqlglot).</p>
+<h3 id="plk604">PLK604<a class="headerlink" href="#plk604" title="Permanent link">&para;</a></h3>
+<p>Name bound at module level by something other than a def. Severity: warning. Status: retired. Since: 0.1.</p>
+<p>Retired in 0.9: no longer emitted.</p>
+<p>The callable's name is bound by an assignment, import or class, so its parameters cannot be checked.</p>
+<h3 id="plk605">PLK605<a class="headerlink" href="#plk605" title="Permanent link">&para;</a></h3>
+<p>SQL not parseable. Severity: warning. Status: active. Since: 0.2.</p>
+<p>sqlglot could not parse the model's SQL, so its tables were not checked. Checked only when sqlglot is installed.</p>
+<h3 id="plk606">PLK606<a class="headerlink" href="#plk606" title="Permanent link">&para;</a></h3>
+<p>ctx.sql on an engine without SQL. Severity: warning. Status: active. Since: 0.9.</p>
+<p>The model function calls ctx.sql, but the target engine runs no SQL (its sql_dialect is None), so the call raises at run time (PLX101). Write the model with frames, or choose an engine with SQL.</p>
+<h2 id="l7-preflight">L7 preflight<a class="headerlink" href="#l7-preflight" title="Permanent link">&para;</a></h2>
+<h3 id="plf701">PLF701<a class="headerlink" href="#plf701" title="Permanent link">&para;</a></h3>
+<p>Engine unreachable. Severity: error. Status: reserved. Since: 0.2.</p>
+<p>Reserved: not emitted yet.</p>
+<h3 id="plf702">PLF702<a class="headerlink" href="#plf702" title="Permanent link">&para;</a></h3>
+<p>Source missing. Severity: error. Status: reserved. Since: 0.2.</p>
+<p>Reserved: not emitted yet.</p>
+<h3 id="plf703">PLF703<a class="headerlink" href="#plf703" title="Permanent link">&para;</a></h3>
+<p>Target schema drift detected. Severity: error. Status: reserved. Since: 0.2.</p>
+<p>Reserved: not emitted yet.</p>
+<h2 id="plugins">Plugins<a class="headerlink" href="#plugins" title="Permanent link">&para;</a></h2>
+<h3 id="plu001">PLU001<a class="headerlink" href="#plu001" title="Permanent link">&para;</a></h3>
+<p>Plugin API mismatch. Severity: error. Status: active. Since: 0.1.</p>
+<p>A plugin was built for another plugin API version. The major version must match and the plugin's minor must not be above the core's.</p>
+<h3 id="plu002">PLU002<a class="headerlink" href="#plu002" title="Permanent link">&para;</a></h3>
+<p>Duplicate plugin kind. Severity: error. Status: active. Since: 0.1.</p>
+<p>Two installed plugins provide the same kind in one group, and a config names it.</p>
+<h3 id="plu003">PLU003<a class="headerlink" href="#plu003" title="Permanent link">&para;</a></h3>
+<p>Plugin failed to load. Severity: error. Status: active. Since: 0.1.</p>
+<p>A plugin module cannot be imported, does not resolve to a PluginSpec, or its group or kind differs from the entry point that registered it.</p>
+<h3 id="plu004">PLU004<a class="headerlink" href="#plu004" title="Permanent link">&para;</a></h3>
+<p>Demo engine not installed. Severity: error. Status: active. Since: 1.1.</p>
+<p>pipeloom demo runs on the DuckDB engine and found no duckdb engine plugin. The message lists the engine plugins that are installed, and the hint is the install command. The demo never falls back to another engine. Exit code 1.</p>
+<h2 id="events">Events<a class="headerlink" href="#events" title="Permanent link">&para;</a></h2>
+<h3 id="ple401">PLE401<a class="headerlink" href="#ple401" title="Permanent link">&para;</a></h3>
+<p>Sink disabled. Severity: warning. Status: active. Since: 0.1.</p>
+<p>An event sink failed failure_budget times in a row and was disabled. The other sinks keep receiving events and get a sink.disabled event.</p>
+<h2 id="runtime">Runtime<a class="headerlink" href="#runtime" title="Permanent link">&para;</a></h2>
+<h3 id="plm201">PLM201<a class="headerlink" href="#plm201" title="Permanent link">&para;</a></h3>
+<p>Write failed. Severity: error. Status: active. Since: 0.2.</p>
+<p>The engine failed to write a model's result or to create its view.</p>
+<h3 id="plm202">PLM202<a class="headerlink" href="#plm202" title="Permanent link">&para;</a></h3>
+<p>Schema change rejected. Severity: error. Status: active. Since: 0.3.</p>
+<p>The batch schema differs from the existing target and the model's on_schema_change policy does not allow it.</p>
+<h3 id="plm203">PLM203<a class="headerlink" href="#plm203" title="Permanent link">&para;</a></h3>
+<p>Watermark CAS conflict. Severity: error. Status: active. Since: 0.3.</p>
+<p>The stored watermark changed while the unit ran, so the new one was not saved. The data was already written. Another run on the same target is the usual cause.</p>
+<h3 id="plm204">PLM204<a class="headerlink" href="#plm204" title="Permanent link">&para;</a></h3>
+<p>Input read failed. Severity: error. Status: active. Since: 0.2.</p>
+<p>An input of a model could not be read from its source or from the catalog.</p>
+<h3 id="plm205">PLM205<a class="headerlink" href="#plm205" title="Permanent link">&para;</a></h3>
+<p>Incremental watermark unusable. Severity: error. Status: active. Since: 0.3.</p>
+<p>The incremental column is missing from the input, its type differs from the stored watermark, or a lookback is set on a column that is not a timestamp or date.</p>
+<h3 id="plm206">PLM206<a class="headerlink" href="#plm206" title="Permanent link">&para;</a></h3>
+<p>Write key invalid. Severity: error. Status: active. Since: 0.3.</p>
+<p>A unique_key or partition_by column is missing from the batch, or a merge batch repeats a unique_key.</p>
+<h3 id="plm207">PLM207<a class="headerlink" href="#plm207" title="Permanent link">&para;</a></h3>
+<p>Write refused by the idempotency guard. Severity: error. Status: active. Since: 0.4.</p>
+<p>The engine skipped the write because this model already has a later transaction version: a newer run, an overlapping run started with --no-lock, or a host clock that ran behind. The engine refuses before it changes any data. Wait for the other run, check the clocks, or turn the guard off in the engine options.</p>
+<h3 id="plm208">PLM208<a class="headerlink" href="#plm208" title="Permanent link">&para;</a></h3>
+<p>Model contract violated. Severity: error. Status: active. Since: 0.9.</p>
+<p>The model output does not match its declared columns: a column is missing or extra, a logical type differs from the declared dtype, or a column with nullable: false holds a null (NaN counts as null). The check runs after the expectations and before the schema policy, the quarantine write and the table write, so nothing is written. Permanent.</p>
+<h3 id="plm209">PLM209<a class="headerlink" href="#plm209" title="Permanent link">&para;</a></h3>
+<p>Interval cannot be used. Severity: error. Status: active. Since: 1.3.</p>
+<p>An interval model cannot run a window: the event_time column is missing from the incremental input or from the model output, it is not a timestamp or date column (hour grain needs a timestamp), or the interval ledger in the state store holds something else. Nothing is read in full and the failing window writes nothing; earlier windows of the unit stay committed. A model output row whose event_time falls outside its window fails the write with PLM206 instead. Permanent.</p>
+<h3 id="plm210">PLM210<a class="headerlink" href="#plm210" title="Permanent link">&para;</a></h3>
+<p>Null cursor value. Severity: error. Status: active. Since: 1.3.</p>
+<p>A watermark model sets incremental.on_cursor_value_missing: raise (ADR-0027 amendment 1.3), and its incremental input holds rows whose cursor column is null. The message names the model and the count. Nothing is written and the watermark does not move. Fix the data, or set exclude (drop and count the rows) or include (keep them in every batch). Permanent.</p>
+<h3 id="plq301">PLQ301<a class="headerlink" href="#plq301" title="Permanent link">&para;</a></h3>
+<p>Expectation failed. Severity: error. Status: active. Since: 0.3.</p>
+<p>An expectation with on_violation: fail found violating rows, or the share of dropped rows exceeded quality.max_drop_ratio. The unit fails before writing; the counts are still recorded in run_results.</p>
+<h3 id="plq302">PLQ302<a class="headerlink" href="#plq302" title="Permanent link">&para;</a></h3>
+<p>Expectation references an unknown column. Severity: error. Status: active. Since: 0.3.</p>
+<p>An expectation names a column the model output lacks, or its expr cannot be evaluated by the engine.</p>
+<h3 id="plq303">PLQ303<a class="headerlink" href="#plq303" title="Permanent link">&para;</a></h3>
+<p>Data test failed. Severity: error. Status: active. Since: 0.9.</p>
+<p>A data test with on_violation: fail found violations in the written table: nulls, duplicate keys, or child keys with no parent row. Data tests run after the write and the watermark commit, so the data stays written; the unit fails, its descendants are skipped and the run exits 1. Permanent: only retry_on: any retries it.</p>
+<h3 id="plx101">PLX101<a class="headerlink" href="#plx101" title="Permanent link">&para;</a></h3>
+<p>Model raised. Severity: error. Status: active. Since: 0.2.</p>
+<p>A model's body raised, or returned a value its engine cannot use as a relation.</p>
+<h3 id="plx102">PLX102<a class="headerlink" href="#plx102" title="Permanent link">&para;</a></h3>
+<p>Timeout. Severity: error. Status: active. Since: 0.3.</p>
+<p>A unit attempt ran longer than its timeout. A timed-out unit is not retried and its descendants are skipped.</p>
+<h3 id="plx103">PLX103<a class="headerlink" href="#plx103" title="Permanent link">&para;</a></h3>
+<p>Plan hash mismatch. Severity: error. Status: active. Since: 0.2.</p>
+<p>The plan hash of the manifest or of the compiled project differs from --expect-plan-hash.</p>
+<h3 id="plx104">PLX104<a class="headerlink" href="#plx104" title="Permanent link">&para;</a></h3>
+<p>Cancelled. Severity: error. Status: active. Since: 0.3.</p>
+<p>A unit was still running when the run was stopped and did not finish within the grace period, or the stop was hard. The run ends cancelled with exit code 130.</p>
+<h3 id="plx105">PLX105<a class="headerlink" href="#plx105" title="Permanent link">&para;</a></h3>
+<p>Run lock held. Severity: error. Status: active. Since: 0.2.</p>
+<p>Another run holds the lock of this project and target. The message names the holder, its run and when its lease expires.</p>
+<h3 id="plx106">PLX106<a class="headerlink" href="#plx106" title="Permanent link">&para;</a></h3>
+<p>Unit process exited without a result. Severity: error. Status: active. Since: 0.2.</p>
+<p>A unit started under boundary task exited without writing its attempt file. The excerpt holds the last lines of its log.</p>
+<h3 id="plx107">PLX107<a class="headerlink" href="#plx107" title="Permanent link">&para;</a></h3>
+<p>Manifest invalid. Severity: error. Status: active. Since: 0.2.</p>
+<p>The manifest cannot be read, has another schema, was edited after it was written, or belongs to another project or target.</p>
+<h3 id="plx108">PLX108<a class="headerlink" href="#plx108" title="Permanent link">&para;</a></h3>
+<p>Run start time conflict. Severity: error. Status: active. Since: 0.4.</p>
+<p>--run-started-at differs from the start the run recorded when it first ran. A reused run id keeps its recorded start. Exit code 2.</p>
+<h3 id="plx109">PLX109<a class="headerlink" href="#plx109" title="Permanent link">&para;</a></h3>
+<p>Secret reference not resolved. Severity: error. Status: active. Since: 0.5.</p>
+<p>A ${secret:provider/path} reference in a plugin's options could not be resolved when the command executed: the provider is unknown or failed, the resolved options are invalid, or the plugin could not be built with them. The message names the provider and path, never a value.</p>
+<h3 id="plx110">PLX110<a class="headerlink" href="#plx110" title="Permanent link">&para;</a></h3>
+<p>Reference state unusable. Severity: error. Status: active. Since: 0.8.</p>
+<p>The --state folder cannot serve as a reference: it is missing, its manifest.json is unreadable or belongs to another project, or its run_results.json is unreadable, has another schema or belongs to another project. Compile again with --stable to write a fresh reference.</p>
+<h3 id="plx111">PLX111<a class="headerlink" href="#plx111" title="Permanent link">&para;</a></h3>
+<p>Defer refused. Severity: error. Status: active. Since: 0.8.</p>
+<p>--defer cannot be used here: the invocation is a unit invocation, the boundary is task (children rerun units without the reference), or the reference was compiled for another catalog kind. Use --boundary process, or build the parents here. Exit code 2.</p>
+<h3 id="plx112">PLX112<a class="headerlink" href="#plx112" title="Permanent link">&para;</a></h3>
+<p>Parent not deferred. Severity: warning. Status: active. Since: 0.8.</p>
+<p>With --defer, an unselected parent is read from this target instead of the reference: it is an intermediate model, it is missing from the reference, or the reference has no relation for it.</p>
+<h3 id="plx113">PLX113<a class="headerlink" href="#plx113" title="Permanent link">&para;</a></h3>
+<p>Run cannot be retried. Severity: error. Status: active. Since: 0.8.</p>
+<p>pipeloom retry --from names a run that cannot be retried: its folder or run_results.json is missing (it never existed, never finished or is still running), it belongs to another project, or it ran another target. Retry with the target of that run.</p>
+<h3 id="plx114">PLX114<a class="headerlink" href="#plx114" title="Permanent link">&para;</a></h3>
+<p>Unit test failed. Severity: error. Status: active. Since: 0.9.</p>
+<p>pipeloom test ran the model body on the given rows and the output differs from expect. The message lists up to 10 missing and 10 unexpected rows; the unit_test.failed event holds up to 50 of each. Rows compare as a multiset over the expect columns.</p>
+<h3 id="plx115">PLX115<a class="headerlink" href="#plx115" title="Permanent link">&para;</a></h3>
+<p>Unit test cannot run. Severity: error. Status: active. Since: 0.9.</p>
+<p>A unit test could not run: a CSV file is missing or unreadable, a value does not cast to its column type, a column holds only nulls and declares no type, the model body raised, or the engine lacks from_rows or to_rows (plugin API 0.5). Declare columns on the given, or upgrade the engine plugin.</p>
+<h3 id="plx117">PLX117<a class="headerlink" href="#plx117" title="Permanent link">&para;</a></h3>
+<p>State store cannot list runs. Severity: error. Status: active. Since: 0.9.</p>
+<p>pipeloom runs needs StateStore.list_runs (plugin API 0.5), and the configured state store does not provide it. Use --artifacts to read the run results under the artifacts root instead, or upgrade the store plugin.</p>
+<h3 id="plx118">PLX118<a class="headerlink" href="#plx118" title="Permanent link">&para;</a></h3>
+<p>Run not found. Severity: error. Status: active. Since: 0.9.</p>
+<p>pipeloom runs show, or runs ls --before, names a run id that the state store (or, with --artifacts, the artifacts root) does not hold for this project and target. Check the target, or list the runs with pipeloom runs ls.</p>
+<h3 id="plx120">PLX120<a class="headerlink" href="#plx120" title="Permanent link">&para;</a></h3>
+<p>View model did not return ctx.sql(...), or passed it inputs=. Severity: error. Status: active. Since: 0.9.</p>
+<p>A Python view model runs in view mode: its input parameters are placeholders that only ctx.sql may name, and ctx.sql returns the query the catalog stores. The function returned something else, passed inputs= frames to ctx.sql, or used an input as a frame.</p>
+<h3 id="plx121">PLX121<a class="headerlink" href="#plx121" title="Permanent link">&para;</a></h3>
+<p>DuckDB extension not installed. Severity: error. Status: active. Since: 1.1.</p>
+<p>The DuckDB engine needs an extension (delta for a Delta source, or one listed in the engine's extensions option) that is not installed in its extension_directory, and install_extensions is off, so nothing is downloaded. The code appears in the message of the error that the read or write reports (PLM204, PLM201 or PLX101). Preinstall the extension into that directory on a machine with network access, or turn install_extensions on.</p>
+<h3 id="plx122">PLX122<a class="headerlink" href="#plx122" title="Permanent link">&para;</a></h3>
+<p>Order-dependent operation on a lazy frame. Severity: error. Status: active. Since: 1.1.</p>
+<p>A Python model with frame_api narwhals used an operation that needs a row order (cum_sum, shift, diff, first or last) on a lazy frame (DuckDB, Spark or polars lazy), which has none. Give the expression an explicit order with .over(order_by=...), or sort first; see the portable models guide.</p>
+<h3 id="plx130">PLX130<a class="headerlink" href="#plx130" title="Permanent link">&para;</a></h3>
+<p>Model cannot be diffed. Severity: error. Status: active. Since: 1.2.</p>
+<p>pipeloom diff compares one persisted model by key, and this one cannot be compared: the model does not exist, it has no relation (ephemeral or intermediate), it has no key (no write.unique_key and no --key), the reference has no relation for it, or the reference was compiled for another catalog kind. Exit code 2.</p>
+<h3 id="plx131">PLX131<a class="headerlink" href="#plx131" title="Permanent link">&para;</a></h3>
+<p>Table diff failed. Severity: error. Status: active. Since: 1.2.</p>
+<p>pipeloom diff could not read or compare the two relations: a table is missing, a key column is missing on one side, or the engine's frames are not supported by the portable comparison. The message names the cause. Exit code 1.</p>
+<h3 id="plx132">PLX132<a class="headerlink" href="#plx132" title="Permanent link">&para;</a></h3>
+<p>Nothing to backfill. Severity: error. Status: active. Since: 1.3.</p>
+<p>pipeloom backfill runs interval models (ADR-0054), and the selection holds none, or --mark-done was given with selected models that have no incremental.interval (mark-done runs nothing, so it cannot run them). The message lists those models. Nothing runs and no run id is used. Select the interval models, and run the others with pipeloom run. Exit code 2.</p>
+<h2 id="renderers">Renderers<a class="headerlink" href="#renderers" title="Permanent link">&para;</a></h2>
+<h3 id="pla001">PLA001<a class="headerlink" href="#pla001" title="Permanent link">&para;</a></h3>
+<p>Unsupported execution mode. Severity: error. Status: active. Since: 0.6.</p>
+<p>The Airflow plugin was configured with an execution mode it does not support. DOCKER is not supported in 0.6; use local, virtualenv, kubernetes, databricks or watcher.</p>
+<h3 id="pla002">PLA002<a class="headerlink" href="#pla002" title="Permanent link">&para;</a></h3>
+<p>Invalid Airflow plugin configuration. Severity: error. Status: active. Since: 0.6.</p>
+<p>A configuration of the Airflow plugin cannot be used: the manifest load method without a manifest path, a relative path, a virtualenv mode without a directory, a kubernetes mode without an image, a pod_kwargs or operator_args key that pipeloom sets itself, an unknown asset_uri placeholder, a WATCHER setting out of range or a WATCHER selection made only of unit: selectors, or a full_refresh param that is not a boolean.</p>
+<h3 id="pla003">PLA003<a class="headerlink" href="#pla003" title="Permanent link">&para;</a></h3>
+<p>Selection renders no units. Severity: warning. Status: active. Since: 0.6.</p>
+<p>The DAG's select and exclude selectors match no unit of the plan, so the DAG would hold no unit task.</p>
+<h3 id="pla004">PLA004<a class="headerlink" href="#pla004" title="Permanent link">&para;</a></h3>
+<p>Unit task ended without a visible unit result. Severity: error. Status: active. Since: 0.6.</p>
+<p>An Airflow task ended without an attempt file for its unit under artifacts.root. When the task succeeded, the root is not shared between the workers and the finalize task. The unit is recorded as failed, so the run fails.</p>
+<h3 id="pla005">PLA005<a class="headerlink" href="#pla005" title="Permanent link">&para;</a></h3>
+<p>Unsupported Airflow version. Severity: error. Status: active. Since: 0.6.</p>
+<p>The plugin supports Airflow 3.2 up to, not including, 4.0.</p>
+<h3 id="pla006">PLA006<a class="headerlink" href="#pla006" title="Permanent link">&para;</a></h3>
+<p>PROJECT compile cache unusable. Severity: warning. Status: active. Since: 0.6.</p>
+<p>The directory that holds the compile cache of the project load method cannot be read or written. The project compiles on every DAG parse until it is fixed.</p>
+<h3 id="pla007">PLA007<a class="headerlink" href="#pla007" title="Permanent link">&para;</a></h3>
+<p>Target boundary is not task. Severity: warning. Status: active. Since: 0.6.</p>
+<p>Each unit runs in its own process, so the target should set boundary: task. Then PLC503 checks that the state store is shared between workers.</p>
+<h3 id="pla008">PLA008<a class="headerlink" href="#pla008" title="Permanent link">&para;</a></h3>
+<p>WATCHER artifacts root not resolved. Severity: error. Status: active. Since: 0.9.</p>
+<p>In WATCHER mode the DAG reads the artifacts root from pipeloom.yml at parse time, so the watchers can read the attempt files. The file could not be read, or its artifacts.root holds a ${...} reference; set execution.watcher_artifacts_root to the absolute path. At run time, the producer's run left no run_results.json under that root: the root differs from the one the run writes to.</p>
+<h3 id="pla009">PLA009<a class="headerlink" href="#pla009" title="Permanent link">&para;</a></h3>
+<p>WATCHER producer ended without run results. Severity: error. Status: active. Since: 0.9.</p>
+<p>The producer task of a WATCHER DAG ended, but neither an attempt file of the unit nor run_results.json appeared under the artifacts root within the grace period. The producer was killed or failed before it ran the unit. The watcher fails, and a retry of the watcher runs the unit itself.</p>
+<h3 id="pld001">PLD001<a class="headerlink" href="#pld001" title="Permanent link">&para;</a></h3>
+<p>Task limit exceeded. Severity: error. Status: active. Since: 0.5.</p>
+<p>A Databricks job would hold more than 1,000 tasks, its finalize task included. Set task_grouping in the deploy block, or split the project into pipelines.</p>
+<h3 id="pld002">PLD002<a class="headerlink" href="#pld002" title="Permanent link">&para;</a></h3>
+<p>Submit task limit (never emitted, PLD001 covers it). Severity: error. Status: reserved. Since: 0.4.</p>
+<p>Reserved: not emitted yet.</p>
+<h3 id="pld003">PLD003<a class="headerlink" href="#pld003" title="Permanent link">&para;</a></h3>
+<p>Task groups form a cycle. Severity: error. Status: active. Since: 0.5.</p>
+<p>With task_grouping set, the units of one group depend on units of another group in both directions, so the grouped tasks cannot be ordered. Group by another key or turn grouping off.</p>
+<h3 id="pld004">PLD004<a class="headerlink" href="#pld004" title="Permanent link">&para;</a></h3>
+<p>Invalid Databricks deploy options for this plan or target. Severity: error. Status: active. Since: 0.5.</p>
+<p>The deploy block cannot be rendered: an unknown pipeline or compute key, environment_version 1, more than 10 serverless environments in a job, a key in settings that pipeloom owns, a ${secret:...} reference, an artifacts root that is unset or relative, a state store that is not shared, a group that spans two computes, or an ephemeral run on a job cluster.</p>
+<h3 id="pld005">PLD005<a class="headerlink" href="#pld005" title="Permanent link">&para;</a></h3>
+<p>Compute rule matches no model. Severity: warning. Status: active. Since: 0.5.</p>
+<p>No model of the plan matches the select selectors of a compute rule, so the rule never applies.</p>
+<h3 id="pld006">PLD006<a class="headerlink" href="#pld006" title="Permanent link">&para;</a></h3>
+<p>More than one job carries the pipeloom_job tag. Severity: error. Status: active. Since: 0.5.</p>
+<p>Two or more Databricks jobs hold the same pipeloom_job tag, so deploy cannot tell which one it owns. Delete or untag the extra jobs; the message lists their ids.</p>
+<h3 id="pld007">PLD007<a class="headerlink" href="#pld007" title="Permanent link">&para;</a></h3>
+<p>Job or run not found. Severity: error. Status: active. Since: 0.5.</p>
+<p>No Databricks job carries the pipeloom_job tag of this pipeline, or the run asked for does not exist. Deploy the job first, or pass --ensure to run so it deploys one; check the run id and the pipeline.</p>
+<h3 id="pld008">PLD008<a class="headerlink" href="#pld008" title="Permanent link">&para;</a></h3>
+<p>Deployed job is out of date. Severity: error. Status: active. Since: 0.5.</p>
+<p>The job in the workspace was deployed from other settings than the project renders now (its pipeloom_settings_hash tag differs). Deploy again, or pass --ensure to run so it deploys first.</p>
+<h3 id="pld009">PLD009<a class="headerlink" href="#pld009" title="Permanent link">&para;</a></h3>
+<p>Databricks API request failed. Severity: error. Status: active. Since: 0.5.</p>
+<p>A call to the Databricks REST API returned an error. The message carries the HTTP status, the error code and the message of the API, with registered secret values masked. Check the connection, the permissions of the caller and the workspace path.</p>
+<h3 id="pld010">PLD010<a class="headerlink" href="#pld010" title="Permanent link">&para;</a></h3>
+<p>No Databricks connection configured. Severity: error. Status: active. Since: 0.5.</p>
+<p>The command needs a workspace and none is configured. Pass --profile, set DATABRICKS_CONFIG_PROFILE, set DATABRICKS_HOST with its credentials, or run on a Databricks runtime. pipeloom never picks a profile by itself.</p>
+<h3 id="pld011">PLD011<a class="headerlink" href="#pld011" title="Permanent link">&para;</a></h3>
+<p>Task ended without a unit result. Severity: error. Status: active. Since: 0.5.</p>
+<p>A Databricks task failed before its unit wrote an attempt file, for example because the cluster was lost, so the unit has no result of its own. Finalize records the unit as failed with the termination message of the task. Read the task's log on the run page; repair reruns it.</p>
+<h3 id="pld012">PLD012<a class="headerlink" href="#pld012" title="Permanent link">&para;</a></h3>
+<p>Project file cannot be uploaded. Severity: error. Status: active. Since: 0.5.</p>
+<p>A project file is above 10 MB, is a notebook (a Databricks notebook header or an .ipynb file), is unreadable or lies outside the project folder, so it cannot be stored as a plain workspace file.</p>
+<h3 id="pld013">PLD013<a class="headerlink" href="#pld013" title="Permanent link">&para;</a></h3>
+<p>Dynamic value reference not resolved in a task parameter. Severity: error. Status: active. Since: 0.5.</p>
+<p>A parameter of a Databricks task still holds a {{...}} reference, so the platform did not substitute it. The task stops before it runs anything. Check the job's parameters and the Databricks runtime that runs the task.</p>
+<h3 id="pld014">PLD014<a class="headerlink" href="#pld014" title="Permanent link">&para;</a></h3>
+<p>Run is still active. Severity: error. Status: active. Since: 0.5.</p>
+<p>A repair was asked for a Databricks job run that has not ended. Wait for it to finish or cancel it, then repair.</p>
+<h3 id="pld015">PLD015<a class="headerlink" href="#pld015" title="Permanent link">&para;</a></h3>
+<p>Selection covers part of a task group. Severity: warning. Status: active. Since: 0.5.</p>
+<p>With task_grouping set, a task runs every unit of its group, so a selection that names only some of them still runs the whole group. Select the whole group, or turn grouping off, to run exactly the units chosen.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../artifacts/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Run artifacts">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Run artifacts
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../engine-capabilities/" class="md-footer__link md-footer__link--next" aria-label="Next: Engine capabilities">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Engine capabilities
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.instant", "navigation.top", "navigation.footer", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(() => { lightbox.reload() });
+</script></body>
+</html>

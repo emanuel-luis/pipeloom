@@ -1,0 +1,3424 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Engine-agnostic data pipelines: Python models marked with @model, YAML for the project.">
+      
+      
+      
+        <link rel="canonical" href="https://emanuel-luis.github.io/pipeloom/latest/1.3.0/plugins/airflow/">
+      
+      
+        <link rel="prev" href="../databricks/">
+      
+      
+        <link rel="next" href="../../guide/openlineage/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Airflow - pipeloom</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+   <link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+    html.glightbox-open { overflow: initial; height: 100%; }
+    .gslide-title { margin-top: 0px; user-select: text; }
+    .gslide-desc { color: #666; user-select: text; }
+    .gslide-image img { background: white; }
+    .gscrollbar-fixer { padding-right: 15px; }
+    .gdesc-inner { font-size: 0.75rem; }
+    body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
+    body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../assets/javascripts/glightbox.min.js"></script></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#airflow" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You are not viewing the latest version.
+  <a href="../../..">
+    <strong>Click here to go to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL("../.."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="pipeloom" class="md-header__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            pipeloom
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Airflow
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+    
+  
+  Get started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../examples/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guide/running/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../duckdb/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Integrations
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/cli/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="pipeloom" class="md-nav__button md-logo" aria-label="pipeloom" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="logo">
+
+    </a>
+    pipeloom
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/emanuel-luis/pipeloom" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../.." class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Get started
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_1" id="__nav_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Get started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compare/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compared with other tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting and FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../examples/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/events_incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Late-arriving events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/customers_scd2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customer dimension with history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/orders_quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    An untrusted partner feed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/tested-models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing transformation logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/running/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/incremental/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/write-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge, replace_partitions, scd2 and schema changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/quality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/portable-models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Portable models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/retries-and-cancellation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retries, timeouts and cancellation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/run-history/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/table-diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Table diff
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/alerts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alerts with the webhook sink
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/docs-site/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs site
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/recipe-github-actions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipe: GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-1.x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating within 1.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-0.9/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.8
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../duckdb/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DuckDB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../polars/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polars
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pandas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pandas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spark
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../writing-an-engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing an engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platforms
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Platforms
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../databricks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Airflow
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Airflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#load-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Load methods
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execution-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution modes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Execution modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kubernetes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#databricks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Databricks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#watcher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Watcher
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#artifact-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Artifact store
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run id
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full_refresh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        full_refresh
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#assets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#finalize-and-dag-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finalize and DAG failure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#databricks-connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Databricks connection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#poll-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Poll modes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/openlineage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lineage with OpenLineage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/orchestrators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrator protocol
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/databricks-cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databricks commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/errors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/engine-capabilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engine capabilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stability and deprecations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../adr/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../landscape/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Market landscape
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/emanuel-luis/pipeloom/blob/main/CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#load-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Load methods
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execution-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution modes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Execution modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kubernetes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#databricks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Databricks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#watcher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Watcher
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#artifact-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Artifact store
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run id
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full_refresh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        full_refresh
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#assets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#finalize-and-dag-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finalize and DAG failure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#databricks-connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Databricks connection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#poll-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Poll modes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/emanuel-luis/pipeloom/edit/main/docs/plugins/airflow.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="airflow">Airflow<a class="headerlink" href="#airflow" title="Permanent link">&para;</a></h1>
+<p><code>pipeloom-airflow</code> turns a compiled plan into an <a href="https://airflow.apache.org">Apache Airflow</a> 3 DAG
+(or a task group inside one): one Airflow task per execution unit, plus a finalize task that closes
+the pipeloom run. Four execution modes are supported: <code>local</code>, <code>virtualenv</code>, <code>kubernetes</code> and
+<code>databricks</code>. The design is in <a href="../../architecture/#13-the-airflow-plugin">architecture section 13</a>
+and ADR-0037 to ADR-0039. For another orchestrator, the same per-unit protocol is described in
+<a href="../../guide/orchestrators/">Orchestrator protocol</a>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pipeloom_airflow.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExecutionConfig</span><span class="p">,</span> <span class="n">ExecutionMode</span><span class="p">,</span> <span class="n">ProjectConfig</span><span class="p">,</span> <span class="n">RenderConfig</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pipeloom_airflow.dag</span><span class="w"> </span><span class="kn">import</span> <span class="n">PipeloomDag</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">shop</span> <span class="o">=</span> <span class="n">PipeloomDag</span><span class="p">(</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">dag_id</span><span class="o">=</span><span class="s2">"shop_daily"</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">schedule</span><span class="o">=</span><span class="s2">"@daily"</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">start_date</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2026</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">project_config</span><span class="o">=</span><span class="n">ProjectConfig</span><span class="p">(</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">project_dir</span><span class="o">=</span><span class="s2">"/opt/pipelines/shop"</span><span class="p">,</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">manifest_path</span><span class="o">=</span><span class="s2">"/opt/pipelines/shop/target/manifest.json"</span><span class="p">,</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="p">),</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">target</span><span class="o">=</span><span class="s2">"prod"</span><span class="p">,</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">render_config</span><span class="o">=</span><span class="n">RenderConfig</span><span class="p">(</span><span class="n">select</span><span class="o">=</span><span class="p">(</span><span class="s2">"tag:daily"</span><span class="p">,),</span> <span class="n">group_by</span><span class="o">=</span><span class="s2">"folder"</span><span class="p">,</span> <span class="n">emit_assets</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">execution_config</span><span class="o">=</span><span class="n">ExecutionConfig</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">ExecutionMode</span><span class="o">.</span><span class="n">LOCAL</span><span class="p">),</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">)</span>
+</code></pre></div>
+<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<p>Airflow is not a hard dependency. The extras pull what each mode needs:</p>
+<table>
+<thead>
+<tr>
+<th>Extra</th>
+<th>Adds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>airflow</code></td>
+<td><code>apache-airflow&gt;=3.2,&lt;4</code></td>
+</tr>
+<tr>
+<td><code>kubernetes</code></td>
+<td>the above and <code>apache-airflow-providers-cncf-kubernetes&gt;=10.25,&lt;11</code></td>
+</tr>
+<tr>
+<td><code>databricks</code></td>
+<td>the first and <code>pipeloom-databricks</code> (not the Databricks Airflow provider)</td>
+</tr>
+</tbody>
+</table>
+<p>Install Airflow the way its project recommends, with a constraint file for your Airflow and Python
+versions, so the resolver does not pick versions Airflow was never tested with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span><span class="nv">AIRFLOW_VERSION</span><span class="o">=</span><span class="m">3</span>.4.0
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="gp">$ </span><span class="nv">PYTHON_VERSION</span><span class="o">=</span><span class="m">3</span>.12
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"pipeloom-airflow[airflow]"</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span>--constraint<span class="w"> </span><span class="s2">"https://raw.githubusercontent.com/apache/airflow/constraints-</span><span class="si">${</span><span class="nv">AIRFLOW_VERSION</span><span class="si">}</span><span class="s2">/constraints-</span><span class="si">${</span><span class="nv">PYTHON_VERSION</span><span class="si">}</span><span class="s2">.txt"</span>
+</code></pre></div>
+<p>Tested range: Airflow 3.2.2 (the floor), the 3.3 line and 3.4.0, which is the version the lock pins. The floor is Airflow 3.2, the first release with Python 3.14 support. An older or missing Airflow is
+reported as PLA005 when the DAG file is parsed, never as an <code>ImportError</code>. Installing the plugin
+also needs the engine plugins your project uses (<code>pipeloom[polars]</code> and so on) on every machine
+that runs a unit.</p>
+<p>In DATABRICKS mode the <strong>triggerer</strong> must have <code>pipeloom-airflow[databricks]</code> installed too, since
+the trigger code runs there. The workers that run the launch task need the project files and
+<code>pipeloom-databricks</code>.</p>
+<p>Importing <code>pipeloom_airflow</code> imports nothing from Airflow. The DAG classes live in
+<code>pipeloom_airflow.dag</code> and the configs in <code>pipeloom_airflow.config</code>.</p>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<p>Three frozen dataclasses describe a DAG. Paths are strings and must be absolute; they are never
+touched at parse time unless a load method reads them.</p>
+<p><code>ProjectConfig</code> says where the DAG file reads the project.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>project_dir</code></td>
+<td>required</td>
+<td>Project directory as the parser sees it.</td>
+</tr>
+<tr>
+<td><code>manifest_path</code></td>
+<td><code>None</code></td>
+<td>Stable manifest. Required by the <code>manifest</code> load method.</td>
+</tr>
+<tr>
+<td><code>vars</code></td>
+<td><code>{}</code></td>
+<td>Project variables, passed to every unit as <code>--vars</code> JSON.</td>
+</tr>
+<tr>
+<td><code>cache_dir</code></td>
+<td><code>None</code></td>
+<td>Compile cache of the <code>project</code> load method.</td>
+</tr>
+</tbody>
+</table>
+<p><code>RenderConfig</code> shapes the task graph.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>load_method</code></td>
+<td><code>LoadMode.MANIFEST</code></td>
+<td><code>MANIFEST</code> or <code>PROJECT</code>, see below.</td>
+</tr>
+<tr>
+<td><code>select</code>, <code>exclude</code></td>
+<td><code>()</code></td>
+<td>Selectors applied to the plan. A selection that renders no unit is PLA003.</td>
+</tr>
+<tr>
+<td><code>group_by</code></td>
+<td><code>"none"</code></td>
+<td><code>none</code>, <code>folder</code> or <code>tag</code>: visual task groups only. Every unit is still one task. Has no effect in DATABRICKS mode.</td>
+</tr>
+<tr>
+<td><code>emit_assets</code></td>
+<td><code>False</code></td>
+<td>Each model task declares an <code>Asset</code> outlet.</td>
+</tr>
+<tr>
+<td><code>asset_uri</code></td>
+<td><code>pipeloom://{project}/{target}/{relation}</code></td>
+<td>Template; placeholders <code>project</code>, <code>target</code>, <code>model</code>, <code>relation</code>, <code>unique_id</code>. Values are percent-encoded.</td>
+</tr>
+</tbody>
+</table>
+<p><code>ExecutionConfig</code> says how and where units run.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mode</code></td>
+<td><code>ExecutionMode.LOCAL</code></td>
+<td><code>LOCAL</code>, <code>VIRTUALENV</code>, <code>KUBERNETES</code>, <code>DATABRICKS</code>, <code>WATCHER</code>. <code>DOCKER</code> is PLA001.</td>
+</tr>
+<tr>
+<td><code>project_dir</code>, <code>manifest_path</code></td>
+<td>those of <code>ProjectConfig</code></td>
+<td>Where units execute, when that differs from where the DAG is parsed (a pod, for example).</td>
+</tr>
+<tr>
+<td><code>virtualenv_dir</code></td>
+<td><code>None</code></td>
+<td>Required by <code>VIRTUALENV</code>: a virtualenv created on every worker.</td>
+</tr>
+<tr>
+<td><code>kubernetes</code></td>
+<td><code>None</code></td>
+<td>Required by <code>KUBERNETES</code>: <code>KubernetesConfig(image, namespace=None, python="python", pod_kwargs={})</code>.</td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td><code>{}</code></td>
+<td>Extra environment for the unit process, or the pod environment.</td>
+</tr>
+<tr>
+<td><code>databricks_conn_id</code></td>
+<td><code>"databricks_default"</code></td>
+<td>Airflow connection of the workspace.</td>
+</tr>
+<tr>
+<td><code>databricks_pipeline</code></td>
+<td><code>"main"</code></td>
+<td>Which <code>deploy</code> pipeline to run.</td>
+</tr>
+<tr>
+<td><code>databricks_ensure_job</code></td>
+<td><code>False</code></td>
+<td>Deploy the job from the project when it is missing or stale.</td>
+</tr>
+<tr>
+<td><code>databricks_poll</code></td>
+<td><code>"per_task"</code></td>
+<td><code>per_task</code> or <code>shared</code>, see <a href="#poll-modes">Poll modes</a>.</td>
+</tr>
+<tr>
+<td><code>databricks_poll_interval</code></td>
+<td><code>30.0</code></td>
+<td>Seconds between polls.</td>
+</tr>
+<tr>
+<td><code>databricks_timeout</code></td>
+<td><code>86400.0</code></td>
+<td>Seconds any single wait on the job run may last.</td>
+</tr>
+<tr>
+<td><code>watcher_workers</code></td>
+<td><code>None</code></td>
+<td>WATCHER: <code>--workers</code> of the producer's run. <code>None</code> keeps the target's.</td>
+</tr>
+<tr>
+<td><code>watcher_poll_interval</code></td>
+<td><code>10.0</code></td>
+<td>WATCHER: seconds between reads of a unit's files.</td>
+</tr>
+<tr>
+<td><code>watcher_timeout</code></td>
+<td><code>86400.0</code></td>
+<td>WATCHER: the producer's execution timeout and each watcher's deadline for one try.</td>
+</tr>
+<tr>
+<td><code>watcher_artifacts_root</code></td>
+<td><code>None</code></td>
+<td>WATCHER: absolute path that replaces the artifacts root read from <code>pipeloom.yml</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><code>PipeloomDag</code> takes <code>project_config</code>, <code>target</code>, <code>render_config</code>, <code>execution_config</code>, an optional
+<code>operator_args</code> mapping that goes to every operator, and the usual <code>DAG</code> keywords.
+<code>PipeloomTaskGroup(group_id, ...)</code> takes the same configs inside an existing DAG. A configuration
+error raises <code>PipeloomAirflowError</code>, which Airflow shows as the DAG file's import error; warnings go
+to the <code>pipeloom_airflow</code> logger. <code>operator_args</code> may not set <code>task_id</code>, <code>retries</code>, <code>retry_delay</code>,
+<code>trigger_rule</code>, <code>outlets</code>, <code>execution_timeout</code> or <code>deferrable</code>, nor (in DATABRICKS mode) the
+arguments the pipeloom operators set themselves; that is PLA002.</p>
+<h2 id="load-methods">Load methods<a class="headerlink" href="#load-methods" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>MANIFEST</code> (recommended) reads a stable manifest written by <code>pipeloom compile --stable</code>. Parsing
+  reads one JSON file, imports no engine and runs no user code. The manifest must be for the same
+  target (PLX107).</li>
+<li><code>PROJECT</code> discovers the models on the parse path (ADR-0050): an AST pass resolves static <code>@model</code>
+  decorators without importing, and only modules whose decorators have dynamic arguments are
+  imported. The result is
+  cached on disk, keyed by a hash of the installed pipeloom versions, the target, the variables and
+  the path, size and modification time of <code>pipeloom.yml</code> and every file under <code>model_paths</code> and
+  <code>python_paths</code>. An entry also stores a fingerprint of the environment variables the plan read, so
+  a secret never lands on disk, and a hit needs the same fingerprints. The default directory is
+  <code>pipeloom-airflow-cache</code> under the system temporary directory; the 8 newest entries per project
+  are kept. A cache that cannot be written is PLA006: the project still compiles, only slower.</li>
+</ul>
+<p>Airflow 3 parses the DAG file before every task, so a <code>PROJECT</code> cache miss costs a compile at task
+start-up. Each unit still compiles and checks the plan hash itself, so no worker-local cache path
+crosses a process boundary. Prefer <code>MANIFEST</code> for large projects.</p>
+<h2 id="execution-modes">Execution modes<a class="headerlink" href="#execution-modes" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>A unit runs as</th>
+<th>Needs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LOCAL</code></td>
+<td><code>python -m pipeloom run</code> in a child process group of the worker, with the worker's interpreter</td>
+<td>pipeloom and the engine installed where the worker runs</td>
+</tr>
+<tr>
+<td><code>VIRTUALENV</code></td>
+<td>the same, with the interpreter of <code>virtualenv_dir</code></td>
+<td>the virtualenv on every worker (a missing interpreter fails the task without retry, PLA002)</td>
+</tr>
+<tr>
+<td><code>KUBERNETES</code></td>
+<td>a pod from <code>KubernetesPodOperator</code></td>
+<td>an image with pipeloom; see below</td>
+</tr>
+<tr>
+<td><code>DATABRICKS</code></td>
+<td>a task of the Databricks job that <code>pipeloom-databricks</code> renders</td>
+<td>see below</td>
+</tr>
+<tr>
+<td><code>WATCHER</code></td>
+<td>one <code>pipeloom run</code> for the whole selection, reported by one deferrable watcher per unit</td>
+<td>pipeloom on the worker and the triggerer, one artifacts root shared with both; see below</td>
+</tr>
+</tbody>
+</table>
+<p>In LOCAL and VIRTUALENV, killing the task sends SIGTERM to the child's process group and SIGKILL
+after the cancel grace. The grace is the core default of 30 seconds, not the target's
+<code>cancel_grace</code>, because the manifest does not carry that setting. Child events are logged line by line to the task log.</p>
+<h3 id="kubernetes">Kubernetes<a class="headerlink" href="#kubernetes" title="Permanent link">&para;</a></h3>
+<p><code>image</code>, <code>namespace</code> and <code>pod_kwargs</code> go to <code>KubernetesPodOperator</code>: volumes, mounts, resources,
+service account. <code>ExecutionConfig.env</code> becomes the pod environment, and the cancel grace (the core default of
+30 seconds, not the target's <code>cancel_grace</code>) the pod termination grace period. <code>project_dir</code> and <code>manifest_path</code> of the execution config are paths
+inside the pod. Pods are never deferrable and push no XCom; the keys <code>cmds</code>, <code>arguments</code>, <code>image</code>,
+<code>name</code>, <code>do_xcom_push</code> and <code>deferrable</code> in <code>pod_kwargs</code> are PLA002.</p>
+<h3 id="databricks">Databricks<a class="headerlink" href="#databricks" title="Permanent link">&para;</a></h3>
+<p>The DAG has <code>pipeloom_launch</code>, one sensor per Databricks task key (with the plan's edges) and a
+<code>pipeloom_finalize</code> sensor on the job's finalize task. The launch compiles the project on the
+worker, checks its plan hash against the DAG's (PLX103), and starts the job run named after the DAG
+run. A missing job is PLD007 and a job deployed from other settings is PLD008, unless
+<code>databricks_ensure_job=True</code> deploys it. A retried or cleared launch finds the same run: it attaches
+to it, or repairs it when a task failed. Databricks owns the task retries.</p>
+<h3 id="watcher">Watcher<a class="headerlink" href="#watcher" title="Permanent link">&para;</a></h3>
+<p>LOCAL starts one Python process per unit. On a wide DAG of short models that start-up dominates.
+WATCHER runs the whole selection once and keeps one Airflow task per model for its state, retries,
+logs and asset events.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">execution_config</span> <span class="o">=</span> <span class="n">ExecutionConfig</span><span class="p">(</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">mode</span><span class="o">=</span><span class="n">ExecutionMode</span><span class="o">.</span><span class="n">WATCHER</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">watcher_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">watcher_poll_interval</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">)</span>
+</code></pre></div>
+<p>The DAG has a root task <code>pipeloom_run</code> (the producer), one watcher per unit and <code>pipeloom_finalize</code>.
+The producer has no edge to the watchers. Watchers follow the plan's edges, so a failed unit leaves
+its descendants <code>upstream_failed</code>. Finalize runs after the producer and every leaf. <code>virtualenv_dir</code>
+is optional, as in VIRTUALENV.</p>
+<ul>
+<li>The producer runs <code>python -m pipeloom run</code> with the rendered selection (<code>--select name:*</code> when it
+  is empty), the plan hash, the run id and <code>--workers</code> when <code>watcher_workers</code> is set. Exit 0 or 1
+  is a success for the producer: the results belong to the watchers, and finalize fails the DAG run
+  when the pipeloom run failed. Exit 2 or 130 fails it. Once the child exits, the producer checks that
+  <code>runs/&lt;run id&gt;/run_results.json</code> is visible under the artifacts root, and raises PLA008 if it is
+  not. A producer try above 1 is skipped, so it runs once per DAG run.</li>
+<li>Each watcher defers on a trigger that only reads the unit's attempt files. It succeeds when the
+  latest attempt succeeded, and fails (without Airflow retry) when the attempt failed and the unit's
+  <code>retries</code> and <code>retry_on</code> allow no more, or timed out, or was cancelled. If the producer ended and
+  left no run results, the watcher raises PLA009 after a short grace, and a retry runs again.</li>
+<li>The watcher's log shows the attempt summary and the last 200 lines of the unit's log, or the error
+  code, message and trace excerpt. A unit has a log of its own only with <code>boundary: task</code>;
+  otherwise the watcher says that the unit's output is in the producer task's log.</li>
+<li>To rerun a unit, clear its failed watcher with Downstream. At try 2 or later, when the producer is
+  no longer running the unit, the watcher runs the unit itself (same run id, one attempt), and the
+  cleared descendants follow. Finalize then merges the new attempt.</li>
+<li>The watchers have no <code>execution_timeout</code>. <code>watcher_timeout</code> bounds one try, and a watcher that
+  waits longer raises an Airflow exception and retries.</li>
+<li>The artifacts root is read at parse time from <code>&lt;project_dir&gt;/pipeloom.yml</code> as plain YAML:
+  <code>targets.&lt;target&gt;.artifacts</code> replaces the top-level block, <code>root</code> falls back to <code>target</code>, and a
+  relative root joins the execution <code>project_dir</code>. An unreadable file, or a <code>${...}</code> reference in the
+  root, is PLA008 unless <code>watcher_artifacts_root</code> is set. The project is not bound in the worker for
+  this.</li>
+<li>PLA002 covers <code>watcher_workers</code> below 1, a non-positive interval or timeout, and a selection made
+  only of <code>unit:</code> selectors. PLA007 is not reported.</li>
+<li>Limit: a producer worker that dies can leave its child running, so PLA009 and a watcher retry may
+  run a unit twice. A retry after a watch timeout can rerun a unit the producer finished meanwhile.</li>
+</ul>
+<h2 id="artifact-store">Artifact store<a class="headerlink" href="#artifact-store" title="Permanent link">&para;</a></h2>
+<p>All units of a run and the finalize task must see one <code>artifacts.root</code> directory: unit result files
+are how the finalize task learns what happened. pipeloom 0.6 supports a shared POSIX path only; URI
+stores such as fsspec are not supported, because create-once files and atomic replace are not
+portable across their backends. State stores and filesystem catalogs need shared storage anyway.</p>
+<table>
+<thead>
+<tr>
+<th>Setup</th>
+<th>What <code>artifacts.root</code> can be</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LocalExecutor</td>
+<td>Any local path.</td>
+</tr>
+<tr>
+<td>CeleryExecutor</td>
+<td>A network mount at the same path on every worker: NFS, EFS or SMB.</td>
+</tr>
+<tr>
+<td>Kubernetes pods</td>
+<td>A ReadWriteMany persistent volume claim, or a CSI object-store mount, given in <code>pod_kwargs</code> as <code>volumes</code> and <code>volume_mounts</code>.</td>
+</tr>
+<tr>
+<td>Databricks</td>
+<td>Not an Airflow concern: the units run inside the job, which has its own artifact location.</td>
+</tr>
+</tbody>
+</table>
+<p>A unit task that Airflow saw succeed, with no attempt file visible under the root, fails the run
+with PLA004. That is the sign of a root that is not shared. PLA007 warns when the target's boundary
+is not <code>task</code>, since each unit runs in its own process.</p>
+<p>In WATCHER mode the triggerer reads the unit files too. It needs <code>pipeloom-airflow</code> installed and the
+artifacts root mounted at the same path as on the workers. On NFS, a stale directory listing can
+hide a fresh attempt file, so the watcher also opens <code>attempt-1</code> up to <code>attempt-&lt;retries + 1&gt;</code> by
+name and treats partial JSON as not visible. Mount with <code>lookupcache=positive</code> and a low <code>acdirmax</code>
+(a few seconds) to keep the delay short. A file still hidden after the grace of 120 seconds is
+PLA004.</p>
+<h2 id="run-id">Run id<a class="headerlink" href="#run-id" title="Permanent link">&para;</a></h2>
+<p>All tasks of a DAG run share one pipeloom run id: <code>af-</code> plus the first 16 hex characters of the
+sha256 of <code>dag_id</code>, the Airflow <code>run_id</code> and, inside a <code>PipeloomTaskGroup</code>, the group id, joined by
+a NUL byte. Joining with NUL keeps two different inputs from hashing alike, and the group id keeps
+two groups of one DAG run apart. The id is stable across task retries, so a retry or a clear and
+rerun continues the same pipeloom run and increments the unit's attempt. Each unit also records the
+DAG id, run id, task id and try number as orchestrator ids.</p>
+<h2 id="retries">Retries<a class="headerlink" href="#retries" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Who retries</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LOCAL, VIRTUALENV</td>
+<td>Airflow</td>
+<td>The model's <code>retries</code> and <code>retry_delay</code> become the task's. A unit invocation never retries by itself. Exit 2 fails without retry. Exit 130 retries. Exit 1 fails without retry when the unit's error is permanent and <code>retry_on</code> is <code>transient</code>; otherwise it retries.</td>
+</tr>
+<tr>
+<td>KUBERNETES</td>
+<td>Airflow</td>
+<td>The same counts and delay. <code>retry_on</code> is not enforced: Airflow sees only the pod's result, so every failure retries.</td>
+</tr>
+<tr>
+<td>DATABRICKS</td>
+<td>Databricks</td>
+<td>Sensors have no retries. A sensor fails once the task's last attempt failed or the run is over. The launch retries twice and attaches to the same run.</td>
+</tr>
+<tr>
+<td>WATCHER</td>
+<td>The core scheduler, then Airflow</td>
+<td>The producer has <code>retries=0</code> and the core applies the model's retries inside the one run. A watcher gets the model's <code>retries</code> and <code>retry_delay</code>: a failure the producer already reported fails it without retry, while PLA004, PLA009 and a watch timeout retry. A rerun at try 2 or later maps exit codes as LOCAL does.</td>
+</tr>
+</tbody>
+</table>
+<p>The task execution timeout is the model timeout plus the cancel grace plus 300 seconds, so the core
+times a unit out before Airflow does. The grace here is the core default of 30 seconds, since the
+manifest does not carry the target's <code>cancel_grace</code>.</p>
+<h2 id="full_refresh">full_refresh<a class="headerlink" href="#full_refresh" title="Permanent link">&para;</a></h2>
+<p><code>PipeloomDag</code> adds the boolean param <code>full_refresh</code> (default false) unless you define it. Trigger
+the DAG with <code>full_refresh</code> set to true to run every incremental model as a full refresh. A value
+that is not a boolean is PLA002 at run time. Task groups read the param of the enclosing DAG and
+use false when it is missing.</p>
+<h2 id="assets">Assets<a class="headerlink" href="#assets" title="Permanent link">&para;</a></h2>
+<p>With <code>emit_assets=True</code>, each model task (in WATCHER mode, each watcher) declares <code>Asset(name=uri, uri=uri)</code> outlets, one per
+persisted model of the task. The URI comes from <code>asset_uri</code>. In DATABRICKS mode the sensor of a task
+carries them.</p>
+<h2 id="finalize-and-dag-failure">Finalize and DAG failure<a class="headerlink" href="#finalize-and-dag-failure" title="Permanent link">&para;</a></h2>
+<p><code>pipeloom_finalize</code> runs with trigger rule <code>all_done</code> after every leaf task. In LOCAL, VIRTUALENV and KUBERNETES
+it has one retry; in DATABRICKS it is a sensor with no retries. In
+LOCAL and VIRTUALENV it reads the states of the unit tasks from Airflow and passes them to
+<code>pipeloom finalize --unit-states</code>. An attempt file always wins. Without one, a task that
+succeeded or failed becomes a failed unit with PLA004, <code>upstream_failed</code> becomes skipped, and a
+skipped task becomes skipped with <code>not_run</code>. The finalize task merges the unit files into
+<code>run_results.json</code> and <strong>fails the DAG run when the pipeloom run failed</strong> (exit 1, no retry).</p>
+<p>In KUBERNETES the finalize pod gets the states inline (<code>--unit-states-json</code>). In DATABRICKS the
+finalize task of the job does the merge and the <code>pipeloom_finalize</code> sensor mirrors its result.</p>
+<h2 id="databricks-connection">Databricks connection<a class="headerlink" href="#databricks-connection" title="Permanent link">&para;</a></h2>
+<p>The Airflow connection named by <code>databricks_conn_id</code> is read by pipeloom itself; the Databricks
+Airflow provider is not used, so an existing <code>databricks_default</code> connection works.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host</td>
+<td>Workspace URL. <code>https://</code> is added when missing.</td>
+</tr>
+<tr>
+<td>Password</td>
+<td>Personal access token. <code>extra.token</code> works as well.</td>
+</tr>
+<tr>
+<td>Extra <code>service_principal_oauth</code></td>
+<td>When true, OAuth machine-to-machine: login is the client id and password its secret.</td>
+</tr>
+</tbody>
+</table>
+<p>No profile, <code>~/.databrickscfg</code> or <code>DATABRICKS_*</code> variable is read, so a worker's environment cannot
+change the authentication. A connection that cannot be used (no host, no token, Azure-only extras)
+is PLD010; the message names the connection id and never a value. Secrets are masked in task logs
+and a trigger serializes only the connection id.</p>
+<h2 id="poll-modes">Poll modes<a class="headerlink" href="#poll-modes" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Behavior</th>
+<th>API cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>per_task</code> (default)</td>
+<td>The launch returns right after run-now or repair. Each sensor makes one <code>get_run</code> call and, with no verdict yet, defers on its own trigger.</td>
+<td>One call per waiting sensor per interval.</td>
+</tr>
+<tr>
+<td><code>shared</code></td>
+<td>The launch defers on one trigger that polls the whole run. Sensors read its final snapshot and make no call.</td>
+<td>One call per interval in total, but a task's result shows only when the whole run is over.</td>
+</tr>
+</tbody>
+</table>
+<p>The trigger retries a transient API error (429, 5xx, no answer) up to 5 times in a row, with sleeps
+of one, two and then four intervals, and fails the task at once on any other API error (an
+authentication error, for example) or when the retries run out. The same holds for a sensor's first
+call, except that a transient error there defers instead of failing the task. After a repair, a sensor with no verdict yet waits until the run reports the repair, so it
+never decides on the failed run from before the repair. Every deferral stops after
+<code>databricks_timeout</code> (24 hours by default). A wide DAG should raise <code>databricks_poll_interval</code> or
+use <code>shared</code>.</p>
+<h2 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Airflow does not run on Windows, so neither do the DAG classes. The pure modules (configs,
+  rendering, ids) do.</li>
+<li>No <code>DOCKER</code> mode: it is PLA001.</li>
+<li>No deferrable pods. <code>deferrable</code> is PLA002 for the Kubernetes mode.</li>
+<li><code>retry_on</code> is enforced only in LOCAL and VIRTUALENV.</li>
+<li><code>group_by</code> has no effect in DATABRICKS mode.</li>
+<li>The cancel grace of a unit is the core default (30 seconds), not the target's <code>cancel_grace</code>.</li>
+<li>The artifact root must be shared (see above). There is no fsspec store.</li>
+<li>The finalize pod takes the unit states inline, capped at 120 KiB because one Linux exec argument
+  is limited to 128 KiB. Above that it fails with PLA002; split the project with <code>select</code>.</li>
+<li>A DATABRICKS-mode DAG needs the project files on the worker that runs the launch, and each wait
+  is bounded by <code>databricks_timeout</code>.</li>
+<li>On Airflow 3.2, <code>dag.test()</code> fails in the finalize task and in WATCHER sensors: they read task
+  states through the Task SDK, and the in-process Execution API that <code>dag.test()</code> starts on 3.2
+  answers that call with a server error. A real deployment on 3.2 is not affected, and <code>dag.test()</code>
+  works from Airflow 3.3.0.</li>
+</ul>
+<h2 id="diagnostics">Diagnostics<a class="headerlink" href="#diagnostics" title="Permanent link">&para;</a></h2>
+<p>PLA001 unsupported mode or missing extra, PLA002 invalid configuration, PLA003 the selection renders
+no unit, PLA004 a task ended without a unit result, PLA005 unsupported Airflow version, PLA006 the
+compile cache is unusable, PLA007 the target boundary is not <code>task</code>, PLA008 the WATCHER artifacts
+root is not resolved or the producer's run left no <code>run_results.json</code> under it, PLA009 the WATCHER
+producer ended without run results. See the
+<a href="../../reference/errors/">error code reference</a>.</p>
+<figure>
+  <a class="glightbox" href="../../diagrams/airflow-task-per-unit.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="LOCAL, VIRTUALENV or KUBERNETES mode: the manifest is read at parse time, one task per unit follows the plan's dependencies with all_success, a finalize task runs with all_done, and every task writes to a shared artifacts root." src="../../diagrams/airflow-task-per-unit.light.svg#only-light" /></a>
+  <a class="glightbox" href="../../diagrams/airflow-task-per-unit.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="LOCAL, VIRTUALENV or KUBERNETES mode: the manifest is read at parse time, one task per unit follows the plan's dependencies with all_success, a finalize task runs with all_done, and every task writes to a shared artifacts root." src="../../diagrams/airflow-task-per-unit.dark.svg#only-dark" /></a>
+<br />
+<figcaption>LOCAL, VIRTUALENV and KUBERNETES modes: one Airflow task per unit. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/airflow-task-per-unit.d2">airflow-task-per-unit.d2</a>.</figcaption>
+</figure>
+<figure>
+  <a class="glightbox" href="../../diagrams/airflow-databricks.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="DATABRICKS mode: a launch task runs or repairs the saved Databricks job, one sensor per unit polls its task, and a finalize task runs with all_done." src="../../diagrams/airflow-databricks.light.svg#only-light" /></a>
+  <a class="glightbox" href="../../diagrams/airflow-databricks.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="DATABRICKS mode: a launch task runs or repairs the saved Databricks job, one sensor per unit polls its task, and a finalize task runs with all_done." src="../../diagrams/airflow-databricks.dark.svg#only-dark" /></a>
+<br />
+<figcaption>DATABRICKS mode: launch, mirror sensors, finalize; repair stays in Databricks. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/airflow-databricks.d2">airflow-databricks.d2</a>.</figcaption>
+</figure>
+<figure>
+  <a class="glightbox" href="../../diagrams/airflow-watcher.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="WATCHER mode: one producer task runs the selection and writes unit files to the shared artifacts root, one watcher per unit reads its file, and finalize waits for the producer and every leaf." src="../../diagrams/airflow-watcher.light.svg#only-light" /></a>
+  <a class="glightbox" href="../../diagrams/airflow-watcher.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="WATCHER mode: one producer task runs the selection and writes unit files to the shared artifacts root, one watcher per unit reads its file, and finalize waits for the producer and every leaf." src="../../diagrams/airflow-watcher.dark.svg#only-dark" /></a>
+<br />
+<figcaption>WATCHER mode: one producer, one watcher per unit. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/airflow-watcher.d2">airflow-watcher.d2</a>.</figcaption>
+</figure>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../databricks/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Databricks">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Databricks
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../guide/openlineage/" class="md-footer__link md-footer__link--next" aria-label="Next: Lineage with OpenLineage">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Lineage with OpenLineage
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.instant", "navigation.top", "navigation.footer", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(() => { lightbox.reload() });
+</script></body>
+</html>

@@ -1,0 +1,637 @@
+{
+  "$defs": {
+    "JsonValue": {},
+    "error": {
+      "description": "Why a unit failed. `category` tells a retry policy whether trying again can help.",
+      "properties": {
+        "category": {
+          "enum": [
+            "transient",
+            "permanent"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "exception_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exception Type"
+        },
+        "hint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hint"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Location"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "trace_excerpt": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Trace Excerpt",
+          "type": "array"
+        }
+      },
+      "required": [
+        "code",
+        "category",
+        "message"
+      ],
+      "title": "ErrorInfo",
+      "type": "object"
+    },
+    "result": {
+      "properties": {
+        "attempt": {
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "bytes_read": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "bytes_written": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "duration_ms": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "ended_at": {
+          "description": "RFC 3339, UTC.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "engine": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "engine_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ephemeral_inlined": {
+          "description": "Ephemeral models inlined here.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expectations": {
+          "items": {
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "failed_upstream": {
+          "description": "Since 1.3 (ADR-0056), upstream_failed rows only: the unit whose failure skipped this one, or <unit_id>.<data_test> when a blocking data test failed. Absent on other rows.",
+          "type": "string"
+        },
+        "full_refresh": {
+          "type": "boolean"
+        },
+        "idempotency_token": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "intervals": {
+          "description": "Interval models only (since 1.3, ADR-0054): the windows the unit ran, first to last, each with its own idempotency token. Absent on other rows.",
+          "items": {
+            "properties": {
+              "end": {
+                "description": "RFC 3339, UTC; exclusive.",
+                "type": "string"
+              },
+              "failed": {
+                "description": "Since 1.3: the window failed; the unit's error names it. Absent on the windows that did not fail.",
+                "type": "boolean"
+              },
+              "idempotency_token": {
+                "type": "string"
+              },
+              "interval_id": {
+                "type": "string"
+              },
+              "rows_written": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "skipped": {
+                "description": "The token was already applied: nothing was written.",
+                "type": "boolean"
+              },
+              "start": {
+                "description": "RFC 3339, UTC; inclusive.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "interval_id",
+              "start",
+              "end",
+              "idempotency_token"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "is_incremental": {
+          "type": "boolean"
+        },
+        "materialization": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "orchestrator_ids": {
+          "additionalProperties": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "type": "object"
+        },
+        "queue_wait_ms": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "relation_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "retries_used": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rows_deleted": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "rows_dropped": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "rows_inserted": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "rows_null_cursor": {
+          "description": "Watermark models with on_cursor_value_missing: exclude (since 1.3, ADR-0027): input rows dropped because their cursor column is null. Absent otherwise.",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "rows_quarantined": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "rows_read": {
+          "additionalProperties": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "description": "Rows read per input alias; null where the engine is lazy.",
+          "type": "object"
+        },
+        "rows_updated": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "rows_written": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "schema_changes": {
+          "items": {
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "schema_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "skip_reason": {
+          "description": "An open set (ADR-0056). Failing: upstream_failed, fail_fast. Non-failing: not_run, not_selected, up_to_date, not_due, upstream_incomplete, an orchestrator's own reason, and any value a reader does not know.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "started_at": {
+          "description": "RFC 3339, UTC.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "skipped",
+            "cancelled",
+            "timed_out"
+          ]
+        },
+        "strategy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_version": {
+          "type": [
+            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "unique_id": {
+          "description": "Model id, model.<project>.<name>.",
+          "type": "string"
+        },
+        "unit_id": {
+          "description": "Execution unit id.",
+          "type": "string"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "watermark_after": {
+          "description": "Any JSON value; ISO text for dates."
+        },
+        "watermark_before": {
+          "description": "Any JSON value; ISO text for dates."
+        }
+      },
+      "required": [
+        "unique_id",
+        "unit_id",
+        "ephemeral_inlined",
+        "materialization",
+        "strategy",
+        "relation_name",
+        "status",
+        "attempt",
+        "retries_used",
+        "started_at",
+        "ended_at",
+        "duration_ms",
+        "queue_wait_ms",
+        "rows_read",
+        "rows_written",
+        "rows_inserted",
+        "rows_updated",
+        "rows_deleted",
+        "rows_dropped",
+        "rows_quarantined",
+        "bytes_read",
+        "bytes_written",
+        "target_version",
+        "full_refresh",
+        "is_incremental",
+        "watermark_before",
+        "watermark_after",
+        "schema_hash",
+        "schema_changes",
+        "expectations",
+        "warnings",
+        "error",
+        "engine",
+        "engine_version",
+        "executor",
+        "idempotency_token",
+        "skip_reason",
+        "orchestrator_ids"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/run_results.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The outcome of one run, one row per persisted model.",
+  "properties": {
+    "args": {
+      "description": "The options of the invocation.",
+      "type": "object"
+    },
+    "metadata": {
+      "properties": {
+        "generated_at": {
+          "type": "string"
+        },
+        "invocation_id": {
+          "type": "string"
+        },
+        "pipeloom_version": {
+          "type": "string"
+        },
+        "plugins": {
+          "additionalProperties": {
+            "type": "object"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "pipeloom_version",
+        "generated_at",
+        "invocation_id",
+        "plugins"
+      ],
+      "type": "object"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/result"
+      },
+      "type": "array"
+    },
+    "run": {
+      "properties": {
+        "counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "duration_ms": {
+          "type": "integer"
+        },
+        "ended_at": {
+          "type": "string"
+        },
+        "exit_code": {
+          "type": "integer"
+        },
+        "full_refresh": {
+          "type": "boolean"
+        },
+        "git_sha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "identity": {
+          "properties": {
+            "host": {
+              "type": "string"
+            },
+            "orchestrator": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "orchestrator_ids": {
+              "additionalProperties": {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              },
+              "propertyNames": {
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              },
+              "type": "object"
+            },
+            "user": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "user",
+            "host",
+            "orchestrator",
+            "orchestrator_ids"
+          ],
+          "type": "object"
+        },
+        "intermediate_ttl": {
+          "description": "Seconds.",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "invocation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "parent_run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pipeloom_version": {
+          "type": "string"
+        },
+        "plan_hash": {
+          "type": "string"
+        },
+        "plugins": {
+          "additionalProperties": {
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "project": {
+          "type": "string"
+        },
+        "python_version": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "selector": {
+          "properties": {
+            "exclude": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "select": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "select",
+            "exclude"
+          ],
+          "type": "object"
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "target": {
+          "type": "string"
+        },
+        "totals": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "run_id",
+        "parent_run_id",
+        "invocation_ids",
+        "project",
+        "target",
+        "plan_hash",
+        "selector",
+        "full_refresh",
+        "status",
+        "started_at",
+        "ended_at",
+        "duration_ms",
+        "counts",
+        "totals",
+        "identity",
+        "pipeloom_version",
+        "plugins",
+        "python_version",
+        "git_sha",
+        "exit_code",
+        "intermediate_ttl",
+        "warnings"
+      ],
+      "type": "object"
+    },
+    "schema": {
+      "const": "pipeloom.run_results/1",
+      "description": "Schema name and version."
+    }
+  },
+  "required": [
+    "schema",
+    "metadata",
+    "args",
+    "run",
+    "results"
+  ],
+  "title": "pipeloom run results",
+  "type": "object"
+}
