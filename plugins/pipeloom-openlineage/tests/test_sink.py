@@ -25,6 +25,7 @@ from pipeloom.events.model import (
     UnitSucceeded,
 )
 from pipeloom.graph.selectors import Selection
+from pipeloom.plan.identity import location_dataset
 from pipeloom.runtime.run import RunOptions, RunOutcome
 from pipeloom.testing.clock import FakeClock
 from pipeloom.testing.recording import RecordingSink
@@ -242,9 +243,7 @@ def emit_unit(bus: EventBus) -> None:
     ],
 )
 def test_location_follows_the_openlineage_naming(location: str, expected: tuple[str, str]) -> None:
-    sink, _ = make_sink()
-    sink._project_dir = Path("/proj")
-    assert sink._location(location) == expected
+    assert location_dataset(location, Path("/proj")) == expected
 
 
 def test_quality_contract_schema_and_naming_from_the_manifest() -> None:

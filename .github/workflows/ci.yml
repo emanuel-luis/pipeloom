@@ -242,7 +242,7 @@ jobs:
           # facets test needs the OpenLineage plugin and provider.
           uv pip install --python "$RUNNER_TEMP/af-floor" -e . -e plugins/pipeloom-airflow \
             -e plugins/pipeloom-polars -e plugins/pipeloom-spark -e plugins/pipeloom-databricks \
-            -e plugins/pipeloom-openlineage \
+            -e plugins/pipeloom-openlineage -e plugins/pipeloom-pandas \
             "apache-airflow==3.2.2" "apache-airflow-providers-cncf-kubernetes>=10.25,<11" \
             "apache-airflow-providers-openlineage>=2.8,<3" \
             pytest pytest-timeout hypothesis
@@ -254,7 +254,7 @@ jobs:
           uv venv "$RUNNER_TEMP/af-33" --python 3.12
           uv pip install --python "$RUNNER_TEMP/af-33" -e . -e plugins/pipeloom-airflow \
             -e plugins/pipeloom-polars -e plugins/pipeloom-spark -e plugins/pipeloom-databricks \
-            -e plugins/pipeloom-openlineage \
+            -e plugins/pipeloom-openlineage -e plugins/pipeloom-pandas \
             "apache-airflow>=3.3,<3.4" "apache-airflow-providers-cncf-kubernetes>=10.25,<11" \
             "apache-airflow-providers-openlineage>=2.8,<3" \
             pytest pytest-timeout hypothesis
