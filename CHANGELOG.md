@@ -18,6 +18,10 @@ All notable changes to this project are documented here. The format follows
 - CI installs the built pipeloom and pipeloom-duckdb wheels in a fresh venv and runs `pipeloom demo` on Linux, macOS and Windows.
 - CI runs the DuckDB plugin tests on Linux, macOS and Windows with the `delta` extension preinstalled, without network on Linux.
 
+### Changed
+
+- Airflow 3.4 is supported and tested: the lock moves to `apache-airflow` 3.4.0 and the `airflow` CI job gains a 3.3 leg next to the 3.2.2 floor. The `>=3.2,<4` requirement is unchanged.
+
 ### Fixed
 
 - pipeloom-polars depends on `tzdata` on Windows. Windows has no system time zone database, so in an environment without pandas, reading timezone-aware timestamps back as Python rows failed with `ZoneInfoNotFoundError`.

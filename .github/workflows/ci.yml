@@ -190,7 +190,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        leg: [latest, floor]
+        leg: [latest, af33, floor]
     env:
       UV_PYTHON: "3.12"
       PIPELOOM_TEST_AIRFLOW: "1"
@@ -211,7 +211,8 @@ jobs:
         run: |
           uv sync --locked --all-packages --group airflow
           uv run pytest -q -p no:cacheprovider plugins/pipeloom-airflow/tests --cov
-      # The floor: the oldest supported Airflow on the oldest supported Python, outside the lock.
+      # Outside the lock: the oldest supported Airflow on the oldest supported Python (floor), and the 3.3 line
+      # (af33).
       - name: Airflow tests (3.2.2 floor)
         if: matrix.leg == 'floor'
         run: |
@@ -226,6 +227,18 @@ jobs:
             "apache-airflow-providers-openlineage>=2.8,<3" \
             pytest pytest-timeout hypothesis
           "$RUNNER_TEMP/af-floor/bin/python" -m pytest -q -p no:cacheprovider \
+            plugins/pipeloom-airflow/tests -m "not airflow_e2e"
+      - name: Airflow tests (3.3 line)
+        if: matrix.leg == 'af33'
+        run: |
+          uv venv "$RUNNER_TEMP/af-33" --python 3.12
+          uv pip install --python "$RUNNER_TEMP/af-33" -e . -e plugins/pipeloom-airflow \
+            -e plugins/pipeloom-polars -e plugins/pipeloom-spark -e plugins/pipeloom-databricks \
+            -e plugins/pipeloom-openlineage \
+            "apache-airflow>=3.3,<3.4" "apache-airflow-providers-cncf-kubernetes>=10.25,<11" \
+            "apache-airflow-providers-openlineage>=2.8,<3" \
+            pytest pytest-timeout hypothesis
+          "$RUNNER_TEMP/af-33/bin/python" -m pytest -q -p no:cacheprovider \
             plugins/pipeloom-airflow/tests -m "not airflow_e2e"
 
   build:
