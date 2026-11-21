@@ -1,0 +1,9 @@
+order_id,customer_id,amount,status,channel
+2001,1,30.00,paid,web
+2002,2,-15.00,paid,app
+2003,,60.00,paid,web
+2004,3,22.40,on_hold,app
+2005,999,18.00,paid,web
+2006,4,-3.50,new,app
+2007,5,75.10,shipped,web
+2008,2,41.00,paid,app

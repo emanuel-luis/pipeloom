@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
+config_version: 1
+name: orders_quality
+default_target: duckdb
+vars:
+  # Which partner batch to load: a folder under data/.
+  batch: day1
+models:
+  +materialized: table
+sources:
+  partner:
+    format: csv
+    location: data
+    tables:
+      customers:
+        location: customers.csv
+      orders:
+        location: ${var:batch}/orders.csv
+targets:
+  duckdb:
+    engine:
+      kind: duckdb
+    catalog:
+      kind: duckdb
+      path: target/duckdb/orders_quality.duckdb
+    naming:
+      kind: none
+      schema: shop
+    state:
+      kind: json
+      path: .pipeloom/state-duckdb
+  polars:
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+    naming:
+      kind: none
+      schema: shop
+    state:
+      kind: json
+      path: .pipeloom/state-polars

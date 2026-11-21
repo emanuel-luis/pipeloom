@@ -1,0 +1,7 @@
+order_id,customer_id,amount,status,channel
+1001,1,25.50,paid,web
+1002,2,80.00,paid,app
+1003,3,12.99,shipped,web
+1004,1,45.00,new,app
+1005,4,150.25,paid,web
+1006,5,9.90,shipped,app
