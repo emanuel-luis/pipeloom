@@ -1,0 +1,23 @@
+# Quickstart and demo: pipeloom demo writes a DuckDB project, builds it and writes the docs
+# site in one command; the hand-made path is init, validate, run. Illustrates docs/quickstart.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+you: You {class: actor}
+demo: "pipeloom\ndemo" {class: process}
+init: "pipeloom\ninit" {class: process}
+validate: "pipeloom\nvalidate" {class: process}
+build: "run or\nbuild" {class: process}
+tables: "DuckDB\ntables" {class: store}
+artifacts: "Run\nartifacts" {class: store}
+site: "Docs\nsite" {class: serving}
+
+you -> demo: one command
+you -> init
+init -> validate -> build
+demo -> build
+build -> tables
+build -> artifacts
+artifacts -> site

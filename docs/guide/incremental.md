@@ -4,6 +4,12 @@ An incremental model processes only the input rows that are new since its last r
 keeps a watermark, the largest value of one input column seen so far, and filters the input with
 it. The watermark is saved after the write succeeds, so a failed run never skips rows.
 
+<figure markdown="span">
+  ![The stored watermark filters the input table; the model body runs on the new rows; the batch is merged or appended into the target table; then the watermark is committed to the state store as the batch maximum.](../diagrams/incremental.light.svg#only-light)
+  ![The stored watermark filters the input table; the model body runs on the new rows; the batch is merged or appended into the target table; then the watermark is committed to the state store as the batch maximum.](../diagrams/incremental.dark.svg#only-dark)
+  <figcaption>An incremental run: the watermark is committed only after the write. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/incremental.d2">incremental.d2</a>.</figcaption>
+</figure>
+
 ## A first incremental model
 
 Project `pipeloom.yml`:

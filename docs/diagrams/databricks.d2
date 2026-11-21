@@ -1,0 +1,24 @@
+# One plan becomes one Databricks job: rendered as bundle YAML or deployed directly; one task per
+# unit, a finalize task, artifacts on a UC Volume, task values. Illustrates section 12
+# (ADR-0011, amended by ADR-0035 and ADR-0036) of docs/architecture.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+plan: "Plan" {class: process}
+bundle: "Bundle\nYAML" {class: source}
+job: "Databricks\njob" {class: external}
+tasks: "Task per\nunit" {class: process}
+fin: "Finalize\ntask" {class: process}
+volume: "UC\nVolume" {class: store}
+tv: "Task\nvalues" {class: serving}
+
+plan -> bundle
+bundle -> job {class: meta}
+plan -> job: deploy
+job -> tasks
+tasks -> fin
+tasks -> volume
+tasks -> tv
+fin -> volume

@@ -33,7 +33,11 @@ plugin adds `databricks bundle`, `deploy`, `run` and `repair`. See the
 [quickstart](https://emanuel-luis.github.io/pipeloom/latest/quickstart/) and the
 [command line reference](https://emanuel-luis.github.io/pipeloom/latest/reference/cli/).
 
-![Context diagram: users, the project, the CLI and API, engines, catalogs, orchestrators and event consumers.](docs/diagrams/01-context.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/context.dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/context.light.svg">
+  <img alt="pipeloom in context: an author writes YAML and @model functions, the core runs them on the polars, pandas, DuckDB or Spark engine, writes tables, state and run artifacts, sends events to sinks and OpenLineage, and renders Databricks jobs and Airflow DAGs." src="docs/diagrams/context.light.svg">
+</picture>
 
 ## Examples
 

@@ -1,0 +1,25 @@
+# Portable models: one function with frame_api="narwhals" runs unchanged on the four engines;
+# validate checks that the engine declares portable frames. Illustrates
+# docs/guide/portable-models.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+model: "@model, Narwhals" {class: source}
+check: "Capability check" {class: check}
+polars: "polars, lazy" {class: process}
+duckdb: "DuckDB, lazy" {class: process}
+spark: "Spark, lazy" {class: process}
+pandas: "pandas, eager" {class: process}
+rows: "Same output rows" {class: store}
+
+model -> check
+check -> polars
+check -> duckdb
+check -> spark
+check -> pandas
+polars -> rows
+duckdb -> rows
+spark -> rows
+pandas -> rows

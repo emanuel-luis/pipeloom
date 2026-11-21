@@ -1,0 +1,23 @@
+# The engine conformance kit: a plugin declares capabilities and gives a harness; the kit, a
+# pytest plugin in the core, runs every cell and reports pass, skip (capability not declared)
+# or fail. Illustrates docs/plugins/writing-an-engine.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+plugin: "Engine plugin" {class: process}
+caps: Capabilities {class: source}
+harness: Harness {class: source}
+kit: "Conformance kit" {class: check}
+pass: passed {class: store}
+skip: skipped {class: process}
+fail: failed {class: process}
+
+plugin -> caps
+plugin -> harness
+caps -> kit {class: meta}
+harness -> kit
+kit -> pass: kept promise
+kit -> skip: not declared
+kit -> fail: broken promise

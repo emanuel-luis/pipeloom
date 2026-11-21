@@ -1,0 +1,26 @@
+# Event fan-out: emitters, the bus, the redaction filter and the sinks. Failure budgets and
+# buffering are a table in section 11 (events, logs and run metadata) of docs/architecture.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+emit: "Stages,\nscheduler,\nmodels" {class: process}
+bus: EventBus {class: process}
+redact: "Redaction\nfilter" {class: check}
+console: "console sink" {class: serving}
+jsonl: "jsonl sink" {class: serving}
+file: "file sink" {class: serving}
+arts: "artifacts sink" {class: serving}
+ol: "openlineage sink" {class: serving}
+results: "Run\nartifacts" {class: store}
+backend: "OpenLineage\nbackend" {class: external}
+
+emit -> bus -> redact
+redact -> console
+redact -> jsonl
+redact -> file
+redact -> arts
+redact -> ol
+arts -> results
+ol -> backend {class: meta}

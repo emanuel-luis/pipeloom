@@ -1,0 +1,20 @@
+# PipeloomDag in LOCAL, VIRTUALENV or KUBERNETES mode: one Airflow task per unit, the plan's
+# dependencies, a finalize task, a shared artifacts root. Illustrates section 13 (ADR-0012,
+# ADR-0038) of docs/architecture.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+manifest: manifest.json {class: source}
+u1: "stg_orders\ntask" {class: process}
+u2: "fct_orders\ntask" {class: process}
+fin: "finalize" {class: process}
+store: "Shared\nartifacts root" {class: store}
+
+manifest -> u1 {class: meta}
+u1 -> u2: all_success
+u2 -> fin: all_done
+u1 -> store
+u2 -> store
+fin -> store

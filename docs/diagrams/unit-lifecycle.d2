@@ -1,0 +1,23 @@
+# What one unit attempt does, in order: read the inputs (filtered by the watermark), run the
+# model body, apply expectations, write with the idempotency token, commit the watermark, write
+# the attempt file. Every step emits events. Illustrates sections 8 to 10 of docs/architecture.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+inputs: "Read inputs" {class: process}
+body: "Model body" {class: process}
+checks: Expectations {class: check}
+write: "Write, token" {class: process}
+wm: "Commit watermark" {class: process}
+attempt: "Attempt file" {class: store}
+table: "Target table" {class: store}
+quarantine: Quarantine {class: store}
+state: "State store" {class: store}
+
+state -> inputs: watermark {class: meta}
+inputs -> body -> checks -> write -> wm -> attempt
+checks -> quarantine: dropped rows
+write -> table
+wm -> state {class: meta}

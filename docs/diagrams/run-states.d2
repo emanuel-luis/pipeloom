@@ -1,0 +1,18 @@
+# Run state machine. A run with warnings is still succeeded. Illustrates section 8 of
+# docs/architecture.md.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+created: created {class: process}
+compiled: compiled {class: process}
+running: running {class: process}
+succeeded: succeeded {class: store}
+failed: failed {class: process}
+cancelled: cancelled {class: process}
+
+created -> compiled -> running
+running -> succeeded: no unit failed
+running -> failed: a unit failed
+running -> cancelled: "SIGINT, SIGTERM"

@@ -1,0 +1,25 @@
+# The system in context: author, project, core, engines, storage, artifacts, events,
+# orchestrators. Illustrates section 3 of docs/architecture.md and the README.
+...@_style
+(** -> **)[*].style.font-size: 14
+
+direction: right
+
+author: Author {class: actor}
+project: "YAML,\n@model" {class: source}
+core: "pipeloom\ncore" {class: process}
+engines: "polars, pandas,\nDuckDB, Spark" {class: process}
+data: "Tables,\nstate" {class: store}
+artifacts: "Run\nartifacts" {class: store}
+sinks: "Event sinks" {class: serving}
+lineage: "OpenLineage" {class: external}
+orch: "Databricks,\nAirflow" {class: external}
+
+author -> project
+project -> core
+core -> engines: runs
+engines -> data
+core -> artifacts
+core -> sinks
+sinks -> lineage {class: meta}
+core -> orch: renders {class: meta}

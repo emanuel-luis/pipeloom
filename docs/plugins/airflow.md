@@ -340,4 +340,20 @@ root is not resolved or the producer's run left no `run_results.json` under it, 
 producer ended without run results. See the
 [error code reference](../reference/errors.md).
 
-![Airflow execution modes](../diagrams/07-airflow-modes.svg)
+<figure markdown="span">
+  ![LOCAL, VIRTUALENV or KUBERNETES mode: the manifest is read at parse time, one task per unit follows the plan's dependencies with all_success, a finalize task runs with all_done, and every task writes to a shared artifacts root.](../diagrams/airflow-task-per-unit.light.svg#only-light)
+  ![LOCAL, VIRTUALENV or KUBERNETES mode: the manifest is read at parse time, one task per unit follows the plan's dependencies with all_success, a finalize task runs with all_done, and every task writes to a shared artifacts root.](../diagrams/airflow-task-per-unit.dark.svg#only-dark)
+  <figcaption>LOCAL, VIRTUALENV and KUBERNETES modes: one Airflow task per unit. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/airflow-task-per-unit.d2">airflow-task-per-unit.d2</a>.</figcaption>
+</figure>
+
+<figure markdown="span">
+  ![DATABRICKS mode: a launch task runs or repairs the saved Databricks job, one sensor per unit polls its task, and a finalize task runs with all_done.](../diagrams/airflow-databricks.light.svg#only-light)
+  ![DATABRICKS mode: a launch task runs or repairs the saved Databricks job, one sensor per unit polls its task, and a finalize task runs with all_done.](../diagrams/airflow-databricks.dark.svg#only-dark)
+  <figcaption>DATABRICKS mode: launch, mirror sensors, finalize; repair stays in Databricks. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/airflow-databricks.d2">airflow-databricks.d2</a>.</figcaption>
+</figure>
+
+<figure markdown="span">
+  ![WATCHER mode: one producer task runs the selection and writes unit files to the shared artifacts root, one watcher per unit reads its file, and finalize waits for the producer and every leaf.](../diagrams/airflow-watcher.light.svg#only-light)
+  ![WATCHER mode: one producer task runs the selection and writes unit files to the shared artifacts root, one watcher per unit reads its file, and finalize waits for the producer and every leaf.](../diagrams/airflow-watcher.dark.svg#only-dark)
+  <figcaption>WATCHER mode: one producer, one watcher per unit. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/airflow-watcher.d2">airflow-watcher.d2</a>.</figcaption>
+</figure>
