@@ -167,7 +167,7 @@ WSL or CI.
 - `schema_contract` entities (new_table, new_column, type_change) times modes (evolve, fail, drop_value, quarantine_row), with `--schema-contract freeze` for CI. `on_schema_change` maps onto it and is deprecated with a warning code, and it keeps working through 1.x. ADR: 0059. Done when: One case per entity and mode on the shared suite. Schema changes in run_results record the entity and the mode.
 - ODCS v3 contract export, sharing one `Threshold(op, value)` type with the anomaly checks. Lossy mappings are a warning code. Done when: An exported contract validates against the ODCS schema, and a lossy field warns.
 
-Plugin API: (1, 1) if the 1.3 bump is not reused.
+Plugin API: (1, 2), for the optional `Catalog.data_version` protocol (1.3 already moved the API to (1, 1)).
 
 Stretch: ODCS import, unit-test upgrades (partial rows, subset mode, tolerance, mocks), `pipeloom prune` (dry
 run by default, with a retention floor of at least the largest anomaly window), Unity Catalog metadata push as a diff
