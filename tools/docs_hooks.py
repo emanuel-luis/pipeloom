@@ -35,9 +35,11 @@ def render_capability_matrix(engines: list[Any]) -> str:
         [
             "# Engine capabilities",
             "",
-            "Generated from the `EngineCapabilities` each engine plugin declares. The engine "
-            "conformance kit skips a cell the engine does not declare and fails one it does; see "
-            "[Writing an engine](../plugins/writing-an-engine.md).",
+            (
+                "Generated from the `EngineCapabilities` each engine plugin declares. The engine "
+                "conformance kit skips a cell the engine does not declare and fails one it does; "
+                "see [Writing an engine](../plugins/writing-an-engine.md)."
+            ),
             "",
             *rows,
             "",
