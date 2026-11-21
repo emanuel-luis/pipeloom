@@ -1885,7 +1885,7 @@
 <h1 id="pipeloom-architecture">pipeloom architecture<a class="headerlink" href="#pipeloom-architecture" title="Permanent link">&para;</a></h1>
 <blockquote>
 <p><strong>Status:</strong> the code implements the versions listed in section 16: the scheduler, the polars, pandas and Spark engines, incremental models, merge, replace_partitions and scd2, expectations and quarantine, retries, timeouts and cancellation, the Databricks and Airflow integrations, per-model catalogs and, from 0.9, Python-first authoring. 1.0 freezes the contracts: what stays stable within a major version is listed in <a href="../reference/stability/">Stability and deprecations</a>. Planned work lives in the <a href="../roadmap/">roadmap</a>.
-Decisions are recorded as ADRs in <a href="../adr/">adr/</a>. Diagrams are D2 sources in <a href="diagrams/">diagrams/</a> with committed SVGs.
+Decisions are recorded as ADRs in <a href="../adr/">adr/</a>. Diagrams are D2 sources in <a href="https://github.com/emanuel-luis/pipeloom/tree/main/docs/diagrams">docs/diagrams</a> with committed light and dark SVGs.
 From 0.9 models are decorated Python functions, and YAML keeps the project and properties files (<a href="../adr/0050-python-first-authoring/">ADR-0050</a>). Through 0.8 every model was declared in a YAML model file (<a href="../adr/0003-model-authoring/">ADR-0003</a>, superseded); that path is removed, and <a href="../guide/migrate-0.9/">Migrating from 0.8</a> maps it to the decorator.</p>
 </blockquote>
 <h2 id="1-vision-goals-non-goals-principles">1. Vision, goals, non-goals, principles<a class="headerlink" href="#1-vision-goals-non-goals-principles" title="Permanent link">&para;</a></h2>
@@ -1932,8 +1932,12 @@ From 0.9 models are decorated Python functions, and YAML keeps the project and p
 <li><strong>Plugin API version:</strong> the version of the protocol contract between the core and plugins.</li>
 </ul>
 <h2 id="3-architecture-overview">3. Architecture overview<a class="headerlink" href="#3-architecture-overview" title="Permanent link">&para;</a></h2>
-<p><img alt="pipeloom in context: a pipeline author writes a project, the core compiles and runs it on engine plugins, writes artifacts and events, and renders jobs for Databricks and Airflow." src="../diagrams/01-context.svg" /></p>
-<p>Source: <a href="../diagrams/01-context.d2">01-context.d2</a>.</p>
+<figure>
+  <img alt="pipeloom in context: an author writes YAML and @model functions, the core runs them on the polars, pandas, DuckDB or Spark engine, writes tables, state and run artifacts, sends events to sinks and OpenLineage, and renders Databricks jobs and Airflow DAGs." src="../diagrams/context.light.svg#only-light" />
+  <img alt="pipeloom in context: an author writes YAML and @model functions, the core runs them on the polars, pandas, DuckDB or Spark engine, writes tables, state and run artifacts, sends events to sinks and OpenLineage, and renders Databricks jobs and Airflow DAGs." src="../diagrams/context.dark.svg#only-dark" />
+<br />
+<figcaption>pipeloom in context. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/context.d2">context.d2</a>.</figcaption>
+</figure>
 <p><strong>Layers.</strong> Arrows point toward dependencies. The core never imports a plugin, and an import-linter contract enforces this in CI.</p>
 <pre><code>CLI / Python API (pipeloom.api.Project)
   ├─ diagnostics  Diagnostic, Report, Outcome and the error-code catalog (`pipeloom.diagnostics.codes`); a leaf package
@@ -1956,8 +1960,18 @@ From 0.9 models are decorated Python functions, and YAML keeps the project and p
 Plugins: pipeloom-pandas | -polars | -spark (0.4) | -databricks (0.5) | -airflow (0.6) | -openlineage (0.9)
 </code></pre>
 <p><code>pipeloom-spark</code> depends only on <code>pipeloom</code>. pyspark is not a dependency of it: the extra <code>local</code> brings <code>pyspark[connect]</code> and <code>delta-spark</code>, and <code>pipeloom[spark]</code> pulls <code>pipeloom-spark[local]</code> (<a href="../adr/0031-spark-engine/">ADR-0031</a>). Databricks runtimes and Databricks Connect ship their own pyspark, so there the plugin is installed without extras.</p>
-<p><img alt="Distributions and core modules, with the import direction and the entry-point groups each plugin fills. The core never imports a plugin." src="../diagrams/02-packages.svg" /></p>
-<p>Source: <a href="../diagrams/02-packages.d2">02-packages.d2</a>.</p>
+<figure>
+  <img alt="The seven plugin distributions (polars, pandas, DuckDB, Spark, Databricks, Airflow, OpenLineage) depend on the core; Databricks also depends on Spark; the core imports no plugin." src="../diagrams/packages.light.svg#only-light" />
+  <img alt="The seven plugin distributions (polars, pandas, DuckDB, Spark, Databricks, Airflow, OpenLineage) depend on the core; Databricks also depends on Spark; the core imports no plugin." src="../diagrams/packages.dark.svg#only-dark" />
+<br />
+<figcaption>Distributions and their dependencies. The entry-point groups each plugin fills are listed in section 6. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/packages.d2">packages.d2</a>.</figcaption>
+</figure>
+<figure>
+  <img alt="Core modules: the CLI and Project API import plugins, runtime and plan; runtime imports plan, engine protocols, incremental, quality and state, and events and artifacts; plan imports validate and graph, which import config and discovery." src="../diagrams/core-modules.light.svg#only-light" />
+  <img alt="Core modules: the CLI and Project API import plugins, runtime and plan; runtime imports plan, engine protocols, incremental, quality and state, and events and artifacts; plan imports validate and graph, which import config and discovery." src="../diagrams/core-modules.dark.svg#only-dark" />
+<br />
+<figcaption>Core modules; arrows point at the module imported. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/core-modules.d2">core-modules.d2</a>.</figcaption>
+</figure>
 <p><strong>Lifecycle.</strong> Each stage is a pure function from the previous stage's output. Every stage emits events.</p>
 <ol>
 <li><strong>Load:</strong> discover YAML files, then parse them while recording file, line and column for every node. From 0.9 the same scan also finds Python model files: an AST pass resolves static <code>@model</code> decorators without importing, the discovery cache skips unchanged files, and an import pass loads only the modules with dynamic decorator arguments (section 4).</li>
@@ -1969,8 +1983,58 @@ Plugins: pipeloom-pandas | -polars | -spark (0.4) | -databricks (0.5) | -airflow
 <li><strong>Finalize:</strong> merge per-invocation results, write <code>run_results.json</code>, commit run state, flush and close sinks.</li>
 </ol>
 <p><strong>Commands.</strong> <code>init</code> (scaffold a new project, <a href="../adr/0041-pipeloom-init/">ADR-0041</a>), <code>new model</code> (add one decorated <code>.py</code> model file; ADR-0041 amendments), <code>validate</code>, <code>compile</code>, <code>ls</code>, <code>graph</code> (with <code>--units</code>, the unit graph for orchestrators, <a href="../adr/0049-artifact-schemas-and-orchestrator-protocol/">ADR-0049</a>), <code>run</code>, <code>retry</code> (run again what a finished run did not finish, ADR-0013 amendment), <code>test</code> and <code>build</code> (unit tests, then a run with data tests, <a href="../adr/0045-unit-and-data-tests/">ADR-0045</a>), <code>runs ls|show</code> (run history, <a href="../adr/0047-run-history-and-webhook/">ADR-0047</a>), <code>finalize</code>, <code>docs generate|serve</code> (a read-only one-file site, <a href="../adr/0043-docs-site/">ADR-0043</a>), <code>schema export</code>, <code>explain</code> (print a diagnostic code's catalog entry and docs link) and <code>plugins list</code>; plugins add their own through <code>pipeloom.commands</code> (for example <code>pipeloom databricks</code>).</p>
-<p><img alt="The seven lifecycle stages from load to finalize, with the error-code prefixes of each stage and the artifacts written by compile, execute and finalize." src="../diagrams/03-lifecycle.svg" /></p>
-<p>Source: <a href="../diagrams/03-lifecycle.d2">03-lifecycle.d2</a>.</p>
+<figure>
+  <img alt="The seven lifecycle stages in order: load, validate schema, resolve graph, validate plan, compile, execute, finalize. Compile writes manifest.json, execute writes the unit attempt files, finalize writes run_results.json." src="../diagrams/lifecycle.light.svg#only-light" />
+  <img alt="The seven lifecycle stages in order: load, validate schema, resolve graph, validate plan, compile, execute, finalize. Compile writes manifest.json, execute writes the unit attempt files, finalize writes run_results.json." src="../diagrams/lifecycle.dark.svg#only-dark" />
+<br />
+<figcaption>Lifecycle stages and the artifacts they write. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/lifecycle.d2">lifecycle.d2</a>.</figcaption>
+</figure>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Error codes</th>
+<th>Writes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Load</td>
+<td>PLY (L0)</td>
+<td></td>
+</tr>
+<tr>
+<td>2. Validate schema</td>
+<td>PLS (L1)</td>
+<td></td>
+</tr>
+<tr>
+<td>3. Resolve graph</td>
+<td>PLR, PLG (L2, L3)</td>
+<td></td>
+</tr>
+<tr>
+<td>4. Validate plan</td>
+<td>PLP, PLC, PLK (L4 to L6); PLF with <code>--preflight</code></td>
+<td></td>
+</tr>
+<tr>
+<td>5. Compile</td>
+<td></td>
+<td><code>manifest.json</code></td>
+</tr>
+<tr>
+<td>6. Execute</td>
+<td>PLX, PLM, PLQ, PLE, PLU</td>
+<td><code>units/&lt;unit_id&gt;/attempt-&lt;n&gt;.json</code></td>
+</tr>
+<tr>
+<td>7. Finalize</td>
+<td></td>
+<td><code>run_results.json</code>, the run record in the state store</td>
+</tr>
+</tbody>
+</table>
 <h2 id="4-configuration">4. Configuration<a class="headerlink" href="#4-configuration" title="Permanent link">&para;</a></h2>
 <p>From 0.9 (<a href="../adr/0050-python-first-authoring/">ADR-0050</a>) a project is one <code>pipeloom.yml</code>, Python model modules and optional properties files. The YAML model files of 0.8 are gone; see "YAML model files" below.</p>
 <p><strong>Project file.</strong></p>
@@ -2357,8 +2421,24 @@ queued  → cancelled (run cancelled)
 </code></pre>
 <p>The transition table is checked in code (<code>pipeloom.runtime.states</code>). <code>retrying -&gt; cancelled</code> is part of it: a stop request, or fail-fast, cancels a unit that waits for its next attempt. A skipped unit carries a reason: <code>upstream_failed</code> (with the failed upstream) or <code>fail_fast</code>; <code>pipeloom finalize</code> adds <code>not_run</code> for a unit with neither an attempt file nor an orchestrator state (ADR-0034).</p>
 <p><strong>Run state machine:</strong> <code>created → compiled → running → succeeded | failed | cancelled</code>. A run with warnings is still <code>succeeded</code>.</p>
-<p><img alt="The unit and run state machines, including the retry, timeout, skip and cancel transitions." src="../diagrams/04-state-machines.svg" /></p>
-<p>Source: <a href="../diagrams/04-state-machines.d2">04-state-machines.d2</a>.</p>
+<figure>
+  <img alt="Unit states: pending, queued, running; running ends succeeded, failed, timed_out or cancelled, or goes to retrying after a transient error and back to running after the delay; pending becomes skipped when an upstream failed." src="../diagrams/unit-states.light.svg#only-light" />
+  <img alt="Unit states: pending, queued, running; running ends succeeded, failed, timed_out or cancelled, or goes to retrying after a transient error and back to running after the delay; pending becomes skipped when an upstream failed." src="../diagrams/unit-states.dark.svg#only-dark" />
+<br />
+<figcaption>Unit states. The cancel and fail-fast transitions of pending, queued and retrying units are in the transition list above. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/unit-states.d2">unit-states.d2</a>.</figcaption>
+</figure>
+<figure>
+  <img alt="Run states: created, compiled, running; running ends succeeded when no unit failed, failed when a unit failed, cancelled on SIGINT or SIGTERM." src="../diagrams/run-states.light.svg#only-light" />
+  <img alt="Run states: created, compiled, running; running ends succeeded when no unit failed, failed when a unit failed, cancelled on SIGINT or SIGTERM." src="../diagrams/run-states.dark.svg#only-dark" />
+<br />
+<figcaption>Run states. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/run-states.d2">run-states.d2</a>.</figcaption>
+</figure>
+<figure>
+  <img alt="One unit attempt: read the inputs filtered by the watermark from the state store, run the model body, apply expectations (dropped rows go to quarantine), write the target table with the idempotency token, commit the watermark, write the attempt file." src="../diagrams/unit-lifecycle.light.svg#only-light" />
+  <img alt="One unit attempt: read the inputs filtered by the watermark from the state store, run the model body, apply expectations (dropped rows go to quarantine), write the target table with the idempotency token, commit the watermark, write the attempt file." src="../diagrams/unit-lifecycle.dark.svg#only-dark" />
+<br />
+<figcaption>What one unit attempt does; every step emits events. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/unit-lifecycle.d2">unit-lifecycle.d2</a>.</figcaption>
+</figure>
 <p><strong>Policies</strong> (ADR-0029):
 - <strong>Retries:</strong> <code>retries</code> (default 0), <code>retry_delay</code> (default 1s) and <code>retry_on</code> (<code>transient</code>, the default, or <code>any</code>). The scheduler keeps a retry heap and never sleeps: a failed attempt with retries left moves <code>running -&gt; retrying</code>, emits <code>unit.retrying</code> and holds no worker slot while it waits. <code>pipeloom.runtime.retry.classify</code> decides the category, in this order: <code>TransientError</code> anywhere in the cause chain; the engine's <code>is_transient</code> opinion; <code>ConnectionError</code> or <code>TimeoutError</code> in the chain; in the read, write and state phases an <code>OSError</code> other than FileNotFoundError, PermissionError (a Windows sharing violation is transient), IsADirectoryError, NotADirectoryError and FileExistsError; PLX106 is transient. Everything else is permanent. PLQ301, PLQ302, PLQ303, PLM202, PLM203, PLM205, PLM206, PLM207 and PLM208 are always permanent, so <code>retry_on: transient</code> never repeats them; <code>retry_on: any</code> retries every failed attempt and therefore repeats deterministic failures. PLC505 rejects retries on an append model whose engine has no idempotent writes.
 - <strong>build (0.9):</strong> <code>pipeloom build</code> takes the flags of <code>run</code>. It runs the unit tests of the selection first and stops with exit 1 before a run id exists when one fails, then runs with data tests on: <code>RunOptions.data_tests</code>, passed to process-boundary children as the hidden <code>run --data-tests true</code>. Relationship parents become extra edges of the run's <code>UnitGraph</code> (<code>UnitGraph.from_parents</code>); the plan's <code>unit_parent_map</code> is unchanged.
@@ -2545,8 +2625,12 @@ quality:
 - A sink may define <code>plan_ready(PlanInfo)</code> (0.9, additive in plugin API (0, 5)): the bus hands it the run's manifest dict and project dir right after <code>run.started</code> (or where a unit invocation would emit it) and in <code>finalize</code>.
 - <code>model.written</code> also carries <code>columns</code> (0.9): the table's columns after the write, null for intermediates, views and replayed writes.
 - <code>RecordingSink</code> in <code>pipeloom.testing</code> asserts ordered events.</p>
-<p><img alt="The event bus fans out to sinks through a redaction filter. Each sink has a failure budget, slow sinks can be buffered, and the artifacts sink writes the result files." src="../diagrams/05-events.svg" /></p>
-<p>Source: <a href="../diagrams/05-events.d2">05-events.d2</a>.</p>
+<figure>
+  <img alt="Run stages, the scheduler and models emit to the EventBus; a redaction filter masks secrets before the console, jsonl, file, artifacts and openlineage sinks; the artifacts sink writes the run artifacts and the openlineage sink sends to a backend." src="../diagrams/events.light.svg#only-light" />
+  <img alt="Run stages, the scheduler and models emit to the EventBus; a redaction filter masks secrets before the console, jsonl, file, artifacts and openlineage sinks; the artifacts sink writes the run artifacts and the openlineage sink sends to a backend." src="../diagrams/events.dark.svg#only-dark" />
+<br />
+<figcaption>Event fan-out. Failure budgets and buffering are in the list above. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/events.d2">events.d2</a>.</figcaption>
+</figure>
 <p><strong>Console library: rich.</strong> It provides styled tables, colors and live progress in one dependency. structlog would still need a renderer for those. JSON lines need only the stdlib.</p>
 <p><strong>Sample console output (<code>--log-format text</code>):</strong></p>
 <pre><code>14:02:11 pipeloom 0.5.0 | project shop | target dev | engine polars | run 20261029T140211Z-7f3a9c
@@ -2595,8 +2679,12 @@ quality:
 - <code>pipeloom finalize --run-id ID</code> (0.5, ADR-0034) closes a run that an orchestrator drove unit by unit. A unit takes its attempt file, else the state given with <code>--unit-states</code> (<code>pipeloom.unit_states/1</code>: <code>skipped</code>, <code>cancelled</code>, <code>failed</code> or <code>excluded</code>), else it is <code>skipped</code> with the reason <code>not_run</code>, which does not fail the run; <code>excluded</code> drops the unit. <code>orchestrator_ids</code> come from <code>--orchestrator-id KEY=VALUE</code>. It exits 0, 1 or 130 and rewrites the same results when repeated.</p>
 <h2 id="12-the-databricks-plugin">12. The Databricks plugin<a class="headerlink" href="#12-the-databricks-plugin" title="Permanent link">&para;</a></h2>
 <p><strong><code>pipeloom-databricks</code></strong> depends on <code>pipeloom-spark</code> and <code>databricks-sdk</code> (<code>&gt;=0.50,&lt;1</code>). It provides the <code>unity</code> catalog, the <code>databricks</code> secret provider, the <code>databricks</code> renderer (the <code>deploy</code> block), the <code>pipeloom databricks</code> commands (<code>bundle</code>, <code>deploy</code>, <code>run</code>, <code>repair</code>), the task wrapper and task-value publishing. There is no <code>databricks</code> executor: ADR-0020 picks executors by boundary, and Databricks is an orchestrator. User guide: <a href="../plugins/databricks/">Databricks plugin</a>. Amended by ADR-0035 and ADR-0036; the sections below are the delivered design.</p>
-<p><img alt="A plan is rendered to Databricks job settings or bundle YAML. Model tasks write unit files to the volume, a finalize task writes run_results.json, and task values carry a summary." src="../diagrams/06-databricks.svg" /></p>
-<p>Source: <a href="../diagrams/06-databricks.d2">06-databricks.d2</a>.</p>
+<figure>
+  <img alt="A plan becomes bundle YAML or is deployed directly as one Databricks job; the job runs one task per unit, then a finalize task; tasks write unit files and finalize writes run_results.json to a UC Volume, and tasks set task values." src="../diagrams/databricks.light.svg#only-light" />
+  <img alt="A plan becomes bundle YAML or is deployed directly as one Databricks job; the job runs one task per unit, then a finalize task; tasks write unit files and finalize writes run_results.json to a UC Volume, and tasks set task values." src="../diagrams/databricks.dark.svg#only-dark" />
+<br />
+<figcaption>One plan, one Databricks job. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/databricks.d2">databricks.d2</a>.</figcaption>
+</figure>
 <p><strong>ADR-0011 (amended by ADR-0035): Rendering.</strong></p>
 <p><strong>Task type.</strong> Each unit (or group) becomes one <code>python_wheel_task</code> that runs the plugin wrapper, not the core CLI:</p>
 <pre><code class="language-json">{&quot;task_key&quot;: &quot;fct_orders&quot;, &quot;depends_on&quot;: [{&quot;task_key&quot;: &quot;stg_orders&quot;}],
@@ -2707,8 +2795,24 @@ shop_daily = PipeloomDag(
 - A <code>pipeloom_finalize</code> task runs with <code>all_done</code>, reads the Airflow task states and exits 1 when the pipeloom run failed, so the DAG run fails.
 - <code>rid</code> is <code>af-</code> plus 16 hex characters of sha256 of the NUL-separated dag_id, Airflow run_id and, inside a task group, the group id (ADR-0037), stable across task retries. A clear-and-rerun of failed tasks therefore continues the same pipeloom run.
 - With <code>emit_assets</code>, each model task declares <code>Asset(uri=&lt;target URI&gt;)</code> outlets.</p>
-<p><img alt="PipeloomDag in LOCAL or KUBERNETES mode has one task per unit. DATABRICKS mode has a launch task, one mirror sensor per model and a finalize task, with repair handled in Databricks." src="../diagrams/07-airflow-modes.svg" /></p>
-<p>Source: <a href="../diagrams/07-airflow-modes.d2">07-airflow-modes.d2</a>.</p>
+<figure>
+  <img alt="LOCAL, VIRTUALENV or KUBERNETES mode: the manifest is read at parse time, one task per unit follows the plan's dependencies with all_success, a finalize task runs with all_done, and every task writes to a shared artifacts root." src="../diagrams/airflow-task-per-unit.light.svg#only-light" />
+  <img alt="LOCAL, VIRTUALENV or KUBERNETES mode: the manifest is read at parse time, one task per unit follows the plan's dependencies with all_success, a finalize task runs with all_done, and every task writes to a shared artifacts root." src="../diagrams/airflow-task-per-unit.dark.svg#only-dark" />
+<br />
+<figcaption>LOCAL, VIRTUALENV and KUBERNETES modes: one Airflow task per unit. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/airflow-task-per-unit.d2">airflow-task-per-unit.d2</a>.</figcaption>
+</figure>
+<figure>
+  <img alt="DATABRICKS mode: a launch task runs or repairs the saved Databricks job, one sensor per unit polls its task, and a finalize task runs with all_done." src="../diagrams/airflow-databricks.light.svg#only-light" />
+  <img alt="DATABRICKS mode: a launch task runs or repairs the saved Databricks job, one sensor per unit polls its task, and a finalize task runs with all_done." src="../diagrams/airflow-databricks.dark.svg#only-dark" />
+<br />
+<figcaption>DATABRICKS mode: launch, mirror sensors, finalize; repair stays in Databricks. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/airflow-databricks.d2">airflow-databricks.d2</a>.</figcaption>
+</figure>
+<figure>
+  <img alt="WATCHER mode: one producer task runs the selection and writes unit files to the shared artifacts root, one watcher per unit reads its file, and finalize waits for the producer and every leaf." src="../diagrams/airflow-watcher.light.svg#only-light" />
+  <img alt="WATCHER mode: one producer task runs the selection and writes unit files to the shared artifacts root, one watcher per unit reads its file, and finalize waits for the producer and every leaf." src="../diagrams/airflow-watcher.dark.svg#only-dark" />
+<br />
+<figcaption>WATCHER mode: one producer, one watcher per unit. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/airflow-watcher.d2">airflow-watcher.d2</a>.</figcaption>
+</figure>
 <p><strong>Databricks mode.</strong>
 - Options: (a) <code>DatabricksWorkflowTaskGroup</code> with <code>DatabricksTaskOperator</code> children; (b) one <code>run-now</code> of the bundle-deployed job, with per-model status mirroring.
 - Option (a) builds the job spec from Airflow operators at parse time. That duplicates the pipeloom renderer, forces job name <code>&lt;dag_id&gt;.&lt;group_id&gt;</code>, fixes <code>max_concurrent_runs=1</code>, and disables "Repair All Failed Tasks" on Airflow 3.
@@ -2931,14 +3035,11 @@ shop_daily = PipeloomDag(
 - Local <code>pipeloom retry --from &lt;run_id&gt;</code> creates a new run with <code>parent_run_id</code>, that runs the failed, skipped and cancelled units of the parent (0.8 amendment: it selects those <code>result:</code> values from the parent folder, not <code>result:fail+</code>, so it never runs a unit the parent did not select).
 - Writes are idempotent through the token <code>&lt;run_id&gt;:&lt;model&gt;</code>.</p>
 <p><strong>ADR-0015: Python version.</strong> Python 3.10 reaches end of life in October 2026, so the floor is 3.11.</p>
-<p><strong>D2 diagrams (<code>docs/diagrams/</code>):</strong>
-1. <code>01-context.d2</code>: users, YAML project, CLI and API, engines, catalogs, orchestrators, event consumers.
-2. <code>02-packages.d2</code>: distributions, core modules, import direction, the entry-point groups each plugin fills.
-3. <code>03-lifecycle.d2</code>: load → validate → resolve → validate plan → compile → execute → finalize, with the artifacts and error prefixes of each stage.
-4. <code>04-state-machines.d2</code>: unit and run state machines, including retry, timeout, skip and cancel transitions.
-5. <code>05-events.d2</code>: event bus fan-out to sinks, redaction, failure budget, buffered sinks, the artifact writer.
-6. <code>06-databricks.d2</code>: plan → job settings or bundle YAML; tasks, finalize, run-id propagation, artifacts on the volume, task values.
-7. <code>07-airflow-modes.d2</code>: PipeloomDag in LOCAL, VIRTUALENV or KUBERNETES mode (one task per unit, shared artifact root) versus DATABRICKS mode (launch, mirror sensors, repair path).</p>
+<p><strong>D2 diagrams (<code>docs/diagrams/</code>).</strong> Each <code>&lt;name&gt;.d2</code> renders to <code>&lt;name&gt;.light.svg</code> and <code>&lt;name&gt;.dark.svg</code> (<code>make diagrams</code>); pages embed both with Material's <code>#only-light</code> and <code>#only-dark</code>, so a diagram follows the site's palette toggle. Shared classes are in <code>_style.d2</code>, the two themes in <code>_theme.d2</code> and <code>_theme-dark.d2</code>.
+- Section 3: <code>context</code>, <code>packages</code>, <code>core-modules</code>, <code>lifecycle</code>.
+- Section 8: <code>unit-states</code>, <code>run-states</code>, <code>unit-lifecycle</code>.
+- Section 11: <code>events</code>. Section 12: <code>databricks</code>. Section 13: <code>airflow-task-per-unit</code>, <code>airflow-databricks</code>, <code>airflow-watcher</code>.
+- Guides: <code>quickstart</code>, <code>incremental</code>, <code>retry-cancel</code>, <code>portable-models</code>, <code>orchestrator</code>, <code>openlineage</code>, <code>conformance-kit</code> (Writing an engine), <code>use-cases</code> (home page).</p>
 <h2 id="18-package-skeleton-for-now">18. Package skeleton for now<a class="headerlink" href="#18-package-skeleton-for-now" title="Permanent link">&para;</a></h2>
 <pre><code>pipeloom/
 ├── .github/
@@ -2955,7 +3056,7 @@ shop_daily = PipeloomDag(
 │   ├── adr/README.md               # index + status table
 │   ├── adr/0000-template.md
 │   ├── adr/0001-record-architecture-decisions.md … 0016-versioning-and-plugin-api.md
-│   └── diagrams/01-context.d2 … 07-airflow-modes.d2
+│   └── diagrams/&lt;name&gt;.d2, &lt;name&gt;.light.svg, &lt;name&gt;.dark.svg
 ├── src/pipeloom/
 │   ├── __init__.py                 # __version__ = importlib.metadata.version(&quot;pipeloom&quot;)
 │   ├── __main__.py                 # from pipeloom.cli import main; main()

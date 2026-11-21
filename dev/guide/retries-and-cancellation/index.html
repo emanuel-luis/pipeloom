@@ -1569,6 +1569,12 @@
 <h1 id="retries-timeouts-and-cancellation">Retries, timeouts and cancellation<a class="headerlink" href="#retries-timeouts-and-cancellation" title="Permanent link">&para;</a></h1>
 <p>A unit can fail for a reason that goes away on its own, run for too long, or be stopped together
 with the run. pipeloom has a setting for each case.</p>
+<figure>
+  <img alt="Timeline: the scheduler starts attempt 1, which fails with a transient error and is retried; attempt 2 starts after the delay and succeeds. On Ctrl+C the scheduler asks the running unit to stop within the grace period, the unit ends cancelled and the run exits 130." src="../../diagrams/retry-cancel.light.svg#only-light" />
+  <img alt="Timeline: the scheduler starts attempt 1, which fails with a transient error and is retried; attempt 2 starts after the delay and succeeds. On Ctrl+C the scheduler asks the running unit to stop within the grace period, the unit ends cancelled and the run exits 130." src="../../diagrams/retry-cancel.dark.svg#only-dark" />
+<br />
+<figcaption>A retry, then a graceful cancel. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/retry-cancel.d2">retry-cancel.d2</a>.</figcaption>
+</figure>
 <h2 id="retries">Retries<a class="headerlink" href="#retries" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">from pipeloom import model
 from pipeloom.engine.errors import TransientError

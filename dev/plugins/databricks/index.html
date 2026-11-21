@@ -1714,7 +1714,12 @@ it from the command line. It also adds a Unity Catalog catalog and a Databricks 
 The design is in <a href="../../adr/0035-databricks-rendering-and-job-lifecycle/">ADR-0035</a> and
 <a href="../../adr/0036-databricks-client-and-connection/">ADR-0036</a>; section 12 of the
 <a href="../../architecture/">architecture</a> has the overview.</p>
-<p><img alt="A plan is rendered to Databricks job settings or bundle YAML. Model tasks write unit files to the volume, a finalize task writes run_results.json, and task values carry a summary." src="../../diagrams/06-databricks.svg" /></p>
+<figure>
+  <img alt="A plan becomes bundle YAML or is deployed directly as one Databricks job; the job runs one task per unit, then a finalize task; tasks write unit files and finalize writes run_results.json to a UC Volume, and tasks set task values." src="../../diagrams/databricks.light.svg#only-light" />
+  <img alt="A plan becomes bundle YAML or is deployed directly as one Databricks job; the job runs one task per unit, then a finalize task; tasks write unit files and finalize writes run_results.json to a UC Volume, and tasks set task values." src="../../diagrams/databricks.dark.svg#only-dark" />
+<br />
+<figcaption>One plan, one Databricks job. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/databricks.d2">databricks.d2</a>.</figcaption>
+</figure>
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
 <pre><code class="language-console">$ pip install &quot;pipeloom[databricks]&quot;       # on your machine, to deploy and run
 </code></pre>

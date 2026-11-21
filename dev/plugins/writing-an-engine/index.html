@@ -1515,6 +1515,12 @@
 group. This page walks through the pieces and ends with the conformance kit, which proves the
 engine does what the core expects. The protocols are <code>Engine</code> and <code>EngineSession</code> in
 <code>pipeloom.engine.protocols</code>; the design is in <a href="../../adr/0002-engine-abstraction/">ADR-0002</a>.</p>
+<figure>
+  <img alt="An engine plugin declares its capabilities and provides a harness; the conformance kit runs every cell and reports it passed when the engine keeps a declared promise, skipped when the capability is not declared, and failed when a declared promise is broken." src="../../diagrams/conformance-kit.light.svg#only-light" />
+  <img alt="An engine plugin declares its capabilities and provides a harness; the conformance kit runs every cell and reports it passed when the engine keeps a declared promise, skipped when the capability is not declared, and failed when a declared promise is broken." src="../../diagrams/conformance-kit.dark.svg#only-dark" />
+<br />
+<figcaption>How the conformance kit judges an engine. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/conformance-kit.d2">conformance-kit.d2</a>.</figcaption>
+</figure>
 <h2 id="1-declare-what-the-engine-can-do">1. Declare what the engine can do<a class="headerlink" href="#1-declare-what-the-engine-can-do" title="Permanent link">&para;</a></h2>
 <p><code>EngineCapabilities</code> is static data that the core reads without importing the engine. Declare
 only what the engine really does: the kit skips a cell for a capability you leave out and fails

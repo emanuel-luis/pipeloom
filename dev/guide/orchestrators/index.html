@@ -1692,6 +1692,12 @@ Airflow and Databricks do it through plugins. Anything else (GitHub Actions, Kes
 script) can follow the same protocol with only the command line and the files pipeloom writes. The
 protocol is <a href="../../adr/0049-artifact-schemas-and-orchestrator-protocol/">ADR-0049</a>; this page is
 the short version, and <a href="../recipe-github-actions/">the GitHub Actions recipe</a> is a working example.</p>
+<figure>
+  <img alt="pipeloom compile and graph --units write the unit graph; the orchestrator runs one pipeloom run per unit in order, each writing attempt files to the artifacts root, and always runs pipeloom finalize, which reads them." src="../../diagrams/orchestrator.light.svg#only-light" />
+  <img alt="pipeloom compile and graph --units write the unit graph; the orchestrator runs one pipeloom run per unit in order, each writing attempt files to the artifacts root, and always runs pipeloom finalize, which reads them." src="../../diagrams/orchestrator.dark.svg#only-dark" />
+<br />
+<figcaption>Prepare once, run each unit, always finalize. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/orchestrator.d2">orchestrator.d2</a>.</figcaption>
+</figure>
 <h2 id="terms">Terms<a class="headerlink" href="#terms" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Run</strong>: one orchestrator run of the plan, named by a run id. It has one folder,

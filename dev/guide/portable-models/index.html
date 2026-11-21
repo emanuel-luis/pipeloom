@@ -1575,6 +1575,12 @@ to break, and imports it in one module only, <code>pipeloom.engine.portable</cod
 <p>The engine must declare portable frames. All four do. On an
 engine that does not, such as the memory engine, <code>pipeloom validate</code> stops with
 <a href="../../reference/errors/#plc508">PLC508</a>.</p>
+<figure>
+  <img alt="One @model function written with Narwhals passes the capability check and runs on polars, DuckDB and Spark (lazy) and pandas (eager), giving the same output rows on each." src="../../diagrams/portable-models.light.svg#only-light" />
+  <img alt="One @model function written with Narwhals passes the capability check and runs on polars, DuckDB and Spark (lazy) and pandas (eager), giving the same output rows on each." src="../../diagrams/portable-models.dark.svg#only-dark" />
+<br />
+<figcaption>One model, four engines, the same rows. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/portable-models.d2">portable-models.d2</a>.</figcaption>
+</figure>
 <h2 id="an-example">An example<a class="headerlink" href="#an-example" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">import narwhals.stable.v2 as nw
 from pipeloom import model, ref

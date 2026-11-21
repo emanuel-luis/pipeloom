@@ -1534,6 +1534,12 @@
 
 <h1 id="lineage-with-openlineage">Lineage with OpenLineage<a class="headerlink" href="#lineage-with-openlineage" title="Permanent link">&para;</a></h1>
 <p>The <code>openlineage</code> sink sends pipeloom runs to an <a href="https://openlineage.io">OpenLineage</a> backend such as <a href="https://marquezproject.ai">Marquez</a>: one job per persisted model, its input and output datasets, and facets for the schema, row counts, data quality results and errors. Decided in <a href="../../adr/0046-openlineage/">ADR-0046</a>.</p>
+<figure>
+  <img alt="A pipeloom run sends its events to the openlineage sink, which sends jobs, datasets and facets to Marquez, where they show as a lineage graph; under Airflow the Airflow OpenLineage provider reports the tasks to Marquez." src="../../diagrams/openlineage.light.svg#only-light" />
+  <img alt="A pipeloom run sends its events to the openlineage sink, which sends jobs, datasets and facets to Marquez, where they show as a lineage graph; under Airflow the Airflow OpenLineage provider reports the tasks to Marquez." src="../../diagrams/openlineage.dark.svg#only-dark" />
+<br />
+<figcaption>From a pipeloom run to the lineage graph in Marquez. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/openlineage.d2">openlineage.d2</a>.</figcaption>
+</figure>
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
 <pre><code class="language-console">$ pip install &quot;pipeloom[openlineage]&quot;
 </code></pre>
