@@ -1403,28 +1403,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#patch-now-10x" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Patch now: 1.0.x
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#11-duckdb-and-a-one-command-demo" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.1: DuckDB and a one-command demo
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#12-know-what-a-change-does-before-it-merges" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1729,28 +1707,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#patch-now-10x" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Patch now: 1.0.x
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#11-duckdb-and-a-one-command-demo" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.1: DuckDB and a one-command demo
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#12-know-what-a-change-does-before-it-merges" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1897,7 +1853,7 @@
 
 
 <h1 id="roadmap">Roadmap<a class="headerlink" href="#roadmap" title="Permanent link">&para;</a></h1>
-<p>Status: plan as of 2026-11-20, written against 1.0.0. Versions 0.8 to 1.0 are delivered; this page now plans 1.1 to
+<p>Status: plan as of 2026-11-21, written against 1.1.0. Versions 0.8 to 1.1 are delivered; this page now plans 1.2 to
 1.9 and lists the breaking changes the stability policy holds back. Section 16 of <a href="../architecture/#16-roadmap">architecture.md</a> keeps the record of what each
 delivered version contains. The market research behind the plan is in <a href="../landscape/">Market landscape</a>. Items that
 change a decision name the ADR they need: ADRs up to 0050 exist and are accepted, and new ones continue from 0051.</p>
@@ -2076,13 +2032,13 @@ items are cut first.</p>
 <td>1.0.x</td>
 <td>Upstream patches</td>
 <td>Run on Polars 2.0, the current Databricks CLI and Airflow 3.3 and 3.4</td>
-<td>Planned</td>
+<td>Delivered in 1.1.0</td>
 </tr>
 <tr>
 <td>1.1</td>
 <td>DuckDB and a one-command demo</td>
 <td>Run a project and a demo on a laptop with DuckDB</td>
-<td>Planned</td>
+<td>Delivered</td>
 </tr>
 <tr>
 <td>1.2</td>
@@ -2155,29 +2111,17 @@ items are cut first.</p>
 <td>1.0</td>
 <td>Stable contracts: published schemas including the manifest, the <a href="../guide/orchestrators/">orchestrator protocol</a>, <code>graph --units</code>, plugin API (1, 0) and the <a href="../reference/stability/">stability policy</a> (<a href="../adr/0049-artifact-schemas-and-orchestrator-protocol/">ADR-0049</a>)</td>
 </tr>
+<tr>
+<td>1.0.x</td>
+<td>Delivered in 1.1.0, with no 1.0.1 release because nothing was broken for users: Databricks CLI version documentation, the Airflow 3.4 matrix and Polars 2 guards</td>
+</tr>
+<tr>
+<td>1.1</td>
+<td>Delivered in 1.1.0: DuckDB engine (<a href="../adr/0051-duckdb-engine/">ADR-0051</a>), conformance kit (<a href="../adr/0067-conformance-kit/">ADR-0067</a>), portable models guide and cross-engine matrix, <code>pipeloom demo</code>, <code>init --engine duckdb</code>, experimental tier in the stability policy. The stretch items Sail CI recipe and <code>show --limit</code> did not ship and are dropped</td>
+</tr>
 </tbody>
 </table>
 <p>The full list per version is in the CHANGELOG and in section 16 of the architecture.</p>
-<h3 id="patch-now-10x">Patch now: 1.0.x<a class="headerlink" href="#patch-now-10x" title="Permanent link">&para;</a></h3>
-<p>Upstream changes are already out, so they should not wait for 1.4. A 1.0.x patch runs the Databricks CLI range
-check (Terraform was removed in CLI 1.20.0 and the direct engine has been GA since 1.3.0) and the Airflow 3.3 and
-3.4 matrix. Only the new features (window parameters, partitioned assets) stay in 1.4. Polars 2.0 is released
-(post dated 2026-10-06, streaming is now the default <code>LazyFrame</code> engine and can change row order), so CI also runs
-against it now; check the row-order and <code>profile</code> removal notes in the
-<a href="https://docs.pola.rs/releases/upgrade/2/">upgrade guide</a> before writing acceptance tests.</p>
-<h3 id="11-duckdb-and-a-one-command-demo">1.1: DuckDB and a one-command demo<a class="headerlink" href="#11-duckdb-and-a-one-command-demo" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Conformance suites as an opt-in pytest plugin (<code>-p pipeloom.testing.pytest_plugin</code>, or a separate distribution), a versioned kit that prints its version in the report, an engine-author guide, and a capability matrix generated from <code>EngineCapabilities</code>. The suite joins the stability surface list. Done when: A scratch project with only pipeloom and the plugin runs the engine suite in CI. <code>mkdocs build --strict</code> renders the matrix.</li>
-<li><code>pipeloom-duckdb</code> (in-tree, released in lockstep): <code>sql_dialect="duckdb"</code>, portable defaults, and merge, scd2 and replace_partitions pushed down as SQL. Reads Parquet and CSV, plus read-only Delta. Extensions are installed from a pinned <code>extension_directory</code>, with a clear diagnostic when one is missing offline. ADR: 0051 (file database vs attached lakehouse). Done when: The full engine contract suite passes, and the <code>tpch_polars</code> SQL models run on DuckDB through <code>sql_dialect</code> translation. One CI job runs with extensions preinstalled and no network. A Delta read test runs on all three operating systems, or the gap is documented.</li>
-<li>Narwhals documentation and matrix. <code>narwhals.stable.v2</code> is already the portable layer with a single import point enforced by <code>lint-imports</code>, so this is the guide, a mapping of order errors to a code, and a cross-engine CI matrix. Done when: One portable model gives identical <code>to_rows</code> on polars, pandas, DuckDB and Spark.</li>
-<li><code>pipeloom demo</code>: DuckDB sample, tests and docs site. A <code>duckdb</code> extra on the core, and a diagnostic with an install hint when no engine is found. Done when: <code>uvx --from "pipeloom[duckdb]" pipeloom demo</code> exits 0 and writes <code>target/docs/index.html</code> in a clean venv on 3 OS.</li>
-<li><code>pipeloom init --engine duckdb</code> as a choice. The default stays polars, since only a new major can change a default. Done when: <code>init --no-input</code> still uses polars.</li>
-<li>Experimental tier in stability.md, with a warning code for experimental flags and fields, and the optional-member mechanism above. ADR: stability ADR amendment. Done when: A case file for the new warning code.</li>
-</ul>
-<p>Plugin API: unchanged.</p>
-<p>Stretch: Sail CI recipe, <code>show --limit [--defer]</code> with no writes.</p>
-<p>Changed from the earlier plan: <code>pipeloom ui</code> was promised for 1.1 and moves to 1.7.x, after the read layer
-(decided 2026-11-20, see section 6).</p>
 <h3 id="12-know-what-a-change-does-before-it-merges">1.2: Know what a change does before it merges<a class="headerlink" href="#12-know-what-a-change-does-before-it-merges" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Optional <code>checksums{code,config,contract,tests,upstream}</code> and <code>checksum_version</code> on manifest nodes. The 1.0 <code>checksum</code> is unchanged. Sub-selectors <code>state:modified.{code,config,contract,tests,upstream}</code> and <code>ls --why</code>. Config is hashed after <code>${var}</code> resolution and before <code>${env}</code> and <code>${secret}</code>, so secrets are never hashed. ADR: 0052. Done when: A whitespace, comment or docstring edit selects nothing under <code>state:modified.code</code>, while legacy <code>state:modified</code> still selects it. Editing a data test selects only <code>.tests</code>. A 1.0 reference manifest falls back to the legacy checksum with a warning.</li>
