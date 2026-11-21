@@ -1,0 +1,8 @@
+id,name,city,tier,status,valid_from,valid_to,is_current
+1,Ada Lima,Recife,basic,active,2026-01-01T00:00:00Z,2026-01-02T00:00:00Z,false
+1,Ada Lima,Olinda,basic,active,2026-01-02T00:00:00Z,,true
+2,Bruno Dias,Salvador,basic,active,2026-01-01T00:00:00Z,2026-01-02T00:00:00Z,false
+2,Bruno Dias,Salvador,gold,active,2026-01-02T00:00:00Z,,true
+3,Carla Nunes,Curitiba,gold,active,2026-01-01T00:00:00Z,,true
+4,Davi Rocha,Manaus,basic,active,2026-01-01T00:00:00Z,,true
+5,Elisa Prado,Natal,basic,active,2026-01-01T00:00:00Z,,true
