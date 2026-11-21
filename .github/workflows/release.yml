@@ -19,6 +19,7 @@ jobs:
       databricks: ${{ steps.dists.outputs.databricks }}
       airflow: ${{ steps.dists.outputs.airflow }}
       openlineage: ${{ steps.dists.outputs.openlineage }}
+      duckdb: ${{ steps.dists.outputs.duckdb }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -37,7 +38,7 @@ jobs:
             uv build --package "$name" -o "dist/$name"
           done
           # every built plugin must have a publish job below
-          known=' pipeloom-polars pipeloom-pandas pipeloom-spark pipeloom-databricks pipeloom-airflow pipeloom-openlineage '
+          known=' pipeloom-polars pipeloom-pandas pipeloom-spark pipeloom-databricks pipeloom-airflow pipeloom-openlineage pipeloom-duckdb '
           for dir in dist/pipeloom-*/; do
             name="$(basename "$dir")"
             case "$known" in
@@ -46,7 +47,7 @@ jobs:
             esac
           done
           # tell the publish jobs which plugin distributions exist in this release
-          for plugin in polars pandas spark databricks airflow openlineage; do
+          for plugin in polars pandas spark databricks airflow openlineage duckdb; do
             if [ -d "dist/pipeloom-$plugin" ]; then built=true; else built=false; fi
             echo "$plugin=$built" >> "$GITHUB_OUTPUT"
           done
@@ -226,6 +227,27 @@ jobs:
           attestations: true
           skip-existing: true
 
+  publish-pipeloom-duckdb:
+    needs: [build, publish-pipeloom]
+    if: needs.build.outputs.duckdb == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi-duckdb
+      url: https://pypi.org/project/pipeloom-duckdb/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          packages-dir: dist/pipeloom-duckdb/
+          attestations: true
+          skip-existing: true
+
   github-release:
     # after every publish job that ran; plugin jobs skipped for absent distributions do not block
     needs:
@@ -236,6 +258,7 @@ jobs:
       - publish-pipeloom-databricks
       - publish-pipeloom-airflow
       - publish-pipeloom-openlineage
+      - publish-pipeloom-duckdb
     if: >-
       ${{ !cancelled() && needs.publish-pipeloom.result == 'success'
       && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}

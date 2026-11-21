@@ -46,7 +46,7 @@ jobs:
       # checked against the real types
       # and so does Airflow, for the Airflow plugin
       - run: uv sync --locked --all-packages --group spark --group airflow
-      - run: uv run mypy --strict src plugins/pipeloom-polars/src plugins/pipeloom-pandas/src plugins/pipeloom-spark/src plugins/pipeloom-databricks/src plugins/pipeloom-airflow/src plugins/pipeloom-openlineage/src tests/typing/authoring_sample.py
+      - run: uv run mypy --strict src plugins/pipeloom-polars/src plugins/pipeloom-pandas/src plugins/pipeloom-spark/src plugins/pipeloom-databricks/src plugins/pipeloom-airflow/src plugins/pipeloom-openlineage/src plugins/pipeloom-duckdb/src tests/typing/authoring_sample.py
 
   test:
     needs: [lint]
@@ -138,6 +138,45 @@ jobs:
           PIPELOOM_TEST_SPARK: ${{ matrix.mode }}
           ARGS: ${{ matrix.args }}
         run: eval "uv run pytest -q -p no:cacheprovider $ARGS"
+
+  duckdb-extensions:
+    # The DuckDB plugin tests with the delta extension preinstalled into a pinned directory, then
+    # run without network: Linux cuts it with a network namespace; macOS and Windows rely on the
+    # engine never installing (install_extensions off, autoinstall off). One leg per OS, so the
+    # Delta read test runs on all three (ADR-0051).
+    needs: [lint]
+    name: duckdb extensions (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      UV_PYTHON: "3.12"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - run: uv sync --locked --all-packages
+      - name: Preinstall the delta extension (network)
+        run: |
+          echo "PIPELOOM_TEST_DUCKDB_EXTENSIONS=$RUNNER_TEMP/duckdb-ext" >> "$GITHUB_ENV"
+          uv run --no-sync python -c "import duckdb, sys; duckdb.connect(config={'extension_directory': sys.argv[1]}).install_extension('delta')" "$RUNNER_TEMP/duckdb-ext"
+      - name: DuckDB plugin tests without network (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          unshare --net --map-root-user .venv/bin/python -m pytest -q -p no:cacheprovider plugins/pipeloom-duckdb/tests
+      - name: DuckDB plugin tests, nothing installs (macOS, Windows)
+        if: runner.os != 'Linux'
+        run: uv run --no-sync pytest -q -p no:cacheprovider plugins/pipeloom-duckdb/tests
 
   airflow:
     # Not a required check yet: two green runs on main first. Airflow gets a throwaway home and
