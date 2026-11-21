@@ -13,6 +13,9 @@ All notable changes to this project are documented here. The format follows
 - CI installs only the pipeloom and pipeloom-polars wheels in a fresh venv and runs the kit against polars from outside the repository tree.
 - A new distribution, `pipeloom-duckdb` (`pip install "pipeloom[duckdb]"`), released in lockstep: the `duckdb` engine and the `duckdb` catalog ([ADR-0051](docs/adr/0051-duckdb-engine.md)). Tables live in a DuckDB database file, and a model catalog is a sibling file. `merge`, `scd2` and `replace_partitions` run as SQL (`MERGE INTO`, `DELETE`, `INSERT`) in one transaction with the idempotency token. It reads `parquet` and `csv`, and `delta` read-only through the DuckDB `delta` extension, which loads from a pinned `extension_directory`; with `install_extensions` off a missing extension fails with PLX121 and nothing is downloaded. `sql_dialect` is `duckdb`, and it passes the full engine contract suite.
 - The `tpch_polars` example declares `sql_dialect: postgres` and gains a `duckdb` target that runs its SQL models on DuckDB through translation.
+- `pipeloom demo [DIRECTORY]` writes a sample project on DuckDB, runs `build` and `docs generate` on it, and prints the docs site path and next commands; a missing DuckDB engine stops it with the new PLU004 and the hint `pip install "pipeloom[duckdb]"`. It never falls back to another engine ([ADR-0041](docs/adr/0041-pipeloom-init.md) amendment 1.1).
+- `pipeloom init --engine duckdb` is a new choice, with a unit test in the template. The default stays polars.
+- CI installs the built pipeloom and pipeloom-duckdb wheels in a fresh venv and runs `pipeloom demo` on Linux, macOS and Windows.
 - CI runs the DuckDB plugin tests on Linux, macOS and Windows with the `delta` extension preinstalled, without network on Linux.
 
 ### Fixed

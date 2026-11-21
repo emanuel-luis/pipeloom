@@ -1,0 +1,2 @@
+error PLU004 the demo runs on the 'duckdb' engine, which is not installed (engine plugins found: none)
+      hint: pip install "pipeloom[duckdb]"

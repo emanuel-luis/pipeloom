@@ -39,7 +39,7 @@ A new user starts from an empty folder and has to write `pipeloom.yml`, a target
 
 ## Status
 
-Accepted. Amended in 0.8 (editor setup, `pipeloom new model`) and in 0.9 by [ADR-0050](0050-python-first-authoring.md).
+Accepted. Amended in 0.8 (editor setup, `pipeloom new model`), in 0.9 by [ADR-0050](0050-python-first-authoring.md) and in 1.1 (duckdb template, `pipeloom demo`).
 
 ## Amendment (0.8): editor setup and pipeloom new model
 
@@ -66,3 +66,24 @@ Accepted. Amended in 0.8 (editor setup, `pipeloom new model`) and in 0.9 by [ADR
 ## Amendment 0.9 (ADR-0050)
 
 With Python-first authoring ([ADR-0050](0050-python-first-authoring.md)) `pipeloom new model NAME [--sql|--python] [--folder PATH]` writes one file, `models/<folder>/<name>.py`, with a decorated function and no YAML entry. With `--sql` the body returns `ctx.sql("select 1 as id")`; with `--python` it returns a frame stub. The default stays `--python` on pandas and `--sql` otherwise. The usage error for a Python model without `python_paths` goes away, because `python_paths` defaults to `["."]`. `init` writes one `.py` model per layer, a `models:` tree in `pipeloom.yml` instead of `_defaults.yml`, and `models/silver/_properties.yml`; `.vscode/settings.json` maps `project.json` to `pipeloom.yml` and `properties.json` to `models/**/*.yml`, and the `defaults.json` and `models.json` globs go away. These templates change with the examples, after the discovery and resolve changes of ADR-0050. As built, the `--python` stub raises `NotImplementedError`, because the frame type depends on the engine; the name check also counts decorated models; and a Python keyword or `ctx`, `model` or `ModelContext` as NAME is a usage error, since NAME becomes the function name.
+
+## Amendment 1.1: the duckdb template and `pipeloom demo`
+
+### What changed
+
+- `ENGINES` gains `duckdb`: layers `common`, `local`, `sql`, `duckdb`. The template reads the same CSV, writes the same three SQL models, and targets the `duckdb` engine and catalog (`target/warehouse.duckdb`) with no extension. Its `models/silver/_properties.yml` adds one unit test for `orders_clean`, so `pipeloom build` has a unit test, three models and data tests to run. The default engine of `init` stays polars: only a new major version may change a default.
+- `pipeloom demo [DIRECTORY]` renders that template into DIRECTORY (default `pipeloom_demo`), then runs `build` and `docs generate` in process through the CLI commands over `pipeloom.api`, so events and diagnostics reach stderr as they do for those commands. It prints the project path, the site path (`target/docs/index.html`) and the next commands, and exits 0. A DIRECTORY that exists and is not empty is a usage error (exit 2) and nothing is written. There is no `--force`: a demo never mixes with user files.
+- The demo requires the duckdb engine and never falls back to another installed engine. Without it, the command stops before writing anything with PLU004 (exit 1) whose hint is `pip install "pipeloom[duckdb]"`. The message lists the engine plugins that were found, so an environment with only polars sees why the demo did not run. The check reads entry-point metadata only (the core imports no plugin).
+- PLU004 is in the plugin layer, active since 1.1, with a case file and goldens.
+- CI installs the built core and pipeloom-duckdb wheels into a fresh venv and runs `pipeloom demo` on Linux, macOS and Windows, then checks `target/docs/index.html`.
+
+### Options considered
+
+- Fall back to polars or any installed engine: rejected. The output would depend on the machine, the sample would need one template per engine kept passing, and the CI check could pass on an engine nobody meant to demo.
+- Bundle DuckDB in the core dependencies: rejected. The core keeps no engine dependency; the `duckdb` extra and the one-line install hint carry the same ease.
+- `--force` on `demo`: left out; use a new folder.
+
+### Consequences
+
+- `uvx --from "pipeloom[duckdb]" pipeloom demo` is the whole first run. A user with only the core gets one clear error instead of a validate failure about an unknown engine kind.
+- The duckdb template is covered by the same layout and YAML-style tests as the others, plus a build test.

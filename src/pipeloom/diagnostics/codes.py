@@ -816,6 +816,12 @@ _ACTIVE_11: Final = (
         "DuckDB extension not installed",
         "The DuckDB engine needs an extension (delta for a Delta source, or one listed in the engine's extensions option) that is not installed in its extension_directory, and install_extensions is off, so nothing is downloaded. The code appears in the message of the error that the read or write reports (PLM204, PLM201 or PLX101). Preinstall the extension into that directory on a machine with network access, or turn install_extensions on.",
     ),
+    (
+        "PLU004",
+        E,
+        "Demo engine not installed",
+        "pipeloom demo runs on the DuckDB engine and found no duckdb engine plugin. The message lists the engine plugins that are installed, and the hint is the install command. The demo never falls back to another engine. Exit code 1.",
+    ),
 )
 
 

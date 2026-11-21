@@ -8,6 +8,7 @@ commands are for. A test keeps this table in step with the commands.
 | Command | Explained in |
 |---|---|
 | `pipeloom init` | [pipeloom init](#pipeloom-init), [Quickstart](../quickstart.md) |
+| `pipeloom demo` | [pipeloom demo](#pipeloom-demo), [Quickstart](../quickstart.md#try-it-in-one-command) |
 | `pipeloom new` | [pipeloom new model](#pipeloom-new-model) |
 | `pipeloom new model` | [pipeloom new model](#pipeloom-new-model), [Quickstart](../quickstart.md#add-a-model) |
 | `pipeloom validate` | [Inspecting a project](../guide/running.md#inspecting-a-project), [Quickstart](../quickstart.md#check-it) |
@@ -42,7 +43,7 @@ commands are for. A test keeps this table in step with the commands.
 folder named after the project in the current directory.
 
 - When stdin is a terminal it asks for what the flags leave out: the project name (default: the
-  directory name), the engine (`polars`, `pandas`, `spark` or `databricks`, default `polars`)
+  directory name), the engine (`polars`, `pandas`, `spark`, `databricks` or `duckdb`, default `polars`; the default stays polars)
   and, on databricks, the Unity Catalog catalog (default `main`). Otherwise, or with
   `--no-input`, it uses the flags and those defaults.
 - Each layer folder, `models/bronze`, `models/silver` and `models/gold`, gets one `.py` file with
@@ -59,6 +60,20 @@ folder named after the project in the current directory.
   kept and listed as skipped. A directory that already holds `pipeloom.yml` is refused.
 - Exit codes: 0 on success, 2 on a usage error (bad name or engine, `--catalog` without
   databricks, an existing project, a non-empty directory without `--force`).
+
+## pipeloom demo
+
+`pipeloom demo [DIRECTORY]` is the quickest way to see pipeloom work. It writes the `init`
+project for the duckdb engine into DIRECTORY (default `pipeloom_demo` in the current directory),
+runs `pipeloom build` on it (a unit test, three models and their data tests), writes the docs
+site and prints where it is and what to try next.
+
+- It needs the DuckDB engine (`pip install "pipeloom[duckdb]"`). Without it the command stops
+  with PLU004 and the install command as the hint. It never falls back to
+  another engine, so the demo is the same on every machine.
+- DIRECTORY must be missing or empty. The site is `DIRECTORY/target/docs/index.html`.
+- Exit codes: 0 on success, 1 when the engine is missing or the build fails, 2 for a directory
+  that is not empty.
 
 ## pipeloom new model
 

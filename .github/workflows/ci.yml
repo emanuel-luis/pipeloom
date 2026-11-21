@@ -269,6 +269,34 @@ jobs:
       - name: Check package metadata
         run: uvx twine check --strict dist/*
 
+  demo:
+    name: demo (${{ matrix.os }})
+    needs: [lint]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - run: uv build --package pipeloom --package pipeloom-duckdb
+      # Only the two built wheels, in a fresh venv: what `uvx --from "pipeloom[duckdb]"` installs.
+      - name: pipeloom demo in a clean venv
+        shell: bash
+        run: |
+          uv venv "$RUNNER_TEMP/demo-venv"
+          uv pip install --python "$RUNNER_TEMP/demo-venv" dist/pipeloom-*.whl dist/pipeloom_duckdb-*.whl
+          cd "$RUNNER_TEMP"
+          if [ -d "$RUNNER_TEMP/demo-venv/Scripts" ]; then BIN="$RUNNER_TEMP/demo-venv/Scripts"; else BIN="$RUNNER_TEMP/demo-venv/bin"; fi
+          "$BIN/pipeloom" demo demo-out
+          test -f demo-out/target/docs/index.html
+
   docs:
     runs-on: ubuntu-latest
     timeout-minutes: 10

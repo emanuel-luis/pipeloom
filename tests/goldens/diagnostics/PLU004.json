@@ -1,0 +1,13 @@
+[
+  {
+    "code": "PLU004",
+    "severity": "error",
+    "message": "the demo runs on the 'duckdb' engine, which is not installed (engine plugins found: none)",
+    "hint": "pip install \"pipeloom[duckdb]\"",
+    "location": null,
+    "context": {
+      "engine": "duckdb",
+      "installed": ""
+    }
+  }
+]

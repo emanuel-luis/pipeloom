@@ -130,7 +130,7 @@ def test_bad_name_flag(tmp_path: Path) -> None:
 
 
 def test_bad_engine(tmp_path: Path) -> None:
-    assert cli("init", str(tmp_path / "p"), "--engine", "duckdb").exit_code == 2
+    assert cli("init", str(tmp_path / "p"), "--engine", "oracle").exit_code == 2
 
 
 def test_non_empty_directory(tmp_path: Path) -> None:
@@ -223,3 +223,23 @@ def test_generated_project_validates_and_compiles(engine: str, tmp_path: Path) -
     nodes = json.loads((out / "target" / "manifest.json").read_text(encoding="utf-8"))["nodes"]
     relation = nodes["model.shop.revenue_by_customer"]["relation"]
     assert relation["schema"] == "gold" and relation["name"] == "revenue_by_customer"
+
+
+def test_duckdb_engine_choice_and_polars_stays_the_default(tmp_path: Path) -> None:
+    out = tmp_path / "duck"
+    result = cli("init", str(out), "--engine", "duckdb", "--no-input")
+    assert result.exit_code == 0, result.output
+    dev = project_yml(out)["targets"]["dev"]
+    assert dev["engine"]["kind"] == "duckdb" and dev["catalog"]["kind"] == "duckdb"
+    assert "unit_tests:" in (out / "models/silver/_properties.yml").read_text(encoding="utf-8")
+    other = tmp_path / "plain"
+    assert cli("init", str(other), "--no-input").exit_code == 0
+    assert project_yml(other)["targets"]["dev"]["engine"]["kind"] == "polars"
+
+
+def test_duckdb_project_builds(tmp_path: Path) -> None:
+    out = tmp_path / "duck"
+    assert cli("init", str(out), "--engine", "duckdb", "--no-input").exit_code == 0
+    result = cli("build", "--project-dir", str(out))
+    assert result.exit_code == 0, result.stderr
+    assert (out / "target" / "warehouse.duckdb").is_file()
