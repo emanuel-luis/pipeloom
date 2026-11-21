@@ -41,13 +41,13 @@ Install Airflow the way its project recommends, with a constraint file for your 
 versions, so the resolver does not pick versions Airflow was never tested with:
 
 ```console
-$ AIRFLOW_VERSION=3.3.2
+$ AIRFLOW_VERSION=3.4.0
 $ PYTHON_VERSION=3.12
 $ pip install "pipeloom-airflow[airflow]" \
     --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
 ```
 
-The floor is Airflow 3.2, the first release with Python 3.14 support. An older or missing Airflow is
+Tested range: Airflow 3.2.2 (the floor), the 3.3 line and 3.4.0, which is the version the lock pins. The floor is Airflow 3.2, the first release with Python 3.14 support. An older or missing Airflow is
 reported as PLA005 when the DAG file is parsed, never as an `ImportError`. Installing the plugin
 also needs the engine plugins your project uses (`pipeloom[polars]` and so on) on every machine
 that runs a unit.
