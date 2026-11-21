@@ -1739,6 +1739,14 @@ stable manifest per pipeline into a Declarative Automation Bundle. The output fo
 inside the bundle, next to <code>databricks.yml</code>, and the job files must be in its <code>include</code>. Paths use
 <code>${workspace.file_path}</code>. <code>--check</code> writes nothing and exits 1 when a file is stale. Running
 <code>databricks bundle deploy</code> stays your step.</p>
+<p><strong>Databricks CLI versions.</strong> The generated job files use only Jobs API fields, which both the
+Terraform and the direct deployment engine accept. They were checked with <code>databricks bundle
+validate</code> on CLI 1.18.0, with no unknown-field warning. CLI 1.20.0 removed the Terraform engine,
+so a bundle that sets <code>bundle.engine: terraform</code> fails there; remove the setting or pin CLI 1.19.
+pipeloom does not set a CLI floor. To require one, set <code>bundle.databricks_cli_version</code> in your own
+<code>databricks.yml</code>; an included file overrides the root's value, which is why pipeloom writes none.
+pipeloom never runs the CLI: <code>deploy</code>, <code>run</code> and <code>repair</code> use the Databricks SDK, so it has no
+CLI version check.</p>
 <p><strong>Direct deploy.</strong> <code>pipeloom databricks deploy --target prod</code> uploads the project and creates or
 resets one job per pipeline. The job is found by its <code>pipeloom_job</code> tag (two matches are PLD006).
 The upload is content addressed, under <code>&lt;workspace_root&gt;/&lt;project&gt;/&lt;pipeline&gt;/&lt;target&gt;/&lt;hash&gt;</code>,
