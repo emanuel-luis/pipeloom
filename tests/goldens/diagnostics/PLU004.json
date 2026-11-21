@@ -7,7 +7,7 @@
     "location": null,
     "context": {
       "engine": "duckdb",
-      "installed": []
+      "installed": ""
     }
   }
 ]

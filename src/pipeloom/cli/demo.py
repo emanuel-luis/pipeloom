@@ -32,7 +32,7 @@ def missing_engine(installed: Sequence[str]) -> Diagnostic:
         f"the demo runs on the '{ENGINE}' engine, which is not installed "
         f"(engine plugins found: {found})",
         hint=INSTALL,
-        context={"engine": ENGINE, "installed": sorted(installed)},
+        context={"engine": ENGINE, "installed": ", ".join(sorted(installed))},
     )
 
 

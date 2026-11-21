@@ -44,9 +44,7 @@ def test_demo_refuses_a_non_empty_directory(tmp_path: Path) -> None:
     assert not (tmp_path / "pipeloom.yml").exists()
 
 
-def test_demo_without_the_duckdb_engine(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_demo_without_the_duckdb_engine(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     install_entry_points(monkeypatch, [])
     out = tmp_path / "shop"
     result = cli("demo", str(out), "--log-format", "json")
