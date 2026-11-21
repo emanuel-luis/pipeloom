@@ -66,7 +66,8 @@ Every row in `results` has every key. Ephemeral models have no row: they appear 
 | `ephemeral_inlined` | Ephemeral models computed inside this unit. |
 | `materialization`, `strategy`, `relation_name` | What was built and where. |
 | `status` | `succeeded`, `failed`, `skipped` or `cancelled`. |
-| `skip_reason` | `upstream_failed` or `fail_fast` for a skipped unit; `not_run` (or the orchestrator's own reason) when `pipeloom finalize` found no result; else null. |
+| `skip_reason` | Why a unit was skipped; null on other rows. An open set: see [skip reasons](#skip-reasons). |
+| `failed_upstream` | Since 1.3, `upstream_failed` rows only: the unit whose failure skipped this one, or `<unit_id>.<data_test>` when a blocking data test failed. Absent on other rows. |
 | `attempt`, `retries_used` | Attempt number; retries are 0 in 0.2. |
 | `started_at`, `ended_at`, `duration_ms`, `queue_wait_ms` | Timing. Timestamps are RFC 3339 UTC. |
 | `rows_read` | Rows read per input alias; null where the engine is lazy (polars). |
@@ -82,6 +83,30 @@ Incremental and merge models fill `rows_updated`, `rows_deleted`, `target_versio
 and `warnings` carries `watermark_seeded: target` when the state store had no watermark.
 Fields that later versions fill stay null or empty: `rows_dropped`, `rows_quarantined`,
 `bytes_read`, `schema_changes` and `expectations`. `orchestrator_ids` holds the ids from `--orchestrator-id`.
+
+An `expectations` entry of a data test declared `blocking: false` carries `"blocking": false`
+(since 1.3); the key is absent on every other entry. A PLQ303 message lists at most 20 failing
+test names and ends with `and N more`.
+
+### Skip reasons
+
+`skip_reason` is an open set ([ADR-0056](../adr/0056-run-outcome-fields.md)). A failing reason
+makes the run fail; a non-failing one counts for nothing.
+
+| Reason | Class | When |
+|---|---|---|
+| `upstream_failed` | failing | An upstream unit failed or timed out, or a blocking data test failed. `failed_upstream` names it. |
+| `fail_fast` | failing | `--fail-fast` stopped the run after another unit failed. |
+| null | failing | A skipped row without a reason. |
+| `not_run` | non-failing | `pipeloom finalize` found no result and no orchestrator state. |
+| `not_selected` | non-failing | Reserved; nothing emits it yet. |
+| `up_to_date` | non-failing | Reserved for skipping unchanged units; nothing emits it yet. |
+| `not_due` | non-failing | Reserved for schedules; nothing emits it yet. |
+| `upstream_incomplete` | non-failing | Reserved for partitions whose upstream is not complete; nothing emits it yet. |
+| anything else | non-failing | An orchestrator's own reason, or a reason a later 1.x release adds. |
+
+Readers must treat a value they do not know as non-failing. The `reason` of the `unit.skipped`
+event takes the same values; its `upstream` names the failed unit.
 
 ## JSON Schemas
 

@@ -7,6 +7,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Literal, Self
 
+from pipeloom.artifacts.results import failure_cause
 from pipeloom.events.bus import EventBus
 from pipeloom.events.model import (
     EventPayload,
@@ -90,7 +91,8 @@ class UnitGraph:
 class ScheduleResult:
     states: Mapping[str, UnitState]
     skipped: Mapping[str, tuple[SkipReason, str | None]]
-    """Skipped unit to (reason, failed upstream or None)."""
+    """Skipped unit to (reason, `failed_upstream` or None): the failed unit, or `<unit>.<test>`
+    when a blocking data test failed (ADR-0056)."""
     completions: Mapping[str, UnitCompletion]
     """The last completion of every unit that ran; a timed-out or cancelled unit gets a verdict."""
     trace: tuple[tuple[float, str, UnitState], ...]
@@ -307,11 +309,7 @@ class Scheduler:
             return comp.internal_error
         if comp.status == "succeeded":
             self._set(u, UnitState.SUCCEEDED)
-            for child in self._graph.children[u]:
-                if self._states[child] is UnitState.PENDING:
-                    self._waiting[child] -= 1
-                    if self._waiting[child] == 0:
-                        self._queue(child)
+            self._release(u)
             return None
         if comp.status == "cancelled":
             self._set(u, UnitState.CANCELLED)
@@ -344,11 +342,22 @@ class Scheduler:
             )
             return None
         self._set(u, UnitState.FAILED)
-        self._after_failure(u)
+        cause = u if comp.result is None else failure_cause(u, comp.result.row)
+        if cause is None:  # only non-blocking data tests failed (ADR-0056)
+            self._release(u)
+            return None
+        self._after_failure(u, cause)
         return None
 
-    def _after_failure(self, unit_id: str) -> None:
-        self._skip_descendants(unit_id)
+    def _release(self, unit_id: str) -> None:
+        for child in self._graph.children[unit_id]:
+            if self._states[child] is UnitState.PENDING:
+                self._waiting[child] -= 1
+                if self._waiting[child] == 0:
+                    self._queue(child)
+
+    def _after_failure(self, unit_id: str, cause: str | None = None) -> None:
+        self._skip_descendants(unit_id, cause)
         if self._fail_fast:
             self._skip_rest()
 
@@ -432,12 +441,15 @@ class Scheduler:
             if self._states[u] in (UnitState.PENDING, UnitState.QUEUED, UnitState.RETRYING)
         ]
 
-    def _skip(self, unit_id: str, reason: SkipReason, upstream: str | None) -> None:
+    def _skip(
+        self, unit_id: str, reason: SkipReason, upstream: str | None, cause: str | None = None
+    ) -> None:
+        """The event names the failed unit; the result keeps `cause`, which may name its test."""
         self._set(unit_id, UnitState.SKIPPED)
-        self._skipped[unit_id] = (reason, upstream)
+        self._skipped[unit_id] = (reason, cause or upstream)
         self._emit(unit_id, UnitSkipped(reason=reason, upstream=upstream))
 
-    def _skip_descendants(self, failed: str) -> None:
+    def _skip_descendants(self, failed: str, cause: str | None = None) -> None:
         seen: set[str] = set()
         todo = [failed]
         while todo:
@@ -447,7 +459,7 @@ class Scheduler:
                     todo.append(c)
         for u in sorted(seen, key=self._index.__getitem__):
             if self._states[u] in (UnitState.PENDING, UnitState.QUEUED):
-                self._skip(u, "upstream_failed", failed)
+                self._skip(u, "upstream_failed", failed, cause)
 
     def _skip_rest(self) -> None:
         for u in self._open():

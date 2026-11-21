@@ -154,10 +154,12 @@ def finalize(
     a failed unit makes the run failed even when another was cancelled.
     """
     rows = latest_attempts(paths)
-    for unit_id, (reason, _upstream) in skipped.items():
+    for unit_id, (reason, upstream) in skipped.items():
         rows[unit_id] = result_row(
             unique_id=unit_nodes[unit_id], unit_id=unit_id, status="skipped", skip_reason=reason
         )
+        if upstream is not None:  # ADR-0056: absent on other rows
+            rows[unit_id]["failed_upstream"] = upstream
     for unit_id in (*cancelled, *unfinished):
         rows[unit_id] = result_row(
             unique_id=unit_nodes[unit_id], unit_id=unit_id, status="cancelled"

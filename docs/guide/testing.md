@@ -168,7 +168,29 @@ so set `on_violation: warn` where a full scan on every build is too slow. The pa
 an input, so `--defer` reads it from the reference. Each result is an entry of
 `results[].expectations` in `run_results.json` with `scope: table` (expectations carry
 `scope: batch`). A failed `warn` test adds a warning; a failed `fail` test is PLQ303: the unit
-fails, its descendants are skipped and the run exits 1, but the data stays written.
+fails, its descendants are skipped and the run exits 1, but the data stays written. Each skipped
+descendant names the test in `failed_upstream`, as `<model>.<test>`.
+
+### Non-blocking data tests
+
+A `fail` test blocks its descendants by default. Set `blocking: false` to keep the failure (the
+unit fails with PLQ303 and the run exits 1) while the descendants still run:
+
+```yaml
+      - name: customer_exists
+        check:
+          relationships:
+            column: customer_id
+            to:
+              ref: customers
+            field: id
+        blocking: false
+```
+
+`--fail-fast` does not stop the run for a non-blocking failure. `blocking` has no effect on a
+`warn` test. Under an orchestrator, which runs one unit per task, the orchestrator decides whether children run
+after a failed task, so `blocking: false` applies to `pipeloom build` and `pipeloom retry` only
+([ADR-0056](../adr/0056-run-outcome-fields.md)).
 
 Tables, incremental, intermediate and view models take data tests. On an ephemeral model they are
 PLP415, as is a relationships parent that is the model itself, one of its descendants, an

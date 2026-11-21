@@ -20,7 +20,7 @@ from pipeloom.artifacts.plan_diff import CATEGORIES, PLAN_DIFF_SCHEMA
 from pipeloom.artifacts.results import RESULTS_SCHEMA
 from pipeloom.artifacts.table_diff import TABLE_DIFF_SCHEMA, TableDiff
 from pipeloom.artifacts.unit_graph import UNIT_GRAPH_SCHEMA, UnitGraph
-from pipeloom.config.models import Materialized
+from pipeloom.config.models import DataTestConfig, Materialized
 from pipeloom.config.schema import DIALECT, SCHEMA_BASE_URL
 from pipeloom.events.model import EVENT_SCHEMA, ErrorInfo, Event, EventPayload
 from pipeloom.plan.manifest import MANIFEST_SCHEMA
@@ -224,7 +224,7 @@ def event_schema() -> dict[str, Any]:
     # Skip reasons are an open set, as in the run_results row `skip_reason`.
     defs["UnitSkipped"]["properties"]["reason"] = {
         "type": "string",
-        "description": "upstream_failed, fail_fast, not_run, or a reason added later.",
+        "description": "upstream_failed, fail_fast, not_run, or a reason added later (ADR-0056).",
     }
     body = {
         "description": "One event: the envelope, and a data object per event type.",
@@ -282,7 +282,9 @@ def _row() -> dict[str, Any]:
         "idempotency_token": _nullable("string"),
         "skip_reason": {
             **_nullable("string"),
-            "description": "upstream_failed, fail_fast, not_run or an orchestrator's own reason.",
+            "description": "An open set (ADR-0056). Failing: upstream_failed, fail_fast. "
+            "Non-failing: not_run, not_selected, up_to_date, not_due, upstream_incomplete, an "
+            "orchestrator's own reason, and any value a reader does not know.",
         },
         "orchestrator_ids": _ORCHESTRATOR_IDS,
         "intervals": {
@@ -309,6 +311,12 @@ def _row() -> dict[str, Any]:
                 },
                 "required": ["interval_id", "start", "end", "idempotency_token"],
             },
+        },
+        "failed_upstream": {
+            **_STRING,
+            "description": "Since 1.3 (ADR-0056), upstream_failed rows only: the unit whose "
+            "failure skipped this one, or <unit_id>.<data_test> when a blocking data test "
+            "failed. Absent on other rows.",
         },
     }
     return {"type": "object", "properties": props, "required": list(ROW_REQUIRED)}
@@ -497,6 +505,16 @@ def manifest_schema() -> dict[str, Any]:
     interval.pop("default", None)
     interval["anyOf"] = [a for a in interval["anyOf"] if a.get("type") != "null"]
     interval["description"] = interval.get("description", "") + " Absent while unset."
+    # `DataTestConfig` drops `blocking` while it is None (since 1.3, ADR-0056). Its wrap
+    # serializer hides the fields from the serialization schema, so take the validation one.
+    test = DataTestConfig.model_json_schema(ref_template=_DEFS + "{model}", mode="validation")
+    for name, sub in test.pop("$defs", {}).items():
+        defs.setdefault(name, sub)
+    defs["DataTestConfig"] = test
+    blocking = test["properties"]["blocking"]
+    blocking.pop("default", None)
+    blocking["anyOf"] = [a for a in blocking["anyOf"] if a.get("type") != "null"]
+    blocking["description"] = blocking.get("description", "") + " Absent while unset."
     ids = {"type": "object", "additionalProperties": _STRINGS}
     body = {
         "description": "The compiled plan: nodes, sources, execution units and edges.",

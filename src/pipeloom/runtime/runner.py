@@ -13,7 +13,7 @@ from typing import Any, Literal, NoReturn
 
 from pipeloom.artifacts.io import write_json_once
 from pipeloom.artifacts.layout import RunPaths
-from pipeloom.artifacts.results import result_row, schema_hash
+from pipeloom.artifacts.results import listed, result_row, schema_hash
 from pipeloom.config.resolve import model_id, source_id
 from pipeloom.diagnostics import JsonValue, Location
 from pipeloom.diagnostics.codes import DOCS_BASE_URL
@@ -1451,17 +1451,27 @@ class ModelRunner:
             cached=rel.lazy,
             scope="table",
         )
-        row["expectations"] = [*row["expectations"], *(r.to_json() for r in report.results)]
+        # ADR-0056: only a test declared `blocking: false` says so in its entry; the scheduler
+        # reads it to let the descendants run.
+        open_tests = {t.name for t in node.data_tests if t.blocking is False}
+        row["expectations"] = [
+            *row["expectations"],
+            *(
+                {**r.to_json(), "blocking": False} if r.name in open_tests else r.to_json()
+                for r in report.results
+            ),
+        ]
         row["warnings"] = [
             *row["warnings"],
             *(f"data test '{r.name}' ({r.kind}) failed" for r in report.warnings),
         ]
         if report.failures:
+            names = listed(report.failures)
             self._fail(
                 "PLQ303",
                 "write",
-                ValueError(", ".join(report.failures)),
-                f"model '{node.name}' failed data test(s): {', '.join(report.failures)}",
+                ValueError(names),
+                f"model '{node.name}' failed data test(s): {names}",
                 "the data stays written; fix the data or its parent, or set on_violation: warn",
             )
 
