@@ -1,0 +1,4 @@
+order_id,customer_id,amount,status,channel,coupon
+3001,1,20.00,paid,web,SPRING5
+3002,2,35.00,paid,app,
+3003,3,64.20,shipped,web,SPRING5
