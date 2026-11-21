@@ -72,15 +72,19 @@ markdown_extensions:
         - .
       check_paths: true
 nav:
-  - Home: index.md
-  - Quickstart: quickstart.md
+  - Get started:
+      - index.md
+      - Quickstart: quickstart.md
+      - Concepts: concepts.md
+      - Compared with other tools: compare.md
+      - Troubleshooting and FAQ: faq.md
   - Examples:
       - examples/index.md
       - Late-arriving events: examples/events_incremental.md
       - Customer dimension with history: examples/customers_scd2.md
       - An untrusted partner feed: examples/orders_quality.md
       - Testing transformation logic: examples/tested-models.md
-  - Guide:
+  - Guides:
       - Running a pipeline: guide/running.md
       - Incremental models: guide/incremental.md
       - Merge, replace_partitions, scd2 and schema changes: guide/write-strategies.md
@@ -88,30 +92,35 @@ nav:
       - Testing models: guide/testing.md
       - Portable models: guide/portable-models.md
       - Retries, timeouts and cancellation: guide/retries-and-cancellation.md
-      - Docs site: guide/docs-site.md
       - Run history: guide/run-history.md
       - Alerts with the webhook sink: guide/alerts.md
-      - Migrating from 0.8: guide/migrate-0.9.md
-      - Lineage with OpenLineage: guide/openlineage.md
-      - Orchestrator protocol: guide/orchestrators.md
+      - Docs site: guide/docs-site.md
       - "Recipe: GitHub Actions": guide/recipe-github-actions.md
-  - Plugins:
-      - Polars: plugins/polars.md
-      - pandas: plugins/pandas.md
-      - DuckDB: plugins/duckdb.md
-      - Spark: plugins/spark.md
-      - Databricks: plugins/databricks.md
-      - Airflow: plugins/airflow.md
-      - Writing an engine: plugins/writing-an-engine.md
+      - Migrating from 0.8: guide/migrate-0.9.md
+  - Integrations:
+      - Engines:
+          - DuckDB: plugins/duckdb.md
+          - Polars: plugins/polars.md
+          - pandas: plugins/pandas.md
+          - Spark: plugins/spark.md
+          - Writing an engine: plugins/writing-an-engine.md
+      - Platforms:
+          - Databricks: plugins/databricks.md
+          - Airflow: plugins/airflow.md
+          - Lineage with OpenLineage: guide/openlineage.md
+          - Orchestrator protocol: guide/orchestrators.md
   - Reference:
       - Command line: reference/cli.md
       - Databricks commands: reference/databricks-cli.md
+      - Python API: reference/api.md
       - JSON Schema: reference/schema.md
       - Run artifacts: reference/artifacts.md
       - Error codes: reference/errors.md
       - Engine capabilities: reference/engine-capabilities.md
       - Stability and deprecations: reference/stability.md
-  - Architecture: architecture.md
-  - Roadmap: roadmap.md
-  - Market landscape: landscape.md
-  - Decisions: adr/README.md
+  - Project:
+      - Architecture: architecture.md
+      - Decisions: adr/README.md
+      - Roadmap: roadmap.md
+      - Market landscape: landscape.md
+      - Changelog: https://github.com/emanuel-luis/pipeloom/blob/main/CHANGELOG.md
