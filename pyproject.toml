@@ -73,7 +73,7 @@ airflow = [
     "apache-airflow-providers-cncf-kubernetes>=10.25,<11",
     "apache-airflow-providers-openlineage>=2.8,<3",
 ]
-docs = ["mkdocs-material", "mkdocstrings[python]", "mkdocs-click", "mike"]
+docs = ["mkdocs-material", "mkdocstrings[python]", "mkdocs-click", "mike", "mkdocs-glightbox==0.4.0"]
 
 [tool.pipeloom]
 config-version = 1

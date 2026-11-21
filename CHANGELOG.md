@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Documentation
+
+- The docs site gets a light and dark theme that follows the OS, a logo, top tabs, copyable code, click-to-zoom diagrams, an outdated-version banner, canonical URLs on `/latest/` and a root 404 page that redirects to `/latest/`.
+
 ## [1.1.0] - 2026-11-21
 
 pipeloom 1.1.0 adds a DuckDB engine and a one-command demo. The new `pipeloom-duckdb` distribution brings the `duckdb` engine and catalog, `pipeloom demo` builds a sample project and its docs site on DuckDB, and `pipeloom init --engine duckdb` is a new choice. The engine conformance kit lets any project run `EngineContract` against its own engine, and the portable models guide and a cross-engine matrix show one `frame_api: narwhals` model returning the same rows on polars, pandas, DuckDB and Spark. Airflow 3.4 is supported and tested, and the stability policy gains an experimental tier. 1.1.0 needs no config change, and the plugin API stays (1, 0). The 1.0.x patch items (Databricks CLI documentation, the Airflow 3.4 matrix and Polars 2 guards) ship here instead of a 1.0.1 release, because nothing was broken for users.
