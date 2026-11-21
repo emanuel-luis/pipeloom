@@ -25,6 +25,10 @@ classifiers = [
 ]
 dependencies = ["pipeloom~=1.1.0", "pandas>=2.3.3,<4", "pyarrow>=22"]
 
+[project.optional-dependencies]
+# ctx.sql runs through DuckDB (ADR-0068).
+sql = ["duckdb>=1.4,<3"]
+
 [project.urls]
 Repository = "https://github.com/emanuel-luis/pipeloom"
 Documentation = "https://emanuel-luis.github.io/pipeloom/"

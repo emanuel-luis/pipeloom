@@ -49,7 +49,7 @@ folder named after the project in the current directory.
   `--no-input`, it uses the flags and those defaults.
 - Each layer folder, `models/bronze`, `models/silver` and `models/gold`, gets one `.py` file with
   a decorated model. polars, spark and databricks models return `ctx.sql(...)`; pandas models
-  are frame code, since pandas has no SQL. `pipeloom.yml` holds the source group `raw` and a
+  are frame code, since pandas runs SQL only with the optional DuckDB extra. `pipeloom.yml` holds the source group `raw` and a
   `models:` tree that sets each layer's schema and tags; `models/silver/_properties.yml` holds a
   description. `.vscode/settings.json` maps `project.json` to `pipeloom.yml` and
   `properties.json` to `models/**/*.yml`. polars, pandas and spark read a small CSV in `data/`,

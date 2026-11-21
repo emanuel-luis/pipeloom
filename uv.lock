@@ -4025,12 +4025,19 @@ dependencies = [
     { name = "pyarrow" },
 ]
 
+[package.optional-dependencies]
+sql = [
+    { name = "duckdb" },
+]
+
 [package.metadata]
 requires-dist = [
+    { name = "duckdb", marker = "extra == 'sql'", specifier = ">=1.4,<3" },
     { name = "pandas", specifier = ">=2.3.3,<4" },
     { name = "pipeloom", editable = "." },
     { name = "pyarrow", specifier = ">=22" },
 ]
+provides-extras = ["sql"]
 
 [[package]]
 name = "pipeloom-polars"

@@ -9,7 +9,7 @@ CODE = """
 import sys
 import pipeloom_pandas.spec as spec
 assert spec.SPEC.capabilities.portable
-assert not spec.SPEC.capabilities.sql_models
+assert "duckdb" not in sys.modules, "duckdb was imported"
 assert "pandas" not in sys.modules, "pandas was imported"
 assert "pyarrow" not in sys.modules, "pyarrow was imported"
 assert "pipeloom_pandas.engine" not in sys.modules

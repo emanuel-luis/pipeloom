@@ -225,7 +225,13 @@ class PandasSession:
     # -- relations ----------------------------------------------------------------------------
 
     def sql(self, query: str, inputs: Mapping[str, Relation]) -> Relation:
-        raise NotImplementedError("the pandas engine has no SQL in 0.2")
+        if CAPABILITIES.sql_dialect is None:
+            raise NotImplementedError(
+                'the pandas engine runs SQL through DuckDB: pip install "pipeloom-pandas[sql]"'
+            )
+        from pipeloom_pandas import sql
+
+        return _rel(sql.run(query, {alias: rel.native for alias, rel in inputs.items()}))
 
     def relation(self, native: Any) -> Relation:
         if not isinstance(native, pd.DataFrame):

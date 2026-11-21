@@ -108,7 +108,8 @@ without `inputs=`: `def orders_clean(ctx, orders)` reads the source table `order
 
 The query is written in the engine's dialect. Set `sql_dialect` (a keyword, or `+sql_dialect` in
 the tree) to write it in another dialect; pipeloom translates it with sqlglot, which is the
-`pipeloom[sqlglot]` extra. pandas has no SQL: write those models with frames.
+`pipeloom[sqlglot]` extra. pandas had no SQL in 0.9: write those models with frames, or, from 1.2,
+install `pipeloom-pandas[sql]`, which runs `ctx.sql` through DuckDB.
 
 ## Views
 

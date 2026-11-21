@@ -49,7 +49,7 @@ def {name}(ctx: ModelContext):
 
 
 def _default_kind(loaded: LoadedProject) -> str:
-    """python when the default target runs a pandas engine (no SQL there), else sql."""
+    """python when the default target runs a pandas engine (SQL there needs its DuckDB extra), else sql."""
     config = loaded.config
     target = config.default_target or (
         next(iter(config.targets)) if len(config.targets) == 1 else None

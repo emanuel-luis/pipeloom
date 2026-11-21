@@ -66,14 +66,12 @@ def test_the_session_needs_the_filesystem_catalog(tmp_path: Path) -> None:
         pass
 
 
-def test_unsupported_format_strategy_sql_and_view(tmp_path: Path) -> None:
+def test_unsupported_format_strategy_and_view(tmp_path: Path) -> None:
     catalog = FilesystemCatalog(tmp_path / "wh")
     with PandasEngine().session(ctx(tmp_path), catalog=catalog) as s:
         with pytest.raises(ValueError, match="format"):
             s.reader("orc")
         assert s.materializer("scd2") is not None
-        with pytest.raises(NotImplementedError):
-            s.sql("select 1", {})
         with pytest.raises(NotImplementedError):
             s.create_view(T, "select 1", {})
 

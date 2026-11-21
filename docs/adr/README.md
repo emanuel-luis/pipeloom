@@ -59,3 +59,4 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0053 | [Table diff](0053-table-diff.md) | Accepted | 2026-11-21 |
 | 0055 | [Canonical dataset identity](0055-canonical-dataset-identity.md) | Accepted | 2026-11-20 |
 | 0067 | [Conformance kit as an opt-in pytest plugin](0067-conformance-kit.md) | Accepted | 2026-11-20 |
+| 0068 | [pandas runs ctx.sql through DuckDB](0068-pandas-sql-through-duckdb.md) | Accepted | 2026-11-21 |
