@@ -6,13 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Documentation
+### Added
 
-- A new example, [Late-arriving events](docs/examples/events_incremental.md): an incremental model with a watermark, a lookback and a merge on a key, run on DuckDB and polars, with a walkthrough test that asserts watermarks, row counts and an idempotent rerun.
-- A `customers_scd2` example and walkthrough: three CRM snapshots build a customer dimension with history through the `scd2` write strategy on DuckDB, polars and pandas, with an as-of query and a walkthrough test.
-- A new example, `examples/orders_quality`, and its walkthrough page: an untrusted partner feed with warn, drop and quarantine expectations, a model contract that catches a schema break (PLM208) and data tests, run on DuckDB and polars and tested in CI.
-- A new example, `examples/tested_models`, with a walkthrough page: unit tests with inline and CSV rows, data tests, `pipeloom test` and `pipeloom build` on DuckDB and polars, and a plain pytest on a model function. Its CI test checks that a deliberately wrong copy fails with PLX114.
-- The docs site gets a light and dark theme that follows the OS, a logo, top tabs, copyable code, click-to-zoom diagrams, an outdated-version banner, canonical URLs on `/latest/` and a root 404 page that redirects to `/latest/`.
+- A performance budget: a generated 1,000-model project (static decorators, `ctx.sql` bodies, a DAG with fan-in and fan-out, properties files with data tests) must discover, resolve, validate, compile and write a stable manifest inside wall-clock budgets, with cold discovery under 2 s as ADR-0050 promised. It runs in its own ubuntu CI job (`PIPELOOM_TEST_PERF=1`); `PIPELOOM_TEST_PERF_BUDGET_SCALE` multiplies the budgets for slow machines.
+
+### Changed
+
+- The published run_results schemas require only the frozen 1.0 field set; fields added later are optional ([ADR-0049](docs/adr/0049-artifact-schemas-and-orchestrator-protocol.md) amendment). Tests check frozen 1.0 documents against the current schemas and current goldens against the frozen 1.0 schemas. No change to what pipeloom writes.
 
 ## [1.1.0] - 2026-11-21
 
@@ -20,7 +20,6 @@ pipeloom 1.1.0 adds a DuckDB engine and a one-command demo. The new `pipeloom-du
 
 ### Added
 
-- A performance budget: a generated 1,000-model project (static decorators, `ctx.sql` bodies, a DAG with fan-in and fan-out, properties files with data tests) must discover, resolve, validate, compile and write a stable manifest inside wall-clock budgets, with cold discovery under 2 s as ADR-0050 promised. It runs in its own ubuntu CI job (`PIPELOOM_TEST_PERF=1`); `PIPELOOM_TEST_PERF_BUDGET_SCALE` multiplies the budgets for slow machines.
 - The engine conformance kit ([ADR-0067](docs/adr/0067-conformance-kit.md)): an opt-in pytest plugin, `pytest -p pipeloom.testing.pytest_plugin --pipeloom-harness MODULE:CALLABLE`, runs `EngineContract` against a harness from any project that has pipeloom and the engine installed. The report header prints the kit version (`KIT_VERSION`, 1.0). The plugin joins the stability surface list, and existing subclasses of `EngineContract` keep working.
 - An engine author guide, [Writing an engine](docs/plugins/writing-an-engine.md), and a generated [capability matrix](docs/reference/engine-capabilities.md) built from the `EngineCapabilities` of every installed engine.
 - CI installs only the pipeloom and pipeloom-polars wheels in a fresh venv and runs the kit against polars from outside the repository tree.
@@ -35,7 +34,6 @@ pipeloom 1.1.0 adds a DuckDB engine and a one-command demo. The new `pipeloom-du
 
 ### Changed
 
-- The published run_results schemas require only the frozen 1.0 field set; fields added later are optional ([ADR-0049](docs/adr/0049-artifact-schemas-and-orchestrator-protocol.md) amendment). Tests check frozen 1.0 documents against the current schemas and current goldens against the frozen 1.0 schemas. No change to what pipeloom writes.
 - Airflow 3.4 is supported and tested: the lock moves to `apache-airflow` 3.4.0 and the `airflow` CI job gains a 3.3 leg next to the 3.2.2 floor. The `>=3.2,<4` requirement is unchanged.
 
 ### Fixed
