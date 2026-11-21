@@ -61,6 +61,13 @@ _INTERMEDIATE_DATA = "data.parquet"
 _INTERMEDIATE_TOKEN = "_pipeloom_token.json"
 
 
+def _q(con: Any, sql: str, params: Sequence[Any] | None = None) -> list[tuple[Any, ...]]:
+    """Run one statement and fetch its whole result: DuckDB refuses the next statement on a
+    connection while a result is unfinished."""
+    out: list[tuple[Any, ...]] = con.execute(sql, params).fetchall()
+    return out
+
+
 def _rel(native: Any) -> Relation:
     return Relation(native, NAME, lazy=True)
 
@@ -144,18 +151,15 @@ class DuckDBSession:
             finally:
                 self._busy = prior
 
-    def execute(self, sql: str, params: Sequence[Any] | None = None) -> Any:
+    def execute(self, sql: str, params: Sequence[Any] | None = None) -> list[tuple[Any, ...]]:
         with self._use() as con:
-            return con.execute(sql, params)
+            return _q(con, sql, params)
 
     def scalar(self, sql: str, params: Sequence[Any] | None = None) -> Any:
-        with self._use() as con:
-            return con.execute(sql, params).fetchone()[0]
+        return self.execute(sql, params)[0][0]
 
     def rows(self, sql: str, params: Sequence[Any] | None = None) -> list[tuple[Any, ...]]:
-        with self._use() as con:
-            out: list[tuple[Any, ...]] = con.execute(sql, params).fetchall()
-            return out
+        return self.execute(sql, params)
 
     def query(self, sql: str) -> Any:
         """A lazy relation; binding errors (an unknown table or column) raise here."""
@@ -179,13 +183,13 @@ class DuckDBSession:
             if name in self._loaded:
                 return
             try:
-                self.native.execute(f"LOAD {ident(name)}")
+                _q(self.native, f"LOAD {ident(name)}")
             except duckdb.Error as exc:
                 if not self._opts.install_extensions:
                     diag = extensions.missing(name, self._opts.extension_directory)
                     raise extensions.ExtensionMissingError(diag) from exc
-                self.native.execute(f"INSTALL {ident(name)}")
-                self.native.execute(f"LOAD {ident(name)}")
+                _q(self.native, f"INSTALL {ident(name)}")
+                _q(self.native, f"LOAD {ident(name)}")
             self._loaded.add(name)
 
     # -- reading ----------------------------------------------------------------------------
@@ -265,7 +269,7 @@ class DuckDBSession:
             cols.append(f"{ident(c.name)} {duck}")
         name = ident(self._name("rows"))
         with self._use() as con:
-            con.execute(f"CREATE TEMP TABLE {name} ({', '.join(cols)})")
+            _q(con, f"CREATE TEMP TABLE {name} ({', '.join(cols)})")
             if rows:
                 marks = ", ".join("?" for _ in schema)
                 con.executemany(
@@ -462,9 +466,9 @@ class DuckDBSession:
             # The batch is computed first, outside the transaction: a failing relation never
             # touches the table, and a model that reads its own table sees the old rows.
             stage = ident(self._name("stage"))
-            con.execute(f"CREATE TEMP TABLE {stage} AS SELECT * FROM {self._view(rel)}")
+            _q(con, f"CREATE TEMP TABLE {stage} AS SELECT * FROM {self._view(rel)}")
             try:
-                types = {r[0]: r[1] for r in con.execute(f"DESCRIBE {stage}").fetchall()}
+                types = {r[0]: r[1] for r in _q(con, f"DESCRIBE {stage}")}
                 ident_ = self.catalog.ident(target)
                 exists = self.catalog.exists(target)
                 write = _Write(con, ident_, stage, types, cfg, exists)
@@ -473,13 +477,13 @@ class DuckDBSession:
                 try:
                     result = write.run()
                     commits = self._commits(db)
-                    con.execute(f"CREATE SCHEMA IF NOT EXISTS {ident(db)}.{ident(_META_SCHEMA)}")
-                    con.execute(
+                    _q(con, f"CREATE SCHEMA IF NOT EXISTS {ident(db)}.{ident(_META_SCHEMA)}")
+                    _q(con, 
                         f"CREATE TABLE IF NOT EXISTS {commits} "
                         "(relation VARCHAR, token VARCHAR, result VARCHAR)"
                     )
                     result = replace(result, commit_meta=dict(cfg.commit_meta))
-                    con.execute(
+                    _q(con, 
                         f"INSERT INTO {commits} VALUES (?, ?, ?)",
                         [f"{target.schema}.{target.name}", token, _dump(result)],
                     )
@@ -488,7 +492,7 @@ class DuckDBSession:
                     con.rollback()
                     raise
             finally:
-                con.execute(f"DROP TABLE IF EXISTS {stage}")
+                _q(con, f"DROP TABLE IF EXISTS {stage}")
         return result
 
     def create_view(
@@ -567,7 +571,7 @@ class _Write:
                 raise WriteKeyError(f"{what} column '{c}' is missing")
 
     def _one(self, sql: str) -> Any:
-        return self.con.execute(sql).fetchone()[0]
+        return _q(self.con, sql)[0][0]
 
     def _is_delete(self, alias: str) -> str:
         d = self.cfg.deletes
@@ -582,10 +586,10 @@ class _Write:
         cols = ", ".join(ident(k) for k in keys)
         present = " AND ".join(f"{ident(k)} IS NOT NULL" for k in keys)
         return bool(
-            self.con.execute(
+            _q(self.con, 
                 f"SELECT 1 FROM {self.stage} WHERE {present} GROUP BY {cols} "
                 "HAVING count(*) > 1 LIMIT 1"
-            ).fetchall()
+            )
         )
 
     def check(self) -> None:
@@ -614,7 +618,7 @@ class _Write:
                     raise ValueError("scd2 supports hard deletes only")
                 self._has((cfg.deletes.column,), "deletes")
             nulls = " OR ".join(f"{ident(k)} IS NULL" for k in keys)
-            if self.con.execute(f"SELECT 1 FROM {self.stage} WHERE {nulls} LIMIT 1").fetchall():
+            if _q(self.con, f"SELECT 1 FROM {self.stage} WHERE {nulls} LIMIT 1"):
                 raise WriteKeyError("the batch has a null unique_key")
             if self._repeats(keys):
                 raise WriteKeyError("the batch repeats a unique_key value")
@@ -622,12 +626,12 @@ class _Write:
     def run(self) -> WriteResult:
         strategy = self.cfg.strategy
         if strategy == "overwrite":
-            self.con.execute(f"CREATE OR REPLACE TABLE {self.target} AS SELECT * FROM {self.stage}")
+            _q(self.con, f"CREATE OR REPLACE TABLE {self.target} AS SELECT * FROM {self.stage}")
             return WriteResult(rows_written=int(self._one(f"SELECT count(*) FROM {self.stage}")))
         if strategy == "scd2":
             return self._scd2()
         if not self.exists:
-            self.con.execute(f"CREATE TABLE {self.target} AS SELECT * FROM {self.stage} LIMIT 0")
+            _q(self.con, f"CREATE TABLE {self.target} AS SELECT * FROM {self.stage} LIMIT 0")
         elif self.cfg.columns is not None:
             self._evolve(self.cfg.columns)
         if strategy == "append":
@@ -640,7 +644,7 @@ class _Write:
     def _evolve(self, columns: Schema) -> None:
         """Rebuild the table with `columns`: new ones null, others cast (the core already
         checked that every cast widens)."""
-        current = {r[0]: r[1] for r in self.con.execute(f"DESCRIBE {self.target}").fetchall()}
+        current = {r[0]: r[1] for r in _q(self.con, f"DESCRIBE {self.target}")}
         if [(n, to_logical(t)) for n, t in current.items()] == [(c.name, c.dtype) for c in columns]:
             return
         exprs = []
@@ -648,7 +652,7 @@ class _Write:
             duck = to_duckdb(c.dtype) or current.get(c.name, "VARCHAR")
             ref = ident(c.name) if c.name in current else "NULL"
             exprs.append(f"CAST({ref} AS {duck}) AS {ident(c.name)}")
-        self.con.execute(
+        _q(self.con, 
             f"CREATE OR REPLACE TABLE {self.target} AS SELECT {', '.join(exprs)} FROM {self.target}"
         )
 
@@ -669,12 +673,12 @@ class _Write:
         cond = "true" if cfg.update_condition is None else f"coalesce(({cfg.update_condition}), false)"
         is_del = self._is_delete("source.")
         matched = f"target.{ident(keys[0])} IS NOT NULL"
-        inserted, updated, deleted = self.con.execute(
+        inserted, updated, deleted = _q(self.con, 
             f"SELECT count_if(NOT ({matched}) AND NOT {is_del}), "
             f"count_if({matched} AND {cond} AND NOT {is_del}), "
             f"count_if({matched} AND {cond} AND {is_del}) "
             f"FROM {self.stage} AS source LEFT JOIN {self.target} AS target ON {on}"
-        ).fetchone()
+        )[0]
         cols = list(self.types)
         sets = ", ".join(f"{ident(c)} = source.{ident(c)}" for c in cols)
         names = ", ".join(ident(c) for c in cols)
@@ -685,7 +689,7 @@ class _Write:
             clauses.append(f"WHEN MATCHED AND {cond} AND {is_del} THEN DELETE")
         clauses.append(f"WHEN MATCHED AND {cond} THEN UPDATE SET {sets}")
         clauses.append(f"WHEN NOT MATCHED AND NOT {is_del} THEN INSERT ({names}) VALUES ({values})")
-        self.con.execute(
+        _q(self.con, 
             f"MERGE INTO {self.target} AS target USING {self.stage} AS source ON {on}\n"
             + "\n".join(clauses)
         )
@@ -703,7 +707,7 @@ class _Write:
         is_del = self._is_delete("source.")
         opened = f"{ts} AS valid_from, CAST(NULL AS {_TSTZ}) AS valid_to, true AS is_current"
         if cfg.full_refresh or not self.exists:  # a first load: every live row opens a version
-            self.con.execute(
+            _q(self.con, 
                 f"CREATE OR REPLACE TABLE {self.target} AS SELECT source.*, {opened} "
                 f"FROM {self.stage} AS source WHERE NOT {is_del}"
             )
@@ -718,19 +722,19 @@ class _Write:
         ) or "true"
         on = self._keys_match("target", "source", keys) + " AND target.is_current"
         matched = f"target.{ident(keys[0])} IS NOT NULL"
-        deleted, changed, inserted = self.con.execute(
+        deleted, changed, inserted = _q(self.con, 
             f"SELECT count_if({matched} AND {is_del}), "
             f"count_if({matched} AND NOT {is_del} AND NOT ({same})), "
             f"count_if(NOT {is_del} AND (NOT ({matched}) OR NOT ({same}))) "
             f"FROM {self.stage} AS source LEFT JOIN {self.target} AS target ON {on}"
-        ).fetchone()
-        self.con.execute(
+        )[0]
+        _q(self.con, 
             f"MERGE INTO {self.target} AS target USING {self.stage} AS source ON {on}\n"
             f"WHEN MATCHED AND ({is_del} OR NOT ({same})) THEN UPDATE SET "
             f"valid_to = {ts}, is_current = false"
         )
         live = self._keys_match("c", "source", keys)
-        self.con.execute(
+        _q(self.con, 
             f"INSERT INTO {self.target} BY NAME SELECT source.*, {opened} "
             f"FROM {self.stage} AS source WHERE NOT {is_del} AND NOT EXISTS "
             f"(SELECT 1 FROM {self.target} AS c WHERE {live} AND c.is_current)"
