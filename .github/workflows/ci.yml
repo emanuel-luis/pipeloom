@@ -202,6 +202,16 @@ jobs:
           "$RUNNER_TEMP/all/bin/pipeloom" run --project-dir "$RUNNER_TEMP/smoke" --target polars
           cp -r tests/fixtures/smoke-pandas "$RUNNER_TEMP/smoke-pandas"
           "$RUNNER_TEMP/all/bin/pipeloom" run --project-dir "$RUNNER_TEMP/smoke-pandas" --target pandas
+      - name: Run the engine conformance kit against polars from outside the repository
+        # Only the two wheels and pytest, in a directory with no pyproject.toml: what a
+        # third-party engine author's CI does (docs/plugins/writing-an-engine.md).
+        run: |
+          uv venv "$RUNNER_TEMP/kit"
+          uv pip install --python "$RUNNER_TEMP/kit" dist/pipeloom-*.whl dist/pipeloom_polars-*.whl pytest
+          mkdir "$RUNNER_TEMP/kit-project"
+          cp plugins/pipeloom-polars/tests/test_contract.py "$RUNNER_TEMP/kit-project/polars_harness.py"
+          cd "$RUNNER_TEMP/kit-project"
+          "$RUNNER_TEMP/kit/bin/python" -m pytest -p pipeloom.testing.pytest_plugin --pipeloom-harness polars_harness:harness
       - name: Check package metadata
         run: uvx twine check --strict dist/*
 

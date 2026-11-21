@@ -54,3 +54,4 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0048 | [Airflow WATCHER mode](0048-airflow-watcher-mode.md) | Accepted | 2026-11-16 |
 | 0049 | [Artifact schemas, the unit graph and the orchestrator protocol](0049-artifact-schemas-and-orchestrator-protocol.md) | Accepted | 2026-11-15 |
 | 0050 | [Python-first model authoring](0050-python-first-authoring.md) | Accepted. Supersedes 0003. | 2026-11-15 |
+| 0067 | [Conformance kit as an opt-in pytest plugin](0067-conformance-kit.md) | Accepted | 2026-11-20 |

@@ -16,6 +16,10 @@ Within a major version these do not change in a breaking way:
 - Plugin API 1.0 for plugin authors: the protocols, `PluginSpec`, the capabilities and
   `pipeloom.testing`. A plugin works with a core that has the same major and a minor equal to or
   above the plugin's; otherwise you get PLU001.
+- The engine conformance kit: the `-p pipeloom.testing.pytest_plugin` plugin, its
+  `--pipeloom-harness` option, `EngineContract` and `EngineHarness`, and the kit version in the
+  report header. A minor kit version adds cells and a major one changes what a cell means; a
+  pipeloom minor can add cells, so pin pipeloom in CI when a green build must not move.
 - The meaning of each diagnostic code.
 - The documented Python API: the `pipeloom` top-level exports and `pipeloom.api`.
 

@@ -48,12 +48,14 @@ nav:
       - Spark: plugins/spark.md
       - Databricks: plugins/databricks.md
       - Airflow: plugins/airflow.md
+      - Writing an engine: plugins/writing-an-engine.md
   - Reference:
       - Command line: reference/cli.md
       - Databricks commands: reference/databricks-cli.md
       - JSON Schema: reference/schema.md
       - Run artifacts: reference/artifacts.md
       - Error codes: reference/errors.md
+      - Engine capabilities: reference/engine-capabilities.md
       - Stability and deprecations: reference/stability.md
   - Architecture: architecture.md
   - Roadmap: roadmap.md
