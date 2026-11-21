@@ -97,6 +97,7 @@ config schemas ([ADR-0049](../adr/0049-artifact-schemas-and-orchestrator-protoco
 | `--unit-states` (`pipeloom.unit_states/1`) | [unit_states.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_states.json) |
 | `compile --output json` (`pipeloom.compile_result/1`) | [compile_result.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/compile_result.json) |
 | `graph --units --output json` (`pipeloom.unit_graph/1`) | [unit_graph.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/unit_graph.json) |
+| `diff --output json` (`pipeloom.table_diff/1`) | [table_diff.json](https://emanuel-luis.github.io/pipeloom/latest/schema/v1/table_diff.json) |
 
 A field added after 1.0 is optional in the schema, so 1.0 documents keep validating; the 1.0 required sets are frozen, and CI validates frozen 1.0 documents against the current schemas and current output against the frozen 1.0 schemas.
 

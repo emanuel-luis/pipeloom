@@ -1,5 +1,5 @@
-"""JSON Schemas of the artifacts (ADR-0049): `manifest`, `run_results`, `event`, `unit_states`
-and `unit_graph`.
+"""JSON Schemas of the artifacts (ADR-0049): `manifest`, `run_results`, `event`, `unit_states`,
+`unit_graph` and `table_diff` (ADR-0053).
 
 Events come from the pydantic models in `pipeloom.events.model`, the unit graph from
 `pipeloom.artifacts.unit_graph`, and the manifest's `$defs` from the plan models (its top level
@@ -17,6 +17,7 @@ from typing import Any, Final, get_args
 from pydantic import BaseModel
 
 from pipeloom.artifacts.results import RESULTS_SCHEMA
+from pipeloom.artifacts.table_diff import TABLE_DIFF_SCHEMA, TableDiff
 from pipeloom.artifacts.unit_graph import UNIT_GRAPH_SCHEMA, UnitGraph
 from pipeloom.config.models import Materialized
 from pipeloom.config.schema import DIALECT, SCHEMA_BASE_URL
@@ -416,6 +417,19 @@ def unit_graph_schema() -> dict[str, Any]:
     return _document("unit_graph.json", UNIT_GRAPH_SCHEMA, "pipeloom unit graph", body)
 
 
+def table_diff_schema() -> dict[str, Any]:
+    """`pipeloom.table_diff/1`: the output of `pipeloom diff --output json`."""
+    defs: dict[str, Any] = {}
+    top = _model(TableDiff, defs)
+    body = {
+        "description": "A keyed comparison of one model's relation in a reference and a target.",
+        "properties": top["properties"],
+        "required": top.get("required", []),
+        "$defs": dict(sorted(defs.items())),
+    }
+    return _document("table_diff.json", TABLE_DIFF_SCHEMA, "pipeloom table diff", body)
+
+
 def manifest_schema() -> dict[str, Any]:
     """`pipeloom.manifest/1`: the output of `pipeloom compile`. The top level is written here,
     as `manifest_dict` shapes it; the node, source and metadata objects come from the plan
@@ -484,6 +498,7 @@ _BUILDERS: Final[Mapping[str, Callable[[], dict[str, Any]]]] = {
     "event.json": event_schema,
     "manifest.json": manifest_schema,
     "run_results.json": run_results_schema,
+    "table_diff.json": table_diff_schema,
     "unit_graph.json": unit_graph_schema,
     "unit_states.json": unit_states_schema,
 }

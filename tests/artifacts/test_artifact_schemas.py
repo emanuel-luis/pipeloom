@@ -115,7 +115,8 @@ def test_frozen_1_0_documents_validate_against_the_current_schemas(name: str) ->
 
 
 def test_current_goldens_validate_against_the_frozen_1_0_schemas() -> None:
-    """Published 1.0 schemas are open, so fields added since 1.0 are allowed."""
+    """Published 1.0 schemas are open, so fields added since 1.0 are allowed. Documents added
+    after 1.0 (table_diff) have no frozen schema."""
     frozen = {
         p.name: Draft202012Validator(json.loads(p.read_bytes().decode("utf-8")))
         for p in (FROZEN / "schemas").glob("*.json")

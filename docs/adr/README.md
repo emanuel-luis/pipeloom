@@ -56,5 +56,6 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0050 | [Python-first model authoring](0050-python-first-authoring.md) | Accepted. Supersedes 0003. | 2026-11-15 |
 | 0051 | [DuckDB engine](0051-duckdb-engine.md) | Accepted | 2026-11-20 |
 | 0052 | [Split checksums and change categories](0052-split-checksums-and-change-categories.md) | Accepted | 2026-11-20 |
+| 0053 | [Table diff](0053-table-diff.md) | Accepted | 2026-11-21 |
 | 0055 | [Canonical dataset identity](0055-canonical-dataset-identity.md) | Accepted | 2026-11-20 |
 | 0067 | [Conformance kit as an opt-in pytest plugin](0067-conformance-kit.md) | Accepted | 2026-11-20 |

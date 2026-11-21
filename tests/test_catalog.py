@@ -79,7 +79,7 @@ def test_active_codes_and_others_reserved() -> None:
         | {"PLC513", "PLK606", "PLX120"}
         | {"PLR209", "PLR210"}
         | {"PLX121", "PLU004", "PLX122"}
-        | {"PLG309"}
+        | {"PLG309", "PLX130", "PLX131"}
     )
     assert info("PLD002").status == "reserved"
     assert info("PLF701").status == "reserved"

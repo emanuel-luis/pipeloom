@@ -839,6 +839,18 @@ _ACTIVE_12: Final = (
         "Split checksums missing in the reference",
         "A state:modified.<part> selector (code, config, contract, tests or upstream) met models whose reference manifest has no split checksums, or has them from another checksum_version, as a 1.0 manifest does. For those models the selector compares the legacy checksum, so any change selects them. The message counts them. Compile the reference again with this pipeloom version.",
     ),
+    (
+        "PLX130",
+        E,
+        "Model cannot be diffed",
+        "pipeloom diff compares one persisted model by key, and this one cannot be compared: the model does not exist, it has no relation (ephemeral or intermediate), it has no key (no write.unique_key and no --key), the reference has no relation for it, or the reference was compiled for another catalog kind. Exit code 2.",
+    ),
+    (
+        "PLX131",
+        E,
+        "Table diff failed",
+        "pipeloom diff could not read or compare the two relations: a table is missing, a key column is missing on one side, or the engine's frames are not supported by the portable comparison. The message names the cause. Exit code 1.",
+    ),
 )
 
 

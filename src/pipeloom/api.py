@@ -5,8 +5,11 @@ from __future__ import annotations
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Any, Literal
 
+from pipeloom.artifacts.reference import load_reference
+from pipeloom.artifacts.table_diff import DiffError, TableDiff, compare
 from pipeloom.config.bind import BoundProject, bind_project
 from pipeloom.config.load import LoadedProject, ProjectOptions, load_project
 from pipeloom.config.resolve import model_id, resolve_project
@@ -15,6 +18,7 @@ from pipeloom.discovery import Discovery
 from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.discovery.project import python_models
 from pipeloom.engine.protocols import Catalog, Engine
+from pipeloom.engine.types import ReadSpec
 from pipeloom.events.bus import EventBus
 from pipeloom.events.model import (
     EventPayload,
@@ -46,7 +50,7 @@ from pipeloom.secrets.resolve import SecretError, SecretResolver, secret_diagnos
 from pipeloom.validate import validate_project
 from pipeloom.validate.references import check_references
 
-__all__ = ["Project", "ProjectOptions", "TestRunOutcome"]
+__all__ = ["DiffOutcome", "Project", "ProjectOptions", "TestRunOutcome"]
 
 
 @dataclass(frozen=True)
@@ -61,6 +65,15 @@ class TestRunOutcome:
     """`unit_test.passed` or `unit_test.failed` per case, then `unit_tests.completed`."""
     diagnostics: tuple[Diagnostic, ...]
     failed: int = 0
+
+
+@dataclass(frozen=True)
+class DiffOutcome:
+    """What `Project.diff` found. `diff` is None when no comparison ran."""
+
+    exit_code: int
+    diff: TableDiff | None
+    diagnostics: tuple[Diagnostic, ...]
 
 
 class Project:
@@ -377,6 +390,104 @@ class Project:
                     )
         events.append(UnitTestsCompleted(passed=len(cases) - failed, failed=failed))
         return TestRunOutcome(1 if failed else 0, tuple(events), tuple(diags), failed)
+
+    def diff(
+        self,
+        model: str,
+        state: Path,
+        *,
+        key: tuple[str, ...] = (),
+        samples: bool = False,
+    ) -> DiffOutcome:
+        """Compare `model`'s relation in the `state` reference (the source) with its relation on
+        this target (ADR-0053). It writes nothing. `key` wins over the model's
+        `write.unique_key`. Exit code 0 no differences, 1 differences or a failure, 2 usage."""
+        compiled = self.compile()
+        diags = list(compiled.diagnostics)
+        plan, bound = compiled.value, self.bind().value
+        if plan is None or bound is None:
+            usage = any(d.code in USAGE_CODES for d in diags)
+            return DiffOutcome(2 if usage else 1, None, tuple(diags))
+        project_dir = bound.loaded.project_dir.resolve()
+        report = Report()
+        reference = load_reference(project_dir / state, plan.metadata.project, report, project_dir)
+        if reference is None:
+            return DiffOutcome(1, None, (*diags, *report.sorted()))
+
+        def refuse(why: str) -> DiffOutcome:
+            found = Report().add(
+                "PLX130",
+                f"cannot diff model '{model}': {why}",
+                hint="name a persisted model, give it write.unique_key or pass --key, and point "
+                "--state at a reference of the same catalog kind that built it",
+                context={"model": model},
+            )
+            return DiffOutcome(2, None, (*diags, found))
+
+        node = plan.nodes.get(model_id(plan.metadata.project, model))
+        theirs = None if node is None else reference.plan.nodes.get(node.unique_id)
+        here = plan.metadata.plugins.get("catalogs")
+        there = reference.plan.metadata.plugins.get("catalogs")
+        keys = key or tuple((node.config.write.unique_key or []) if node else [])
+        if node is None:
+            return refuse("the project has no such model")
+        if node.relation is None or node.materialized == "intermediate":
+            return refuse(f"it is {node.materialized}, so it has no relation")
+        if theirs is None or theirs.relation is None or theirs.materialized == "intermediate":
+            return refuse("the reference has no relation for it")
+        if here is None or there is None or here.kind != there.kind:
+            return refuse("the reference was compiled for another catalog kind")
+        if not keys:
+            return refuse("it has no write.unique_key and no --key was given")
+        engine_plugin, catalog_plugin = bound.plugins.get("engines"), bound.plugins.get("catalogs")
+        if engine_plugin is None or catalog_plugin is None:
+            missing = _missing(bound, "engine" if engine_plugin is None else "catalog")
+            return DiffOutcome(1, None, (*diags, missing))
+        try:
+            engine: Engine = engine_plugin.create(self.secrets)
+            catalog: Catalog = catalog_plugin.create(self.secrets)
+        except SecretError as err:
+            return DiffOutcome(1, None, (*diags, secret_diagnostic(err)))
+        rt = RuntimeContext(
+            run_id=self.invocation_id,
+            invocation_id=self.invocation_id,
+            project=plan.metadata.project,
+            target=plan.metadata.target,
+            project_dir=project_dir,
+            clock=self.clock,
+            identity=self.identity,
+            vars=plan.metadata.vars,
+        )
+        sensitive = {c.name for c in node.columns or () if c.sensitive}
+        try:
+            with engine.session(rt, catalog=catalog) as session:
+                read = session.reader("table").read
+                doc = compare(
+                    session,
+                    read(ReadSpec("table", table=theirs.relation)),
+                    read(ReadSpec("table", table=node.relation)),
+                    model=model,
+                    names=(theirs.relation.relation_name, node.relation.relation_name),
+                    key=keys,
+                    sensitive=sensitive,
+                    samples=samples,
+                )
+        except Exception as exc:  # noqa: BLE001 - engine code may raise anything on a read
+            # Engine messages can quote cell values, so only the exception type is shown.
+            why = (
+                str(exc)
+                if isinstance(exc, DiffError)
+                else f"{type(exc).__name__} while reading or comparing the relations"
+            )
+            found = Report().add(
+                "PLX131",
+                f"cannot diff model '{model}': {why}",
+                hint="build the model on both sides first; the engine's frames must be supported "
+                "by narwhals",
+                context={"model": model},
+            )
+            return DiffOutcome(1, None, (*diags, found))
+        return DiffOutcome(1 if doc.differences else 0, doc, tuple(diags))
 
     def finalize(self, opts: FinalizeOptions, bus: EventBus | None = None) -> RunOutcome:
         """Close a run an orchestrator drove unit by unit: merge the unit results, record the run
