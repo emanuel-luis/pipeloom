@@ -60,6 +60,7 @@ Every distribution is released together and carries the same version.
 | `pipeloom` | Core: config, validation, plan, scheduler, events, CLI |
 | `pipeloom-polars` | polars engine |
 | `pipeloom-pandas` | pandas engine |
+| `pipeloom-duckdb` | DuckDB engine (SQL pushdown, database file catalog, Delta reads) |
 | `pipeloom-spark` | PySpark engine (Delta and Spark Connect) |
 | `pipeloom-databricks` | Databricks job renderer and runner |
 | `pipeloom-airflow` | Airflow DAG integration |

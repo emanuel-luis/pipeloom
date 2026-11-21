@@ -11,6 +11,9 @@ All notable changes to this project are documented here. The format follows
 - The engine conformance kit ([ADR-0067](docs/adr/0067-conformance-kit.md)): an opt-in pytest plugin, `pytest -p pipeloom.testing.pytest_plugin --pipeloom-harness MODULE:CALLABLE`, runs `EngineContract` against a harness from any project that has pipeloom and the engine installed. The report header prints the kit version (`KIT_VERSION`, 1.0). The plugin joins the stability surface list, and existing subclasses of `EngineContract` keep working.
 - An engine author guide, [Writing an engine](docs/plugins/writing-an-engine.md), and a generated [capability matrix](docs/reference/engine-capabilities.md) built from the `EngineCapabilities` of every installed engine.
 - CI installs only the pipeloom and pipeloom-polars wheels in a fresh venv and runs the kit against polars from outside the repository tree.
+- A new distribution, `pipeloom-duckdb` (`pip install "pipeloom[duckdb]"`), released in lockstep: the `duckdb` engine and the `duckdb` catalog ([ADR-0051](docs/adr/0051-duckdb-engine.md)). Tables live in a DuckDB database file, and a model catalog is a sibling file. `merge`, `scd2` and `replace_partitions` run as SQL (`MERGE INTO`, `DELETE`, `INSERT`) in one transaction with the idempotency token. It reads `parquet` and `csv`, and `delta` read-only through the DuckDB `delta` extension, which loads from a pinned `extension_directory`; with `install_extensions` off a missing extension fails with PLX121 and nothing is downloaded. `sql_dialect` is `duckdb`, and it passes the full engine contract suite.
+- The `tpch_polars` example declares `sql_dialect: postgres` and gains a `duckdb` target that runs its SQL models on DuckDB through translation.
+- CI runs the DuckDB plugin tests on Linux, macOS and Windows with the `delta` extension preinstalled, without network on Linux.
 
 ### Documentation
 

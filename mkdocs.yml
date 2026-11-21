@@ -45,6 +45,7 @@ nav:
   - Plugins:
       - Polars: plugins/polars.md
       - pandas: plugins/pandas.md
+      - DuckDB: plugins/duckdb.md
       - Spark: plugins/spark.md
       - Databricks: plugins/databricks.md
       - Airflow: plugins/airflow.md
