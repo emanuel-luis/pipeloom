@@ -1,0 +1,655 @@
+{
+  "schema": "pipeloom.manifest/1",
+  "metadata": {
+    "pipeloom_version": "<version>",
+    "plugins": {
+      "catalogs": {
+        "kind": "memory",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      },
+      "engines": {
+        "kind": "memory",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      },
+      "naming": {
+        "kind": "none",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      },
+      "state_stores": {
+        "kind": "sqlite",
+        "distribution": "pipeloom",
+        "version": "<version>"
+      }
+    },
+    "config_version": 1,
+    "plan_hash": "f05fee053db88c1a06b6b4bcd2b2732330c5b703fb2c4a4678480edb542cc7a0",
+    "project": "shop",
+    "target": "ci",
+    "boundary": "process",
+    "python_paths": [
+      "models"
+    ],
+    "vars": {},
+    "env_vars": [],
+    "generated_at": "<generated_at>",
+    "invocation_id": "<invocation_id>"
+  },
+  "nodes": {
+    "model.shop.dim_customers": {
+      "unique_id": "model.shop.dim_customers",
+      "name": "dim_customers",
+      "file": "models/marts/dim_customers.py",
+      "line": 6,
+      "materialized": "table",
+      "body": {
+        "kind": "python",
+        "callable": "marts.dim_customers:dim_customers",
+        "file": "models/marts/dim_customers.py"
+      },
+      "inputs": {
+        "enriched": "model.shop.orders_enriched"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "dim_customers"
+      },
+      "unit_ids": [
+        "dim_customers"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "overwrite",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [
+          "mart"
+        ],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "catalog": null,
+        "meta": {}
+      },
+      "tags": [
+        "mart"
+      ],
+      "checksum": "741fb5df346752b83bda6db46ed8860991a978f8731dfdb78021de6a1456fefa"
+    },
+    "model.shop.fct_orders": {
+      "unique_id": "model.shop.fct_orders",
+      "name": "fct_orders",
+      "file": "models/marts/fct_orders.py",
+      "line": 6,
+      "materialized": "table",
+      "body": {
+        "kind": "python",
+        "callable": "marts.fct_orders:fct_orders",
+        "file": "models/marts/fct_orders.py"
+      },
+      "inputs": {
+        "enriched": "model.shop.orders_enriched",
+        "payments": "model.shop.stg_payments"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "fct_orders"
+      },
+      "unit_ids": [
+        "fct_orders"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "append",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [
+          "mart"
+        ],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "catalog": null,
+        "meta": {}
+      },
+      "tags": [
+        "mart"
+      ],
+      "checksum": "949c1abaa075ce72774aa456eb51844187745b7246ddf6ed22b99f80f5f0adf4"
+    },
+    "model.shop.orders_enriched": {
+      "unique_id": "model.shop.orders_enriched",
+      "name": "orders_enriched",
+      "file": "models/marts/enrich.py",
+      "line": 8,
+      "materialized": "ephemeral",
+      "body": {
+        "kind": "python",
+        "callable": "marts.enrich:orders_enriched",
+        "file": "models/marts/enrich.py"
+      },
+      "inputs": {
+        "orders": "model.shop.stg_orders",
+        "customers": "model.shop.stg_customers"
+      },
+      "relation": null,
+      "unit_ids": [
+        "dim_customers",
+        "fct_orders"
+      ],
+      "config": {
+        "materialized": "ephemeral",
+        "write": {
+          "strategy": null,
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "catalog": null,
+        "meta": {}
+      },
+      "tags": [],
+      "checksum": "553436734b7d9075dbad74f04daf685de8f6989428c04cb9ddf444170d66372c"
+    },
+    "model.shop.rpt_revenue": {
+      "unique_id": "model.shop.rpt_revenue",
+      "name": "rpt_revenue",
+      "file": "models/marts/rpt_revenue.py",
+      "line": 6,
+      "materialized": "table",
+      "body": {
+        "kind": "python",
+        "callable": "marts.rpt_revenue:rpt_revenue",
+        "file": "models/marts/rpt_revenue.py"
+      },
+      "inputs": {
+        "fct_orders": "model.shop.fct_orders"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "rpt_revenue"
+      },
+      "unit_ids": [
+        "rpt_revenue"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "overwrite",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "catalog": null,
+        "meta": {}
+      },
+      "tags": [],
+      "checksum": "7e233611d1d22c86358b7421cc73be011eda02df36a45410b336fa964de203cd"
+    },
+    "model.shop.stg_customers": {
+      "unique_id": "model.shop.stg_customers",
+      "name": "stg_customers",
+      "file": "models/staging/stg_customers.py",
+      "line": 6,
+      "materialized": "table",
+      "body": {
+        "kind": "python",
+        "callable": "staging.stg_customers:stg_customers",
+        "file": "models/staging/stg_customers.py"
+      },
+      "inputs": {
+        "raw_customers": "source.shop.raw.raw_customers"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "stg_customers"
+      },
+      "unit_ids": [
+        "stg_customers"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "overwrite",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [
+          "staging"
+        ],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "catalog": null,
+        "meta": {}
+      },
+      "tags": [
+        "staging"
+      ],
+      "checksum": "c872b369354e937061e3f31d9a0dfbdc7254a0cdd1ecd357cff4c50e18e4385c"
+    },
+    "model.shop.stg_orders": {
+      "unique_id": "model.shop.stg_orders",
+      "name": "stg_orders",
+      "file": "models/staging/stg_orders.py",
+      "line": 6,
+      "materialized": "table",
+      "body": {
+        "kind": "python",
+        "callable": "staging.stg_orders:stg_orders",
+        "file": "models/staging/stg_orders.py"
+      },
+      "inputs": {
+        "raw_orders": "source.shop.raw.raw_orders"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "stg_orders"
+      },
+      "unit_ids": [
+        "stg_orders"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "overwrite",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [
+          "staging"
+        ],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "catalog": null,
+        "meta": {}
+      },
+      "tags": [
+        "staging"
+      ],
+      "checksum": "f24d2df8ae6ea93c62d24d2422f7631776f1e1a133f3cee137b9a09cf99172ed"
+    },
+    "model.shop.stg_payments": {
+      "unique_id": "model.shop.stg_payments",
+      "name": "stg_payments",
+      "file": "models/staging/stg_payments.py",
+      "line": 6,
+      "materialized": "table",
+      "body": {
+        "kind": "python",
+        "callable": "staging.stg_payments:stg_payments",
+        "file": "models/staging/stg_payments.py"
+      },
+      "inputs": {
+        "raw_payments": "source.shop.raw.raw_payments"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "stg_payments"
+      },
+      "unit_ids": [
+        "stg_payments"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "overwrite",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [
+          "staging"
+        ],
+        "retries": 0,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "catalog": null,
+        "meta": {}
+      },
+      "tags": [
+        "staging"
+      ],
+      "checksum": "e47506946140d6aff87dd91bca68fb3dd6fa781a8d43bf2c0d57e6fa96d313de"
+    },
+    "model.shop.top_customers": {
+      "unique_id": "model.shop.top_customers",
+      "name": "top_customers",
+      "file": "models/marts/top_customers.py",
+      "line": 8,
+      "materialized": "table",
+      "body": {
+        "kind": "python",
+        "callable": "marts.top_customers:top_customers",
+        "file": "models/marts/top_customers.py"
+      },
+      "inputs": {
+        "rpt_revenue": "model.shop.rpt_revenue"
+      },
+      "relation": {
+        "catalog": null,
+        "schema": "main",
+        "name": "top_customers"
+      },
+      "unit_ids": [
+        "top_customers"
+      ],
+      "config": {
+        "materialized": "table",
+        "write": {
+          "strategy": "overwrite",
+          "unique_key": null,
+          "update_condition": null,
+          "deletes": null,
+          "on_schema_change": "fail",
+          "options": {},
+          "table_properties": {},
+          "tracked_columns": null
+        },
+        "incremental": null,
+        "partition_by": [],
+        "cluster_by": [],
+        "expectations": [],
+        "quality": {
+          "quarantine": false,
+          "max_drop_ratio": null
+        },
+        "tags": [],
+        "retries": 1,
+        "retry_delay": 1,
+        "retry_on": "transient",
+        "timeout": null,
+        "frame_api": "native",
+        "schema": null,
+        "catalog": null,
+        "meta": {}
+      },
+      "tags": [],
+      "checksum": "891668d25abab195714d2438e08d09c551e79821a9909107acbb932ce5334249"
+    }
+  },
+  "sources": {
+    "source.shop.raw.raw_customers": {
+      "unique_id": "source.shop.raw.raw_customers",
+      "name": "raw.raw_customers",
+      "file": "pipeloom.yml",
+      "format": "memory",
+      "location": "raw/customers",
+      "table": null,
+      "options": {},
+      "tags": []
+    },
+    "source.shop.raw.raw_orders": {
+      "unique_id": "source.shop.raw.raw_orders",
+      "name": "raw.raw_orders",
+      "file": "pipeloom.yml",
+      "format": "memory",
+      "location": "raw/orders",
+      "table": null,
+      "options": {},
+      "tags": []
+    },
+    "source.shop.raw.raw_payments": {
+      "unique_id": "source.shop.raw.raw_payments",
+      "name": "raw.raw_payments",
+      "file": "pipeloom.yml",
+      "format": "memory",
+      "location": "raw/payments",
+      "table": null,
+      "options": {},
+      "tags": []
+    }
+  },
+  "units": {
+    "dim_customers": [
+      "model.shop.orders_enriched",
+      "model.shop.dim_customers"
+    ],
+    "fct_orders": [
+      "model.shop.orders_enriched",
+      "model.shop.fct_orders"
+    ],
+    "rpt_revenue": [
+      "model.shop.rpt_revenue"
+    ],
+    "stg_customers": [
+      "model.shop.stg_customers"
+    ],
+    "stg_orders": [
+      "model.shop.stg_orders"
+    ],
+    "stg_payments": [
+      "model.shop.stg_payments"
+    ],
+    "top_customers": [
+      "model.shop.top_customers"
+    ]
+  },
+  "unit_parent_map": {
+    "dim_customers": [
+      "stg_customers",
+      "stg_orders"
+    ],
+    "fct_orders": [
+      "stg_customers",
+      "stg_orders",
+      "stg_payments"
+    ],
+    "rpt_revenue": [
+      "fct_orders"
+    ],
+    "stg_customers": [],
+    "stg_orders": [],
+    "stg_payments": [],
+    "top_customers": [
+      "rpt_revenue"
+    ]
+  },
+  "parent_map": {
+    "model.shop.dim_customers": [
+      "model.shop.orders_enriched"
+    ],
+    "model.shop.fct_orders": [
+      "model.shop.orders_enriched",
+      "model.shop.stg_payments"
+    ],
+    "model.shop.orders_enriched": [
+      "model.shop.stg_customers",
+      "model.shop.stg_orders"
+    ],
+    "model.shop.rpt_revenue": [
+      "model.shop.fct_orders"
+    ],
+    "model.shop.stg_customers": [
+      "source.shop.raw.raw_customers"
+    ],
+    "model.shop.stg_orders": [
+      "source.shop.raw.raw_orders"
+    ],
+    "model.shop.stg_payments": [
+      "source.shop.raw.raw_payments"
+    ],
+    "model.shop.top_customers": [
+      "model.shop.rpt_revenue"
+    ],
+    "source.shop.raw.raw_customers": [],
+    "source.shop.raw.raw_orders": [],
+    "source.shop.raw.raw_payments": []
+  },
+  "child_map": {
+    "model.shop.dim_customers": [],
+    "model.shop.fct_orders": [
+      "model.shop.rpt_revenue"
+    ],
+    "model.shop.orders_enriched": [
+      "model.shop.dim_customers",
+      "model.shop.fct_orders"
+    ],
+    "model.shop.rpt_revenue": [
+      "model.shop.top_customers"
+    ],
+    "model.shop.stg_customers": [
+      "model.shop.orders_enriched"
+    ],
+    "model.shop.stg_orders": [
+      "model.shop.orders_enriched"
+    ],
+    "model.shop.stg_payments": [
+      "model.shop.fct_orders"
+    ],
+    "model.shop.top_customers": [],
+    "source.shop.raw.raw_customers": [
+      "model.shop.stg_customers"
+    ],
+    "source.shop.raw.raw_orders": [
+      "model.shop.stg_orders"
+    ],
+    "source.shop.raw.raw_payments": [
+      "model.shop.stg_payments"
+    ]
+  },
+  "selectors": {
+    "select": [],
+    "exclude": [],
+    "selected": [
+      "model.shop.dim_customers",
+      "model.shop.fct_orders",
+      "model.shop.orders_enriched",
+      "model.shop.rpt_revenue",
+      "model.shop.stg_customers",
+      "model.shop.stg_orders",
+      "model.shop.stg_payments",
+      "model.shop.top_customers"
+    ]
+  }
+}

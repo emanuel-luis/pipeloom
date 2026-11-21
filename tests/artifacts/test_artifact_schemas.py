@@ -14,6 +14,9 @@ from jsonschema import Draft202012Validator, ValidationError
 from pipeloom.artifacts.results import ROW_DEFAULTS
 from pipeloom.artifacts.schema import (
     MANIFEST_CONFIG_REQUIRED,
+    METADATA_REQUIRED,
+    ROW_REQUIRED,
+    RUN_REQUIRED,
     artifact_schemas,
     close,
     event_payloads,
@@ -78,7 +81,48 @@ def test_schema_goldens(golden: Callable[[str, str], None], name: str) -> None:
 def test_row_properties_match_the_row_defaults() -> None:
     row = run_results_schema()["$defs"]["result"]
     assert list(row["properties"]) == list(ROW_DEFAULTS)
-    assert row["required"] == list(ROW_DEFAULTS)
+    # A field added after 1.0 is optional: only the frozen 1.0 set is required (ADR-0049).
+    assert row["required"] == list(ROW_REQUIRED)
+    assert set(ROW_REQUIRED) <= set(ROW_DEFAULTS)
+
+
+def test_run_and_metadata_required_sets_are_the_frozen_ones() -> None:
+    props = run_results_schema()["properties"]
+    assert props["run"]["required"] == list(RUN_REQUIRED)
+    assert props["metadata"]["required"] == list(METADATA_REQUIRED)
+    assert set(RUN_REQUIRED) <= set(props["run"]["properties"])
+    assert set(METADATA_REQUIRED) <= set(props["metadata"]["properties"])
+
+
+FROZEN = Path(__file__).parent.parent / "frozen" / "v1.0.0"
+
+
+def _frozen_docs() -> dict[str, dict[str, Any]]:
+    return {
+        p.name: json.loads(p.read_bytes().decode("utf-8"))
+        for p in sorted((FROZEN / "documents").glob("*.json"))
+    }
+
+
+@pytest.mark.parametrize("name", sorted(_frozen_docs()))
+def test_frozen_1_0_documents_validate_against_the_current_schemas(name: str) -> None:
+    """Rule for every 1.x release (roadmap section 3): 1.0 output stays valid."""
+    doc = _frozen_docs()[name]
+    Draft202012Validator(SCHEMAS[BY_TAG[doc["schema"]]]).validate(doc)
+    if doc["schema"] == "pipeloom.run_results/1":
+        for row in doc["results"]:
+            row_validator().validate(row)
+
+
+def test_current_goldens_validate_against_the_frozen_1_0_schemas() -> None:
+    """Published 1.0 schemas are open, so fields added since 1.0 are allowed."""
+    frozen = {
+        p.name: Draft202012Validator(json.loads(p.read_bytes().decode("utf-8")))
+        for p in (FROZEN / "schemas").glob("*.json")
+    }
+    assert set(frozen) == set(SCHEMAS)
+    for doc in GOLDEN_DOCS.values():
+        frozen[BY_TAG[doc["schema"]]].validate(doc)
 
 
 def test_every_core_event_type_has_a_data_schema() -> None:
