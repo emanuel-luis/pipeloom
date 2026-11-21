@@ -6,10 +6,13 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
 
 import duckdb
 import pytest
+from pydantic import ValidationError
 from tests.conftest import make_project
 
 from pipeloom.api import Project, ProjectOptions
@@ -166,3 +169,45 @@ def test_delta_reads_offline_from_the_pinned_directory(tmp_path: Path) -> None:
 
 def test_the_engine_reports_the_duckdb_version() -> None:
     assert DuckDBEngine().version == duckdb.__version__
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "autoinstall_known_extensions",
+        "AUTOINSTALL_KNOWN_EXTENSIONS",
+        "extension_directory",
+        "custom_extension_repository",
+        "autoinstall_extension_repository",
+        "autoload_known_extensions",
+    ],
+)
+def test_config_cannot_change_the_extension_policy(key: str) -> None:
+    with pytest.raises(ValidationError, match="use the extension_directory and install_extensions"):
+        DuckDBEngineOptions(config={key: True})
+    assert DuckDBEngineOptions(config={"threads": 2}).config == {"threads": 2}
+
+
+def test_cancel_interrupts_only_the_named_unit(tmp_path: Path) -> None:
+    errors: list[BaseException] = []
+    started, done = threading.Event(), threading.Event()
+    with DuckDBEngine().session(_ctx(tmp_path), catalog=DuckDBCatalog(":memory:")) as s:
+        assert isinstance(s, DuckDBSession)
+
+        def work() -> None:
+            with s.unit_scope("a"):
+                started.set()
+                try:
+                    s.scalar("SELECT sum(sqrt(range)) FROM range(10000000000000)")
+                except Exception as exc:  # noqa: BLE001 - DuckDB's interrupt error
+                    errors.append(exc)
+            done.set()
+
+        threading.Thread(target=work, daemon=True).start()
+        assert started.wait(5)
+        time.sleep(0.2)
+        s.cancel("b")  # another unit: the running statement goes on
+        assert not done.wait(0.5)
+        s.cancel("a")
+        assert done.wait(5)
+    assert errors

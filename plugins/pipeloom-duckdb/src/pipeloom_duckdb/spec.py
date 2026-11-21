@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Annotated, Any
 
-from pydantic import AfterValidator, Field, ValidationInfo
+from pydantic import AfterValidator, Field, ValidationInfo, field_validator
 
 from pipeloom.config.types import ProjectPath, resolve_project_path
 from pipeloom.engine.protocols import Catalog, Engine
@@ -28,6 +28,18 @@ CAPABILITIES = EngineCapabilities(
 
 MEMORY = ":memory:"
 
+EXTENSION_POLICY = frozenset(
+    {
+        "autoinstall_known_extensions",
+        "autoload_known_extensions",
+        "autoinstall_extension_repository",
+        "custom_extension_repository",
+        "extension_directory",
+    }
+)
+"""DuckDB settings that decide where extensions come from. The engine sets them (ADR-0051), so
+`config` may not: one of them could turn on downloads."""
+
 
 class DuckDBEngineOptions(OptionsModel):
     extension_directory: ProjectPath | None = None
@@ -41,7 +53,21 @@ class DuckDBEngineOptions(OptionsModel):
     extension is an error (PLX121) and nothing is downloaded."""
     config: Mapping[str, str | int | bool] = Field(default_factory=dict)
     """DuckDB configuration options for the session's connection, for example `threads` or
-    `memory_limit`."""
+    `memory_limit`. The extension settings are not allowed here: use `extension_directory` and
+    `install_extensions`."""
+
+    @field_validator("config")
+    @classmethod
+    def _no_extension_policy(
+        cls, value: Mapping[str, str | int | bool]
+    ) -> Mapping[str, str | int | bool]:
+        clash = sorted(k for k in value if k.lower() in EXTENSION_POLICY)
+        if clash:
+            raise ValueError(
+                f"config cannot set {', '.join(clash)}: the engine controls where extensions "
+                "come from; use the extension_directory and install_extensions options"
+            )
+        return value
 
 
 def _database(value: str, info: ValidationInfo) -> str:

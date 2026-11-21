@@ -128,6 +128,8 @@ class DuckDBSession:
         self._pending: extensions.ExtensionMissingError | None = None
         self._local = threading.local()
         self._busy: str | None = None
+        self._busy_lock = threading.Lock()
+        """Guards `_busy` and `interrupt`: a cancel never interrupts the next unit's statement."""
         self._cancelled: set[str] = set()
         for name in opts.extensions:
             try:
@@ -143,11 +145,13 @@ class DuckDBSession:
         with self._lock:
             if unit is not None and unit in self._cancelled:
                 raise duckdb.InterruptException(f"unit '{unit}' was cancelled")
-            prior, self._busy = self._busy, unit
+            with self._busy_lock:
+                prior, self._busy = self._busy, unit
             try:
                 yield self.native
             finally:
-                self._busy = prior
+                with self._busy_lock:
+                    self._busy = prior
 
     def execute(self, sql: str, params: Sequence[Any] | None = None) -> list[tuple[Any, ...]]:
         with self._use() as con:
@@ -574,8 +578,9 @@ class DuckDBSession:
 
     def cancel(self, unit_id: str) -> None:
         self._cancelled.add(unit_id)
-        if self._busy == unit_id:
-            self.native.interrupt()
+        with self._busy_lock:
+            if self._busy == unit_id:
+                self.native.interrupt()
 
 
 class _Write:
@@ -804,12 +809,10 @@ class DuckDBEngine:
                 f"the duckdb engine needs the duckdb catalog, not {type(catalog).__name__}"
             )
         opts = self._opts
-        config: dict[str, Any] = {
-            "TimeZone": "UTC",
-            "autoinstall_known_extensions": False,
-            "autoload_known_extensions": True,
-            **opts.config,
-        }
+        config: dict[str, Any] = {"TimeZone": "UTC", **opts.config}
+        # Applied after `config` as a second guard; the options model already rejects them.
+        config["autoinstall_known_extensions"] = False
+        config["autoload_known_extensions"] = True
         if opts.extension_directory is not None:
             config["extension_directory"] = Path(opts.extension_directory).resolve().as_posix()
         if not catalog.memory:
