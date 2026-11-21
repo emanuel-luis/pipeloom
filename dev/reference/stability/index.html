@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://emanuel-luis.github.io/pipeloom/dev/reference/stability/">
       
       
-        <link rel="prev" href="../errors/">
+        <link rel="prev" href="../engine-capabilities/">
       
       
         <link rel="next" href="../../architecture/">
@@ -878,6 +878,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/writing-an-engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing an engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1061,6 +1089,34 @@
     
   
     Error codes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine-capabilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engine capabilities
   
 
     
@@ -1457,6 +1513,12 @@ defined in <a href="../../adr/0049-artifact-schemas-and-orchestrator-protocol/">
 <li>Plugin API 1.0 for plugin authors: the protocols, <code>PluginSpec</code>, the capabilities and
   <code>pipeloom.testing</code>. A plugin works with a core that has the same major and a minor equal to or
   above the plugin's; otherwise you get PLU001.</li>
+<li>The engine conformance kit: the <code>-p pipeloom.testing.pytest_plugin</code> plugin, its
+  <code>--pipeloom-harness</code> option, <code>EngineContract</code> and <code>EngineHarness</code>, and the kit version in the
+  report header. Within 1.x the kit changes only additively: a minor kit version adds cells and
+  optional <code>EngineHarness</code> fields, while a required field, a removed cell or a changed meaning
+  needs a major pipeloom release. Added cells can fail an engine that passed before, so pin
+  pipeloom in CI when a green build must not move.</li>
 <li>The meaning of each diagnostic code.</li>
 <li>The documented Python API: the <code>pipeloom</code> top-level exports and <code>pipeloom.api</code>.</li>
 </ul>
