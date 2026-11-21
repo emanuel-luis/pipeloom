@@ -211,8 +211,8 @@ a list of `[start, end]` pairs. A dev target never reads or writes the ledger of
 
 Rules checked before a run: an interval model is materialized incremental, writes with append,
 does not set `incremental.column`, and has the event_time column in its contract when it declares
-one (PLP417). The engine must declare `interval_writes`: polars, pandas and DuckDB do; Spark does
-not yet (PLC514). A missing or unusable event_time column at run time is PLM209.
+one (PLP417). The engine must declare `interval_writes`: polars, pandas, DuckDB and Spark do
+(PLC514). A missing or unusable event_time column at run time is PLM209.
 
 In `run_results.json`, an interval model's row has an `intervals` array with one entry per window:
 `interval_id`, `start`, `end`, `idempotency_token`, `skipped` and `rows_written`. The row's counts

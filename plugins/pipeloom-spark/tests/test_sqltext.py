@@ -5,7 +5,13 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta, timezone
 from decimal import Decimal
 
-from pipeloom_spark.sqltext import literal, partition_predicate, quote_ident, wrap_inputs
+from pipeloom_spark.sqltext import (
+    literal,
+    partition_predicate,
+    quote_ident,
+    range_predicate,
+    wrap_inputs,
+)
 
 
 def test_quote_ident_doubles_backticks() -> None:
@@ -70,3 +76,15 @@ def test_has_scheme() -> None:
         assert has_scheme(uri), uri
     for local in ("wh", "a/b", "/abs/p", "C:" + chr(92) + "x", "C:/x", "./c:x"):
         assert not has_scheme(local), local
+
+
+def test_range_predicate_is_half_open_and_zone_free() -> None:
+    sao_paulo = timezone(timedelta(hours=-3))
+    start = datetime(2026, 1, 1, 21, tzinfo=sao_paulo)  # 2026-01-02 00:00 UTC
+    got = range_predicate("ts", "timestamp[us, UTC]", start, datetime(2026, 1, 3, tzinfo=UTC))
+    assert got == (
+        "(`ts` >= timestamp_micros(1767312000000000) AND `ts` < timestamp_micros(1767398400000000))"
+    )
+    assert range_predicate("d", "date", date(2026, 1, 1), date(2026, 1, 2)) == (
+        "(`d` >= DATE '2026-01-01' AND `d` < DATE '2026-01-02')"
+    )

@@ -219,6 +219,15 @@ class SparkEngineSession:
             self._persisted.setdefault(getattr(self._local, "unit", None), []).append(frame)
         return _rel(frame)
 
+    def release(self, frame: Any) -> None:
+        """Unpersist a frame `persist` returned before its unit ends (one interval window)."""
+        with self._lock:
+            frames = self._persisted.get(getattr(self._local, "unit", None), [])
+            if any(f is frame for f in frames):
+                frames[:] = [f for f in frames if f is not frame]
+        with suppress(Exception):  # cleanup must not hide the write's own outcome
+            frame.unpersist(blocking=False)
+
     def schema(self, rel: Relation) -> Schema:
         return schema_of(rel.native)
 
@@ -252,6 +261,12 @@ class SparkEngineSession:
         col = F.col(sqltext.quote_ident(column))
         bound = F.expr(sqltext.literal(lower, self._dtype(rel, column)))
         return _rel(rel.native.where(col >= bound if inclusive else col > bound))
+
+    def filter_between(self, rel: Relation, column: str, start: Any, end: Any) -> Relation:
+        """`start <= column < end` as a SQL predicate, so Delta can skip files. A zoned bound is
+        epoch microseconds, so the session time zone never shifts the window."""
+        predicate = sqltext.range_predicate(column, self._dtype(rel, column), start, end)
+        return _rel(rel.native.where(predicate))
 
     def align(self, rel: Relation, schema: Schema) -> Relation:
         from pyspark.sql import functions as F

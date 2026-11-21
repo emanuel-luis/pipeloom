@@ -140,3 +140,9 @@ def partition_predicate(
         for tup in tuples
     ]
     return " OR ".join(terms)
+
+
+def range_predicate(column: str, logical: str, start: Any, end: Any) -> str:
+    """`start <= column < end` for a half-open window; a null column never matches."""
+    col = quote_ident(column)
+    return f"({col} >= {literal(start, logical)} AND {col} < {literal(end, logical)})"

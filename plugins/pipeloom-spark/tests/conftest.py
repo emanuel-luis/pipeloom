@@ -36,6 +36,8 @@ CONF = {
     "spark.default.parallelism": "2",
     "spark.ui.enabled": "false",
     "spark.sql.session.timeZone": "UTC",
+    # Delta replays its log in 50 tasks by default; two cores and tiny logs need two.
+    "spark.databricks.delta.snapshotPartitions": "2",
 }
 
 

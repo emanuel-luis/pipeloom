@@ -46,6 +46,8 @@ class Host(Protocol):
 
     def persist(self, rel: Relation) -> Relation: ...
 
+    def release(self, frame: Any) -> None: ...
+
 
 def _braces(text: str) -> str:
     return text.replace("{", "{{").replace("}", "}}")
@@ -179,10 +181,12 @@ def _epoch_ms(value: datetime) -> int:
 
 
 def app_id(project: str, token: str) -> str:
-    """`pipeloom/<project>/<model>` with the token's `#quarantine` or `#intermediate` suffix."""
+    """`pipeloom/<project>/<model>` with the token's `#quarantine` or `#intermediate` suffix. A
+    window token `run:model:interval_id` gets `pipeloom/<project>/<model>/<interval_id>`, so each
+    window has a transaction of its own (ADR-0032, amendment 1.3)."""
     base, sep, suffix = token.partition("#")
-    model = base.rsplit(":", 1)[-1]
-    return f"pipeloom/{project}/{model}{sep}{suffix}"
+    name = "/".join(base.split(":")[1:]) or base
+    return f"pipeloom/{project}/{name}{sep}{suffix}"
 
 
 def _refused(ident: str) -> WriteRefusedError:
@@ -345,6 +349,10 @@ class DeltaWriter:
             return prior
         if strategy == "overwrite":
             return self._overwrite(rel.native, target, ident, cfg, token)
+        if cfg.replace_range is not None:
+            if strategy != "append":
+                raise ValueError(f"replace_range needs the append strategy, not {strategy}")
+            return self._replace_range(rel, target, ident, cfg, token)
         if strategy == "append":
             return self._append(rel.native, target, ident, cfg, token)
         if strategy == "replace_partitions":
@@ -486,6 +494,59 @@ class DeltaWriter:
             self._save(writer, target)
 
         return self._run(ident, token, cfg.commit_meta, write)
+
+    def _replace_window(
+        self, rel: Relation, target: TargetRef, ident: str, cfg: WriteConfig, token: str
+    ) -> WriteResult:
+        """One commit: `replaceWhere` on the window's range deletes the rows in it, whatever the
+        partitioning, and adds the batch. An empty batch only deletes (ADR-0054)."""
+        rng = cfg.replace_range
+        assert rng is not None
+        batch = rel.native
+        self._check_keys(batch, (rng.column,), "replace_range")
+        dtype = next(c.dtype for c in schema_of(batch) if c.name == rng.column)
+        inside = sqltext.range_predicate(rng.column, dtype, rng.start, rng.end)
+        if batch.where(f"NOT coalesce({inside}, false)").limit(1).count():
+            raise WriteKeyError(
+                f"the batch has row(s) with '{rng.column}' outside the replace_range or null"
+            )
+        existing, adds, claimed = self._prepare_schema(batch, target, cfg, token)
+        if existing is None:
+            existing = self._create_empty(batch, target, cfg)
+        opts = self._options(
+            token,
+            cfg.commit_meta,
+            app_id(self._project, token),
+            cfg.run_started_at,
+            empty=(not self._guard or cfg.run_started_at is None) and batch.isEmpty(),
+            claimed=claimed,
+        )
+        if adds:
+            opts["mergeSchema"] = "true"
+        if existing is not None:
+            opts["replaceWhere"] = inside
+
+        def write() -> None:
+            if existing is None:  # a new path table: a plain first append
+                writer = self._writer(batch, "append", opts)
+                if cfg.partition_by:
+                    writer = writer.partitionBy(*cfg.partition_by)
+            else:
+                writer = self._writer(batch, "overwrite", opts)
+            self._save(writer, target)
+
+        return self._run(ident, token, cfg.commit_meta, write)
+
+    def _replace_range(
+        self, rel: Relation, target: TargetRef, ident: str, cfg: WriteConfig, token: str
+    ) -> WriteResult:
+        """A unit runs many windows: each window's batch is released after its write, so the
+        cache never holds more than one window."""
+        batch = self._host.persist(rel)
+        try:
+            return self._replace_window(batch, target, ident, cfg, token)
+        finally:
+            self._host.release(batch.native)
 
     def _merge(
         self, rel: Relation, target: TargetRef, ident: str, cfg: WriteConfig, token: str
