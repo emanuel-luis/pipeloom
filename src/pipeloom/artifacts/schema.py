@@ -16,6 +16,7 @@ from typing import Any, Final, get_args
 
 from pydantic import BaseModel
 
+from pipeloom.artifacts.plan_diff import CATEGORIES, PLAN_DIFF_SCHEMA
 from pipeloom.artifacts.results import RESULTS_SCHEMA
 from pipeloom.artifacts.table_diff import TABLE_DIFF_SCHEMA, TableDiff
 from pipeloom.artifacts.unit_graph import UNIT_GRAPH_SCHEMA, UnitGraph
@@ -453,6 +454,11 @@ def manifest_schema() -> dict[str, Any]:
         **_INTEGER,
         "description": "How checksums was computed (since 1.2); absent with it.",
     }
+    node["sql"] = {
+        **node["sql"]["anyOf"][0],
+        "description": "The literal ctx.sql queries of the model's function, for plan --diff "
+        "(since 1.2). Absent when it has none; not part of plan_hash.",
+    }
     meta = defs["PlanMetadata"]["properties"]
     meta["deploy"] = {**_OBJECT, "description": "Absent when the target has no deploy block."}
     for key in ("generated_at", "invocation_id"):
@@ -492,11 +498,49 @@ def manifest_schema() -> dict[str, Any]:
     return _document("manifest.json", MANIFEST_SCHEMA, "pipeloom manifest", body)
 
 
+def plan_diff_schema() -> dict[str, Any]:
+    """`pipeloom.plan_diff/1`: the output of `pipeloom plan --diff --output json`."""
+    change = {
+        "type": "object",
+        "properties": {
+            "unique_id": _STRING,
+            "name": _STRING,
+            "category": {"enum": list(CATEGORIES)},
+            "parts": {
+                **_STRINGS,
+                "description": "The split checksums that differ, or new, removed or legacy.",
+            },
+            "reason": _STRING,
+        },
+        "required": ["unique_id", "name", "category", "parts", "reason"],
+    }
+    props = {
+        "project": _STRING,
+        "target": _STRING,
+        "fail_on": {"enum": ["breaking", "any", "none"]},
+        "failed": {**_BOOLEAN, "description": "True when the command exits 1 for --fail-on."},
+        "counts": {
+            "type": "object",
+            "properties": {c: _INTEGER for c in CATEGORIES},
+            "required": list(CATEGORIES),
+        },
+        "changes": {"type": "array", "items": {"$ref": _DEFS + "change"}},
+    }
+    body = {
+        "description": "How each changed model differs from the --state reference (ADR-0052).",
+        "properties": props,
+        "required": list(props),
+        "$defs": {"change": change},
+    }
+    return _document("plan_diff.json", PLAN_DIFF_SCHEMA, "pipeloom plan diff", body)
+
+
 # File name under schema/v1/ to builder.
 _BUILDERS: Final[Mapping[str, Callable[[], dict[str, Any]]]] = {
     "compile_result.json": compile_result_schema,
     "event.json": event_schema,
     "manifest.json": manifest_schema,
+    "plan_diff.json": plan_diff_schema,
     "run_results.json": run_results_schema,
     "table_diff.json": table_diff_schema,
     "unit_graph.json": unit_graph_schema,

@@ -597,6 +597,10 @@
             }
           ]
         },
+        "sql": {
+          "$ref": "#/$defs/PlanSql",
+          "description": "The literal ctx.sql queries of the model's function, for plan --diff (since 1.2). Absent when it has none; not part of plan_hash."
+        },
         "tags": {
           "items": {
             "type": "string"
@@ -736,6 +740,28 @@
         "tags"
       ],
       "title": "PlanSource",
+      "type": "object"
+    },
+    "PlanSql": {
+      "description": "The literal `ctx.sql(\"...\")` queries of a model's function (ADR-0052), for `plan --diff`.",
+      "properties": {
+        "queries": {
+          "items": {
+            "$ref": "#/$defs/SqlQuery"
+          },
+          "title": "Queries",
+          "type": "array"
+        },
+        "shell": {
+          "title": "Shell",
+          "type": "string"
+        }
+      },
+      "required": [
+        "shell",
+        "queries"
+      ],
+      "title": "PlanSql",
       "type": "object"
     },
     "PluginInfo": {
@@ -1094,6 +1120,31 @@
         }
       },
       "title": "RowCountCheck",
+      "type": "object"
+    },
+    "SqlQuery": {
+      "properties": {
+        "dialect": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dialect"
+        },
+        "sql": {
+          "title": "Sql",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sql"
+      ],
+      "title": "SqlQuery",
       "type": "object"
     },
     "TargetRef": {

@@ -6,7 +6,7 @@ Architecture: [Section 7, Error codes, and section 11, Artifacts](../architectur
 
 A node of the 1.0 manifest has one `checksum`. It covers the resolved config, the callable and the bytes of the model's module file, the contract columns and the data tests ([ADR-0042](0042-state-selection-and-defer.md), [ADR-0050](0050-python-first-authoring.md)). `state:modified` can only say that something changed. A reformatted file, a new comment, a fixed docstring and an edited data test all look like a change to the model's logic, and a reviewer cannot tell which. Environment values also land in the checksum, because the config is hashed after `${env:...}` is resolved.
 
-Version 1.2 adds `plan --diff`, which sorts each change into a category. It needs to know which part of a node changed first. This ADR covers that part. The change categories are the planned next step and will be added to this ADR by the PR that adds `plan --diff`.
+Version 1.2 adds `plan --diff`, which sorts each change into a category. It needs to know which part of a node changed first. This ADR covers that part. The change categories are in the 1.2 amendment below.
 
 The 1.x stability rules ([ADR-0016](0016-versioning-and-plugin-api.md)) allow only additive manifest fields. The 1.0 `checksum` and the plan hash must stay byte-identical for an unchanged project.
 
@@ -45,9 +45,48 @@ The 1.x stability rules ([ADR-0016](0016-versioning-and-plugin-api.md)) allow on
 - A non-finite float literal such as `1e999` is hashed as its text, since canonical JSON has no infinity.
 - Changing the normalization later bumps `checksum_version`, and references written before fall back with PLG309 until they are compiled again.
 
+## Amendment (1.2): plan --diff and change categories
+
+Decided on 2026-11-21 with the `plan --diff` change (roadmap 1.2).
+
+### Context
+
+The split checksums say which part of a model changed. A reviewer also wants to know what the change does to the data readers see, and CI wants to stop a change that may break them. A category must never call a change safe when pipeloom cannot tell.
+
+### Options
+
+- **Where the old SQL comes from.** The reference is a manifest, not a checkout, so the old module is gone.
+  - Treat every code change as breaking. Then no code change can be non-breaking, which the roadmap asks for. Rejected.
+  - Record the literal `ctx.sql` queries in the manifest. Chosen. A node gains an optional `sql{shell, queries[{sql, dialect}]}`, left out of the plan hash like `checksums`. `queries` are the string literals passed to `ctx.sql` inside the model's function, in tree order, with each call's literal `dialect=`. `shell` is the `code` digest computed with those strings blanked, so it says whether anything else in the module changed. A sibling model's SQL, a helper's SQL or any Python edit changes the shell. A function with no such call, or with a `dialect=` that is not a literal, gets no record.
+- **Where sqlglot runs.** The import-linter contract allows it only in `validate.static`. The comparison `sql_change` lives there, the classifier in `artifacts.plan_diff` calls it, and the contract is unchanged. Without sqlglot it answers breaking.
+- **The command surface.** `plan` did not exist. It is added with `--diff` as its only mode, required, so a later mode can be added without changing what `plan` alone means. Rejected: a flag on `ls` or `compile`, whose output and exit codes would change meaning.
+
+### Decision
+
+- `pipeloom plan --diff --state DIR [--select ...] [--exclude ...] [--fail-on breaking|any|none] [--output text|json]` compiles the project, loads the reference as `--state` does elsewhere (PLX110 on a bad folder), and reports each changed model. Unchanged models are left out.
+- Own category, from the parts that differ (the worst wins, breaking over non-breaking over metadata):
+  - Changed inputs: breaking. `upstream` alone gives no own category; parents decide.
+  - `tests`: metadata.
+  - `contract`: a dropped or retyped column, a nullability change, a contract added or removed, or an added column that is not nullable is breaking. An added nullable column, or only a new column order, is non-breaking.
+  - `config`, by top-level key: `tags`, `meta`, `retries`, `retry_delay`, `retry_on` and `timeout` are metadata, because they change how a run goes and not what it writes. `cluster_by` is non-breaking, because it changes layout and not rows. `expectations` are non-breaking unless a changed expectation has `on_violation: drop`, which removes rows. Every other key is breaking, including `materialized`, `write`, `incremental`, `partition_by`, `quality`, `frame_api`, `schema`, `catalog`, `sql_dialect` and any key added later. A config digest that differs while the resolved config does not (an `${env:...}` text change) is breaking.
+  - `code`: breaking unless both sides have a SQL record with the same shell and the same number of queries, and each query pair is the same or a pure addition. sqlglot parses both with the call's dialect, else the model's `sql_dialect`, else the engine's. A pure addition is one SELECT statement on each side where the old projections appear in the new in the same order, the rest of the query is identical, the old query is not DISTINCT, grouped or aggregate, has no `*`, and each added column has a new name and no aggregate outside a window, subquery, table function, UNNEST or unknown function. Queries are not qualified against a schema. Anything else, a parse error, more than one statement, or a missing sqlglot is breaking.
+  - A reference node without split checksums of this `checksum_version` falls back to the legacy key: any difference is breaking, with part `legacy`, and PLG309 counts those models once.
+- Categories: `new`, `removed`, `breaking`, `indirect-breaking`, `non-breaking`, `indirect-non-breaking`, `metadata`. A model below a breaking model is indirect-breaking unless it is breaking or new itself. A model below a non-breaking model is indirect-non-breaking unless its own change ranks higher. The reason names the models above. Indirect categories follow the current graph, ephemeral models included.
+- `--select` and `--exclude` (state selectors included) narrow the report. Removed models appear only without them, since they cannot be selected.
+- Exit codes: 0 when nothing reaches the `--fail-on` level, 1 otherwise or on errors, 2 on usage errors. `breaking` (the default) counts `breaking`, `indirect-breaking` and `removed`; `any` counts every change; `none` never fails.
+- Output: text is one row per model (model, category, parts, reason) or `no changes`. JSON is `pipeloom.plan_diff/1` (`project`, `target`, `fail_on`, `failed`, `counts` per category, `changes[{unique_id, name, category, parts, reason}]`), published as `schema/v1/plan_diff.json`.
+- Provenance: designed from the pipeloom code base, the sqlglot documentation and public descriptions of change categories in other tools. No code was copied from any other project.
+
+### Consequences
+
+- SQL text now appears in the manifest. It was already in the project's source, and the manifest already names the module.
+- A manifest compiled by 1.2 before this change has split checksums but no SQL record: its code changes are breaking until the reference is compiled again.
+- Two models in one module see each other's SQL edits as breaking, through the shell. Splitting models into their own modules gives finer answers.
+- Positional readers of a table may still see a column added in the middle of a SELECT as a change. pipeloom writes by name, so this is non-breaking here.
+
 ## Status
 
-Accepted. `plan --diff` and its categories will amend this ADR.
+Accepted. Amended in 1.2: `plan --diff` and change categories (see above).
 
 ## Date
 

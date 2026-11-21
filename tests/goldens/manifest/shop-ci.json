@@ -295,7 +295,16 @@
         "tests": "1d8fc6ceb1f94c6326d6d5483d258fcb2e179e9869325b245d105c2219bf69fd",
         "upstream": "685ece41de7be3752de29f55a300ffea96ed17b5666e45b5348c8dbfdf13f566"
       },
-      "checksum_version": 1
+      "checksum_version": 1,
+      "sql": {
+        "shell": "0c7d59fca6086a752374924f4632351748e259de7f49ced4ba8c3a5c0d676d1c",
+        "queries": [
+          {
+            "sql": "select customer_id, sum(amount) as revenue from fct_orders group by customer_id",
+            "dialect": null
+          }
+        ]
+      }
     },
     "model.shop.stg_customers": {
       "unique_id": "model.shop.stg_customers",
@@ -362,7 +371,16 @@
         "tests": "1d8fc6ceb1f94c6326d6d5483d258fcb2e179e9869325b245d105c2219bf69fd",
         "upstream": "a66cdec8c80338883f83d83312bdcd33bdcdc5745d441fba0876c08d1d4182da"
       },
-      "checksum_version": 1
+      "checksum_version": 1,
+      "sql": {
+        "shell": "1d99841fe45ab3c6d5ebda628e9cc16906099f42f888da7b9dcf8e0467a42799",
+        "queries": [
+          {
+            "sql": "select id, lower(email) as email from raw_customers",
+            "dialect": null
+          }
+        ]
+      }
     },
     "model.shop.stg_orders": {
       "unique_id": "model.shop.stg_orders",
@@ -429,7 +447,16 @@
         "tests": "1d8fc6ceb1f94c6326d6d5483d258fcb2e179e9869325b245d105c2219bf69fd",
         "upstream": "388cea30534a4e29de9f51f62cad11b74cc4b1beb1f42e2b25ec554dfa352c55"
       },
-      "checksum_version": 1
+      "checksum_version": 1,
+      "sql": {
+        "shell": "9a04a2077cb085489c7ee76233e0decc44c9ffa620ebebe398044c11c86d51b7",
+        "queries": [
+          {
+            "sql": "select id, customer_id, amount from raw_orders",
+            "dialect": null
+          }
+        ]
+      }
     },
     "model.shop.stg_payments": {
       "unique_id": "model.shop.stg_payments",
@@ -496,7 +523,16 @@
         "tests": "1d8fc6ceb1f94c6326d6d5483d258fcb2e179e9869325b245d105c2219bf69fd",
         "upstream": "108cab8445a519f8af71d6e5205f99e435c037810be41f59c73f1bc72a769ff2"
       },
-      "checksum_version": 1
+      "checksum_version": 1,
+      "sql": {
+        "shell": "d98b40aa18b966c8e80c1c7c39ef4a1a9ffe2ffa6651de1bfe29904a64f7a5fc",
+        "queries": [
+          {
+            "sql": "select order_id, amount from raw_payments",
+            "dialect": null
+          }
+        ]
+      }
     },
     "model.shop.top_customers": {
       "unique_id": "model.shop.top_customers",
@@ -559,7 +595,16 @@
         "tests": "1d8fc6ceb1f94c6326d6d5483d258fcb2e179e9869325b245d105c2219bf69fd",
         "upstream": "dd755d3aa24012892a635347aa12902ac2ad1bd98ee62e1b7dabfb41635c56ac"
       },
-      "checksum_version": 1
+      "checksum_version": 1,
+      "sql": {
+        "shell": "7ebe44eece262c9e3bf7f62e15bccf48230ef2caabd878bec4dd9538c7cfeea6",
+        "queries": [
+          {
+            "sql": "select customer_id, revenue from rpt_revenue where revenue > 0",
+            "dialect": null
+          }
+        ]
+      }
     }
   },
   "sources": {
