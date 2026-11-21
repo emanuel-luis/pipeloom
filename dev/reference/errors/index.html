@@ -801,6 +801,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../plugins/duckdb/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DuckDB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../plugins/spark/" class="md-nav__link">
         
   
@@ -2416,6 +2444,17 @@
     <span class="md-ellipsis">
       
         PLX120
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plx121" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX121
       
     </span>
   </a>
@@ -4196,6 +4235,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plx121" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX121
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4815,6 +4865,9 @@
 <h3 id="plx120">PLX120<a class="headerlink" href="#plx120" title="Permanent link">&para;</a></h3>
 <p>View model did not return ctx.sql(...), or passed it inputs=. Severity: error. Status: active. Since: 0.9.</p>
 <p>A Python view model runs in view mode: its input parameters are placeholders that only ctx.sql may name, and ctx.sql returns the query the catalog stores. The function returned something else, passed inputs= frames to ctx.sql, or used an input as a frame.</p>
+<h3 id="plx121">PLX121<a class="headerlink" href="#plx121" title="Permanent link">&para;</a></h3>
+<p>DuckDB extension not installed. Severity: error. Status: active. Since: 1.1.</p>
+<p>The DuckDB engine needs an extension (delta for a Delta source, or one listed in the engine's extensions option) that is not installed in its extension_directory, and install_extensions is off, so nothing is downloaded. The code appears in the message of the error that the read or write reports (PLM204, PLM201 or PLX101). Preinstall the extension into that directory on a machine with network access, or turn install_extensions on.</p>
 <h2 id="renderers">Renderers<a class="headerlink" href="#renderers" title="Permanent link">&para;</a></h2>
 <h3 id="pla001">PLA001<a class="headerlink" href="#pla001" title="Permanent link">&para;</a></h3>
 <p>Unsupported execution mode. Severity: error. Status: active. Since: 0.6.</p>
