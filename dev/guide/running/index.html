@@ -2113,6 +2113,18 @@ or run results of another project, is PLX110.</p>
   reference, and the persisted models that inline a modified ephemeral model. The comparison ignores
   the target, so a <code>dev</code> project and a <code>prod</code> reference match when nothing changed.</li>
 <li><code>state:new</code> selects the models the reference does not have.</li>
+<li><code>state:modified.code</code>, <code>state:modified.config</code>, <code>state:modified.contract</code>, <code>state:modified.tests</code>
+  and <code>state:modified.upstream</code> select by one part of the model
+  (<a href="../../adr/0052-split-checksums-and-change-categories/">ADR-0052</a>). <code>code</code> ignores layout,
+  comments, docstrings and the <code>@model</code> decorator, and a plain SQL string passed to <code>ctx.sql</code> has its comments and
+  extra whitespace dropped. <code>config</code> hashes <code>${env:...}</code> values as written, so rotating an
+  environment value changes nothing here. <code>tests</code> covers the data tests, and <code>upstream</code> changes
+  when any model above changes. A reference compiled before 1.2 has no split checksums: these
+  selectors then compare the whole checksum and warn with PLG309.</li>
+<li><code>pipeloom ls --state state --why</code> prints how each listed model differs, for example
+  <code>orders: code, upstream</code>. The values are <code>new</code>, the parts above, <code>legacy</code> (only the pre-1.2
+  checksum is known), <code>legacy only</code> (the parts agree and only the whole checksum differs) and
+  <code>unchanged</code>.</li>
 <li><code>result:fail</code>, <code>result:skip</code>, <code>result:cancelled</code> and <code>result:succeeded</code> select by the status of
   the model in the reference run results (<code>fail</code> includes timeouts). They need the run results
   (PLG308).</li>

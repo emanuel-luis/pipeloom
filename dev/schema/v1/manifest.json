@@ -526,6 +526,17 @@
           "title": "Checksum",
           "type": "string"
         },
+        "checksum_version": {
+          "description": "How checksums was computed (since 1.2); absent with it.",
+          "type": "integer"
+        },
+        "checksums": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Split checksums (since 1.2): code, config, contract, tests and upstream. Absent in 1.0 manifests; not part of plan_hash.",
+          "type": "object"
+        },
         "columns": {
           "items": {
             "$ref": "#/$defs/ColumnConfig"
