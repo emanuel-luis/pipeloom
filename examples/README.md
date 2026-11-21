@@ -1,5 +1,21 @@
 # pipeloom examples
 
+The [examples gallery](https://emanuel-luis.github.io/pipeloom/latest/examples/) describes every project here.
+
+## Walkthroughs
+
+Small projects, one use case each, with a page that runs every step. They run on DuckDB (the default target) and
+polars, and each has a test in `tests/examples/` that runs the walkthrough in CI.
+
+| Project | Use case | Walkthrough |
+|---|---|---|
+| `events_incremental` | Late-arriving events: watermark, lookback, merge, idempotent rerun | [page](../docs/examples/events_incremental.md) |
+| `customers_scd2` | A customer dimension with history (`scd2`) | [page](../docs/examples/customers_scd2.md) |
+| `orders_quality` | An untrusted feed: expectations, quarantine, data tests, a contract | [page](../docs/examples/orders_quality.md) |
+| `tested_models` | Unit tests and data tests for transformation logic | [page](../docs/examples/tested-models.md) |
+
+## TPC-H on four engines
+
 One TPC-H transformation, written four times: on polars, pandas, Spark and Databricks. Each project
 reads the same five TPC-H tables and builds the same bronze, silver and gold layers, so you can
 compare how a pipeloom project looks on each engine.

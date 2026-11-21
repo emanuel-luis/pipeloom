@@ -58,7 +58,6 @@ markdown_extensions:
   - md_in_html
   - tables
   - admonition
-  - md_in_html
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
@@ -75,6 +74,12 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Quickstart: quickstart.md
+  - Examples:
+      - examples/index.md
+      - Late-arriving events: examples/events_incremental.md
+      - Customer dimension with history: examples/customers_scd2.md
+      - An untrusted partner feed: examples/orders_quality.md
+      - Testing transformation logic: examples/tested-models.md
   - Guide:
       - Running a pipeline: guide/running.md
       - Incremental models: guide/incremental.md
