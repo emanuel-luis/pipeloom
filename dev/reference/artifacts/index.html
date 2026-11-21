@@ -1733,6 +1733,7 @@ config schemas (<a href="../../adr/0049-artifact-schemas-and-orchestrator-protoc
 </tr>
 </tbody>
 </table>
+<p>A field added after 1.0 is optional in the schema, so 1.0 documents keep validating; the 1.0 required sets are frozen, and CI validates frozen 1.0 documents against the current schemas and current output against the frozen 1.0 schemas.</p>
 <p>Compatibility within a version: consumers must ignore fields they do not know, since the schemas
 leave objects open. A 1.x release may add optional fields, new event types and new skip reasons
 and stays on <code>/1</code>: skip reasons are open strings both in the row <code>skip_reason</code> and in the
