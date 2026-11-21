@@ -18,7 +18,9 @@ from pipeloom import Expectation, ModelContext, model, not_null, unique
         ),
     },
     expectations=[
-        Expectation(name="keys_present", check=not_null("event_id", "event_ts"), on_violation="fail"),
+        Expectation(
+            name="keys_present", check=not_null("event_id", "event_ts"), on_violation="fail"
+        ),
         Expectation(name="event_id_unique", check=unique("event_id"), on_violation="fail"),
     ],
 )
