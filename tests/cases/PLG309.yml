@@ -1,0 +1,18 @@
+python: "tests.plan.test_split_checksums:plg309"
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    targets:
+      dev:
+        engine:
+          kind: memory
+        catalog:
+          kind: memory
+  models/m.py: |
+    from pipeloom import model
+
+
+    @model
+    def a(ctx):
+        return ctx.sql("select 1 as x")

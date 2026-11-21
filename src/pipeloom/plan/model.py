@@ -51,6 +51,11 @@ class PlanNode(_Frozen):
     """The model contract; the manifest leaves the key out when the model declares none."""
     data_tests: tuple[DataTestConfig, ...] | None = None
     """Post-write checks; the manifest leaves the key out when the model declares none."""
+    checksums: dict[str, str] | None = None
+    """Split checksums (ADR-0052): `code`, `config`, `contract`, `tests` and `upstream`. Absent in
+    1.0 manifests; never part of the plan hash."""
+    checksum_version: int | None = None
+    """How `checksums` was computed; absent with it."""
 
 
 class PlanSource(_Frozen):

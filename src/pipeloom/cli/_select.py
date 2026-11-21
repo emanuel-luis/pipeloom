@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, NoReturn
 
@@ -13,8 +14,15 @@ from pipeloom.cli._events import Invocation
 from pipeloom.config.bind import BoundProject
 from pipeloom.diagnostics import Diagnostic, Report
 from pipeloom.graph.dag import ProjectGraph
-from pipeloom.graph.selectors import Selection, SelectorError, StateRef, apply
-from pipeloom.plan.compile import model_checksums
+from pipeloom.graph.selectors import (
+    NodeInfo,
+    Selection,
+    SelectorError,
+    StateRef,
+    node_infos,
+    select_nodes,
+)
+from pipeloom.plan.compile import model_checksums, split_checksums
 
 
 @dataclass(frozen=True)
@@ -25,6 +33,9 @@ class Selected:
     diagnostics: tuple[Diagnostic, ...]
     """Everything found so far, including selector warnings."""
     bound: BoundProject | None
+    state: StateRef | None = None
+    nodes: Mapping[str, NodeInfo] = field(default_factory=dict)
+    """Selector views of every model, with checksums when `state` is set."""
 
 
 def _fail(
@@ -74,15 +85,11 @@ def resolve_selection(
     report.extend(outcome.diagnostics)
     ref = reference_state(inv, project_dir, state, outcome.value.project.name, bound)
     sums = None if ref is None else model_checksums(outcome.value)
+    parts = None if ref is None else split_checksums(outcome.value)
+    nodes = node_infos(outcome.value.project, sums, parts)
     try:
-        ids = apply(
-            Selection(select, exclude, ref),
-            outcome.value.graph,
-            outcome.value.project,
-            report,
-            sums,
-        )
+        ids = select_nodes(Selection(select, exclude, ref), outcome.value.graph, nodes, report)
     except SelectorError as err:
         report.extend([err.diagnostic])
         _fail(inv, report.sorted(), 2, bound)
-    return Selected(outcome.value, ids, report.sorted(), bound)
+    return Selected(outcome.value, ids, report.sorted(), bound, ref, nodes)

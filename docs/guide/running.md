@@ -96,6 +96,18 @@ or run results of another project, is PLX110.
   reference, and the persisted models that inline a modified ephemeral model. The comparison ignores
   the target, so a `dev` project and a `prod` reference match when nothing changed.
 - `state:new` selects the models the reference does not have.
+- `state:modified.code`, `state:modified.config`, `state:modified.contract`, `state:modified.tests`
+  and `state:modified.upstream` select by one part of the model
+  ([ADR-0052](../adr/0052-split-checksums-and-change-categories.md)). `code` ignores layout,
+  comments, docstrings and the `@model` decorator, and a plain SQL string passed to `ctx.sql` has its comments and
+  extra whitespace dropped. `config` hashes `${env:...}` values as written, so rotating an
+  environment value changes nothing here. `tests` covers the data tests, and `upstream` changes
+  when any model above changes. A reference compiled before 1.2 has no split checksums: these
+  selectors then compare the whole checksum and warn with PLG309.
+- `pipeloom ls --state state --why` prints how each listed model differs, for example
+  `orders: code, upstream`. The values are `new`, the parts above, `legacy` (only the pre-1.2
+  checksum is known), `legacy only` (the parts agree and only the whole checksum differs) and
+  `unchanged`.
 - `result:fail`, `result:skip`, `result:cancelled` and `result:succeeded` select by the status of
   the model in the reference run results (`fail` includes timeouts). They need the run results
   (PLG308).

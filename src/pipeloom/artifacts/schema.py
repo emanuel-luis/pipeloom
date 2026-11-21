@@ -429,6 +429,16 @@ def manifest_schema() -> dict[str, Any]:
     # `_node` drops these keys while they are None, so they are an array or absent.
     for key in ("columns", "data_tests"):
         node[key] = node[key]["anyOf"][0]
+    node["checksums"] = {
+        "type": "object",
+        "additionalProperties": _STRING,
+        "description": "Split checksums (since 1.2): code, config, contract, tests and "
+        "upstream. Absent in 1.0 manifests; not part of plan_hash.",
+    }
+    node["checksum_version"] = {
+        **_INTEGER,
+        "description": "How checksums was computed (since 1.2); absent with it.",
+    }
     meta = defs["PlanMetadata"]["properties"]
     meta["deploy"] = {**_OBJECT, "description": "Absent when the target has no deploy block."}
     for key in ("generated_at", "invocation_id"):

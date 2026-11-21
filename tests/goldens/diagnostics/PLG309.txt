@@ -1,0 +1,3 @@
+warning PLG303 selector 'state:modified.code' matched nothing
+warning PLG309 selector 'state:modified.code' compares the legacy checksum for 1 model(s): the reference manifest has no split checksums of this version for them
+      hint: compile the reference again with this pipeloom version

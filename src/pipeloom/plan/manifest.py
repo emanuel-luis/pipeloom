@@ -34,7 +34,9 @@ def node_checksum(
     """sha256 of the canonical config plus the body bytes, with CRLF read as LF, plus the
     contract columns and the data tests when the model declares them (so a model without them
     keeps its checksum)."""
-    digest = hashlib.sha256(canonical_json(_config(config.model_dump(mode="json", by_alias=True))))
+    digest = hashlib.sha256(
+        canonical_json(drop_unset(config.model_dump(mode="json", by_alias=True)))
+    )
     digest.update(b"\0")
     digest.update(body.replace(b"\r\n", b"\n"))
     if columns is not None:
@@ -46,26 +48,30 @@ def node_checksum(
     return digest.hexdigest()
 
 
-def _config(dumped: dict[str, Any]) -> dict[str, Any]:
+def drop_unset(dumped: dict[str, Any]) -> dict[str, Any]:
     """Additive setting: `sql_dialect` is absent while unset, so plans without it keep their hash."""
     if dumped.get("sql_dialect") is None:
         dumped.pop("sql_dialect", None)
     return dumped
 
 
-def _node(node: PlanNode) -> dict[str, Any]:
+_UNHASHED = ("checksums", "checksum_version")
+"""Node fields added in 1.2 that stay out of the plan hash, so 1.0 plan hashes hold."""
+
+
+def _node(node: PlanNode, *, hashed: bool = False) -> dict[str, Any]:
     out = node.model_dump(mode="json", by_alias=True)
-    for key in ("columns", "data_tests"):  # additive fields: absent when not declared
-        if out[key] is None:
+    for key in ("columns", "data_tests", *_UNHASHED):  # additive fields: absent when not set
+        if out[key] is None or (hashed and key in _UNHASHED):
             del out[key]
-    _config(out["config"])
+    drop_unset(out["config"])
     return out
 
 
-def _sections(plan: Plan) -> dict[str, Any]:
+def _sections(plan: Plan, *, hashed: bool = False) -> dict[str, Any]:
     """The parts of the manifest that describe the pipeline, in manifest order."""
     return {
-        "nodes": {uid: _node(n) for uid, n in sorted(plan.nodes.items())},
+        "nodes": {uid: _node(n, hashed=hashed) for uid, n in sorted(plan.nodes.items())},
         "sources": {uid: s.model_dump(mode="json") for uid, s in sorted(plan.sources.items())},
         "units": {u: list(unit.nodes) for u, unit in sorted(plan.units.items())},
         "unit_parent_map": {u: list(unit.parents) for u, unit in sorted(plan.units.items())},
@@ -78,7 +84,7 @@ def compute_plan_hash(plan: Plan) -> str:
     """sha256 of the canonical plan: nodes, sources, units, edges, project, target, boundary and
     config version. Selection, versions, timestamps and ids are left out."""
     meta = plan.metadata.model_dump(mode="json")
-    doc = {**_sections(plan), "metadata": {k: meta[k] for k in _HASHED_METADATA}}
+    doc = {**_sections(plan, hashed=True), "metadata": {k: meta[k] for k in _HASHED_METADATA}}
     return hashlib.sha256(canonical_json(doc)).hexdigest()
 
 

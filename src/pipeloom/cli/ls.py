@@ -18,6 +18,7 @@ from pipeloom.cli._options import (
     target_option,
 )
 from pipeloom.cli._select import resolve_selection
+from pipeloom.graph.selectors import why as why_changed
 
 
 @click.command()
@@ -34,6 +35,12 @@ from pipeloom.cli._select import resolve_selection
     show_default=True,
     help="One model name per line, or a JSON list.",
 )
+@click.option(
+    "--why",
+    is_flag=True,
+    help="With --state and text output, print after each name how it differs from the "
+    "reference: new, the split checksums that changed, legacy, or unchanged.",
+)
 def ls(
     project_dir: Path,
     vars_: dict[str, Any],
@@ -44,8 +51,13 @@ def ls(
     state: Path | None,
     log_format: str,
     output: str,
+    why: bool,
 ) -> None:
     """List the models that --select and --exclude choose (all by default)."""
+    if why and state is None:
+        raise click.UsageError("--why needs --state")
+    if why and output == "json":
+        raise click.UsageError("--why works with text output only")
     inv = Invocation("ls", log_format)
     sel = resolve_selection(inv, project_dir, vars_, target, plugins, select, exclude, state)
     models = sorted(
@@ -65,5 +77,9 @@ def ls(
         click.echo(json.dumps(rows, indent=2, ensure_ascii=True))
     else:
         for m in sorted(models, key=lambda m: m.name):
-            click.echo(m.name)
+            if why and sel.state is not None:
+                parts = why_changed(sel.nodes[m.unique_id], sel.state)
+                click.echo(f"{m.name}: {', '.join(parts) or 'unchanged'}")
+            else:
+                click.echo(m.name)
     inv.finish(sel.diagnostics, 0, bound=sel.bound)

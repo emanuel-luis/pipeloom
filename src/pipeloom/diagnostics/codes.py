@@ -831,6 +831,17 @@ _ACTIVE_11: Final = (
 )
 
 
+# Active since 1.2.
+_ACTIVE_12: Final = (
+    (
+        "PLG309",
+        W,
+        "Split checksums missing in the reference",
+        "A state:modified.<part> selector (code, config, contract, tests or upstream) met models whose reference manifest has no split checksums, or has them from another checksum_version, as a 1.0 manifest does. For those models the selector compares the legacy checksum, so any change selects them. The message counts them. Compile the reference again with this pipeloom version.",
+    ),
+)
+
+
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
@@ -862,6 +873,7 @@ def _build() -> Mapping[str, CodeInfo]:
         ("0.8", _ACTIVE_08),
         ("0.9", _ACTIVE_09),
         ("1.1", _ACTIVE_11),
+        ("1.2", _ACTIVE_12),
     ):
         for code, sev, title, expl in table:
             retired = _RETIRED.get(code)
