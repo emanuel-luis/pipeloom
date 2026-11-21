@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pipeloom"
-version = "1.0.0"
+version = "1.1.0"
 description = "Engine-agnostic data pipelines: Python models marked with @model, YAML for the project."
 readme = "README.pypi.md"
 requires-python = ">=3.11"
@@ -32,13 +32,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-polars = ["pipeloom-polars==1.0.0"]
-pandas = ["pipeloom-pandas==1.0.0"]
-spark = ["pipeloom-spark[local]==1.0.0"]
-databricks = ["pipeloom-databricks==1.0.0"]
-airflow = ["pipeloom-airflow==1.0.0"]
-openlineage = ["pipeloom-openlineage==1.0.0"]
-duckdb = ["pipeloom-duckdb==1.0.0"]
+polars = ["pipeloom-polars==1.1.0"]
+pandas = ["pipeloom-pandas==1.1.0"]
+spark = ["pipeloom-spark[local]==1.1.0"]
+databricks = ["pipeloom-databricks==1.1.0"]
+airflow = ["pipeloom-airflow==1.1.0"]
+openlineage = ["pipeloom-openlineage==1.1.0"]
+duckdb = ["pipeloom-duckdb==1.1.0"]
 sqlglot = ["sqlglot>=26"]
 
 [project.urls]
