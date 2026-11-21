@@ -23,6 +23,12 @@ $ uvx --from "pipeloom[duckdb]" pipeloom demo
 It prints the path of `target/docs/index.html` in the new `pipeloom_demo` folder and the commands
 to try next. See [pipeloom demo](reference/cli.md#pipeloom-demo).
 
+<figure markdown="span">
+  ![pipeloom demo builds a DuckDB project in one command; by hand, pipeloom init, then validate, then run or build. Both write DuckDB tables and run artifacts, and the docs site is built from the artifacts.](diagrams/quickstart.light.svg#only-light)
+  ![pipeloom demo builds a DuckDB project in one command; by hand, pipeloom init, then validate, then run or build. Both write DuckDB tables and run artifacts, and the docs site is built from the artifacts.](diagrams/quickstart.dark.svg#only-dark)
+  <figcaption>Two ways in: the demo, or init, validate and run. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/quickstart.d2">quickstart.d2</a>.</figcaption>
+</figure>
+
 ## Start from `pipeloom init`
 
 The fastest start is to let pipeloom write the project:

@@ -3,6 +3,12 @@
 A unit can fail for a reason that goes away on its own, run for too long, or be stopped together
 with the run. pipeloom has a setting for each case.
 
+<figure markdown="span">
+  ![Timeline: the scheduler starts attempt 1, which fails with a transient error and is retried; attempt 2 starts after the delay and succeeds. On Ctrl+C the scheduler asks the running unit to stop within the grace period, the unit ends cancelled and the run exits 130.](../diagrams/retry-cancel.light.svg#only-light)
+  ![Timeline: the scheduler starts attempt 1, which fails with a transient error and is retried; attempt 2 starts after the delay and succeeds. On Ctrl+C the scheduler asks the running unit to stop within the grace period, the unit ends cancelled and the run exits 130.](../diagrams/retry-cancel.dark.svg#only-dark)
+  <figcaption>A retry, then a graceful cancel. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/retry-cancel.d2">retry-cancel.d2</a>.</figcaption>
+</figure>
+
 ## Retries
 
 ```python
