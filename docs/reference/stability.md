@@ -18,8 +18,10 @@ Within a major version these do not change in a breaking way:
   above the plugin's; otherwise you get PLU001.
 - The engine conformance kit: the `-p pipeloom.testing.pytest_plugin` plugin, its
   `--pipeloom-harness` option, `EngineContract` and `EngineHarness`, and the kit version in the
-  report header. A minor kit version adds cells and a major one changes what a cell means; a
-  pipeloom minor can add cells, so pin pipeloom in CI when a green build must not move.
+  report header. Within 1.x the kit changes only additively: a minor kit version adds cells and
+  optional `EngineHarness` fields, while a required field, a removed cell or a changed meaning
+  needs a major pipeloom release. Added cells can fail an engine that passed before, so pin
+  pipeloom in CI when a green build must not move.
 - The meaning of each diagnostic code.
 - The documented Python API: the `pipeloom` top-level exports and `pipeloom.api`.
 

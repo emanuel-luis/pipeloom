@@ -3,6 +3,8 @@
 KIT_VERSION = "1.0"
 """Version of the conformance kit (`pipeloom.testing.kit`), printed in the pytest report header.
 
-The major number changes when a cell changes meaning or `EngineHarness` gains a required field.
-The minor number changes when cells are added. Both are independent of the pipeloom version.
+Within pipeloom 1.x the kit changes only additively. A minor kit version may add cells, for a new
+capability or for behavior the docs already describe, and new optional `EngineHarness` fields. A
+required `EngineHarness` field, a removed cell or a cell that changes meaning needs a pipeloom major
+(and so a kit major). The kit version is independent of the pipeloom version.
 """

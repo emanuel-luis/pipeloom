@@ -43,7 +43,7 @@ def test_the_kit_runs_the_engine_suite_with_a_versioned_header(tmp_path: Path) -
 
 def test_an_unloadable_harness_is_a_usage_error(tmp_path: Path) -> None:
     proc = kit(tmp_path, "--pipeloom-harness", "no_such_module:harness")
-    assert proc.returncode != 0
+    assert proc.returncode == 4  # pytest's usage error
     assert "cannot be loaded" in proc.stdout + proc.stderr
 
 
@@ -53,3 +53,19 @@ def test_the_plugin_stays_idle_without_the_option(tmp_path: Path) -> None:
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "1 passed" in proc.stdout
     assert "harness" not in proc.stdout.split("collected")[0]
+
+
+def test_the_bare_pytest_script_finds_a_harness_in_the_current_directory(tmp_path: Path) -> None:
+    (tmp_path / "my_harness.py").write_text(
+        "from tests.test_engine_contract import harness\n", encoding="utf-8"
+    )
+    exe = Path(sys.executable).parent / ("pytest.exe" if os.name == "nt" else "pytest")
+    # The repo root stays on PYTHONPATH only for `tests.test_engine_contract`, not for my_harness.
+    env = {**os.environ, "PYTHONPATH": str(ROOT), "PYTHONUTF8": "1"}
+    proc = subprocess.run(
+        [str(exe), "-p", "pipeloom.testing.pytest_plugin", "--pipeloom-harness",
+         "my_harness:harness", "-k", "capabilities_shape"],  # fmt: skip
+        cwd=tmp_path, env=env, capture_output=True, text=True, check=False, timeout=120,
+    )  # fmt: skip
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "1 passed" in proc.stdout

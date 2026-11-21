@@ -6,6 +6,7 @@ Nothing registers it: pipeloom declares no `pytest11` entry point, so it never l
 from __future__ import annotations
 
 import importlib
+import sys
 from collections.abc import Callable
 from importlib.metadata import version
 from pathlib import Path
@@ -36,18 +37,25 @@ def pytest_report_header(config: pytest.Config) -> str:
     return f"{line}, harness {spec}" if spec else line
 
 
+HARNESS = pytest.StashKey[Callable[[Path], EngineHarness]]()
+
+
 def pytest_configure(config: pytest.Config) -> None:
-    if config.getoption("pipeloom_harness"):
-        from pipeloom.testing import kit
-
-        config.args = [str(Path(kit.__file__))]
-
-
-def load_harness(config: pytest.Config) -> Callable[[Path], EngineHarness]:
-    """Resolve `MODULE:CALLABLE`; a bad value is a usage error, not a failed cell."""
     spec = config.getoption("pipeloom_harness")
     if not spec:
-        raise pytest.UsageError(f"{OPTION} MODULE:CALLABLE is required to run the kit")
+        return
+    config.stash[HARNESS] = _resolve(config, spec)
+    from pipeloom.testing import kit
+
+    config.args = [str(Path(kit.__file__))]
+
+
+def _resolve(config: pytest.Config, spec: str) -> Callable[[Path], EngineHarness]:
+    """Import `MODULE:CALLABLE` from the invocation directory; a bad value is a usage error."""
+    # The bare `pytest` script leaves the current directory off sys.path, unlike `python -m pytest`.
+    here = str(config.invocation_params.dir)
+    if here not in sys.path:
+        sys.path.insert(0, here)
     module, _, attr = spec.partition(":")
     try:
         target = getattr(importlib.import_module(module), attr)
@@ -56,3 +64,11 @@ def load_harness(config: pytest.Config) -> Callable[[Path], EngineHarness]:
     if not callable(target):
         raise pytest.UsageError(f"{OPTION} {spec!r} is not callable")
     return target  # type: ignore[no-any-return]
+
+
+def load_harness(config: pytest.Config) -> Callable[[Path], EngineHarness]:
+    """The harness `pytest_configure` resolved."""
+    try:
+        return config.stash[HARNESS]
+    except KeyError:
+        raise pytest.UsageError(f"{OPTION} MODULE:CALLABLE is required to run the kit") from None

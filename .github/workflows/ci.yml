@@ -211,7 +211,7 @@ jobs:
           mkdir "$RUNNER_TEMP/kit-project"
           cp plugins/pipeloom-polars/tests/test_contract.py "$RUNNER_TEMP/kit-project/polars_harness.py"
           cd "$RUNNER_TEMP/kit-project"
-          "$RUNNER_TEMP/kit/bin/python" -m pytest -p pipeloom.testing.pytest_plugin --pipeloom-harness polars_harness:harness
+          "$RUNNER_TEMP/kit/bin/pytest" -p pipeloom.testing.pytest_plugin --pipeloom-harness polars_harness:harness
       - name: Check package metadata
         run: uvx twine check --strict dist/*
 
