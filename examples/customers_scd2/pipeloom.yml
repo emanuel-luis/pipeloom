@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
+config_version: 1
+name: customers_scd2
+default_target: duckdb
+vars:
+  day: day1
+models:
+  +materialized: table
+sources:
+  crm:
+    format: csv
+    tables:
+      customers:
+        location: data/customers_${var:day}.csv
+targets:
+  duckdb:
+    engine:
+      kind: duckdb
+    catalog:
+      kind: duckdb
+      path: target/duckdb/crm.duckdb
+    naming:
+      kind: none
+      schema: crm
+    state:
+      kind: json
+      path: .pipeloom/state-duckdb
+  polars:
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: target/warehouse-polars
+    naming:
+      kind: none
+      schema: crm
+    state:
+      kind: json
+      path: .pipeloom/state-polars
+  pandas:
+    engine:
+      kind: pandas
+    catalog:
+      kind: filesystem
+      root: target/warehouse-pandas
+    naming:
+      kind: none
+      schema: crm
+    state:
+      kind: json
+      path: .pipeloom/state-pandas

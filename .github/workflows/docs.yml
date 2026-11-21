@@ -53,3 +53,21 @@ jobs:
           else
             uv run --all-packages --group docs mike deploy --push dev
           fi
+      - name: Root 404 redirect on gh-pages
+        run: |
+          git fetch origin gh-pages
+          git worktree add ../gh-pages origin/gh-pages --detach
+          cat > ../gh-pages/404.html <<'HTML'
+          <!doctype html>
+          <meta charset="utf-8">
+          <title>Page not found</title>
+          <meta http-equiv="refresh" content="0; url=/pipeloom/latest/">
+          <p>Page not found. <a href="/pipeloom/latest/">Go to the latest docs.</a></p>
+          HTML
+          sed -i 's/^          //' ../gh-pages/404.html
+          cd ../gh-pages
+          if [ -n "$(git status --porcelain 404.html)" ]; then
+            git add 404.html
+            git commit -s -m "docs: root 404 redirects to /latest/"
+            git push origin HEAD:gh-pages
+          fi

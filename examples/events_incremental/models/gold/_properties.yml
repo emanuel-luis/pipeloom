@@ -1,0 +1,4 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+models:
+  - name: daily_events
+    description: Events, distinct users and revenue per day.

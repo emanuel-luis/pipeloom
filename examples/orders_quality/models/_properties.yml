@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+models:
+  - name: customers
+    description: Customers known to the shop.
+  - name: orders
+    description: Partner orders that passed the expectations and the contract.
+    # --8<-- [start:quality]
+    config:
+      expectations:
+        - name: customer_present
+          check:
+            not_null: [customer_id]
+          on_violation: drop
+        - name: amount_non_negative
+          check:
+            range:
+              column: amount
+              min: 0
+          on_violation: drop
+        - name: status_known
+          check:
+            accepted_values:
+              column: status
+              values: [new, paid, shipped]
+          on_violation: warn
+      quality:
+        quarantine: true
+    data_tests:
+      - name: order_id_not_null
+        check:
+          not_null: [order_id]
+      - name: order_id_unique
+        check:
+          unique: [order_id]
+      - name: customer_exists
+        check:
+          relationships:
+            column: customer_id
+            to:
+              ref: customers
+            field: id
+        on_violation: warn
+    # --8<-- [end:quality]

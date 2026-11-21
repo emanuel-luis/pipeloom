@@ -1,0 +1,112 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+models:
+  # --8<-- [start:orders_usd]
+  - name: orders_usd
+    description: Orders in US dollars, cancelled orders removed.
+    unit_tests:
+      - name: converts_with_the_rate_of_the_day
+        given:
+          orders:
+            rows:
+              - order_id: 1
+                order_date: 2026-03-01
+                customer_id: c1
+                currency: EUR
+                amount: 50.0
+                status: paid
+              - order_id: 2
+                order_date: 2026-03-02
+                customer_id: c1
+                currency: EUR
+                amount: 50.0
+                status: paid
+              - order_id: 3
+                order_date: 2026-03-01
+                customer_id: c2
+                currency: USD
+                amount: 10.0
+                status: cancelled
+          fx_rates:
+            rows:
+              - rate_date: 2026-03-01
+                currency: EUR
+                rate: 1.10
+              - rate_date: 2026-03-02
+                currency: EUR
+                rate: 1.20
+        expect:
+          rows:
+            - order_id: 1
+              amount_usd: 55.0
+            - order_id: 2
+              amount_usd: 60.0
+    data_tests:
+      - name: order_id_unique
+        check:
+          unique: [order_id]
+  # --8<-- [end:orders_usd]
+  # --8<-- [start:net_revenue]
+  - name: net_revenue
+    description: Net revenue per order, refunds subtracted.
+    unit_tests:
+      - name: refunds_are_netted
+        given:
+          orders_usd:
+            rows:
+              - order_id: 1
+                order_date: 2026-03-01
+                customer_id: c1
+                rate: 1.10
+                amount_usd: 110.0
+              - order_id: 2
+                order_date: 2026-03-01
+                customer_id: c2
+                rate: 1.0
+                amount_usd: 40.0
+          refunds:
+            csv: tests/data/refunds.csv
+            columns:
+              - name: refund_amount
+                dtype: float64
+        expect:
+          rows:
+            - order_id: 1
+              net_usd: 77.0
+            - order_id: 2
+              net_usd: 40.0
+    data_tests:
+      - name: order_exists
+        check:
+          relationships:
+            column: order_id
+            to:
+              ref: orders_usd
+            field: order_id
+  # --8<-- [end:net_revenue]
+  # --8<-- [start:daily_revenue]
+  - name: daily_revenue
+    description: Orders and net revenue per day, with a running total.
+    unit_tests:
+      - name: running_total_follows_the_date
+        given:
+          net_revenue:
+            csv: tests/data/net_revenue.csv
+            columns:
+              - name: order_date
+                dtype: date
+              - name: net_usd
+                dtype: float64
+        expect:
+          csv: tests/data/daily_revenue.csv
+          columns:
+            - name: order_date
+              dtype: date
+            - name: net_usd
+              dtype: float64
+            - name: running_net_usd
+              dtype: float64
+    data_tests:
+      - name: one_row_per_day
+        check:
+          unique: [order_date]
+  # --8<-- [end:daily_revenue]

@@ -1,0 +1,4 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+models:
+  - name: events_clean
+    description: One row per event. Incremental on event_ts with a two hour lookback, merged on event_id.

@@ -1,0 +1,4 @@
+refund_id,order_id,refund_amount
+r1,1,20
+r2,1,10
+r3,9,5
