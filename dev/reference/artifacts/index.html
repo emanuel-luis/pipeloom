@@ -2057,6 +2057,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="run_results.json">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#skip-reasons" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skip reasons
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2443,6 +2460,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="run_results.json">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#skip-reasons" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skip reasons
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2600,7 +2634,11 @@ use to judge its intermediates) and <code>warnings</code> (run-level messages, s
 </tr>
 <tr>
 <td><code>skip_reason</code></td>
-<td><code>upstream_failed</code> or <code>fail_fast</code> for a skipped unit; <code>not_run</code> (or the orchestrator's own reason) when <code>pipeloom finalize</code> found no result; else null.</td>
+<td>Why a unit was skipped; null on other rows. An open set: see <a href="#skip-reasons">skip reasons</a>.</td>
+</tr>
+<tr>
+<td><code>failed_upstream</code></td>
+<td>Since 1.3, <code>upstream_failed</code> rows only: the unit whose failure skipped this one, or <code>&lt;unit_id&gt;.&lt;data_test&gt;</code> when a blocking data test failed. Absent on other rows.</td>
 </tr>
 <tr>
 <td><code>attempt</code>, <code>retries_used</code></td>
@@ -2645,6 +2683,70 @@ use to judge its intermediates) and <code>warnings</code> (run-level messages, s
 and <code>warnings</code> carries <code>watermark_seeded: target</code> when the state store had no watermark.
 Fields that later versions fill stay null or empty: <code>rows_dropped</code>, <code>rows_quarantined</code>,
 <code>bytes_read</code>, <code>schema_changes</code> and <code>expectations</code>. <code>orchestrator_ids</code> holds the ids from <code>--orchestrator-id</code>.</p>
+<p>An <code>expectations</code> entry of a data test declared <code>blocking: false</code> carries <code>"blocking": false</code>
+(since 1.3); the key is absent on every other entry. A PLQ303 message lists at most 20 failing
+test names and ends with <code>and N more</code>.</p>
+<h3 id="skip-reasons">Skip reasons<a class="headerlink" href="#skip-reasons" title="Permanent link">&para;</a></h3>
+<p><code>skip_reason</code> is an open set (<a href="../../adr/0056-run-outcome-fields/">ADR-0056</a>). A failing reason
+makes the run fail; a non-failing one counts for nothing.</p>
+<table>
+<thead>
+<tr>
+<th>Reason</th>
+<th>Class</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>upstream_failed</code></td>
+<td>failing</td>
+<td>An upstream unit failed or timed out, or a blocking data test failed. <code>failed_upstream</code> names it.</td>
+</tr>
+<tr>
+<td><code>fail_fast</code></td>
+<td>failing</td>
+<td><code>--fail-fast</code> stopped the run after another unit failed.</td>
+</tr>
+<tr>
+<td>null</td>
+<td>failing</td>
+<td>A skipped row without a reason.</td>
+</tr>
+<tr>
+<td><code>not_run</code></td>
+<td>non-failing</td>
+<td><code>pipeloom finalize</code> found no result and no orchestrator state.</td>
+</tr>
+<tr>
+<td><code>not_selected</code></td>
+<td>non-failing</td>
+<td>Reserved; nothing emits it yet.</td>
+</tr>
+<tr>
+<td><code>up_to_date</code></td>
+<td>non-failing</td>
+<td>Reserved for skipping unchanged units; nothing emits it yet.</td>
+</tr>
+<tr>
+<td><code>not_due</code></td>
+<td>non-failing</td>
+<td>Reserved for schedules; nothing emits it yet.</td>
+</tr>
+<tr>
+<td><code>upstream_incomplete</code></td>
+<td>non-failing</td>
+<td>Reserved for partitions whose upstream is not complete; nothing emits it yet.</td>
+</tr>
+<tr>
+<td>anything else</td>
+<td>non-failing</td>
+<td>An orchestrator's own reason, or a reason a later 1.x release adds.</td>
+</tr>
+</tbody>
+</table>
+<p>Readers must treat a value they do not know as non-failing. The <code>reason</code> of the <code>unit.skipped</code>
+event takes the same values; its <code>upstream</code> names the failed unit.</p>
 <h2 id="json-schemas">JSON Schemas<a class="headerlink" href="#json-schemas" title="Permanent link">&para;</a></h2>
 <p>Each document names its schema in a <code>schema</code> property, and each schema is published next to the
 config schemas (<a href="../../adr/0049-artifact-schemas-and-orchestrator-protocol/">ADR-0049</a>):</p>

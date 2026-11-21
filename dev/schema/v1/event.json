@@ -970,7 +970,7 @@
     "UnitSkipped": {
       "properties": {
         "reason": {
-          "description": "upstream_failed, fail_fast, not_run, or a reason added later.",
+          "description": "upstream_failed, fail_fast, not_run, or a reason added later (ADR-0056).",
           "type": "string"
         },
         "upstream": {
