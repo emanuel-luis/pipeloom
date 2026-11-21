@@ -146,6 +146,29 @@ If the stored watermark changed while the unit ran, which usually means a second
 target, the unit fails with PLM203. The data is already written. Do not use `--no-lock` to run two
 runs of one target at once.
 
+## Rows with a null cursor
+
+A row whose cursor column is null cannot be compared with the watermark. By default pipeloom
+drops it without a word once a watermark exists. Set `on_cursor_value_missing` to choose:
+
+```yaml
+incremental:
+  input: raw
+  column: updated_at
+  on_cursor_value_missing: exclude   # raise | include | exclude
+```
+
+- `raise`: the unit fails with PLM210 and writes nothing. It also fails on the first batch.
+- `include`: null rows are in every batch. Nothing can mark them as done, so they are
+  reprocessed on every run. Pair this with a merge on a key, or you will append them again each
+  time. They never move the watermark.
+- `exclude`: null rows are dropped, counted in `rows_null_cursor` of `run_results.json` and
+  reported as a warning event.
+
+`raise` and `exclude` count the nulls over the whole input, which is one more scan. The setting
+needs `column` (PLP402 without it). Interval models cannot set it (PLP417): a null event_time
+already fails the write (PLM206).
+
 ## What the run records
 
 - Event `state.watermark_committed` with the column, type, before and after values, the source
@@ -153,6 +176,7 @@ runs of one target at once.
 - In `run_results.json`: `is_incremental`, `watermark_before` and `watermark_after`, plus
   `rows_inserted`, `rows_updated` and `rows_deleted` for merge. See
   [Run artifacts](../reference/artifacts.md).
+- With `on_cursor_value_missing: exclude`, the optional `rows_null_cursor`.
 - Engines that can run incremental models: polars and pandas (and the in-memory test engine).
 
 ## Interval models

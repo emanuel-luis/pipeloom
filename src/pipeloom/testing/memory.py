@@ -393,6 +393,25 @@ class MemorySession:
         )
         return Relation(kept, "memory")
 
+    def count_nulls(self, rel: Relation, column: str) -> int:
+        return sum(1 for r in _rows(rel) if reference.is_null(r.get(column)))
+
+    def filter_cursor(
+        self,
+        rel: Relation,
+        column: str,
+        lower: Any,
+        *,
+        inclusive: bool = True,
+        keep_nulls: bool = False,
+    ) -> Relation:
+        def keep(r: Mapping[str, Any]) -> bool:
+            if reference.is_null(r.get(column)):
+                return keep_nulls
+            return lower is None or (r[column] >= lower if inclusive else r[column] > lower)
+
+        return Relation(tuple(r for r in _rows(rel) if keep(r)), "memory")
+
     def max_value(self, rel: Relation, column: str) -> Any:
         values = [r[column] for r in _rows(rel) if not reference.is_null(r.get(column))]
         return max(values) if values else None

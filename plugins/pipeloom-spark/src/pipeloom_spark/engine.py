@@ -262,6 +262,29 @@ class SparkEngineSession:
         bound = F.expr(sqltext.literal(lower, self._dtype(rel, column)))
         return _rel(rel.native.where(col >= bound if inclusive else col > bound))
 
+    def count_nulls(self, rel: Relation, column: str) -> int:
+        from pyspark.sql import functions as F
+
+        return int(rel.native.where(F.col(sqltext.quote_ident(column)).isNull()).count())
+
+    def filter_cursor(
+        self,
+        rel: Relation,
+        column: str,
+        lower: Any,
+        *,
+        inclusive: bool = True,
+        keep_nulls: bool = False,
+    ) -> Relation:
+        from pyspark.sql import functions as F
+
+        col = F.col(sqltext.quote_ident(column))
+        if lower is None:
+            return rel if keep_nulls else _rel(rel.native.where(col.isNotNull()))
+        bound = F.expr(sqltext.literal(lower, self._dtype(rel, column)))
+        keep = col >= bound if inclusive else col > bound
+        return _rel(rel.native.where(keep | col.isNull() if keep_nulls else keep))
+
     def filter_between(self, rel: Relation, column: str, start: Any, end: Any) -> Relation:
         """`start <= column < end` as a SQL predicate, so Delta can skip files. A zoned bound is
         epoch microseconds, so the session time zone never shifts the window."""

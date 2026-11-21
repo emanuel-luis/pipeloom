@@ -158,6 +158,29 @@ def filter_since(native: Any, column: str, lower: Any, *, inclusive: bool = True
     return nw.to_native(nw.from_native(native).filter(keep))
 
 
+def count_nulls(native: Any, column: str) -> int:
+    """Rows whose `column` is null (NaN is null on pandas)."""
+    frame = nw.from_native(native).select(nw.col(column).is_null().sum())
+    return int(_collect(frame).item())
+
+
+def filter_cursor(
+    native: Any, column: str, lower: Any, *, inclusive: bool = True, keep_nulls: bool = False
+) -> Any:
+    """`filter_since` with an explicit choice for null rows. `lower` None means no bound: the
+    filter then only drops the nulls (and does nothing when it keeps them)."""
+    col = nw.col(column)
+    if lower is None:
+        if keep_nulls:
+            return native
+        keep = ~col.is_null()
+    else:
+        keep = col >= lower if inclusive else col > lower
+        if keep_nulls:
+            keep = keep | col.is_null()
+    return nw.to_native(nw.from_native(native).filter(keep))
+
+
 def _in_zone(frame: Any, column: str, value: Any) -> Any:
     """An aware bound in the time zone of a zoned datetime column: polars compares a zoned
     column only with values of its own zone."""

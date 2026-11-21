@@ -20,7 +20,14 @@ from pipeloom.diagnostics.codes import DOCS_BASE_URL
 from pipeloom.discovery.loader import ModuleLoader
 from pipeloom.engine import portable
 from pipeloom.engine.errors import WriteKeyError, WriteRefusedError
-from pipeloom.engine.protocols import Catalog, Engine, EngineSession, filter_between
+from pipeloom.engine.protocols import (
+    Catalog,
+    Engine,
+    EngineSession,
+    count_nulls,
+    filter_between,
+    filter_cursor,
+)
 from pipeloom.engine.types import (
     ROW_CHECKS,
     SCD2_COLUMNS,
@@ -143,6 +150,8 @@ class _Inc:
     """The filtered input: the rows this attempt processes."""
     window: Window | None = None
     """An interval model: the window this input is filtered to (ADR-0054)."""
+    nulls_excluded: int | None = None
+    """on_cursor_value_missing: exclude: the input rows dropped for a null cursor."""
 
 
 @dataclass
@@ -631,6 +640,10 @@ class ModelRunner:
             )
             rel = self._compute(node, unit_id, attempt, started, local, rows_read, inc)
             row["rows_read"] = rows_read
+            if inc is not None and inc.nulls_excluded is not None:
+                row["rows_null_cursor"] = inc.nulls_excluded
+                if inc.nulls_excluded:
+                    row["warnings"].append(f"null_cursor_excluded: {inc.nulls_excluded} rows")
             rel, before_write, finish = self._quality(node, target, unit_id, rel, row)
             # Step 9: the batch watermark, from the rows the body was given.
             meta: dict[str, JsonValue] = {}
@@ -1004,7 +1017,7 @@ class ModelRunner:
         for alias, uid in node.inputs.items():
             inputs[alias] = self._input(alias, uid, node, unit_id, attempt, started, local)
             if inc is not None and alias == inc.alias:
-                inputs[alias] = self._incremental_input(node, inputs[alias], inc)
+                inputs[alias] = self._incremental_input(node, inputs[alias], inc, unit_id, attempt)
             if rows_read is not None:
                 rows_read[alias] = (
                     None if inputs[alias].lazy else self._session.count(inputs[alias])
@@ -1059,7 +1072,9 @@ class ModelRunner:
                 f"return the native frame of engine '{self._engine.name}'",
             )
 
-    def _incremental_input(self, node: PlanNode, rel: Relation, inc: _Inc) -> Relation:
+    def _incremental_input(
+        self, node: PlanNode, rel: Relation, inc: _Inc, unit_id: str, attempt: int
+    ) -> Relation:
         """Step 2: resolve the watermark, then keep only the rows after it. An interval model
         keeps the rows of its window instead."""
         if inc.window is not None:
@@ -1084,11 +1099,25 @@ class ModelRunner:
                 "check incremental.column and incremental.lookback, or run with --full-refresh",
             )
         inc.state = st
+        mode = node.config.incremental.on_cursor_value_missing if node.config.incremental else None
+        keep_nulls = mode == "include"
+        if mode in ("raise", "exclude"):
+            rel = self._null_cursor(node, rel, inc, mode, unit_id, attempt)
         if st.is_incremental:
             try:
-                rel = self._session.filter_since(
-                    rel, inc.column, st.lower_bound, inclusive=st.inclusive
-                )
+                if keep_nulls:
+                    rel = filter_cursor(
+                        self._session,
+                        rel,
+                        inc.column,
+                        st.lower_bound,
+                        inclusive=st.inclusive,
+                        keep_nulls=True,
+                    )
+                else:  # every other mode: the 1.0 call, nulls dropped
+                    rel = self._session.filter_since(
+                        rel, inc.column, st.lower_bound, inclusive=st.inclusive
+                    )
             except Exception as exc:  # noqa: BLE001 - engines raise their own errors
                 self._fail(
                     "PLM205",
@@ -1099,6 +1128,46 @@ class ModelRunner:
                 )
         # ponytail: the batch maximum scans a lazy input twice; persist it if that ever hurts
         inc.batch = rel
+        return rel
+
+    def _null_cursor(
+        self, node: PlanNode, rel: Relation, inc: _Inc, mode: str, unit_id: str, attempt: int
+    ) -> Relation:
+        """`raise` fails on a null cursor; `exclude` drops those rows, counts and warns about
+        them. The count scans the input once more (ADR-0027 amendment 1.3)."""
+        try:
+            n = count_nulls(self._session, rel, inc.column)
+        except Exception as exc:  # noqa: BLE001 - engines raise their own errors
+            self._fail(
+                "PLM205",
+                "read",
+                exc,
+                f"cannot count null '{inc.column}' values of input '{inc.alias}' "
+                f"of model '{node.name}'",
+            )
+        if n and mode == "raise":
+            self._fail(
+                "PLM210",
+                "read",
+                IncrementalError(f"{n} null values"),
+                f"model '{node.name}': input '{inc.alias}' has {n} rows with a null "
+                f"'{inc.column}' and on_cursor_value_missing is raise",
+                "fix the data, or set on_cursor_value_missing to exclude or include",
+            )
+        if mode == "exclude":
+            inc.nulls_excluded = n
+            if n:
+                self._bus.emit(
+                    ModelLog(
+                        message=f"excluded {n} rows with a null '{inc.column}'",
+                        level="warning",
+                        fields={"rows_null_cursor": n},
+                    ),
+                    unit_id=unit_id,
+                    model=node.name,
+                    attempt=attempt,
+                )
+                rel = filter_cursor(self._session, rel, inc.column, None, keep_nulls=False)
         return rel
 
     def _fail(

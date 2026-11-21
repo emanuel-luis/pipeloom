@@ -18,7 +18,7 @@
   {
     "code": "PLP417",
     "severity": "error",
-    "message": "interval options of model 'daily' conflict: write.strategy is merge, not append; incremental.column is set too",
+    "message": "interval options of model 'daily' conflict: write.strategy is merge, not append; incremental.column is set too; incremental.on_cursor_value_missing is set (it acts on a watermark column)",
     "hint": "an interval model is materialized incremental, appends (each window replaces its own range) and places rows by incremental.interval.event_time only",
     "location": {
       "file": "src/m.py",

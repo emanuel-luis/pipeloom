@@ -487,6 +487,24 @@
           "description": "Reprocess this much before the watermark.",
           "title": "Lookback"
         },
+        "on_cursor_value_missing": {
+          "anyOf": [
+            {
+              "enum": [
+                "raise",
+                "include",
+                "exclude"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Rows whose `column` is null: fail the unit, keep them in every batch, or drop and count\nthem. Unset keeps the 1.0 behavior (the watermark filter drops them, unreported). Watermark\nmodels only (since 1.3).",
+          "title": "On Cursor Value Missing"
+        },
         "watermark_source": {
           "default": "state",
           "description": "Where the watermark is read from.",

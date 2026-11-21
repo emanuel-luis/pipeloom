@@ -49,6 +49,8 @@ def _interval_problems(m: ResolvedModel) -> list[str]:
         out.append(f"write.strategy is {strategy}, not append")
     if inc.column is not None:
         out.append("incremental.column is set too")
+    if inc.on_cursor_value_missing is not None:
+        out.append("incremental.on_cursor_value_missing is set (it acts on a watermark column)")
     names = [col.name for col in m.entry.columns or ()]
     if m.entry.columns is not None and inc.interval.event_time not in names:
         out.append(f"the contract has no event_time column '{inc.interval.event_time}'")

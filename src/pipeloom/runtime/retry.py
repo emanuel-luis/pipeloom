@@ -35,6 +35,7 @@ PERMANENT_CODES: Final = frozenset(
         "PLM206",
         "PLM207",
         "PLM208",
+        "PLM210",
         "PLX122",
     }
 )
