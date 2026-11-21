@@ -35,14 +35,31 @@ catalog keeps `<root>/<schema>/<name>/`.
 | Write strategies | `append`, `overwrite`, `merge`, `replace_partitions` |
 | Materializations | `table`, `incremental`, `ephemeral` |
 | Expectations and quarantine | yes (`expr` limited to column names, literals and operators) |
-| SQL models and views | no |
+| `ctx.sql` | with DuckDB installed (`pipeloom-pandas[sql]`), in the `duckdb` dialect |
+| Views | no |
 | Idempotent writes | yes, by run token |
 | Portable frames (`frame_api: narwhals`) | yes |
 | Cancel | no |
 
-A model that calls `ctx.sql` gets a PLK606 warning at validate and fails at run time with PLX101; a view is rejected with PLC507. An `intermediate`
-materialization is supported (files under the artifacts root). `incremental` is supported. SQL on pandas is deferred past 0.2. The supported
-versions are `pandas>=2.3.3,<4` and `pyarrow>=22`.
+A view is rejected with PLC507. An `intermediate` materialization is supported (files under the artifacts root), and so is
+`incremental`. The supported versions are `pandas>=2.3.3,<4` and `pyarrow>=22`.
+
+## SQL
+
+pandas has no SQL engine of its own. Install the `sql` extra and the pandas engine runs `ctx.sql` through DuckDB
+([ADR-0068](../adr/0068-pandas-sql-through-duckdb.md)):
+
+```console
+$ pip install "pipeloom-pandas[sql]"
+```
+
+Each query opens an in-memory DuckDB connection, binds the model's inputs by alias as Arrow tables (no copy for
+Arrow-backed columns), and returns an Arrow-backed DataFrame, the same dtypes the pandas reader produces. The
+connection uses UTC and never downloads a DuckDB extension. The engine's `sql_dialect` is `duckdb`, so a model
+written in another dialect is translated with the `sqlglot` extra, as on the other engines.
+
+Without DuckDB the engine declares no SQL: a model that calls `ctx.sql` gets a PLK606 warning at validate and
+fails at run time with PLX101.
 
 ## Frames
 

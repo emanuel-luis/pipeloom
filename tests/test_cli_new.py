@@ -83,10 +83,14 @@ def test_default_kind_follows_the_engine(polars: Path, pandas: Path) -> None:
 
 
 def test_explicit_flag_beats_the_default(pandas: Path) -> None:
-    # pandas has no SQL, but the flag is the user's call: validation warns about it (PLK606).
+    # The default for pandas is a frame stub, but the flag is the user's call. pandas runs SQL
+    # through DuckDB when it is installed (ADR-0068), and only warns (PLK606) without it.
+    from pipeloom_pandas.spec import CAPABILITIES
+
     assert cli("new", "model", "a", "--sql", "--project-dir", str(pandas)).exit_code == 0
     assert "ctx.sql(" in read(pandas / "models" / "a.py")
-    assert "PLK606" in cli("validate", "--project-dir", str(pandas)).stderr
+    warned = "PLK606" in cli("validate", "--project-dir", str(pandas)).stderr
+    assert warned is (CAPABILITIES.sql_dialect is None)
 
 
 def test_folder(polars: Path) -> None:

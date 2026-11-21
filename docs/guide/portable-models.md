@@ -111,8 +111,8 @@ def sessions(ctx, events):
 
 The query is written in the dialect of the engine, or in the `sql_dialect` the model declares, and
 pipeloom translates it when they differ (this needs the sqlglot extra, otherwise
-[PLC513](../reference/errors.md#plc513)). pandas has no SQL: a model that calls `ctx.sql` is not
-portable to it, and the validation warns with [PLK606](../reference/errors.md#plk606). If you need
+[PLC513](../reference/errors.md#plc513)). pandas runs `ctx.sql` only when DuckDB is installed
+(`pipeloom-pandas[sql]`); without it the validation warns with [PLK606](../reference/errors.md#plk606). If you need
 all four engines, stay in the frame API; if you need windows over an explicit order, `over` covers
 most of it.
 

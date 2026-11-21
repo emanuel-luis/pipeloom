@@ -2,24 +2,30 @@
 
 from __future__ import annotations
 
+from importlib.util import find_spec
 from typing import Any
 
 from pipeloom.engine.protocols import Engine
 from pipeloom.engine.types import EngineCapabilities
 from pipeloom.plugins import API_VERSION, OptionsModel, PluginSpec
 
+# ctx.sql runs through DuckDB when it is installed (`pipeloom-pandas[sql]`, ADR-0068). find_spec
+# only looks for the package: nothing is imported here.
+SQL = find_spec("duckdb") is not None
+
 CAPABILITIES = EngineCapabilities(
     formats=frozenset({"parquet", "csv", "json", "ndjson"}),
     strategies=frozenset({"append", "overwrite", "merge", "replace_partitions", "scd2"}),
     materializations=frozenset({"table", "ephemeral", "incremental", "intermediate"}),
-    sql_models=False,
+    sql_models=SQL,
     views=False,
     idempotent_writes=True,
     cancel=False,
     bytes_metrics=True,
     portable=True,
     quality=True,
-    sql_dialect=None,  # no SQL: ctx.sql raises SqlUnsupportedError
+    # Without DuckDB there is no SQL: ctx.sql raises SqlUnsupportedError (PLK606 warns first).
+    sql_dialect="duckdb" if SQL else None,
 )
 
 
@@ -41,5 +47,5 @@ SPEC: PluginSpec[Engine] = PluginSpec(
     _build,
     PandasOptions,
     capabilities=CAPABILITIES,
-    description="Eager pandas DataFrames; tables on the filesystem catalog; no SQL in 0.2.",
+    description="Eager pandas DataFrames; tables on the filesystem catalog; SQL through DuckDB.",
 )

@@ -188,8 +188,20 @@ def test_ctx_sql_model_unit_test_fails_with_the_diff(tmp_path: Path) -> None:
     assert failed["data"]["unexpected"] == [{"id": 1, "doubled": 2}]
 
 
-def test_ctx_sql_model_unit_test_on_an_engine_without_sql_is_plx115(tmp_path: Path) -> None:
+def test_ctx_sql_model_unit_test_on_an_engine_without_sql_is_plx115(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     pytest.importorskip("pandas")
+    # pandas without its DuckDB extra is the engine without SQL (ADR-0068).
+    import dataclasses
+
+    from pipeloom_pandas import engine, spec
+
+    no_sql = dataclasses.replace(spec.CAPABILITIES, sql_dialect=None, sql_models=False)
+    monkeypatch.setattr(spec, "SPEC", dataclasses.replace(spec.SPEC, capabilities=no_sql))
+    monkeypatch.setattr(spec, "CAPABILITIES", no_sql)
+    monkeypatch.setattr(engine, "CAPABILITIES", no_sql)
+    monkeypatch.setattr(engine.PandasEngine, "capabilities", no_sql)
     result = _test(_py_root(tmp_path, "pandas", "pandas"), "--select", "via_sql")
     assert result.exit_code == 1
     (failed,) = [e for e in _events(result) if e["type"] == "unit_test.failed"]

@@ -23,7 +23,7 @@ compare how a pipeloom project looks on each engine.
 | Project | Engine | Models | Output |
 |---|---|---|---|
 | `tpch_polars` | polars | `ctx.sql(...)` | parquet under `target/warehouse` |
-| `tpch_pandas` | pandas | pandas frame code (pandas has no SQL) | parquet under `target/warehouse` |
+| `tpch_pandas` | pandas | pandas frame code | parquet under `target/warehouse` |
 | `tpch_spark` | Spark, local mode | `ctx.sql(...)` | Delta under `target/warehouse` |
 | `tpch_databricks` | Spark, serverless job | `ctx.sql(...)` | Unity Catalog tables |
 
@@ -134,7 +134,8 @@ compute, and keeps run state in `pipeloom_bronze.ops._pipeloom_state_tpch`.
 - The model files of the polars, Spark and Databricks projects are the same text. Only the
   source group in `pipeloom.yml` differs: parquet files for polars and Spark,
   `samples.tpch.<table>` for Databricks.
-- pandas has no SQL, so the `tpch_pandas` models write the same logic as pandas frame code.
+- The `tpch_pandas` models write the same logic as pandas frame code, to show the frame API. With
+  `pipeloom-pandas[sql]` installed, a pandas target can also run `ctx.sql` models.
 - The tests only validate and compile the Spark and Databricks projects; the parity test below
   runs polars and pandas.
 

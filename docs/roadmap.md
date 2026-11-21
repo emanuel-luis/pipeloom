@@ -148,6 +148,7 @@ The full list per version is in the CHANGELOG and in section 16 of the architect
 - Canonical dataset identity: one pure function in core, with `input_assets` and `output_assets` resolved through ephemerals. A hash suffix applies only to names 1.0 rejected. ADR: 0055. Done when: Airflow asset URIs and OpenLineage names for shop and TPC-H are byte-identical to 1.0.0. An ephemeral input resolves to its persisted upstream.
 - Machine-readable diagnostics: `--log-format json` on the commands that lack it (validate, test), an explain URL on the diagnostic event, and `--output json` for command results of plan, compile and diff. `init` writes AGENTS.md and skills generated from the code catalog, `init --update-agents` regenerates them, and nothing is fetched remotely. Done when: One schema-validated golden per command. A test fails when a catalog code is missing from the skills.
 - Performance budget: a synthetic 1,000-model project with a compile and plan time budget in CI. Done when: CI fails when the budget is exceeded.
+- `ctx.sql` on pandas through DuckDB, as the optional extra `pipeloom-pandas[sql]`: the input frames are registered as Arrow tables in an in-memory DuckDB connection and the result comes back Arrow-backed; the engine's `sql_dialect` becomes `duckdb` when DuckDB is installed. ADR: 0068. Done when: the SQL cells of the engine contract pass on pandas, and without DuckDB the engine still declares no SQL (PLK606, PLX101).
 
 Plugin API: unchanged.
 
