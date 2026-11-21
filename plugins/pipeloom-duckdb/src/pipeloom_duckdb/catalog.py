@@ -73,19 +73,20 @@ class DuckDBCatalog:
 
     def _attach_db(self, name: str, *, create: bool) -> bool:
         """Attach catalog `name`; False when its file does not exist and `create` is off."""
-        if name in self._attached():
+        with self.session.lock:  # check and attach as one step: units attach at once
+            if name in self._attached():
+                return True
+            if self.memory:
+                if not create:
+                    return False
+                location = MEMORY
+            else:
+                file = Path(self.path).parent / f"{name}.duckdb"
+                if not create and not file.exists():
+                    return False
+                location = file.as_posix()
+            self.session.execute(f"ATTACH {string(location)} AS {ident(name)}")
             return True
-        if self.memory:
-            if not create:
-                return False
-            location = MEMORY
-        else:
-            file = Path(self.path).parent / f"{name}.duckdb"
-            if not create and not file.exists():
-                return False
-            location = file.as_posix()
-        self.session.execute(f"ATTACH {string(location)} AS {ident(name)}")
-        return True
 
     def database(self, catalog: str | None, *, create: bool = True) -> str | None:
         """The attached database of a target catalog; None when it does not exist yet."""

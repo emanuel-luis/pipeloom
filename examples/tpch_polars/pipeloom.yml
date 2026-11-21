@@ -5,6 +5,9 @@ vars:
   tpch_dir: ../data/tpch
 models:
   +materialized: table
+  # The queries are written for polars, whose SQL follows PostgreSQL. Declaring it lets the
+  # duckdb target translate them (needs pipeloom[sqlglot]).
+  +sql_dialect: postgres
   bronze:
     +catalog: pipeloom_bronze
     +tags: [bronze]
@@ -42,3 +45,15 @@ targets:
     state:
       kind: json
       path: .pipeloom/state
+  duckdb:
+    engine:
+      kind: duckdb
+    catalog:
+      kind: duckdb
+      path: target/duckdb/tpch.duckdb
+    naming:
+      kind: none
+      schema: tpch
+    state:
+      kind: json
+      path: .pipeloom/state-duckdb

@@ -165,6 +165,10 @@ class DuckDBSession:
         with self._use() as con:
             return con.sql(sql)
 
+    @property
+    def lock(self) -> threading.RLock:
+        return self._lock
+
     def _ready(self) -> None:
         """Data work fails while a listed extension is missing; catalog lookups do not, so the
         session still opens."""
