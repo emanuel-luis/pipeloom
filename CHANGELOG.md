@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The engine conformance kit ([ADR-0067](docs/adr/0067-conformance-kit.md)): an opt-in pytest plugin, `pytest -p pipeloom.testing.pytest_plugin --pipeloom-harness MODULE:CALLABLE`, runs `EngineContract` against a harness from any project that has pipeloom and the engine installed. The report header prints the kit version (`KIT_VERSION`, 1.0). The plugin joins the stability surface list, and existing subclasses of `EngineContract` keep working.
+- An engine author guide, [Writing an engine](docs/plugins/writing-an-engine.md), and a generated [capability matrix](docs/reference/engine-capabilities.md) built from the `EngineCapabilities` of every installed engine.
+- CI installs only the pipeloom and pipeloom-polars wheels in a fresh venv and runs the kit against polars from outside the repository tree.
+
 ### Documentation
 
 - ADR-0016 amendment 1.1 and the stability page: the experimental tier (reserved `PLW` prefix), supported releases, and the optional protocol member rule. The architecture non-goals list for after 1.0 is updated.
