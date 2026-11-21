@@ -20,18 +20,19 @@ from pipeloom_polars.engine import PolarsEngine
 Rows = Sequence[Mapping[str, Any]]
 
 
-def _frame(rows: Rows, schema: Schema) -> pl.DataFrame:
+def _frame(rows: Rows, schema: Schema, *, shuffle: bool = False) -> pl.DataFrame:
     dtypes = {c.name: io.polars_dtype(c.dtype) for c in schema}
-    return pl.DataFrame([dict(r) for r in rows], schema=dtypes)
+    df = pl.DataFrame([dict(r) for r in rows], schema=dtypes)
+    return df.sample(fraction=1.0, shuffle=True, seed=7) if shuffle and df.height > 1 else df
 
 
 def _boom(df: pl.DataFrame) -> pl.DataFrame:
     raise RuntimeError("cannot produce rows")
 
 
-def harness(tmp_path: Path) -> EngineHarness:
+def harness(tmp_path: Path, *, shuffle: bool = False) -> EngineHarness:
     def write_source(fmt: str, path: Path, rows: Rows, schema: Schema) -> None:
-        df = _frame(rows, schema)
+        df = _frame(rows, schema, shuffle=shuffle)
         if fmt == "parquet":
             df.write_parquet(path)
         elif fmt == "csv":
@@ -52,7 +53,7 @@ def harness(tmp_path: Path) -> EngineHarness:
         schema_on_read=True,
         engine=PolarsEngine(),
         catalog=FilesystemCatalog(tmp_path / "wh"),
-        make_native=lambda rows, schema: _frame(rows, schema).lazy(),
+        make_native=lambda rows, schema: _frame(rows, schema, shuffle=shuffle).lazy(),
         to_rows=to_rows,
         write_source=write_source,
         failing_relation=failing,
@@ -69,3 +70,17 @@ class TestPolarsEngine(EngineContract):
     @pytest.fixture
     def engine_factory(self) -> Callable[[Path], EngineHarness]:
         return harness
+
+
+class TestPolarsEngineStreamingShuffled(EngineContract):
+    """Row order is unspecified (docs/guide/write-strategies.md). Polars 2 made the streaming
+    engine the default and 1.x has it opt-in: force it and shuffle every input, so a hidden
+    dependency on row order fails here on any supported polars."""
+
+    @pytest.fixture(autouse=True)
+    def _streaming(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("POLARS_ENGINE_AFFINITY", "streaming")
+
+    @pytest.fixture
+    def engine_factory(self) -> Callable[[Path], EngineHarness]:
+        return lambda tmp_path: harness(tmp_path, shuffle=True)
