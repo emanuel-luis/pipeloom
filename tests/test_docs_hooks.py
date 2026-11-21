@@ -13,6 +13,7 @@ from pipeloom.diagnostics.codes import CATALOG
 
 ROOT = Path(__file__).parent.parent
 PAGES = [
+    "reference/engine-capabilities.md",
     "reference/errors.md",
     "schema/v1/event.json",
     "schema/v1/manifest.json",
@@ -37,6 +38,10 @@ def test_generated_pages() -> None:
     assert sorted(pages) == PAGES
     for code in CATALOG:
         assert f"### {code} {{#{code.lower()}}}" in pages["reference/errors.md"]
+    matrix = pages["reference/engine-capabilities.md"]
+    assert "| Capability | `memory` | `pandas` | `polars` | `spark` |" in matrix
+    assert "| strategies `scd2` |" in matrix
+    assert "| sql_dialect | " in matrix
     project = json.loads(pages["schema/v1/project.json"])
     assert project["$id"].endswith("/latest/schema/v1/project.json")
     assert pages["schema/v1/project.json"] == dump_schema(project)
