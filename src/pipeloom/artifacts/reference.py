@@ -9,7 +9,7 @@ from typing import Any
 
 from pipeloom.artifacts.results import RESULTS_SCHEMA
 from pipeloom.diagnostics import Location, Report
-from pipeloom.graph.selectors import StateRef
+from pipeloom.graph.selectors import CHECKSUM_VERSION, StateRef
 from pipeloom.plan.manifest import read_manifest
 from pipeloom.plan.model import Plan
 
@@ -33,6 +33,11 @@ class Reference:
                 for uid, n in self.plan.nodes.items()
             },
             self.results,
+            {
+                uid: n.checksums
+                for uid, n in self.plan.nodes.items()
+                if n.checksums is not None and n.checksum_version == CHECKSUM_VERSION
+            },
         )
 
 

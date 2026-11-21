@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import replace
 from typing import Any, Literal
 
@@ -12,8 +13,15 @@ from pipeloom.diagnostics import Report
 from pipeloom.engine.protocols import NamingStrategy
 from pipeloom.engine.types import TargetRef
 from pipeloom.graph.dag import ProjectGraph
-from pipeloom.graph.selectors import Selection, SelectorError, apply
-from pipeloom.plan.manifest import compute_plan_hash, node_checksum
+from pipeloom.graph.selectors import CHECKSUM_VERSION, Selection, SelectorError, apply
+from pipeloom.plan.checksums import (
+    canonical,
+    config_view,
+    module_tree,
+    part_digests,
+    upstream_digest,
+)
+from pipeloom.plan.manifest import compute_plan_hash, drop_unset, node_checksum
 from pipeloom.plan.model import (
     EnvVar,
     Plan,
@@ -65,6 +73,29 @@ def model_checksums(pg: ProjectGraph) -> dict[str, str]:
     }
 
 
+def split_checksums(pg: ProjectGraph) -> dict[str, dict[str, str]]:
+    """The split checksums of every model (ADR-0052), parents first so `upstream` can use theirs."""
+    project = pg.project
+    loaded = project.bound.loaded
+    records = project.interpolations
+    trees: dict[str, Any] = {}  # one parse per module file
+    out: dict[str, dict[str, str]] = {}
+    for uid in pg.graph.topo_order():
+        m = project.models.get(uid)
+        if m is None:
+            continue
+        if m.site.file not in trees:
+            trees[m.site.file] = module_tree((loaded.project_dir / m.site.file).read_bytes())
+        code = hashlib.sha256(canonical(m.entry.python, trees[m.site.file])).hexdigest()
+        dumped = _config(m).model_dump(mode="json", by_alias=True)
+        view = config_view(drop_unset(dumped), m, project.docs, records, loaded.vars)
+        parts = part_digests(code, view, m.entry.columns, m.entry.data_tests)
+        inputs = {alias: b.unique_id for alias, b in m.inputs.items()}
+        parts["upstream"] = upstream_digest(inputs, out)
+        out[uid] = parts
+    return out
+
+
 def compile_plan(
     pg: ProjectGraph,
     *,
@@ -86,7 +117,8 @@ def compile_plan(
     loaded = bound.loaded
     try:
         checksums = model_checksums(pg) if selection.state is not None else None
-        selected = apply(selection, graph, project, report, checksums)
+        parts = split_checksums(pg)
+        selected = apply(selection, graph, project, report, checksums, parts)
     except SelectorError as err:
         report.extend([err.diagnostic])
         return None
@@ -118,6 +150,8 @@ def compile_plan(
             checksum=node_checksum(config, raw, m.entry.columns, m.entry.data_tests),
             columns=None if m.entry.columns is None else tuple(m.entry.columns),
             data_tests=None if m.entry.data_tests is None else tuple(m.entry.data_tests),
+            checksums=parts[uid],
+            checksum_version=CHECKSUM_VERSION,
         )
     sources = {
         uid: PlanSource(

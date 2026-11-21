@@ -101,6 +101,8 @@ class ResolvedModel:
     data_tests_at: tuple[str, str] | None = None
     """File and JSON pointer of the properties `data_tests` list; None when the decorator sets
     them or no layer does."""
+    layers: tuple[SettingsLayer, ...] = ()
+    """The settings layers merged into `config`, lowest precedence first."""
 
 
 @dataclass(frozen=True)
@@ -185,7 +187,7 @@ class ResolvedProject:
 
 
 @dataclass(frozen=True)
-class _Layer:
+class SettingsLayer:
     name: Layer
     file: str
     settings: Mapping[str, Any]
@@ -195,8 +197,8 @@ class _Layer:
 
 def _layer(
     name: Layer, file: str, base: str, settings: Mapping[str, Any], prefix: str = ""
-) -> _Layer:
-    return _Layer(name, file, settings, {k: f"{base}/{prefix}{k}" for k in settings})
+) -> SettingsLayer:
+    return SettingsLayer(name, file, settings, {k: f"{base}/{prefix}{k}" for k in settings})
 
 
 def _merge(low: Mapping[str, Any], high: Mapping[str, Any]) -> dict[str, Any]:
@@ -233,7 +235,7 @@ def _inherited(
     file: str,
     roots: Sequence[str],
     module: str,
-) -> list[_Layer]:
+) -> list[SettingsLayer]:
     """The layers a model file inherits, lowest first: the root `+keys`, then the `models:`
     tree entry of each folder from the model_paths root down to the file's own. A module
     outside every model_paths root (found through `model_packages`) uses its dotted package
@@ -299,14 +301,14 @@ def resolve_project(
 
     props, later = _properties(bound)
 
-    def props_layer(name: str, layers: list[_Layer]) -> Origin | None:
+    def props_layer(name: str, layers: list[SettingsLayer]) -> Origin | None:
         """Append the model's properties layer; the origin of its `columns`, if it sets them."""
         if name not in props:
             return None
         pfile, ppointer, pe = props[name]
         prop = _layer("properties", pfile, f"{ppointer}/config", _dump(pe.config))
         if pe.description is not None:
-            prop = _Layer(
+            prop = SettingsLayer(
                 prop.name,
                 pfile,
                 {**prop.settings, "description": pe.description},
@@ -335,7 +337,7 @@ def resolve_project(
     for p in sorted(python, key=lambda p: (p.site.file, p.site.line, p.site.col)):
         layers = _inherited(bound, p.site.file, roots, p.module)
         columns = props_layer(p.name, layers)
-        layers.append(_Layer("decorator", p.site.file, p.settings, {}))
+        layers.append(SettingsLayer("decorator", p.site.file, p.settings, {}))
         entry_columns = p.columns
         if p.columns is not None:
             columns = Origin("decorator", p.site.locate("/columns"))
@@ -391,6 +393,7 @@ def resolve_project(
             origins=origins,
             data_tests_at=props_at,
             site=p.site,
+            layers=tuple(layers),
         )
         if p.name in props and m.unique_id not in models:
             pfile, ppointer, pe = props[p.name]

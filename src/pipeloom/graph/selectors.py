@@ -9,8 +9,8 @@ when there are none) minus the union of the exclude terms, and only holds models
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass, field
 from fnmatch import fnmatchcase
 from typing import TYPE_CHECKING, Literal
 
@@ -23,7 +23,12 @@ if TYPE_CHECKING:
 
 METHODS = ("name", "tag", "path", "materialized", "unit", "state", "result")
 
-STATE_VALUES = ("modified", "new")
+COMPONENTS = ("code", "config", "contract", "tests", "upstream")
+"""The split checksums of a node (ADR-0052), in the order `ls --why` prints them."""
+CHECKSUM_VERSION = 1
+"""How the split checksums are computed. Bumped when a part is normalized another way, so a
+reference written before falls back to the legacy checksum (PLG309)."""
+STATE_VALUES = ("modified", "new", *(f"modified.{c}" for c in COMPONENTS))
 RESULT_STATUSES: Mapping[str, frozenset[str]] = {
     "fail": frozenset({"failed", "timed_out"}),
     "skip": frozenset({"skipped"}),
@@ -67,6 +72,9 @@ class StateRef:
 
     nodes: Mapping[str, tuple[str, tuple[tuple[str, str], ...]]]
     results: Mapping[str, str] | None = None
+    checksums: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
+    """Split checksums by unique id, for the nodes whose reference has them in this
+    `checksum_version`. A node missing here falls back to the legacy key (PLG309)."""
 
 
 @dataclass(frozen=True)
@@ -88,6 +96,8 @@ class NodeInfo:
     checksum: str | None = None
     inputs: tuple[tuple[str, str], ...] = ()
     """Sorted (alias, input unique id) pairs."""
+    checksums: Mapping[str, str] | None = None
+    """Split checksums; None when unknown."""
 
 
 def _malformed(expr: str, why: str) -> SelectorError:
@@ -179,10 +189,42 @@ def _differs(node: NodeInfo, ref: tuple[str, tuple[tuple[str, str], ...]] | None
     return ref is None or node.checksum is None or (node.checksum, node.inputs) != ref
 
 
-def _modified(graph: Graph, nodes: Mapping[str, NodeInfo], ref: StateRef) -> set[str]:
-    """Models that are new or differ from the reference, plus the persisted models that inline a
-    modified ephemeral one (children are walked through ephemeral models only)."""
-    own = {uid for uid, n in nodes.items() if _differs(n, ref.nodes.get(uid))}
+def why(node: NodeInfo, ref: StateRef) -> tuple[str, ...]:
+    """How the node differs from the reference: `("new",)`, the split checksums that differ, in
+    `COMPONENTS` order, `("legacy",)` when only the 1.0 key can tell and it differs, or
+    `("legacy only",)` when the split checksums agree and the 1.0 key does not (a layout,
+    comment or docstring edit, or an environment value). Empty when nothing differs."""
+    if node.unique_id not in ref.nodes:
+        return ("new",)
+    legacy = _differs(node, ref.nodes[node.unique_id])
+    theirs = ref.checksums.get(node.unique_id)
+    if theirs is None or node.checksums is None:
+        return ("legacy",) if legacy else ()
+    parts = tuple(c for c in COMPONENTS if theirs.get(c) != node.checksums.get(c))
+    return parts or (("legacy only",) if legacy else ())
+
+
+def _modified(
+    graph: Graph,
+    nodes: Mapping[str, NodeInfo],
+    ref: StateRef,
+    part: str | None = None,
+    on_fallback: Callable[[int], None] | None = None,
+) -> set[str]:
+    """Models that are new or differ from the reference (in `part` when given), plus the
+    persisted models that inline a modified ephemeral one (children are walked through ephemeral
+    models only)."""
+    if part is None:
+        own = {uid for uid, n in nodes.items() if _differs(n, ref.nodes.get(uid))}
+    else:
+        found = {uid: why(n, ref) for uid, n in nodes.items()}
+        own = {uid for uid, w in found.items() if {"new", "legacy", part} & set(w)}
+        legacy = sum(
+            uid in ref.nodes and (uid not in ref.checksums or n.checksums is None)
+            for uid, n in nodes.items()
+        )
+        if legacy and on_fallback is not None:
+            on_fallback(legacy)
     out = set(own)
     for uid in own:
         stack = [uid] if nodes[uid].materialized == "ephemeral" else []
@@ -196,14 +238,29 @@ def _modified(graph: Graph, nodes: Mapping[str, NodeInfo], ref: StateRef) -> set
 
 
 def _state_base(
-    atom: Atom, graph: Graph, nodes: Mapping[str, NodeInfo], state: StateRef | None
+    atom: Atom,
+    graph: Graph,
+    nodes: Mapping[str, NodeInfo],
+    state: StateRef | None,
+    report: Report,
 ) -> set[str]:
     if state is None:
         raise _usage_error("PLG307", atom, "pass --state DIR, the folder of a reference manifest")
     if atom.method == "state":
         if atom.value == "new":
             return {uid for uid in nodes if uid not in state.nodes}
-        return _modified(graph, nodes, state)
+
+        def fallback(count: int) -> None:
+            report.add(
+                "PLG309",
+                f"selector '{atom.text}' compares the legacy checksum for {count} model(s): "
+                "the reference manifest has no split checksums of this version for them",
+                hint="compile the reference again with this pipeloom version",
+                context={"selector": atom.text, "models": count},
+            )
+
+        part = atom.value.partition(".")[2] or None
+        return _modified(graph, nodes, state, part, fallback)
     if state.results is None:
         raise _usage_error("PLG308", atom, "the --state folder needs a run_results.json")
     wanted = RESULT_STATUSES[atom.value]
@@ -222,7 +279,7 @@ def _eval_atom(
     state: StateRef | None,
 ) -> frozenset[str]:
     if atom.method in ("state", "result"):
-        base = _state_base(atom, graph, nodes, state)
+        base = _state_base(atom, graph, nodes, state, report)
     else:
         base = {uid for uid, n in nodes.items() if _matches(atom, n)}
     if not base and atom.method == "unit":
@@ -287,9 +344,12 @@ def is_unit_selection(sel: Selection) -> bool:
 
 
 def node_infos(
-    project: ResolvedProject, checksums: Mapping[str, str] | None = None
+    project: ResolvedProject,
+    checksums: Mapping[str, str] | None = None,
+    parts: Mapping[str, Mapping[str, str]] | None = None,
 ) -> dict[str, NodeInfo]:
-    """Selector views of the models; `checksums` (unique id to node checksum) feeds `state:`."""
+    """Selector views of the models; `checksums` (unique id to node checksum) and `parts` (unique
+    id to split checksums) feed `state:`."""
     sums = checksums or {}
     return {
         uid: NodeInfo(
@@ -300,6 +360,7 @@ def node_infos(
             tuple(m.config.tags),
             sums.get(uid),
             tuple(sorted((alias, b.unique_id) for alias, b in m.inputs.items())),
+            None if parts is None else parts.get(uid),
         )
         for uid, m in project.models.items()
     }
@@ -311,9 +372,10 @@ def apply(
     project: ResolvedProject,
     report: Report,
     checksums: Mapping[str, str] | None = None,
+    parts: Mapping[str, Mapping[str, str]] | None = None,
 ) -> frozenset[str]:
     """Unique ids of the selected models."""
-    return select_nodes(sel, graph, node_infos(project, checksums), report)
+    return select_nodes(sel, graph, node_infos(project, checksums, parts), report)
 
 
 def plan_node_infos(plan: Plan) -> dict[str, NodeInfo]:
@@ -326,6 +388,7 @@ def plan_node_infos(plan: Plan) -> dict[str, NodeInfo]:
             n.tags,
             n.checksum,
             tuple(sorted(n.inputs.items())),
+            n.checksums if n.checksum_version == CHECKSUM_VERSION else None,
         )
         for uid, n in plan.nodes.items()
     }

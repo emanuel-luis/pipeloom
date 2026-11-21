@@ -1,0 +1,23 @@
+[
+  {
+    "code": "PLG303",
+    "severity": "warning",
+    "message": "selector 'state:modified.code' matched nothing",
+    "hint": null,
+    "location": null,
+    "context": {
+      "selector": "state:modified.code"
+    }
+  },
+  {
+    "code": "PLG309",
+    "severity": "warning",
+    "message": "selector 'state:modified.code' compares the legacy checksum for 1 model(s): the reference manifest has no split checksums of this version for them",
+    "hint": "compile the reference again with this pipeloom version",
+    "location": null,
+    "context": {
+      "selector": "state:modified.code",
+      "models": 1
+    }
+  }
+]
