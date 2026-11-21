@@ -39,7 +39,7 @@ def test_generated_pages() -> None:
     for code in CATALOG:
         assert f"### {code} {{#{code.lower()}}}" in pages["reference/errors.md"]
     matrix = pages["reference/engine-capabilities.md"]
-    assert "| Capability | `memory` | `pandas` | `polars` | `spark` |" in matrix
+    assert "| Capability | `duckdb` | `memory` | `pandas` | `polars` | `spark` |" in matrix
     assert "| strategies `scd2` |" in matrix
     assert "| sql_dialect | " in matrix
     project = json.loads(pages["schema/v1/project.json"])

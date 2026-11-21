@@ -38,6 +38,7 @@ spark = ["pipeloom-spark[local]==1.0.0"]
 databricks = ["pipeloom-databricks==1.0.0"]
 airflow = ["pipeloom-airflow==1.0.0"]
 openlineage = ["pipeloom-openlineage==1.0.0"]
+duckdb = ["pipeloom-duckdb==1.0.0"]
 sqlglot = ["sqlglot>=26"]
 
 [project.urls]
@@ -88,6 +89,7 @@ pipeloom-spark = { workspace = true }
 pipeloom-databricks = { workspace = true }
 pipeloom-airflow = { workspace = true }
 pipeloom-openlineage = { workspace = true }
+pipeloom-duckdb = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pipeloom"]
@@ -107,6 +109,7 @@ src = [
     "plugins/pipeloom-databricks/src",
     "plugins/pipeloom-airflow/src",
     "plugins/pipeloom-openlineage/src",
+    "plugins/pipeloom-duckdb/src",
 ]
 
 [tool.ruff.lint]
@@ -129,6 +132,8 @@ files = [
     "plugins/pipeloom-airflow/tests",
     "plugins/pipeloom-openlineage/src",
     "plugins/pipeloom-openlineage/tests",
+    "plugins/pipeloom-duckdb/src",
+    "plugins/pipeloom-duckdb/tests",
 ]
 
 [[tool.mypy.overrides]]
@@ -157,12 +162,13 @@ disallow_subclassing_any = false
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers --strict-config --import-mode=importlib"
 timeout = 60
-testpaths = ["tests", "plugins/pipeloom-polars/tests", "plugins/pipeloom-pandas/tests", "plugins/pipeloom-spark/tests", "plugins/pipeloom-databricks/tests", "plugins/pipeloom-airflow/tests", "plugins/pipeloom-openlineage/tests"]
+testpaths = ["tests", "plugins/pipeloom-polars/tests", "plugins/pipeloom-pandas/tests", "plugins/pipeloom-spark/tests", "plugins/pipeloom-databricks/tests", "plugins/pipeloom-airflow/tests", "plugins/pipeloom-openlineage/tests", "plugins/pipeloom-duckdb/tests"]
 pythonpath = ["."]
 markers = [
     "spark: needs local Spark (PIPELOOM_TEST_SPARK=classic, Linux or macOS, Java)",
     "spark_connect: needs a local Spark Connect server (PIPELOOM_TEST_SPARK=connect)",
     "examples: runs the polars and pandas example projects on generated TPC-H data (PIPELOOM_TEST_EXAMPLES=1)",
+    "duckdb_extensions: needs DuckDB extensions preinstalled in PIPELOOM_TEST_DUCKDB_EXTENSIONS (a directory)",
     "airflow_e2e: migrates a throwaway sqlite Airflow database and runs dag.test() (PIPELOOM_TEST_AIRFLOW=1)",
 ]
 
@@ -178,6 +184,7 @@ source = [
   "plugins/pipeloom-databricks/src/pipeloom_databricks",
   "plugins/pipeloom-airflow/src/pipeloom_airflow",
   "plugins/pipeloom-openlineage/src/pipeloom_openlineage",
+  "plugins/pipeloom-duckdb/src/pipeloom_duckdb",
 ]
 
 [tool.importlinter]
@@ -301,6 +308,12 @@ name = "The core never imports the OpenLineage plugin or client"
 type = "forbidden"
 source_modules = ["pipeloom"]
 forbidden_modules = ["pipeloom_openlineage", "openlineage"]
+
+[[tool.importlinter.contracts]]
+name = "The core never imports the DuckDB plugin or DuckDB"
+type = "forbidden"
+source_modules = ["pipeloom"]
+forbidden_modules = ["pipeloom_duckdb", "duckdb"]
 
 [[tool.importlinter.contracts]]
 name = "Only pipeloom.engine.portable imports narwhals"
