@@ -6,12 +6,15 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pipeloom.diagnostics import JsonValue
 from pipeloom.engine.protocols import EngineSession
 from pipeloom.engine.types import TargetRef
 from pipeloom.platform import Clock, Identity
+
+if TYPE_CHECKING:
+    from pipeloom.runtime.intervals import Backfill
 
 
 @dataclass(frozen=True)
@@ -31,6 +34,8 @@ class RuntimeContext:
     invocation that cannot find the run record."""
     artifacts_root: str = "target"
     """Absolute POSIX path or URI of the artifacts folder."""
+    backfill: Backfill | None = None
+    """Since 1.3: `pipeloom backfill` runs interval models over this range (ADR-0054)."""
 
 
 @dataclass(frozen=True, slots=True)

@@ -19,13 +19,13 @@ Three models and one source. The source reads every CSV that has landed in `raw/
 Bronze reads all the files and types the columns. It is a table, rebuilt on each run.
 
 ```python
---8<-- "examples/events_incremental/models/bronze/bronze.py"
+--8 < --"examples/events_incremental/models/bronze/bronze.py"
 ```
 
 Silver is the incremental model.
 
 ```python
---8<-- "examples/events_incremental/models/silver/silver.py"
+--8 < --"examples/events_incremental/models/silver/silver.py"
 ```
 
 - The watermark is the largest `event_ts` seen so far. A run reads rows with `event_ts` at or
@@ -42,7 +42,7 @@ Silver is the incremental model.
 Gold counts events per day from silver.
 
 ```python
---8<-- "examples/events_incremental/models/gold/gold.py"
+--8 < --"examples/events_incremental/models/gold/gold.py"
 ```
 
 ## The data

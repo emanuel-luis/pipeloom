@@ -698,15 +698,40 @@ class ModelRunner:
         iv = cfg.interval
         now = intervals.to_utc(rt.run_started_at or rt.clock.now())
         key = self._key(node)
+        bf = rt.backfill
+        entries: list[dict[str, JsonValue]] = []
+        row["intervals"] = entries
         try:
+            if bf is not None and bf.mark_done:  # the range as given, never rounded
+                end = min(intervals.to_utc(bf.end), now)
+                if intervals.to_utc(bf.start) < end:
+                    intervals.record(
+                        self._state, key, bf.start, end, run_id=rt.run_id, clock=rt.clock
+                    )
+                row["rows_written"] = 0
+                return
+            if bf is not None and bf.rerun == "all":  # restate: a killed run resumes as missing
+                every = intervals.in_range(iv.begin, now, iv.grain, [], bf.start, bf.end)
+                if every:
+                    intervals.record(
+                        self._state,
+                        key,
+                        every[0].start,
+                        every[-1].end,
+                        run_id=rt.run_id,
+                        clock=rt.clock,
+                        forget=True,
+                    )
             ledger = intervals.load(self._state, key)
         except IntervalError as exc:
             self._interval_fail(node, exc, str(exc))
-        todo = intervals.to_run(
-            iv.begin, now, iv.grain, ledger, iv.lookback, full_refresh=rt.full_refresh
+        todo = (
+            intervals.to_run(
+                iv.begin, now, iv.grain, ledger, iv.lookback, full_refresh=rt.full_refresh
+            )
+            if bf is None
+            else intervals.in_range(iv.begin, now, iv.grain, ledger, bf.start, bf.end)
         )
-        entries: list[dict[str, JsonValue]] = []
-        row["intervals"] = entries
         row["is_incremental"] = bool(ledger) and not rt.full_refresh
         totals: dict[str, int] = {}
         rows_read: dict[str, int | None] = {}
@@ -721,25 +746,43 @@ class ModelRunner:
             for w in reversed(todo)
         )
         quality = _QualitySum()
+        failed: list[tuple[str, _Fail]] = []
         try:
             for i, window in enumerate(todo):
-                self._interval_step(
-                    unit_id,
-                    node,
-                    target,
-                    attempt,
-                    started,
-                    row,
-                    window,
-                    i == 0 and overwrite_first,
-                    entries,
-                    totals,
-                    quality,
-                    now,
-                    key,
-                )
+                try:
+                    self._interval_step(
+                        unit_id,
+                        node,
+                        target,
+                        attempt,
+                        started,
+                        row,
+                        window,
+                        i == 0 and overwrite_first,
+                        entries,
+                        totals,
+                        quality,
+                        now,
+                        key,
+                    )
+                except _Fail as fail:
+                    entries[-1]["failed"] = True
+                    if bf is None or bf.on_failure == "stop":
+                        raise
+                    failed.append((window.id, fail))
         finally:
             quality.store(row)
+        if failed:
+            first = failed[0][1]
+            ids = ", ".join(w for w, _ in failed)
+            raise _Fail(
+                first.code,
+                first.phase,
+                first.cause,
+                f"{len(failed)} of {len(todo)} windows of model '{node.name}' failed: {ids}. "
+                f"The first: {first.message}",
+                first.hint,
+            )
         if not todo:
             row["rows_written"] = 0
         self._data_tests(unit_id, node, attempt, row)

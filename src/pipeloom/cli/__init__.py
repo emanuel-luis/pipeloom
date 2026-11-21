@@ -3,6 +3,7 @@
 import click
 
 from pipeloom.cli._ext import PipeloomGroup
+from pipeloom.cli.backfill import backfill
 from pipeloom.cli.build import build
 from pipeloom.cli.compile import compile_
 from pipeloom.cli.demo import demo
@@ -41,6 +42,7 @@ main.add_command(run)
 main.add_command(retry)
 main.add_command(unit_tests, name="test")
 main.add_command(build)
+main.add_command(backfill)
 main.add_command(runs)
 main.add_command(finalize)
 main.add_command(graph)

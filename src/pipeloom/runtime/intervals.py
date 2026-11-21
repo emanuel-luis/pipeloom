@@ -8,6 +8,7 @@ merged list of `[start, end]` ISO pairs, under a reserved state key per model an
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, Final, Literal, NamedTuple
 
@@ -127,6 +128,58 @@ def to_run(
     return [w for i, w in enumerate(every) if i in keep]
 
 
+@dataclass(frozen=True)
+class Backfill:
+    """`pipeloom backfill` (ADR-0054, Backfill): an explicit range instead of `begin` to now."""
+
+    start: datetime
+    end: datetime
+    rerun: Literal["missing", "all"] = "missing"
+    """`all` first removes the range from the ledger, then runs it as `missing` does."""
+    on_failure: Literal["stop", "continue"] = "stop"
+    mark_done: bool = False
+    """Record `[start, end)` in the ledger and run nothing."""
+
+    def __post_init__(self) -> None:
+        if to_utc(self.start) >= to_utc(self.end):
+            raise ValueError("the backfill start must be before its end")
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "start": to_utc(self.start).isoformat(),
+            "end": to_utc(self.end).isoformat(),
+            "rerun": self.rerun,
+            "on_failure": self.on_failure,
+            "mark_done": self.mark_done,
+        }
+
+    @classmethod
+    def from_json(cls, doc: dict[str, Any]) -> Backfill:
+        return cls(
+            datetime.fromisoformat(doc["start"]),
+            datetime.fromisoformat(doc["end"]),
+            doc.get("rerun", "missing"),
+            doc.get("on_failure", "stop"),
+            bool(doc.get("mark_done", False)),
+        )
+
+
+def in_range(
+    begin: datetime,
+    now: datetime,
+    grain: Grain,
+    ledger: list[tuple[datetime, datetime]],
+    start: datetime,
+    end: datetime,
+) -> list[Window]:
+    """The windows of a backfill: every window that overlaps `[start, end)` (bounds round
+    outward to window edges), clipped to `begin` and the run start, less the ones the ledger
+    covers. No lookback: the range is explicit."""
+    now = to_utc(now)
+    lo, hi = max(to_utc(start), to_utc(begin)), min(to_utc(end), now)
+    return [w for w in windows(lo, hi, grain) if not _covered(w.start, min(w.end, now), ledger)]
+
+
 def bounds(dtype: str, column: str, window: Window, grain: Grain) -> tuple[Any, Any]:
     """The window bounds as values of the event_time column's type."""
     fam = family(dtype)
@@ -167,6 +220,16 @@ def load(state: StateStore, key: StateKey) -> list[tuple[datetime, datetime]]:
     return _decode(state.get_watermark(ledger_key(key)))
 
 
+def subtract(
+    intervals: list[tuple[datetime, datetime]], start: datetime, end: datetime
+) -> list[tuple[datetime, datetime]]:
+    """`intervals` without `[start, end)`."""
+    out: list[tuple[datetime, datetime]] = []
+    for s, e in intervals:
+        out += [(s, min(e, start)), (max(s, end), e)]
+    return merge(out)
+
+
 def record(
     state: StateStore,
     key: StateKey,
@@ -175,15 +238,18 @@ def record(
     *,
     run_id: str,
     clock: Clock,
+    forget: bool = False,
 ) -> None:
-    """Merge `[start, end)` into the ledger. A compare-and-swap loop: a concurrent writer makes
-    this one read again and merge again, so no interval is lost."""
+    """Merge `[start, end)` into the ledger, or remove it with `forget`. A compare-and-swap
+    loop: a concurrent writer makes this one read again and merge again, so no interval is
+    lost."""
     k = ledger_key(key)
     for _ in range(_CAS_ATTEMPTS):
         current = state.get_watermark(k)
         have = _decode(current)
-        merged = merge([*have, (to_utc(start), to_utc(end))])
-        if current is not None and merged == have:
+        span = (to_utc(start), to_utc(end))
+        merged = subtract(have, *span) if forget else merge([*have, span])
+        if (current is not None or forget) and merged == have:
             return
         new = Watermark(_encode(merged), LEDGER_TYPE, run_id, clock.now())
         if state.cas_watermark(k, current, new):
@@ -193,15 +259,18 @@ def record(
 
 __all__ = [
     "LEDGER_TYPE",
+    "Backfill",
     "Grain",
     "IntervalError",
     "Window",
     "advance",
     "bounds",
+    "in_range",
     "ledger_key",
     "load",
     "merge",
     "record",
+    "subtract",
     "to_run",
     "to_utc",
     "truncate",

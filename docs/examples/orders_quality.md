@@ -22,7 +22,7 @@ The orders model declares a contract on its output columns. It selects everythin
 the partner adds reaches the contract:
 
 ```python
---8<-- "examples/orders_quality/models/orders.py:orders"
+--8 < --"examples/orders_quality/models/orders.py:orders"
 ```
 
 Expectations and data tests live in the properties file:

@@ -149,3 +149,49 @@ def test_record_merges_and_skips_a_known_interval(tmp_path: object) -> None:
     raw = store.get_watermark(intervals.ledger_key(key))
     assert raw is not None and raw.dtype == "pipeloom.intervals/1" and raw.run_id == "r2"
     store.close()
+
+
+def test_subtract_cuts_a_range_out() -> None:
+    have = [(utc(2026, 1, 1), utc(2026, 1, 10))]
+    assert intervals.subtract(have, utc(2026, 1, 3), utc(2026, 1, 5)) == [
+        (utc(2026, 1, 1), utc(2026, 1, 3)),
+        (utc(2026, 1, 5), utc(2026, 1, 10)),
+    ]
+    assert intervals.subtract(have, utc(2025, 1, 1), utc(2027, 1, 1)) == []
+    assert intervals.subtract(have, utc(2027, 1, 1), utc(2028, 1, 1)) == have
+
+
+def test_record_forget_removes_a_range(tmp_path: object) -> None:
+    store = SqliteStore(f"{tmp_path}/s.db")
+    key, clock = StateKey("p", "t", "m"), FakeClock()
+    intervals.record(
+        store, key, utc(2026, 1, 3), utc(2026, 1, 4), run_id="r", clock=clock, forget=True
+    )
+    assert store.get_watermark(intervals.ledger_key(key)) is None  # nothing to forget: no write
+    intervals.record(store, key, utc(2026, 1, 1), utc(2026, 1, 5), run_id="r", clock=clock)
+    intervals.record(
+        store, key, utc(2026, 1, 2), utc(2026, 1, 3), run_id="r", clock=clock, forget=True
+    )
+    assert intervals.load(store, key) == [
+        (utc(2026, 1, 1), utc(2026, 1, 2)),
+        (utc(2026, 1, 3), utc(2026, 1, 5)),
+    ]
+
+
+def test_in_range_rounds_outward_and_clips() -> None:
+    begin, now = utc(2026, 1, 1), utc(2026, 1, 10, 12)
+    ws = intervals.in_range(begin, now, "day", [], utc(2025, 12, 1), utc(2026, 1, 3, 1))
+    assert [w.start.day for w in ws] == [1, 2, 3]  # clipped to begin, the end rounds up
+    ws = intervals.in_range(begin, now, "day", [], utc(2026, 1, 9, 5), utc(2026, 2, 1))
+    assert [w.start.day for w in ws] == [9, 10]  # the start rounds down, clipped to now
+    covered = [(utc(2026, 1, 1), utc(2026, 1, 2))]
+    assert [
+        w.start.day for w in intervals.in_range(begin, now, "day", covered, begin, utc(2026, 1, 3))
+    ] == [2]
+
+
+def test_backfill_round_trips_and_checks_its_range() -> None:
+    bf = intervals.Backfill(utc(2026, 1, 1), utc(2026, 1, 2), "all", "continue", True)
+    assert intervals.Backfill.from_json(bf.to_json()) == bf
+    with pytest.raises(ValueError, match="before its end"):
+        intervals.Backfill(utc(2026, 1, 2), utc(2026, 1, 2))

@@ -13,6 +13,7 @@ from pipeloom.diagnostics import Diagnostic, Report
 from pipeloom.graph.selectors import RESULT_STATUSES, Selection
 from pipeloom.plan.manifest import read_manifest
 from pipeloom.plan.model import Plan
+from pipeloom.runtime.intervals import Backfill
 from pipeloom.runtime.run import DEFAULT_ARTIFACTS_ROOT, RunOptions, artifacts_root
 
 if TYPE_CHECKING:
@@ -130,18 +131,23 @@ def retry_options(
     args: dict[str, Any] = doc.get("args", {})
     state = Path(args["state"]) if args.get("state") else None
     defer = bool(args.get("defer")) and state is not None
+    fresh = (
+        base.full_refresh or bool(args.get("full_refresh", False))
+        if full_refresh is None
+        else full_refresh
+    )
     return (
         replace(
             base,
             selection=Selection(tuple(atoms), state=reference.selector_state()),
-            full_refresh=(
-                base.full_refresh or bool(args.get("full_refresh", False))
-                if full_refresh is None
-                else full_refresh
-            ),
+            full_refresh=fresh,
             state=state,
             defer=defer,
             data_tests=base.data_tests or bool(args.get("data_tests", False)),
+            # A retried restate already removed its range from the ledger: run what is missing.
+            backfill=replace(Backfill.from_json(args["backfill"]), rerun="missing")
+            if args.get("backfill") and not fresh
+            else None,
             not_deferred=frozenset(
                 uid for uid, status in reference.results.items() if status == "succeeded"
             )

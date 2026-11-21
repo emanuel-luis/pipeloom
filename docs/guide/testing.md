@@ -190,12 +190,13 @@ from pipeloom import DataTest, model, ref
         DataTest(name="id_unique", check={"unique": ["id"]}, on_violation="warn"),
         DataTest(
             name="customer_exists",
-            check={"relationships": {"column": "customer_id", "to": ref("customers"), "field": "id"}},
+            check={
+                "relationships": {"column": "customer_id", "to": ref("customers"), "field": "id"}
+            },
         ),
     ],
 )
-def orders(raw_orders):
-    ...
+def orders(raw_orders): ...
 ```
 
 In a relationships check, `to` takes `ref("name")` or `source("group", "table")` as well as the
