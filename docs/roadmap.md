@@ -1,15 +1,17 @@
 # Roadmap
 
-Status: plan as of 2026-11-06, written against 0.7.0, updated on 2026-11-15 for Python-first authoring and on
-2026-11-16 for 1.0, whose items are delivered (see [1.0: stable contracts](#10-stable-contracts)). This
-page replaces the planned versions that section 16 of [architecture.md](architecture.md#16-roadmap) used to list;
-section 16 keeps the record of what each delivered version contains. Items that change a decision name the ADR they
-need: ADRs up to 0050 exist and are accepted.
+Status: plan as of 2026-11-20, written against 1.0.0. Versions 0.8 to 1.0 are delivered; this page now plans 1.1 to
+1.9 and lists the breaking changes the stability policy holds back. Section 16 of [architecture.md](architecture.md#16-roadmap) keeps the record of what each
+delivered version contains. The market research behind the plan is in [Market landscape](landscape.md). Items that
+change a decision name the ADR they need: ADRs up to 0050 exist and are accepted, and new ones continue from 0051.
 
 Terms such as unit, run, boundary and artifacts root are defined in the
 [glossary](architecture.md#2-glossary). In short, a unit is one schedulable node of the plan (a persisted model
 plus the ephemeral models inlined into it), and the artifacts root is the folder where each run writes its
 manifest, results, events and logs.
+
+The maintainer settled the open choices of this plan on 2026-11-20. Section 6 records each one and the alternative it
+replaced. Scope inside a version can still move while its ADR is written.
 
 ## 1. Vision and principles
 
@@ -31,298 +33,346 @@ The 13 principles in section 1 of the architecture still apply. These five guide
 5. Export over lock-in. pipeloom renders to orchestrators and leaves scheduling, job-level retries and any UI that
    triggers runs to them.
 
-The non-goals that stay through 1.0 are listed in [section 5](#5-non-goals-and-risks). One existing non-goal
-changes: the UI.
+The non-goals are listed in [section 5](#5-non-goals-and-risks). Several change in this plan, and each change says
+what it was before.
 
 ### The UI non-goal
 
-The architecture lists "a scheduler service or UI" as one non-goal, but the two carry different risks. A scheduler,
-or a UI that writes, needs authentication, a database and a daemon, which amounts to a second product. A read-only
-viewer over files pipeloom already writes needs none of that, and it makes the observability work visible.
-[ADR-0043](adr/0043-docs-site.md) (accepted) replaces the line with "a scheduler service, or any UI that starts, schedules or changes runs".
-A read-only viewer over the artifacts root and the state store then becomes allowed. It reads local or mounted
+Since [ADR-0043](adr/0043-docs-site.md) the non-goal is "a scheduler service, or any UI that starts, schedules or
+changes runs". A read-only viewer over the artifacts root and the state store is allowed. It reads local or mounted
 paths, listens on localhost by default and ships as a separate distribution, so the core stays small.
 
-## 2. Where pipeloom stands at 0.7
+## 2. Where pipeloom stands at 1.0
 
-- Authoring: YAML projects with `_defaults.yml` cascades, SQL or Python models with declared `inputs`, sources, five
-  materializations, write strategies (append, overwrite, replace_partitions, merge with deletes; `scd2` is in the
-  config literal but no engine implements it), a per-model `catalog`
-  ([ADR-0040](adr/0040-per-model-catalog.md)), and `${env}`, `${var}` and `${secret}` interpolation. This is the 0.7
-  state; 0.9 replaces model declarations in YAML with Python-first authoring
-  ([ADR-0050](adr/0050-python-first-authoring.md)).
-- Validation: layers L0 to L6 with file, line and column diagnostics and a generated error catalog. JSON Schemas are
-  published under `latest/schema/v1/`, and the `yaml-language-server` modeline gives completion in editors.
-- CLI: `validate`, `compile` (with `--stable`), `ls`, `run`, `finalize`, `graph` (text, dot, mermaid, json),
-  `schema`, `plugins`, and plugin commands (`pipeloom databricks bundle|deploy|run|repair`). `init` and block-style
-  YAML land in 0.8.
+- Authoring: Python models marked with `@model`, YAML for the project and properties files, SQL through `ctx.sql`,
+  five materializations, write strategies (append, overwrite, replace_partitions, merge with deletes, scd2), per-model
+  catalogs, contracts, unit and data tests, and `${env}`, `${var}` and `${secret}` interpolation.
+- Validation: layers L0 to L6 with file, line and column diagnostics, a generated error catalog and published JSON
+  Schemas under `schema/v1/`.
+- CLI: `init`, `new model`, `validate`, `compile`, `ls`, `run`, `build`, `test`, `retry`, `finalize`, `graph`, `docs`,
+  `explain`, `runs`, `schema`, `plugins`, plus plugin commands.
 - Runtime: a ready-queue scheduler, thread and process executors, retries, timeouts, cancellation, idempotent
-  writes, watermarks, and expectations with quarantine. Engines: polars, pandas, and Spark with Delta.
-- Observability: the `pipeloom.event/1` stream (run, unit, model and state events) through `EventBus`, with the
-  console and jsonl sinks (either can be `buffered: true`) and redaction. Each run writes `runs/<run_id>/` with the
-  manifest, `run_results.json` (rows, bytes, watermarks, quality, schema changes, orchestrator ids), per-invocation
-  events, attempt files and logs. Run and unit records go to the state store (`record_run`, `get_run`,
-  `list_units`); runs cannot be listed.
-- Export: `pipeloom-databricks` (jobs, bundle YAML, deploy, repair) and `pipeloom-airflow` (LOCAL, VIRTUALENV,
-  KUBERNETES and DATABRICKS modes, `emit_assets`). Selector methods: `name`, `tag`, `path`, `materialized`, `unit`.
+  writes, watermarks, expectations with quarantine, `state:modified` selection and `--defer`.
+- Observability: the `pipeloom.event/1` stream, console, jsonl, webhook and OpenLineage sinks, run history through
+  `list_runs`, and versioned artifact schemas.
+- Export and engines: polars, pandas and Spark with Delta; Databricks jobs and bundles; Airflow in LOCAL, VIRTUALENV,
+  KUBERNETES, DATABRICKS and WATCHER modes. The plugin API is (1, 0).
 
-### Gaps against dbt, cosmos and SQLMesh
+### Gaps against the market
 
-| Feature | pipeloom 0.7 | Gap | Target |
+Evidence for each row is in [Market landscape](landscape.md). The pipeloom 1.0 column comes from a code check on 1.0.
+
+| Area | pipeloom 1.0 | Gap | Target |
 |---|---|---|---|
-| Model authoring | YAML model entries with a SQL body or a Python callable | a Python model is declared twice (YAML entry and function); dbt Python models and the author's earlier prototype define the model in code | 0.9 ([ADR-0050](adr/0050-python-first-authoring.md)) |
-| Scaffold and first run | `init` in 0.8 | no sample data on Spark targets, no `new model` | 0.8, 0.9 |
-| Editor support | JSON Schema and modeline | no workspace setup, no ref navigation, no live diagnostics; dbt ships a language server and a VS Code extension ([dbt Fusion](https://docs.getdbt.com/docs/fusion/about-fusion)) | 0.8 (setup), 1.x (language server) |
-| State-based selection and defer | node `checksum` and stable manifests exist | no `state:modified`, no `--defer` | 0.8 |
-| Rerun failed units | [ADR-0013](adr/0013-run-identity-and-reruns.md) designs `pipeloom retry` | not built | 0.8 |
-| Docs and lineage site | `graph --output mermaid` | no browsable site | 0.8 |
-| Unit tests for models | none for users | no tests with fixed input rows and expected output rows | 0.9 |
-| Data tests | expectations on the batch in flight | no post-write table tests, no relationships check, no source freshness | 0.9, 1.x |
-| Contracts | schema-change policy | no declared column types enforced at write | 0.9 |
-| OpenLineage | designed in section 11 | not built | 0.9 |
-| Run history | per-run artifacts | no `list_runs`, no history command | 0.9 |
-| Orchestrator fast mode | one task per unit | no single-producer mode like the cosmos watcher ([cosmos](https://github.com/astronomer/astronomer-cosmos)) | 0.9 |
-| Public manifest spec | `pipeloom.manifest/1` described in prose | no published JSON Schema for artifacts | 1.0 |
-| Dagster, Prefect and others | none | no exporter | 1.x |
-| Plan, diff and virtual environments | `per_user` naming only | no plan and apply ([SQLMesh](https://sqlmesh.readthedocs.io)) | partial, through `--defer` |
-| Column-level lineage | `sqlglot` extra used for PLK603 | not computed | 1.x |
-| UI | none | read-only viewer | 0.8 (static site), 1.1 (`pipeloom ui`) |
+| Local SQL engine | polars, pandas, Spark | no DuckDB, which is the usual on-ramp for demos and CI | 1.1 |
+| First run | `init` | no demo with sample data and a docs site in one command | 1.1 |
+| Change safety | one `checksum` per node, covering config, body, columns and tests | no split checksums, no plan diff, no table diff | 1.2 |
+| Backfills | watermark plus lookback | no interval windows, no interval ledger, no backfill command | 1.3 |
+| Partitions in orchestrators | assets per unit | no partition keys in artifacts, no partitioned Airflow assets | 1.4 |
+| History-based checks | `list_runs`, expectations with warn, drop or fail | no freshness, no volume change, no anomaly score, no reconciliation | 1.5 |
+| Column lineage | none | `nodes[].column_lineage` not computed | 1.6 |
+| Agent and UI surface | docs site | no generated agent skills, no read layer, no MCP server, no `pipeloom ui` | 1.2, 1.7 |
+| Open table formats | Delta through Spark | no Delta without a cluster, no Iceberg | 1.8 |
+| Editor support | JSON Schema and modeline | no language server | 1.9 |
 
 ## 3. Themes
 
-### Authoring simplicity and developer experience
+- Engines and the first hour (1.1, 1.8). DuckDB, a conformance kit that third parties can run, and a one-command
+  demo. Delta without a cluster and Iceberg come later.
+- Change intelligence (1.2, 1.6). Split checksums, then plan diff and table diff, then column lineage. This delivers
+  the main value of SQLMesh plans without virtual environments.
+- Intervals and orchestrators (1.3, 1.4). A ledger of processed windows, a backfill command, then partitions
+  reaching Airflow and Databricks.
+- Trust from run history (1.5). Freshness, volume, anomaly and reconciliation checks, schema contracts, and opt-in
+  skipping of unchanged units.
+- Agents and people (1.2, 1.7, 1.9). Machine-readable output and generated skills, a shared read layer, MCP, the UI
+  and the language server.
 
-- Python-first authoring (0.9), the 0.9 headline. A model is a function marked with `@model`; its parameters are its
-  inputs, SQL runs through `ctx.sql`, and YAML keeps the project file (a `models:` folder tree with `+keys`, source
-  groups, vars, targets) and properties files that describe and configure models. The compiler reads static
-  decorators with `ast` and imports only modules with dynamic arguments, with a per-file cache. YAML model files are
-  removed in 0.9, with no deprecation release, and [Migrating from 0.8](guide/migrate-0.9.md) maps them to the
-  decorator. Decided in [ADR-0050](adr/0050-python-first-authoring.md) (accepted) and done.
-- `pipeloom init` (0.8). Every generated project runs with one command on local engines, with a small CSV under
-  `data/`. Templates also write the schema modeline in every YAML file and a `.vscode/settings.json` that maps
-  `yaml.schemas` to the published schema URLs, so completion works without an extension.
-- `pipeloom new model <name> [--sql|--python] [--folder]` (0.8). From 0.9 it writes one `.py` file with a
-  decorated function: a `ctx.sql(...)` body or a frame stub. A few scaffold templates are enough; no generator
-  framework.
-- `pipeloom explain <CODE>` (0.8). Prints the catalog entry, the hint and the docs URL from
-  `pipeloom.diagnostics.codes`. The console failure block links to it.
-- Selection by state, and defer (0.8). `--state <dir>` points at a reference `manifest.json`, ideally one from
-  `compile --stable`. New selector methods in `graph/selectors.py`: `state:modified` (the node `checksum` differs or
-  the node is new), `state:new`, and `result:fail|skip` against a reference `run_results.json`. `--defer` reads
-  unselected parents from the reference manifest's relations instead of this target's, so a dev run of one model
-  reads the production upstreams. Defer changes only how the runner resolves reads, never the plan hash (the
-  fingerprint that ties a run to its compiled plan).
-- `pipeloom retry --from <run_id>` (0.8), as [ADR-0013](adr/0013-run-identity-and-reruns.md) designs it: a new run
-  with `parent_run_id` that selects the failed, skipped and cancelled units of the parent.
-- Sample data on Spark and Databricks (0.9). A source can point at a CSV inside the project. The polars and pandas
-  engines already read it, and `pipeloom-spark` needs the same reader on volumes. This covers what dbt seeds do
-  without a new materialization.
-- SCD2 write strategy (0.9). The polars, pandas and Spark engines write `scd2` with `valid_from`, `valid_to` and
-  `is_current` columns and hard deletes. Decided in the
-  [ADR-0008 amendment](adr/0008-incremental-and-state.md#amendment-09-scd2) (accepted).
-- `pipeloom build` (0.9). Runs the unit tests, then `run` with post-write data tests in DAG order. `run` keeps its
-  meaning.
-- Dev environments. `per_user` naming already isolates developers. A guide page plus `--defer` covers most of what
-  SQLMesh virtual environments give; zero-copy promotion stays out (section 5).
-- Language server (1.x). A `pipeloom-lsp` distribution (pygls) reuses the `config.load` marks and the `validate`
-  diagnostics for go-to-definition on `ref`, hover with the resolved relation, completion of model and source names,
-  and diagnostics on save. A thin VS Code extension wraps it. It is the largest developer experience item, so it
-  waits until the config freezes at 1.0.
+Rules that hold for every 1.x release:
 
-### Testing and data quality
+- The plugin API gets at most one minor bump per release.
+- An optional protocol member lives in its own small `Protocol` and is reached through a core helper with a
+  fallback, the way `state.types.list_runs` works today. Nothing is added to `EngineSession` or `StateStore` in 1.x.
+- Anything that tracks a moving upstream ships as experimental.
+- The 1.0 goldens must validate against the current /1 schemas, and the current output must validate against the 1.0
+  schemas. CI guards both from 1.1.
+- Every release that changes user config ships a `migrate-1.x` guide page, and every new command or flag gets a guide
+  page and a CLI reference entry. Each release adds an Upgrading section to the changelog.
+- Every ADR from 0051 on carries a Provenance line: the design comes from public docs and observed behavior, and no
+  code was copied.
+- Output that can carry row data (diff markdown, CI summaries, MCP, `ui export`) shows counts and schema only by
+  default. Samples need an explicit opt-in flag, and columns tagged sensitive in contracts are masked.
 
-- Model contracts (0.9). An optional `columns` list on a model, each entry with `name`, a logical `dtype` and
-  `nullable`. At write time the core compares it with `EngineSession.schema` before `align`, and a mismatch is a new
-  permanent PLM code. Declared columns also feed lineage and the docs site. Decided in
-  [ADR-0044](adr/0044-model-contracts.md) (accepted).
-- Unit tests (0.9). `unit_tests` entries in a model's properties file, with `given` (rows per input alias, which is
-  the parameter name, inline or from a CSV) and `expect` (rows, compared without regard to order). `pipeloom test`
-  runs the model function on the target's engine with no catalog writes and compares with the semantics in
-  `pipeloom.testing.reference`. A plain pytest call on the decorated function also works.
-- Post-write data tests (0.9). Expectations judge the batch before the write. A `data_tests` list, set in properties
-  or by the decorator, with `unique`, `not_null` and a new `relationships` test (keys `column`, `to` and `field`)
-  runs against the written table. It reuses `evaluate` and `quality.judge`, and results go to `run_results.results[].expectations` with
-  `scope: table`.
-- Source freshness (1.x). A `freshness` block on sources (keys `column`, `warn_after` and `error_after`), checked by
-  `pipeloom sources freshness`. It reuses the freshness logic in `quality/judge.py` and emits
-  `source.freshness_checked`.
-
-### Export to other platforms
-
-Dagster, Prefect and cosmos all consume dbt the same way: a manifest with nodes, `depends_on` and relation names,
-plus run results ([Dagster dbt component](https://docs.dagster.io/integrations/libraries/dbt/dbt-component),
-[Prefect dbt runner](https://docs.prefect.io/integrations/prefect-dbt/runner)). pipeloom already writes that shape,
-so the first step is to publish it as a contract.
-
-- Public artifact specs and the orchestrator protocol (1.0). Publish JSON Schemas for `pipeloom.manifest/1`,
-  `pipeloom.run_results/1`, `pipeloom.event/1` and `pipeloom.unit_states/1` next to the config schemas. One page
-  describes the protocol any orchestrator follows: run id rules,
-  `pipeloom run --manifest --select unit:<id> --run-id --expect-plan-hash`, exit codes and retry ownership, and
-  `pipeloom finalize --unit-states`. [ADR-0034](adr/0034-core-orchestration-hooks.md) already defines the behavior,
-  so this is documentation plus golden tests (tests that compare output with committed reference files).
-- Unit graph export (1.0). `pipeloom graph --units --output json` emits units, edges, relation names, assets and
-  the command line of each unit. Kestra, Argo or GitHub Actions can then be targeted with a short recipe in the docs
-  instead of one plugin each.
-- Airflow WATCHER mode (0.9), after the cosmos watcher design: one Airflow task runs the whole selection, and one
-  lightweight sensor per unit reports that unit's result. The producer task runs `pipeloom run --run-id <rid>` with
-  in-process workers and scheduler retries. Each deferrable sensor watches
-  `runs/<rid>/units/<unit_id>/attempt-*.json` on the shared artifacts root that
-  [ADR-0038](adr/0038-airflow-execution-modes-and-artifact-store.md) already requires. Clearing a failed sensor
-  reruns that unit alone, as LOCAL mode does. Assets and finalize stay as they are. Most of it reuses `render.py`,
-  `states.py` and the DATABRICKS mirror sensors.
-- Databricks. Bundle YAML stays the deploy path
-  ([Declarative Automation Bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/resources)). The
-  `load_resources` hook for Python bundle resources (section 12) moves to 1.x. Exporting to Lakeflow Spark
-  Declarative Pipelines stays research: it would hand expectations, watermarks and writes to Databricks and lose
-  pipeloom's events, so it needs its own ADR before any code.
-- Dagster and Prefect (1.x). `pipeloom-dagster` builds a `multi_asset` per unit from the manifest, with asset keys
-  from `relation`, and each materialization calls the unit command, so Dagster sees one asset per model. Prefect
-  first gets a docs recipe over the unit graph JSON.
-- Snowflake. It has no place before a Snowflake engine plugin exists; dbt Projects on Snowflake runs dbt itself.
-  Recorded as a non-goal for 1.0.
-
-### End-to-end observability
-
-- `pipeloom-openlineage` sink (0.9). Maps unit events to OpenLineage RunEvents (START, COMPLETE, FAIL, ABORT) with
-  the job `<project>.<model>` and a parent run facet for the pipeloom run. Input and output datasets come from the
-  manifest sources and relations. Facets: schema (from contracts, or a new additive `columns` field on
-  `model.written`), output statistics (rows and bytes), data quality assertions (from `model.quality_evaluated`) and
-  error message ([OpenLineage facets](https://openlineage.io/docs/spec/facets)). Transport goes through the
-  openlineage-python client, and Marquez is the reference for testing. Under Airflow the operators implement
-  `get_openlineage_facets_on_complete`, so the Airflow provider emits with the DAG as parent and the sink stays off
-  to avoid duplicate events.
-- Column-level lineage (1.x). For SQL models with the `sqlglot` extra, computed at compile time and stored as
-  `nodes[].column_lineage` in the manifest, outside the plan hash. Python models report none unless contracts
-  declare it. The OpenLineage sink and the docs site both read it.
-- Run history (0.9). `StateStore.list_runs(project, target, limit, before)` enters the plugin API (the versioned
-  protocol plugins implement) at version (0, 5), with a default that raises a clear error on stores that lack it.
-  `pipeloom runs ls` and `pipeloom runs show <run_id>` print from the store or, with `--artifacts`, from
-  `runs/*/run_results.json`. Decided in [ADR-0047](adr/0047-run-history-and-webhook.md) (accepted).
-- Alerting (0.9). A `webhook` sink posts selected event types (by default `run.completed` with a failed status, and
-  warnings above a level) to a URL given as `${secret:...}`. It uses stdlib HTTP, runs with `buffered: true` and has a
-  failure budget, which is enough for Slack, Teams or a pager.
-- OpenTelemetry (1.x). A `pipeloom-otel` sink: the run as the root span, unit attempts as child spans, events as span
-  events, and counters for rows, bytes, retries and durations. The trace id is derived from `run_id`, so every
-  invocation of a run (process executor, Airflow tasks, Databricks tasks) joins one trace without propagation.
-  Attribute names live under `pipeloom.*` and are marked experimental, since OpenTelemetry has no official semantic
-  conventions for data pipelines.
-- Cost and volume. Rows and bytes per model are already in `run_results`. With run history, a `row_count` check gains
-  a `change_vs_last` option (keys `runs` and `max_ratio`) in 1.x. Databricks cost stays in its system tables, joined
-  through `orchestrator_ids`, and the docs show how.
-
-### UI
-
-- Step 1: `pipeloom docs generate` and `pipeloom docs serve` (0.8). A static site in `target/docs/` built from the
-  manifest and, when present, the latest `run_results.json`: a model list, model pages (config, SQL or Python body,
-  inputs, relation, expectations, contract, last result) and a lineage graph, in one HTML file that works offline.
-  Python renders the HTML with the stdlib, the graph is an inline SVG laid out in Python (no JavaScript library, so
-  no license or update work and a golden-testable output), and `serve` is the stdlib `http.server`. The interactive
-  graph is left to `pipeloom ui`. Decided in [ADR-0043](adr/0043-docs-site.md) (accepted).
-- Step 2: `pipeloom ui` (1.1), in a `pipeloom-ui` distribution. A local read-only server (stdlib or one small ASGI
-  dependency, chosen in its ADR) over an artifacts root and, optionally, a state store. Views: the DAG colored by the
-  last run, the run list, a run timeline (a Gantt chart from `started_at`, `ended_at` and `queue_wait_ms`), unit logs
-  from `logs/`, the event stream (tailing the JSONL while a run is live), and quality and schema-change history. Data
-  preview is opt-in (`--preview`) and reads at most N rows through the engine reader, on local targets only. The UI
-  never starts, retries or cancels a run; it shows the command to copy instead. Kedro-Viz and Elementary work the
-  same way: they show metadata and leave runs to the tools that start them.
+Stability lifecycle, to be written into [stability.md](reference/stability.md) with the 1.1 ADR: an experimental
+feature is promoted or removed within two minors, only the latest minor gets patches, and security fixes go to the
+latest minor.
 
 ## 4. Milestones
 
-Each milestone has one headline and is sized for one maintainer. Items in the tables link back to the themes above.
+Each milestone has one headline and is sized for one maintainer. Releases are time-boxed with a cut date, and stretch
+items are cut first.
 
-### 0.8: the first hour and fast loops
+Summary by version:
 
-Delivered in 0.8.0. The docs site lays its graph out in Python instead of a vendored JavaScript library
-([ADR-0043](adr/0043-docs-site.md)).
+| Version | Headline | What you can do after it | Status |
+|---|---|---|---|
+| 0.8 to 1.0 | First hour, Python-first authoring, stable contracts | Author, validate, run and export projects with published schemas | Delivered |
+| 1.0.x | Upstream patches | Run on Polars 2.0, the current Databricks CLI and Airflow 3.3 and 3.4 | Planned |
+| 1.1 | DuckDB and a one-command demo | Run a project and a demo on a laptop with DuckDB | Planned |
+| 1.2 | Know what a change does before it merges | See the effect of a change with plan diff and table diff before merging | Planned |
+| 1.3 | Intervals and backfills | Backfill a date range and rerun only the missing windows | Planned |
+| 1.4 | Orchestrators run partitions | Run one partition from Airflow, Databricks or Dagster | Planned |
+| 1.5 | Run history does the work | Catch stale or unusual data from run history | Planned |
+| 1.6 | Lineage and telemetry from the manifest | Read column lineage and follow a run as a trace | Planned |
+| 1.7 | One read layer for people and agents | Browse runs in a local viewer and query them from an agent (the UI ships as 1.7.x) | Planned |
+| 1.8 | Open table formats without a cluster | Write Delta without Spark and Iceberg on Spark | Planned |
+| 1.9 | The editor knows your project | Get diagnostics and completion in the editor | Planned |
 
-| Item | ADR | Acceptance |
-|---|---|---|
-| `init` and block-style YAML | ADR-0041 | `pipeloom init demo --engine polars`, then `pipeloom run` in `demo`, exits 0 in a clean virtualenv in CI on three operating systems |
-| Editor setup in templates, `pipeloom new model` | ADR-0041 amendment | a new model validates with no PLK602 and has completion in VS Code with only the YAML extension |
-| `pipeloom explain` | none (the catalog exists) | every code in `codes.py` prints, tested by iterating the catalog |
-| `state:modified`, `state:new` and `result:` selectors, `--state`, `--defer` | [ADR-0042](adr/0042-state-selection-and-defer.md) | changing one SQL body selects exactly that node, and `--defer` reads an unselected parent from the reference relation (golden test) |
-| `pipeloom retry --from` | [ADR-0013](adr/0013-run-identity-and-reruns.md) | retrying a failed run runs only the failed units and their skipped descendants, with `parent_run_id` set |
-| `pipeloom docs generate` and `serve` | [ADR-0043](adr/0043-docs-site.md) | the TPC-H examples produce one HTML file that opens offline and shows the graph and every model |
+### Delivered
 
-### 0.9: test it, see it, run it faster
+| Version | What it delivered |
+|---|---|
+| 0.8 | First hour and fast loops: `init`, `new model`, `explain`, `state:modified` and `--defer`, `retry --from`, `docs generate` and `serve` ([ADR-0042](adr/0042-state-selection-and-defer.md), [ADR-0043](adr/0043-docs-site.md)) |
+| 0.9 | Python-first authoring ([ADR-0050](adr/0050-python-first-authoring.md)), contracts, unit and data tests, `build`, SCD2, OpenLineage, run history and webhook, Airflow WATCHER mode ([migration guide](guide/migrate-0.9.md)) |
+| 1.0 | Stable contracts: published schemas including the manifest, the [orchestrator protocol](guide/orchestrators.md), `graph --units`, plugin API (1, 0) and the [stability policy](reference/stability.md) ([ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md)) |
 
-Delivered in 0.9.0. YAML model declarations were removed in the same release, without a deprecation
-release ([migration guide](guide/migrate-0.9.md)); WATCHER mode was checked live on the Astro example.
+The full list per version is in the CHANGELOG and in section 16 of the architecture.
 
-Python-first authoring comes first; contracts and the test and build work are then written against the decorator.
+### Patch now: 1.0.x
 
-| Item | ADR | Acceptance |
-|---|---|---|
-| Python-first authoring (done) | [ADR-0050](adr/0050-python-first-authoring.md) | the four TPC-H examples run from decorated models, and cold discovery of 1,000 static models takes under 2 s |
-| Model contracts (`columns`) | [ADR-0044](adr/0044-model-contracts.md) | a type mismatch fails before the write with a new PLM code on polars, pandas and Spark (the shared engine contract suite) |
-| `pipeloom test` and `pipeloom build` | [ADR-0045](adr/0045-unit-and-data-tests.md) | a case whose expected rows match passes, and a case with one wrong row fails with a row diff, on polars, pandas and Spark |
-| Post-write data tests with `relationships` | [ADR-0045](adr/0045-unit-and-data-tests.md) | results appear in `run_results` with `scope: table` |
-| Sample data on Spark and Databricks | none | a CSV source in the TPC-H Spark example runs locally and on a Databricks volume |
-| SCD2 write strategy | [ADR-0008 amendment](adr/0008-incremental-and-state.md#amendment-09-scd2) | the SCD2 cells of the engine contract suite pass on polars and Spark |
-| `pipeloom-openlineage` sink and Airflow facets | ADR-0046 | a TPC-H run in Marquez shows the full graph, the schemas and the quality assertions |
-| Run history (`list_runs`, `pipeloom runs`) and the `webhook` sink | [ADR-0047](adr/0047-run-history-and-webhook.md), plugin API (0, 5) | `pipeloom runs ls` lists the last N runs on the sqlite, json and table stores, and a failed run posts once |
-| Airflow WATCHER mode | [ADR-0048](adr/0048-airflow-watcher-mode.md) | the examples' Astro project runs in WATCHER mode with one producer, a sensor and an asset per model, and clearing a failed sensor reruns one unit |
+Upstream changes are already out, so they should not wait for 1.4. A 1.0.x patch runs the Databricks CLI range
+check (Terraform was removed in CLI 1.20.0 and the direct engine has been GA since 1.3.0) and the Airflow 3.3 and
+3.4 matrix. Only the new features (window parameters, partitioned assets) stay in 1.4. Polars 2.0 is released
+(post dated 2026-10-06, streaming is now the default `LazyFrame` engine and can change row order), so CI also runs
+against it now; check the row-order and `profile` removal notes in the
+[upgrade guide](https://docs.pola.rs/releases/upgrade/2/) before writing acceptance tests.
 
-### 1.0: stable contracts
+### 1.1: DuckDB and a one-command demo
 
-Delivered in 1.0.0, after the 1.0.0rc1 release candidate, with the same content. What each item became:
+- Conformance suites as an opt-in pytest plugin (`-p pipeloom.testing.pytest_plugin`, or a separate distribution), a versioned kit that prints its version in the report, an engine-author guide, and a capability matrix generated from `EngineCapabilities`. The suite joins the stability surface list. Done when: A scratch project with only pipeloom and the plugin runs the engine suite in CI. `mkdocs build --strict` renders the matrix.
+- `pipeloom-duckdb` (in-tree, released in lockstep): `sql_dialect="duckdb"`, portable defaults, and merge, scd2 and replace_partitions pushed down as SQL. Reads Parquet and CSV, plus read-only Delta. Extensions are installed from a pinned `extension_directory`, with a clear diagnostic when one is missing offline. ADR: 0051 (file database vs attached lakehouse). Done when: The full engine contract suite passes, and the `tpch_polars` SQL models run on DuckDB through `sql_dialect` translation. One CI job runs with extensions preinstalled and no network. A Delta read test runs on all three operating systems, or the gap is documented.
+- Narwhals documentation and matrix. `narwhals.stable.v2` is already the portable layer with a single import point enforced by `lint-imports`, so this is the guide, a mapping of order errors to a code, and a cross-engine CI matrix. Done when: One portable model gives identical `to_rows` on polars, pandas, DuckDB and Spark.
+- `pipeloom demo`: DuckDB sample, tests and docs site. A `duckdb` extra on the core, and a diagnostic with an install hint when no engine is found. Done when: `uvx --from "pipeloom[duckdb]" pipeloom demo` exits 0 and writes `target/docs/index.html` in a clean venv on 3 OS.
+- `pipeloom init --engine duckdb` as a choice. The default stays polars, since only a new major can change a default. Done when: `init --no-input` still uses polars.
+- Experimental tier in stability.md, with a warning code for experimental flags and fields, and the optional-member mechanism above. ADR: stability ADR amendment. Done when: A case file for the new warning code.
 
-- JSON Schemas: `run_results`, `event` and `unit_states` were published in 0.9.0 and the manifest schema joins them
-  in 1.0, all under `schema/v1/` with the goldens validated in CI
-  ([ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md)).
-- Orchestrator protocol: the [protocol page](guide/orchestrators.md), `graph --units --output json` and the
-  [GitHub Actions recipe](guide/recipe-github-actions.md), which runs the TPC-H polars example unit by unit in CI,
-  shipped in 0.9.0 ([ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md)).
-- Stable versions: the [stability and deprecation policy](reference/stability.md) is the
-  [ADR-0016 amendment](adr/0016-versioning-and-plugin-api.md#amendment-10-stability-and-deprecation-policy), and 1.0
-  moves the plugin API to (1, 0) with a `tools/versions.py check` step that guards the released versions.
-- Hardening and complete docs: the [command line page](reference/cli.md#where-each-command-is-explained) maps every
-  command to the page that explains it, and a test fails when a command is missing there or a command or option has
-  no help text.
+Plugin API: unchanged.
 
-| Item | ADR | Acceptance |
-|---|---|---|
-| Published JSON Schemas for the manifest, run results, events and unit states | [ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md) | the docs publish them under `schema/v1/`, and the goldens validate against them in CI |
-| Orchestrator protocol page and `graph --units --output json` | [ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md) | a Kestra or GitHub Actions recipe in the docs runs the TPC-H example end to end |
-| `config_version: 1`, plugin API 1.0 and a deprecation policy | [ADR-0016](adr/0016-versioning-and-plugin-api.md) follow-up | a new `tools/versions.py check` step fails when a distribution declares a config version or plugin API other than the released one, and the changelog lists no breaking change after rc1 |
-| Hardening and complete docs | none | `mkdocs build --strict` passes and every command and flag has a guide page |
+Stretch: Sail CI recipe, `show --limit [--defer]` with no writes.
 
-### 1.x, roughly in this order
+Changed from the earlier plan: `pipeloom ui` was promised for 1.1 and moves to 1.7.x, after the read layer
+(decided 2026-11-20, see section 6).
 
-`pipeloom ui` (1.1, with a short ADR for the server choice), `pipeloom-otel`, column-level lineage from `sqlglot`,
-source freshness and volume change checks, `pipeloom-dagster`, the Databricks `load_resources` hook, `pipeloom-lsp`
-with the VS Code extension, the Airflow DOCKER mode and the `airflow` secret provider, research on a Lakeflow export,
-and a Prefect recipe.
+### 1.2: Know what a change does before it merges
 
-Two follow-ups deferred from 1.0:
+- Optional `checksums{code,config,contract,tests,upstream}` and `checksum_version` on manifest nodes. The 1.0 `checksum` is unchanged. Sub-selectors `state:modified.{code,config,contract,tests,upstream}` and `ls --why`. Config is hashed after `${var}` resolution and before `${env}` and `${secret}`, so secrets are never hashed. ADR: 0052. Done when: A whitespace, comment or docstring edit selects nothing under `state:modified.code`, while legacy `state:modified` still selects it. Editing a data test selects only `.tests`. A 1.0 reference manifest falls back to the legacy checksum with a warning.
+- `plan --diff --state <dir>` with categories new, removed, breaking, non-breaking, metadata and indirect. A comparison of the old and new SQL syntax trees where an unknown result never counts as safe. Contract gate, `--fail-on breaking`, `plan_diff/1`. ADR: 0052. Done when: Fixture pairs give the expected category per unit. A dropped contract column exits 1, and its descendants are indirect-breaking.
+- `pipeloom diff <model>`: same-engine keyed diff with schema diff, counts and samples, `table_diff/1` and markdown. Runs through `session.sql` or portable frames. The default markdown carries counts and the schema diff only; `--samples` adds rows, and columns tagged `sensitive` in contracts are masked. ADR: 0053. Done when: Seeded fixtures on DuckDB and polars give exact matched, partial, source-only and target-only counts. A duplicate key is reported, not a crash. The default markdown contains no cell values.
+- Canonical dataset identity: one pure function in core, with `input_assets` and `output_assets` resolved through ephemerals. A hash suffix applies only to names 1.0 rejected. ADR: 0055. Done when: Airflow asset URIs and OpenLineage names for shop and TPC-H are byte-identical to 1.0.0. An ephemeral input resolves to its persisted upstream.
+- Machine-readable diagnostics: `--log-format json` on the commands that lack it (validate, test), an explain URL on the diagnostic event, and `--output json` for command results of plan, compile and diff. `init` writes AGENTS.md and skills generated from the code catalog, `init --update-agents` regenerates them, and nothing is fetched remotely. Done when: One schema-validated golden per command. A test fails when a catalog code is missing from the skills.
+- Performance budget: a synthetic 1,000-model project with a compile and plan time budget in CI. Done when: CI fails when the budget is exceeded.
 
-- Stable Airflow DAG parse-time budget tests. They are flaky when the machine is under load; they guard a budget,
-  not user-facing behavior.
-- The `airflow` dependency group on Windows. It does not install there because openlineage-sql publishes no Windows
-  wheel, so Airflow plugin development and its mypy run happen on Linux, WSL or CI.
+Plugin API: unchanged.
+
+Stretch: Slim CI recipe on DuckDB with a step summary and Azure DevOps, `validate --dry-run`, `llms.txt`
+from `docs generate`, a "Coming from dbt" concept-mapping guide.
+
+### 1.3: Intervals and backfills
+
+- `incremental.interval` with event_time, grain, begin and lookback. Half-open UTC windows follow the rounding rules in the dbt microbatch docs. Batches run first, middle, last inside one unit, so the DAG and the renderers stay unchanged. Each interval gets its own idempotency token (for example `run_id:model:interval_id`) and its own Delta transaction version, as an amendment to ADR-0032. The range replace is an explicit `WriteConfig` field (`replace_range: column, start, end`) under the capability `interval_writes`, so an empty window or a partition coarser than the grain cannot leave stale rows or delete rows outside the window. A missing event_time fails at validation and never becomes a full scan. ADR: 0054 (amends 0032). Done when: Property tests cover the boundary +1 case, month and year truncation, and DST, and run on windows-latest (with a `tzdata` dependency). A 90-day backfill on Spark/Delta and polars writes exactly 90 windows. An empty window and a month partition under a day grain both leave other rows untouched.
+- Interval ledger: merged intervals stored in the state store under a reserved key (document type `pipeloom.intervals/1`). The value is a list of ISO-string pairs, because the state codec does not convert datetimes nested in a list. Dev targets never write the prod ledger. The Delta store encodes values through the same codec, so the round trip holds there by code reading. ADR: 0054. Done when: The state contract suite round-trips the ledger on sqlite, json and Delta, and concurrent writers lose no interval.
+- `pipeloom backfill --select --start --end [--rerun missing\|all] [--on-failure stop\|continue]`, deterministic interval ids, `restate` for a range, and `--mark-done` to seed the ledger for a model converted from a 1.0 watermark. The `migrate-1.x` guide covers the conversion. ADR: 0054. Done when: A range with one gap reruns only the gap. `--rerun missing` after success writes nothing. A killed run resumes only the missing intervals. Converting a 1.0 watermark model reruns zero windows.
+- Outcome fields: documented open `skip_reason` values (`not_selected`, `up_to_date`, `not_due`, `upstream_incomplete`) with their failing class listed next to the existing ones, `failed_upstream`, `blocking`, and test summaries capped at N ids. No new status. The row schema first splits into the frozen 1.0 required set and optional additions, because every row property is required today, and the test of row defaults changes in the same release. ADR: 0056. Done when: A failing blocking test gives its descendants `upstream_failed` and `failed_upstream`. The 1.0 goldens still validate.
+- `on_cursor_value_missing: raise\|include\|exclude`. Done when: One case file per mode.
+
+Plugin API: (1, 1): optional `filter_between` in its own `Protocol` with a portable default, capability `interval_writes=False`. Validation rejects interval models on engines without it. Fallback: optional StateStore methods in the same bump.
+
+Stretch: `sequence_by` and ignore-null updates (capability `merge_sequencing` in the same (1, 1) bump; ties are an
+error), an EL-then-T recipe with dlt (its `end_value` overlaps intervals), and, on SIGTERM, signaling the whole
+process group and printing the retry command and the resume set (Job Objects or `CTRL_BREAK_EVENT` on Windows).
+
+### 1.4: Orchestrators run partitions
+
+- Typed partition spec derived from the interval. `partition_keys` in run_results, events and the OpenLineage run facet. Anchored-regex formats checked at validation. A completeness gate returns (satisfied, unreachable, reason). ADR: 0056. Done when: A bad format fails at validate. A missing upstream interval settles with `upstream_incomplete`. An up_to_date skip still emits the orchestrator signal (or a documented no-op) and counts as non-failing.
+- Airflow work: opt-in experimental partitioned assets, templated `emit_assets`, WATCHER with bounded XCom and upstream-failed consumers that settle on attempt 1, select and exclude evaluated on the full graph, task ids derived only from unit ids, a 3.2 to 3.4 matrix, and the stable parse-time budget tests. pipeloom-airflow already requires `apache-airflow>=3.2,<4`, so partitions need no floor change. Done when: The matrix is green. On the Astro example, an asset event with key 2026-11-01 runs exactly that window. A 200-unit WATCHER run with one failure leaves bounded XCom.
+- Databricks work: `window_start` and `window_end` job parameters, direct-engine YAML check, CLI range check with a code, the planned `load_resources` hook. Done when: `bundle validate` passes on the minimum and latest CLI in CI. A 7-day window run fills the ledger (workspace demo, not in CI).
+- `pipeloom-dagster` (decided 2026-11-20, see section 6): a new distribution that reads `manifest.json` and builds one `multi_asset` per unit, with asset keys from the canonical dataset identity of 1.2. Each materialization runs the unit command of the orchestrator protocol, data tests become asset checks, and interval models map to Dagster time partitions through the partition spec above. Pinned to the public `dagster` API with a version matrix. ADR: 0066. Done when: the TPC-H polars example loads in `dagster dev` with one asset per model, materializing one asset runs exactly that unit, a failing data test shows as a failed asset check, and one partition of an interval model runs exactly that window.
+
+Plugin API: unchanged.
+
+Stretch: DOCKER mode and the `airflow` secret provider (moved out of core to make room for `pipeloom-dagster`), an
+orchestrator conformance kit, and a Prefect recipe over `graph --units --output json`. The `airflow` dependency group still does not install on Windows
+(openlineage-sql has no Windows wheel); that stays a documented limit and Airflow development happens on Linux,
+WSL or CI.
+
+### 1.5: Run history does the work
+
+- `sources freshness`, `row_count.change_vs_last`, and a z-score over comparable runs (window 14, sigma 3, warmup 7). Backfill, full-refresh and retry runs stay out of the baseline, and it resets on a config hash change. Statistics in Python from `list_runs`. ADR: 0057. Done when: With a FakeClock history, only the injected outlier warns. Fewer than 2 points gives no score.
+- `reconcile` data test: group_by, filters on both sides, abs or rel tolerance, and groups missing on either side. ADR: 0057. Done when: One missing group and one drifted group are reported on DuckDB and polars.
+- `build --skip-unchanged`, opt-in. The fingerprint covers the code checksum, config, upstream fingerprints and data versions. The scheduler change is part of the ADR: an up_to_date skip releases children like a success, and the decision happens before QUEUED with a defined state transition. Data versions come from an optional `Catalog.data_version(target)` in its own `Protocol` (in-tree engines implement it; when it is missing the unit always runs, with a reason). External writes are not detected unless the engine reports a version. ADR: 0058. Done when: A second identical build runs zero units. Bumping one upstream Delta version reruns only it and its descendants.
+- `schema_contract` entities (new_table, new_column, type_change) times modes (evolve, fail, drop_value, quarantine_row), with `--schema-contract freeze` for CI. `on_schema_change` maps onto it and is deprecated with a warning code, and it keeps working through 1.x. ADR: 0059. Done when: One case per entity and mode on the shared suite. Schema changes in run_results record the entity and the mode.
+- ODCS v3 contract export, sharing one `Threshold(op, value)` type with the anomaly checks. Lossy mappings are a warning code. Done when: An exported contract validates against the ODCS schema, and a lossy field warns.
+
+Plugin API: (1, 1) if the 1.3 bump is not reused.
+
+Stretch: ODCS import, unit-test upgrades (partial rows, subset mode, tolerance, mocks), `pipeloom prune` (dry
+run by default, with a retention floor of at least the largest anomaly window), Unity Catalog metadata push as a diff
+(an optional `Catalog.apply_metadata` takes the next API bump).
+
+### 1.6: Lineage and telemetry from the manifest
+
+- `nodes[].column_lineage` outside the plan hash, with completeness per column, an indirect pass (filter, join, group, window), a cache keyed by SQL, dialect and schema hash, and `lineage --column`. sqlglot stays in a tested range bounded by major version, with a weekly job against the latest release and golden lineage tests. ADR: 0060. Done when: TPC-H goldens. The plan hash equals 1.5's. Unqualifiable SQL is marked incomplete and compile exits 0. The performance budget from 1.2 is rechecked.
+- OpenLineage facet pass: columnLineage, dataQualityAssertions, SQL, job type, parent and root run, naming from the 1.2 identity function, and `lineage export --run`. Done when: Facets validate against the pinned facet schemas. A throwing sink never changes the exit code. Check the spec docs first for whether the 1.53 explicit lineage facets supersede the column facet.
+- `pipeloom-otel`: the run is the root span, attempts are child spans, and the trace id is derived from run_id. ADR: 0061 (`pipeloom.*` plus the CI/CD semantic conventions). Done when: A 3-unit process-executor run gives one trace with 3 child spans in an in-memory exporter.
+
+Plugin API: unchanged.
+
+Stretch: UC external lineage push with dry run (verify GA first), Query annotations plus a cost recipe that
+joins system tables through orchestrator_ids (the optional hook takes the next API bump).
+
+### 1.7: One read layer for people and agents
+
+The read layer and MCP ship first. The UI follows as 1.7.x with its own cut date, so the largest item cannot hold
+the release.
+
+- A read layer over manifest, run_results, events by offset, runs and catalog, placed in `pipeloom.artifacts` (below docs in the layer contract) and re-exported from `pipeloom.api`. Docs, UI and MCP all use it. Done when: `docs generate` output is byte-identical before and after the refactor, and `lint-imports` passes.
+- `group_by` in unit_graph (additive /1). File and line already exist on plan nodes. Done when: Goldens updated, and the old goldens still validate.
+- `pipeloom-mcp`: read-only tools (models, runs, node, explain, plan diff, lineage). No tool runs SQL. Artifact text is wrapped as data, the threat is described in SECURITY.md, and the distribution is separate with an import-linter rule that keeps it out of core. No row data unless the user opts in. ADR: 0062. Done when: An MCP client test lists the tools and asserts none mutates.
+- `pipeloom-ui` (1.7.x, moved from 1.1): GET only, 127.0.0.1, run picker, DAG colored by the last run, event tail, `ui export`, path-traversal guard, never imports user code. Host and Origin allowlist, a random session token in the URL, no CORS. ADR: 0062 (server choice). Done when: A test asserts no non-GET route. A foreign Host is rejected. The traversal fuzz test returns 404, with a Windows corpus (drive letters, backslashes, UNC paths, reserved names, case-insensitive matching). Diffs, partitions, anomalies and lineage for TPC-H are viewable.
+
+Plugin API: unchanged.
+
+Stretch: `profile` and `test scaffold`.
+
+### 1.8: Open table formats without a cluster
+
+- Delta targets and a Delta state store through delta-rs for polars, pandas and DuckDB. ADR: 0063. Done when: The Delta contract cells pass on polars and DuckDB. A table written by polars reads in Spark with the same schema.
+- `iceberg` format in pipeloom-spark against UC or REST catalogs, all strategies. ADR: 0064. Done when: Engine contract cells pass on local Spark with a containerized REST catalog.
+
+Plugin API: unchanged.
+
+Stretch: pyiceberg append and overwrite (current release 0.12.0; verify write support in its docs before writing
+acceptance criteria), DuckDB attach of DuckLake or Iceberg (DuckLake 1.0 was released on 2026-04-13).
+
+### 1.9: The editor knows your project
+
+- `pipeloom-lsp`: diagnostics on save, go-to-definition from a parameter to its model, hover, completion. Works with Windows drive-letter file URIs. ADR: 0065. Done when: A pygls test client drives all four on `fixtures/shop`.
+- VS Code extension that wraps the LSP and registers the JSON Schemas. A separate repository, or deferred in favor of the schema settings `init` already writes, because it brings an npm toolchain and publisher tokens outside the current release path. Done when: The extension test opens a project and gets diagnostics.
+
+Plugin API: unchanged.
+
+Stretch: `@model.parameterize` with literal arguments only, access, groups and deprecation_date.
+
+Parallel work on disjoint files is possible in 1.1 (DuckDB with the kit and the matrix), 1.2 (table diff with the
+checksums and plan diff), 1.4 (the Airflow work with the Databricks work), 1.6 (OpenTelemetry with column lineage and
+the facet pass) and 1.8 (delta-rs with Iceberg on Spark).
+
+### Breaking changes held back
+
+The [stability policy](reference/stability.md) keeps these out of every 1.x release. They are listed so that 1.x
+designs leave room for them. None of them needs a new major today, and no major is planned.
+
+- New run statuses (`cached`, `partial`, `warn`). Adding a value to a closed enum is breaking, so through 1.x the
+  open `skip_reason` values carry the same information.
+- Removing deprecated items: `on_schema_change` (deprecated in 1.5) and the single legacy `checksum`. Both keep
+  working for the whole major.
+- `state:modified` switching to the split checksums from 1.2.
+- Making optional plugin members required (`filter_between`, `from_rows`, `to_rows`, `apply_metadata`), which would
+  remove their fallback helpers.
+- The `init` default engine moving from polars to DuckDB.
+- Intervals as a value of the closed `strategy` enum.
+
+Research with no version attached: cross-project refs, the Lakeflow Spark Declarative Pipelines export (it needs its
+own ADR first), a dbt importer and a community Snowflake engine.
 
 ## 5. Non-goals and risks
 
-Non-goals through 1.0: streaming; a scheduler service; any UI that starts, schedules or edits runs; hosted or
-multi-user services; a portable SQL dialect; Jinja; user code at compile time (from 0.9 it runs only for modules with
-dynamic decorator arguments, [ADR-0050](adr/0050-python-first-authoring.md)); Airflow 2; SQLMesh-style virtual
-environments with zero-copy promotion (pipeloom offers `per_user` naming plus `--defer`); a Snowflake target before a
-Snowflake engine exists.
+Non-goals, with what changes (accepted on 2026-11-20, see section 6). Section 1 of the architecture picks up the new
+list through the stability ADR amendment in 1.1:
+
+- Streaming: kept. One sentence is added: reading Auto Loader or Lakeflow Connect landing tables through
+  `incremental` is supported, and checkpoint-based state is not. Bounded streaming reads (Spark's AvailableNow trigger) are revisited only after
+  Delta change data feed, through its own ADR.
+- Snowflake: was "a Snowflake target before a Snowflake engine exists". New wording: engines beyond polars, pandas,
+  Spark and DuckDB are community plugins tested by the conformance kit.
+- UI: was "a scheduler service, or any UI that starts, schedules or changes runs". New wording: "any UI or agent tool
+  that starts, schedules or changes runs". MCP write tools fall under it.
+- Zero-copy environments: kept. Clone-only dev copies are allowed and promotion is not.
+- User code at compile time: kept. Model factories stay static with literal arguments.
+- New: a semantic layer, cross-engine data diff, and ML anomaly models beyond fixed statistics.
+- Kept as they are: Airflow 2, Jinja, a portable SQL dialect and a scheduler service.
+
+Rejected or deferred, with the reason:
+
+- Cost fields in run_results: contradicts the decision to keep cost in system tables. 1.6 gets a recipe instead.
+- Snowflake engine: very large effort and no test account.
+- dbt import: L effort and Jinja semantics through the back door. Left as research with no version.
+- Bounded streaming reads (Spark's AvailableNow trigger): a second source of state, and per-batch writes under Spark Connect are unverified.
+- Clone environments: `--defer` covers most of the value. Revisit on demand.
+- YAML Dag export: the upstream format is experimental.
+- Lakeflow Connect: source freshness covers it.
+- Fabric: no demand.
+- Packages, cross-project refs, semantic export and importers: large effort or scope creep, and importers conflict
+  with "YAML only configures".
+- A unit hook, state sync and a pandera bridge: one consumer each, left to the community.
+- The extra check idea folded into the anomaly checks.
+
+Changed from the earlier plan: the Lakeflow export is research with no version, `pipeloom-dagster` is placed in 1.4,
+and the two 1.0 follow-ups (parse-time budget tests, the Windows Airflow group) are placed in 1.4.
 
 Risks:
 
-- Scope. This is a lot for one maintainer. Each milestone keeps its headline (the first hour, testing and
-  observability, stable contracts), and items move to 1.x instead of delaying a release.
-- Artifact schema churn before 1.0. Contracts, column lineage and the `columns` event field all touch
-  `pipeloom.manifest/1` and `pipeloom.event/1`. Changes stay additive, and the changelog records each one.
+- Single maintainer. Nine minors at 2 to 4 weeks each is 4 to 8 months of full-time work, and every minor also
+  releases every plugin in lockstep. Each release has a cut date, stretch items go first, and workspace-only demos
+  are not in CI.
+- Narwhals may not cover anti join, `is_duplicated` and tz casts on its DuckDB backend. Spike this in week 1 of
+  1.1, confirm the supported backends in its docs, and override with SQL.
+- Dagster ownership. Prefect announced it is acquiring Dagster Labs ([Market landscape](landscape.md)), so the
+  `dagster` API may shift. `pipeloom-dagster` uses only the public API and runs against a version matrix.
+- Airflow partition APIs arrived in 3.2 and may keep changing. They stay experimental and covered by the matrix.
+- Hash false positives (split checksums) and lineage overclaiming. Version the fingerprint, keep golden tests and
+  completeness flags.
+- Wrong skips from `--skip-unchanged`. It is opt-in, anything unhashable forces a run, and every skip has a reason.
+- Windows. CI runs on windows-latest, and zoneinfo has no system timezone database there, process groups are
+  POSIX-only, path guards differ, and DuckDB extension availability needs a check.
+- Supply chain. DuckDB extensions download binaries at runtime, the VS Code extension needs a separate release path
+  and tokens, and the MCP SDK pulls a web stack. Each is isolated in its own distribution or job.
+- Data leaks through samples in PR comments, CI summaries and agent context. Defaults show counts only.
+- Prompt injection through artifact text in MCP, and DNS rebinding against the local UI. Both have the mitigations
+  listed in 1.7.
+- External claims to verify first: the OpenLineage column facet status, UC external lineage GA, and PyIceberg write
+  support. Each gets a verify-first task.
 - Duplicate OpenLineage events under Airflow. The rule (the provider emits inside Airflow, the sink everywhere
   else) needs a test.
 - WATCHER mode on shared storage. NFS attribute caching can hide fresh attempt files, so the sensor needs a bounded
-  poll and the PLA004 sentinel.
-- UI dependency weight. ADR-0043 (accepted) avoids it for the docs site: the graph is an inline SVG laid out in
-  Python, with no vendored JavaScript library. `pipeloom ui` (1.1) ships separately, so any library it needs stays
-  out of the core wheel; keep exactly one and pin it.
-- The Python-first rewrite. Every case file, fixture and example moves from YAML models to decorated functions in
-  0.9, and plan hashes change once. The legacy path stays on main until the last of them has moved.
+  poll and a sentinel file (code PLA004, see the [error codes](reference/errors.md)).
 - Defer correctness. Reading production relations from a dev run needs read grants and the same schema. A missing
-  relation must fail with a clear PLM204 hint.
+  relation must fail with a clear hint (code PLM204, see the [error codes](reference/errors.md)).
+
+## 6. Decisions
+
+Ordered by impact. All were decided on 2026-11-20; each item names the alternative it replaced.
+
+1. Dagster. Decided 2026-11-20: `pipeloom-dagster` ships as a plugin in 1.4, as the 1.0 roadmap promised. The
+   alternative was a recipe over `graph --units --output json` and a plugin only with a co-maintainer.
+2. `pipeloom ui`. Decided 2026-11-20: it moves from 1.1 to 1.7.x and is built on the read layer. The alternatives
+   were 1.2, or keeping 1.1.
+3. Version order. Decided 2026-11-20: DuckDB and the kit in 1.1, change intelligence in 1.2, intervals in 1.3. The
+   alternatives put intervals or change intelligence first.
+4. `on_schema_change`. Decided 2026-11-20: deprecated in 1.5 in favor of `schema_contract`. It keeps working through
+   1.x and can be removed only in a new major. The alternative was keeping both.
+5. Interval ledger. Decided 2026-11-20: a reserved state key with document type `pipeloom.intervals/1`. The
+   alternative was new optional StateStore methods, which stay the fallback named in 1.3.
+6. Interval writes. Decided 2026-11-20: an explicit `replace_range` field under the `interval_writes` capability. The
+   alternative was reusing `replace_partitions`, which cannot guarantee range replacement.
+7. `init` default engine. Decided 2026-11-20: polars stays the default through 1.x, because changing a default is
+   breaking under ADR-0016. DuckDB as the default waits for a new major, if one ever comes.
+8. Non-goal changes and the experimental tier. Decided 2026-11-20: all accepted as section 5 lists them (the three
+   new non-goals, the Snowflake and UI rewording, the streaming note) together with the experimental tier and its
+   lifecycle in section 3.
+9. Checksum inputs. Decided 2026-11-20: hash after `${var}` resolution and before `${env}` and `${secret}`, so
+   secrets never enter a hash. The alternative was hashing the unresolved text.
+10. `pipeloom-duckdb`. Decided 2026-11-20: in-tree and released in lockstep. The alternative was a separate
+    repository as proof of the kit.
+11. OpenTelemetry attributes. Decided 2026-11-20: `pipeloom.*` plus the CI/CD semantic conventions where they fit.
+    The alternative was `pipeloom.*` only.
