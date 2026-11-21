@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: plan as of 2026-11-21, written against 1.2.0. Versions 0.8 to 1.2 are delivered; this page now plans 1.3 to
+Status: plan as of 2026-11-21, written against 1.3.0. Versions 0.8 to 1.3 are delivered; this page now plans 1.4 to
 1.9 and lists the breaking changes the stability policy holds back. Section 16 of [architecture.md](architecture.md#16-roadmap) keeps the record of what each
 delivered version contains. The market research behind the plan is in [Market landscape](landscape.md). Items that
 change a decision name the ADR they need: ADRs up to 0050 exist and are accepted, and new ones continue from 0051.
@@ -120,7 +120,7 @@ Summary by version:
 | 1.0.x | Upstream patches | Run on Polars 2.0, the current Databricks CLI and Airflow 3.3 and 3.4 | Delivered in 1.1.0 |
 | 1.1 | DuckDB and a one-command demo | Run a project and a demo on a laptop with DuckDB | Delivered |
 | 1.2 | Know what a change does before it merges | See the effect of a change with plan diff and table diff before merging | Delivered |
-| 1.3 | Intervals and backfills | Backfill a date range and rerun only the missing windows | Planned |
+| 1.3 | Intervals and backfills | Backfill a date range and rerun only the missing windows | Delivered |
 | 1.4 | Orchestrators run partitions | Run one partition from Airflow, Databricks or Dagster | Planned |
 | 1.5 | Run history does the work | Catch stale or unusual data from run history | Planned |
 | 1.6 | Lineage and telemetry from the manifest | Read column lineage and follow a run as a trace | Planned |
@@ -138,25 +138,12 @@ Summary by version:
 | 1.0.x | Delivered in 1.1.0, with no 1.0.1 release because nothing was broken for users: Databricks CLI version documentation, the Airflow 3.4 matrix and Polars 2 guards |
 | 1.1 | Delivered in 1.1.0: DuckDB engine ([ADR-0051](adr/0051-duckdb-engine.md)), conformance kit ([ADR-0067](adr/0067-conformance-kit.md)), portable models guide and cross-engine matrix, `pipeloom demo`, `init --engine duckdb`, experimental tier in the stability policy. The stretch items Sail CI recipe and `show --limit` did not ship and are dropped |
 | 1.2 | Delivered in 1.2.0: split checksums and `state:modified.<part>` ([ADR-0052](adr/0052-split-checksums-and-change-categories.md)), `plan --diff`, `pipeloom diff` ([ADR-0053](adr/0053-table-diff.md)), canonical dataset identity ([ADR-0055](adr/0055-canonical-dataset-identity.md)), machine-readable output and generated `AGENTS.md`, `ctx.sql` on pandas through DuckDB ([ADR-0068](adr/0068-pandas-sql-through-duckdb.md)), performance budget, docs overhaul. The stretch items Slim CI recipe on DuckDB, `validate --dry-run`, `llms.txt` and the Coming from dbt guide did not ship and stay stretch for a later minor |
+| 1.3 | Delivered in 1.3.0: interval incrementals, interval ledger and `replace_range` writes ([ADR-0054](adr/0054-interval-incrementals.md)), Spark/Delta windows ([ADR-0032](adr/0032-delta-writes-and-idempotency.md) amendment), `pipeloom backfill` and the Migrating within 1.x guide, run outcome fields ([ADR-0056](adr/0056-run-outcome-fields.md)), `on_cursor_value_missing` ([ADR-0027](adr/0027-incremental-models.md) amendment), plugin API (1, 1). The stretch items `sequence_by` and ignore-null updates, an EL-then-T recipe with dlt and SIGTERM process-group signaling did not ship and stay stretch for a later minor |
 
 The full list per version is in the CHANGELOG and in section 16 of the architecture.
 
-Stretch (not shipped in 1.2, kept for a later minor): Slim CI recipe on DuckDB with a step summary and Azure DevOps, `validate --dry-run`, `llms.txt`
-from `docs generate`, a "Coming from dbt" concept-mapping guide.
-
-### 1.3: Intervals and backfills
-
-- `incremental.interval` with event_time, grain, begin and lookback. Half-open UTC windows follow the rounding rules in the dbt microbatch docs. Batches run first, middle, last inside one unit, so the DAG and the renderers stay unchanged. Each interval gets its own idempotency token (for example `run_id:model:interval_id`) and its own Delta transaction version, as an amendment to ADR-0032. The range replace is an explicit `WriteConfig` field (`replace_range: column, start, end`) under the capability `interval_writes`, so an empty window or a partition coarser than the grain cannot leave stale rows or delete rows outside the window. A missing event_time fails at validation and never becomes a full scan. ADR: 0054 (amends 0032). Done when: Property tests cover the boundary +1 case, month and year truncation, and DST, and run on windows-latest (with a `tzdata` dependency). A 90-day backfill on Spark/Delta and polars writes exactly 90 windows. An empty window and a month partition under a day grain both leave other rows untouched.
-- Interval ledger: merged intervals stored in the state store under a reserved key (document type `pipeloom.intervals/1`). The value is a list of ISO-string pairs, because the state codec does not convert datetimes nested in a list. Dev targets never write the prod ledger. The Delta store encodes values through the same codec, so the round trip holds there by code reading. ADR: 0054. Done when: The state contract suite round-trips the ledger on sqlite, json and Delta, and concurrent writers lose no interval.
-- `pipeloom backfill --select --start --end [--rerun missing\|all] [--on-failure stop\|continue]`, deterministic interval ids, `restate` for a range, and `--mark-done` to seed the ledger for a model converted from a 1.0 watermark. The `migrate-1.x` guide covers the conversion. ADR: 0054. Done when: A range with one gap reruns only the gap. `--rerun missing` after success writes nothing. A killed run resumes only the missing intervals. Converting a 1.0 watermark model reruns zero windows.
-- Outcome fields: documented open `skip_reason` values (`not_selected`, `up_to_date`, `not_due`, `upstream_incomplete`) with their failing class listed next to the existing ones, `failed_upstream`, `blocking`, and test summaries capped at N ids. No new status. The row schema first splits into the frozen 1.0 required set and optional additions, because every row property is required today, and the test of row defaults changes in the same release. ADR: 0056. Done when: A failing blocking test gives its descendants `upstream_failed` and `failed_upstream`. The 1.0 goldens still validate.
-- `on_cursor_value_missing: raise\|include\|exclude`. ADR: 0027 (amendment). Done when: A case file for the raise code (PLM210), and a test and an engine contract cell for each of the three modes.
-
-Plugin API: (1, 1): optional `filter_between` in its own `Protocol` with a portable default, capability `interval_writes=False`. Validation rejects interval models on engines without it. Fallback: optional StateStore methods in the same bump.
-
-Stretch: `sequence_by` and ignore-null updates (capability `merge_sequencing` in the same (1, 1) bump; ties are an
-error), an EL-then-T recipe with dlt (its `end_value` overlaps intervals), and, on SIGTERM, signaling the whole
-process group and printing the retry command and the resume set (Job Objects or `CTRL_BREAK_EVENT` on Windows).
+Stretch (not shipped in 1.2 or 1.3, kept for a later minor): Slim CI recipe on DuckDB with a step summary and Azure DevOps, `validate --dry-run`, `llms.txt`
+from `docs generate`, a "Coming from dbt" concept-mapping guide, `sequence_by` and ignore-null updates, an EL-then-T recipe with dlt, SIGTERM process-group signaling.
 
 ### 1.4: Orchestrators run partitions
 
