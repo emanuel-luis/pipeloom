@@ -324,6 +324,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#try-it-in-one-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Try it in one command
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#start-from-pipeloom-init" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1478,6 +1489,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#try-it-in-one-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Try it in one command
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#start-from-pipeloom-init" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1585,13 +1607,20 @@
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
 <pre><code class="language-console">$ pip install &quot;pipeloom[polars]&quot;
 </code></pre>
-<p>Use <code>pipeloom[pandas]</code> for the pandas engine. Add the <code>sqlglot</code> extra to get warnings about SQL
+<p>Use <code>pipeloom[pandas]</code> for the pandas engine and <code>pipeloom[duckdb]</code> for DuckDB. Add the <code>sqlglot</code> extra to get warnings about SQL
 that reads tables you did not declare (<code>pipeloom[polars,sqlglot]</code>).</p>
+<h2 id="try-it-in-one-command">Try it in one command<a class="headerlink" href="#try-it-in-one-command" title="Permanent link">&para;</a></h2>
+<p>With the DuckDB engine installed, one command writes a sample project, builds it and writes the
+docs site, with nothing else to set up:</p>
+<pre><code class="language-console">$ uvx --from &quot;pipeloom[duckdb]&quot; pipeloom demo
+</code></pre>
+<p>It prints the path of <code>target/docs/index.html</code> in the new <code>pipeloom_demo</code> folder and the commands
+to try next. See <a href="../reference/cli/#pipeloom-demo">pipeloom demo</a>.</p>
 <h2 id="start-from-pipeloom-init">Start from <code>pipeloom init</code><a class="headerlink" href="#start-from-pipeloom-init" title="Permanent link">&para;</a></h2>
 <p>The fastest start is to let pipeloom write the project:</p>
 <pre><code class="language-console">$ pipeloom init shop
 Project name [shop]:
-Engine (polars, pandas, spark, databricks) [polars]:
+Engine (polars, pandas, spark, databricks, duckdb) [polars]:
 Created project 'shop' (polars) in shop
 Next steps:
   cd shop

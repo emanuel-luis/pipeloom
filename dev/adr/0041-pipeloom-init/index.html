@@ -1437,6 +1437,56 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-11-the-duckdb-template-and-pipeloom-demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment 1.1: the duckdb template and pipeloom demo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Amendment 1.1: the duckdb template and pipeloom demo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-changed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options-considered_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Options considered
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequences_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1493,7 +1543,7 @@
 <li>A plugin cannot add its own template yet. When one needs to, an entry-point group can be added then.</li>
 </ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted. Amended in 0.8 (editor setup, <code>pipeloom new model</code>) and in 0.9 by <a href="../0050-python-first-authoring/">ADR-0050</a>.</p>
+<p>Accepted. Amended in 0.8 (editor setup, <code>pipeloom new model</code>), in 0.9 by <a href="../0050-python-first-authoring/">ADR-0050</a> and in 1.1 (duckdb template, <code>pipeloom demo</code>).</p>
 <h2 id="amendment-08-editor-setup-and-pipeloom-new-model">Amendment (0.8): editor setup and pipeloom new model<a class="headerlink" href="#amendment-08-editor-setup-and-pipeloom-new-model" title="Permanent link">&para;</a></h2>
 <h3 id="what-changed">What changed<a class="headerlink" href="#what-changed" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1517,6 +1567,26 @@
 </ul>
 <h2 id="amendment-09-adr-0050">Amendment 0.9 (ADR-0050)<a class="headerlink" href="#amendment-09-adr-0050" title="Permanent link">&para;</a></h2>
 <p>With Python-first authoring (<a href="../0050-python-first-authoring/">ADR-0050</a>) <code>pipeloom new model NAME [--sql|--python] [--folder PATH]</code> writes one file, <code>models/&lt;folder&gt;/&lt;name&gt;.py</code>, with a decorated function and no YAML entry. With <code>--sql</code> the body returns <code>ctx.sql("select 1 as id")</code>; with <code>--python</code> it returns a frame stub. The default stays <code>--python</code> on pandas and <code>--sql</code> otherwise. The usage error for a Python model without <code>python_paths</code> goes away, because <code>python_paths</code> defaults to <code>["."]</code>. <code>init</code> writes one <code>.py</code> model per layer, a <code>models:</code> tree in <code>pipeloom.yml</code> instead of <code>_defaults.yml</code>, and <code>models/silver/_properties.yml</code>; <code>.vscode/settings.json</code> maps <code>project.json</code> to <code>pipeloom.yml</code> and <code>properties.json</code> to <code>models/**/*.yml</code>, and the <code>defaults.json</code> and <code>models.json</code> globs go away. These templates change with the examples, after the discovery and resolve changes of ADR-0050. As built, the <code>--python</code> stub raises <code>NotImplementedError</code>, because the frame type depends on the engine; the name check also counts decorated models; and a Python keyword or <code>ctx</code>, <code>model</code> or <code>ModelContext</code> as NAME is a usage error, since NAME becomes the function name.</p>
+<h2 id="amendment-11-the-duckdb-template-and-pipeloom-demo">Amendment 1.1: the duckdb template and <code>pipeloom demo</code><a class="headerlink" href="#amendment-11-the-duckdb-template-and-pipeloom-demo" title="Permanent link">&para;</a></h2>
+<h3 id="what-changed_1">What changed<a class="headerlink" href="#what-changed_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>ENGINES</code> gains <code>duckdb</code>: layers <code>common</code>, <code>local</code>, <code>sql</code>, <code>duckdb</code>. The template reads the same CSV, writes the same three SQL models, and targets the <code>duckdb</code> engine and catalog (<code>target/warehouse.duckdb</code>) with no extension. Its <code>models/silver/_properties.yml</code> adds one unit test for <code>orders_clean</code>, so <code>pipeloom build</code> has a unit test, three models and data tests to run. The default engine of <code>init</code> stays polars: only a new major version may change a default.</li>
+<li><code>pipeloom demo [DIRECTORY]</code> renders that template into DIRECTORY (default <code>pipeloom_demo</code>), then runs <code>build</code> and <code>docs generate</code> in process through the CLI commands over <code>pipeloom.api</code>, so events and diagnostics reach stderr as they do for those commands. It prints the project path, the site path (<code>target/docs/index.html</code>) and the next commands, and exits 0. A DIRECTORY that exists and is not empty is a usage error (exit 2) and nothing is written. There is no <code>--force</code>: a demo never mixes with user files.</li>
+<li>The demo requires the duckdb engine and never falls back to another installed engine. Without it, the command stops before writing anything with PLU004 (exit 1) whose hint is <code>pip install "pipeloom[duckdb]"</code>. The message lists the engine plugins that were found, so an environment with only polars sees why the demo did not run. The check reads entry-point metadata only (the core imports no plugin).</li>
+<li>PLU004 is in the plugin layer, active since 1.1, with a case file and goldens.</li>
+<li>CI installs the built core and pipeloom-duckdb wheels into a fresh venv and runs <code>pipeloom demo</code> on Linux, macOS and Windows, then checks <code>target/docs/index.html</code>.</li>
+</ul>
+<h3 id="options-considered_1">Options considered<a class="headerlink" href="#options-considered_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Fall back to polars or any installed engine: rejected. The output would depend on the machine, the sample would need one template per engine kept passing, and the CI check could pass on an engine nobody meant to demo.</li>
+<li>Bundle DuckDB in the core dependencies: rejected. The core keeps no engine dependency; the <code>duckdb</code> extra and the one-line install hint carry the same ease.</li>
+<li><code>--force</code> on <code>demo</code>: left out; use a new folder.</li>
+</ul>
+<h3 id="consequences_2">Consequences<a class="headerlink" href="#consequences_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>uvx --from "pipeloom[duckdb]" pipeloom demo</code> is the whole first run. A user with only the core gets one clear error instead of a validate failure about an unknown engine kind.</li>
+<li>The duckdb template is covered by the same layout and YAML-style tests as the others, plus a build test.</li>
+</ul>
 
 
 

@@ -1079,6 +1079,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#pipeloom-demo_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pipeloom demo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#pipeloom-new-model_1" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1129,6 +1140,17 @@
     <span class="md-ellipsis">
       
         compile-
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        demo
       
     </span>
   </a>
@@ -1747,6 +1769,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#pipeloom-demo_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pipeloom demo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#pipeloom-new-model_1" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1797,6 +1830,17 @@
     <span class="md-ellipsis">
       
         compile-
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        demo
       
     </span>
   </a>
@@ -2111,6 +2155,10 @@ commands are for. A test keeps this table in step with the commands.</p>
 <td><a href="#pipeloom-init">pipeloom init</a>, <a href="../../quickstart/">Quickstart</a></td>
 </tr>
 <tr>
+<td><code>pipeloom demo</code></td>
+<td><a href="#pipeloom-demo">pipeloom demo</a>, <a href="../../quickstart/#try-it-in-one-command">Quickstart</a></td>
+</tr>
+<tr>
 <td><code>pipeloom new</code></td>
 <td><a href="#pipeloom-new-model">pipeloom new model</a></td>
 </tr>
@@ -2225,7 +2273,7 @@ commands are for. A test keeps this table in step with the commands.</p>
 folder named after the project in the current directory.</p>
 <ul>
 <li>When stdin is a terminal it asks for what the flags leave out: the project name (default: the
-  directory name), the engine (<code>polars</code>, <code>pandas</code>, <code>spark</code> or <code>databricks</code>, default <code>polars</code>)
+  directory name), the engine (<code>polars</code>, <code>pandas</code>, <code>spark</code>, <code>databricks</code> or <code>duckdb</code>, default <code>polars</code>; the default stays polars)
   and, on databricks, the Unity Catalog catalog (default <code>main</code>). Otherwise, or with
   <code>--no-input</code>, it uses the flags and those defaults.</li>
 <li>Each layer folder, <code>models/bronze</code>, <code>models/silver</code> and <code>models/gold</code>, gets one <code>.py</code> file with
@@ -2242,6 +2290,19 @@ folder named after the project in the current directory.</p>
   kept and listed as skipped. A directory that already holds <code>pipeloom.yml</code> is refused.</li>
 <li>Exit codes: 0 on success, 2 on a usage error (bad name or engine, <code>--catalog</code> without
   databricks, an existing project, a non-empty directory without <code>--force</code>).</li>
+</ul>
+<h2 id="pipeloom-demo_1">pipeloom demo<a class="headerlink" href="#pipeloom-demo_1" title="Permanent link">&para;</a></h2>
+<p><code>pipeloom demo [DIRECTORY]</code> is the quickest way to see pipeloom work. It writes the <code>init</code>
+project for the duckdb engine into DIRECTORY (default <code>pipeloom_demo</code> in the current directory),
+runs <code>pipeloom build</code> on it (a unit test, three models and their data tests), writes the docs
+site and prints where it is and what to try next.</p>
+<ul>
+<li>It needs the DuckDB engine (<code>pip install "pipeloom[duckdb]"</code>). Without it the command stops
+  with PLU004 and the install command as the hint. It never falls back to
+  another engine, so the demo is the same on every machine.</li>
+<li>DIRECTORY must be missing or empty. The site is <code>DIRECTORY/target/docs/index.html</code>.</li>
+<li>Exit codes: 0 on success, 1 when the engine is missing or the build fails, 2 for a directory
+  that is not empty.</li>
 </ul>
 <h2 id="pipeloom-new-model_1">pipeloom new model<a class="headerlink" href="#pipeloom-new-model_1" title="Permanent link">&para;</a></h2>
 <p><code>pipeloom new model NAME</code> adds one model file to a project and prints its path.</p>
@@ -2372,6 +2433,19 @@ folder named after the project in the current directory.</p>
                              given.
   --warn-error               Exit 1 on warnings too.
   --help                     Show this message and exit.
+</code></pre>
+<h4 id="pipeloom-demo">pipeloom demo<a class="headerlink" href="#pipeloom-demo" title="Permanent link">&para;</a></h4>
+<p>Create a sample project on DuckDB in DIRECTORY, build it and write its docs site.</p>
+<p>DIRECTORY defaults to a new folder named pipeloom_demo and must be empty or missing (exit
+2 otherwise). Needs the DuckDB engine: pip install "pipeloom[duckdb]"; without it the
+command stops with PLU004 (exit 1). It never falls back to another engine.</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-text">pipeloom demo [OPTIONS] [DIRECTORY]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code class="language-text">  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+                            one JSON object per line.  [default: text]
+  --help                    Show this message and exit.
 </code></pre>
 <h4 id="pipeloom-docs">pipeloom docs<a class="headerlink" href="#pipeloom-docs" title="Permanent link">&para;</a></h4>
 <p>Build and serve the docs site (one HTML file, read only).</p>
@@ -2539,7 +2613,7 @@ out: the project name, the engine and, on databricks, the catalog.</p>
 </code></pre>
 <p><strong>Options:</strong></p>
 <pre><code class="language-text">  --name TEXT                     Project name. Default: the directory name.
-  --engine [polars|pandas|spark|databricks]
+  --engine [polars|pandas|spark|databricks|duckdb]
                                   Engine of the dev target. Default: polars.
   --catalog TEXT                  Unity Catalog catalog of the dev target
                                   (databricks only). Default: main.
