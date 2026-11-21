@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
+config_version: 1
+name: tested_models
+models:
+  +materialized: table
+sources:
+  shop:
+    format: csv
+    location: data
+    tables:
+      orders:
+        location: orders.csv
+      refunds:
+        location: refunds.csv
+      fx_rates:
+        location: fx_rates.csv
+targets:
+  duckdb:
+    engine:
+      kind: duckdb
+    catalog:
+      kind: duckdb
+      path: target/duckdb/revenue.duckdb
+    state:
+      kind: json
+      path: .pipeloom/state-duckdb
+  polars:
+    engine:
+      kind: polars
+    catalog:
+      kind: filesystem
+      root: target/warehouse
+    state:
+      kind: json
+      path: .pipeloom/state-polars
