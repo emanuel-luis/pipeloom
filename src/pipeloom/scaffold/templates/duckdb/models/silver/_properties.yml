@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+# Descriptions, settings and unit tests of the models in this folder, next to their code.
+models:
+  - name: orders_clean
+    description: Typed orders with a positive amount, one row per order.
+    unit_tests:
+      - name: drops_zero_amounts
+        given:
+          orders:
+            rows:
+              - order_id: 1
+                customer_id: 10
+                order_date: "2026-01-05"
+                amount: 25.5
+              - order_id: 2
+                customer_id: 10
+                order_date: "2026-01-06"
+                amount: 0
+        expect:
+          rows:
+            - order_id: 1
+              customer_id: 10
+              amount: 25.5

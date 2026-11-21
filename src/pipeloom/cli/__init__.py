@@ -5,6 +5,7 @@ import click
 from pipeloom.cli._ext import PipeloomGroup
 from pipeloom.cli.build import build
 from pipeloom.cli.compile import compile_
+from pipeloom.cli.demo import demo
 from pipeloom.cli.docs import docs
 from pipeloom.cli.explain import explain
 from pipeloom.cli.finalize import finalize
@@ -28,6 +29,7 @@ def main() -> None:
 
 
 main.add_command(init)
+main.add_command(demo)
 main.add_command(new)
 main.add_command(validate)
 main.add_command(compile_, name="compile")

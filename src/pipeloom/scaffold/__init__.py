@@ -15,13 +15,14 @@ from importlib.resources.abc import Traversable
 from pathlib import Path, PurePosixPath
 from typing import Final
 
-ENGINES: Final = ("polars", "pandas", "spark", "databricks")
+ENGINES: Final = ("polars", "pandas", "spark", "databricks", "duckdb")
 
 _LAYERS: Final[Mapping[str, tuple[str, ...]]] = {
     "polars": ("common", "local", "sql", "polars"),
     "pandas": ("common", "local", "pandas"),
     "spark": ("common", "local", "sql", "spark"),
     "databricks": ("common", "sql", "databricks"),
+    "duckdb": ("common", "local", "sql", "duckdb"),
 }
 
 _RUN: Final[Mapping[str, str]] = {
@@ -29,6 +30,7 @@ _RUN: Final[Mapping[str, str]] = {
     "pandas": "pipeloom run",
     "spark": "pipeloom run",
     "databricks": "pipeloom databricks deploy",
+    "duckdb": "pipeloom run",
 }
 
 
