@@ -1,0 +1,26 @@
+run: true
+plugins: ["pipeloom_polars.spec:SPEC"]
+files:
+  pipeloom.yml: |
+    config_version: 1
+    name: shop
+    python_paths: [src]
+    model_paths:
+    - src
+    targets:
+      dev:
+        engine:
+          kind: polars
+        catalog:
+          kind: filesystem
+          root: wh
+  src/m.py: |
+    import narwhals.stable.v2 as nw
+    from pipeloom import model
+
+    @model(
+        frame_api="narwhals",
+    )
+    def a(ctx):
+        frame = ctx.sql("select 1 as x union all select 2")
+        return frame.lazy().with_columns(nw.col("x").cum_sum().alias("running"))

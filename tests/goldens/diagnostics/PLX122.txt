@@ -1,0 +1,12 @@
+error PLX122 src/m.py:9 model 'a' needs a row order a lazy frame does not have: narwhals.exceptions.InvalidOperationError: Order-dependent expressions are not supported for use in LazyFrame.
+
+Hint: To make the expression valid, specify `order_by`.
+
+For example, if you have columns `'price'` and `'date'`:
+ - Instead of `nw.col('price').cum_sum()` write `nw.col('price').cum_sum().over(order_by='date')`.
+ - Instead of `nw.col('price').diff()` write `nw.col('price').diff().over(order_by='date')`.
+ - Instead of `nw.col('price').first()` write `nw.col('price').first().over(order_by='date')`
+   or `nw.col('price').first(order_by='date')`.
+
+See https://narwhals-dev.github.io/narwhals/concepts/order_dependence/.
+      hint: add .over(order_by=...) to the expression, or sort first; see https://emanuel-luis.github.io/pipeloom/latest/guide/portable-models/

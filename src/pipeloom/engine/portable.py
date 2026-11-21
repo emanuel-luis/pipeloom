@@ -76,6 +76,14 @@ def to_frame_api(native: Any, api: Literal["native", "narwhals"]) -> Any:
     raise ValueError(f"unknown frame_api {api!r}")
 
 
+def is_order_error(exc: BaseException) -> bool:
+    """True when Narwhals refused an operation because a lazy frame has no row order.
+
+    It raises `InvalidOperationError` with an `order_by` hint, for example for `cum_sum()` or
+    `shift()` without `.over(order_by=...)`, or `first()` on a lazy frame."""
+    return isinstance(exc, nw.exceptions.InvalidOperationError) and "order_by" in str(exc)
+
+
 def from_frame_api(obj: Any) -> Any:
     """The native frame behind a model's result; a native frame passes through."""
     return nw.to_native(obj, pass_through=True)
