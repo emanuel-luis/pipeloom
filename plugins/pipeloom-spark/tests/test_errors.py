@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from pipeloom_spark.errors import is_transient
+from pipeloom_spark.errors import is_conflict, is_transient
 
 
 class _Code:
@@ -56,3 +56,26 @@ def test_the_cause_chain_is_searched() -> None:
 def test_error_class_is_the_fallback_getter() -> None:
     exc = type("E", (Exception,), {"getErrorClass": lambda self: "DELTA_CONCURRENT_APPEND"})()
     assert is_transient(exc) is True
+
+
+@pytest.mark.parametrize(
+    ("exc", "want"),
+    [
+        (make("E", condition="DELTA_CONCURRENT_APPEND"), True),
+        (make("ConcurrentAppendException"), True),
+        (make("ConcurrentTransactionException"), True),
+        # transient, but not a lost race: a dropped channel may have committed
+        (make("E", status="UNAVAILABLE"), False),
+        (make("Py4JNetworkError"), False),
+        (make("E", condition="DELTA_METADATA_CHANGED"), False),
+        (ValueError("x"), False),
+    ],
+)
+def test_is_conflict(exc: Exception, want: bool) -> None:
+    assert is_conflict(exc) is want
+
+
+def test_is_conflict_searches_the_cause_chain() -> None:
+    outer = RuntimeError("wrapper")
+    outer.__cause__ = make("ConcurrentAppendException")
+    assert is_conflict(outer) is True

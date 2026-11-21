@@ -60,6 +60,22 @@ def _status(exc: BaseException) -> str | None:
     return name if isinstance(name, str) else None
 
 
+def is_conflict(exc: BaseException) -> bool:
+    """True when a Delta commit lost a concurrent-modification race: another writer committed
+    first and this transaction did not commit. The cause chain is searched."""
+    seen: BaseException | None = exc
+    for _ in range(_DEPTH):
+        if seen is None:
+            return False
+        cond = condition(seen)
+        if (cond is not None and cond.startswith("DELTA_CONCURRENT_")) or type(
+            seen
+        ).__name__.startswith("Concurrent"):
+            return True
+        seen = seen.__cause__ or seen.__context__
+    return False
+
+
 def _verdict(exc: BaseException) -> bool | None:
     cond = condition(exc)
     if cond is not None:
