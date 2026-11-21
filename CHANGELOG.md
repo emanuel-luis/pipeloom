@@ -6,6 +6,38 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-21
+
+pipeloom 1.3.0 adds intervals and backfills. Interval incrementals run a model in half-open UTC windows, each replacing its own range of the target with its own idempotency token, on polars, pandas, DuckDB and Spark/Delta (`replace_range` writes), and an interval ledger in the state store records the windows already processed. `pipeloom backfill` runs a range with `--rerun missing` or `all`, restates it, seeds the ledger with `--mark-done` and continues past failures with `--on-failure continue`; a new Migrating within 1.x guide converts a watermark model. Run outcomes get more precise: `failed_upstream` on skipped rows, non-blocking data tests and documented skip reason classes. Watermark models can also set `on_cursor_value_missing` for rows with a null cursor. The plugin API moves to (1, 1), and a (1, 0) plugin still loads because the new members are optional. 1.3.0 needs no config change, and the new manifest, config and artifact fields are optional and absent while unset, so 1.2 manifests, checksums and plan hashes are unchanged.
+
+### Added
+
+- Interval incrementals: `incremental.interval` with `event_time`, `grain`, `begin` and `lookback` runs a model in half-open UTC windows, each replacing its own range of the target, and records the processed windows in an interval ledger in the state store ([ADR-0054](docs/adr/0054-interval-incrementals.md), [guide](docs/guide/incremental.md#interval-models)).
+- Plugin API (1, 1): the capability `interval_writes`, `WriteConfig.replace_range`, and the optional `SupportsFilterBetween.filter_between` reached through `pipeloom.engine.protocols.filter_between`. polars, pandas and DuckDB declare `interval_writes`; plugins built for (1, 0) keep loading.
+- `ctx.interval`: the UTC window an interval model is running.
+- The optional `intervals` array on run_results rows of interval models, one entry per window with its own idempotency token.
+- Diagnostic codes PLP417 (interval options conflict), PLC514 (engine has no interval writes) and PLM209 (interval cannot be used).
+- Engine contract cells for `replace_range` and state contract cells for the interval ledger.
+- `pipeloom backfill --select --start --end`: runs interval models over an explicit range, rounded outward to window edges. `--rerun missing` (default) runs only the windows the ledger lacks; `--rerun all` restates the range, removing it from the ledger first so a stopped restate resumes as missing; `--on-failure continue` runs every window and reports each failed one; `--mark-done` seeds the ledger without running anything ([ADR-0054](docs/adr/0054-interval-incrementals.md#backfill-amendment-13), [guide](docs/guide/incremental.md#backfilling-a-range)).
+- The optional `failed` field on `intervals` entries of run_results, and `backfill` in the run's `args`. `pipeloom retry` of a backfill run keeps its range.
+- Diagnostic code PLX132 (nothing to backfill).
+- Spark: interval incrementals on Delta. The engine declares `interval_writes`, replaces each window with one `replaceWhere` commit over the event_time range, and filters the window's input with a SQL predicate ([ADR-0032 amendment 1.3](docs/adr/0032-delta-writes-and-idempotency.md)).
+- `blocking: false` on a data test: a failure still fails the unit with PLQ303 and the run exits 1, but the descendants run. Unset keeps the 1.0 behavior ([ADR-0056](docs/adr/0056-run-outcome-fields.md), [guide](docs/guide/testing.md#non-blocking-data-tests)).
+- The optional `failed_upstream` field on `upstream_failed` rows of run_results: the unit whose failure skipped this one, or `<unit_id>.<data_test>` when a blocking data test failed. `pipeloom finalize` fills it too.
+- `incremental.on_cursor_value_missing: raise | include | exclude` for watermark models decides what happens to input rows whose cursor column is null. `raise` fails the unit with the new permanent code PLM210; `include` keeps those rows in every batch (the null never moves the watermark); `exclude` drops them, counts them in the optional `rows_null_cursor` field of run_results and warns. Unset keeps today's behavior ([ADR-0027](docs/adr/0027-incremental-models.md), [guide](docs/guide/incremental.md#rows-with-a-null-cursor)).
+- Optional engine session members `count_nulls` and `filter_cursor` in the protocol `SupportsNullCursor`, with Narwhals defaults. DuckDB and Spark implement them natively.
+
+### Changed
+
+- Spark: a window write commits under its own Delta transaction app id, `pipeloom/<project>/<model>/<interval_id>`, so windows of one run never replay each other.
+- A PLQ303 message lists at most 20 failing test names and counts the rest.
+
+### Documentation
+
+- New guide: Migrating within 1.x, converting a watermark model to an interval model with `--mark-done`.
+- Spark plugin page: interval writes in the capabilities table and a note on window writes.
+- `skip_reason` is documented as an open set with a failing or non-failing class per value, including the reserved `not_selected`, `up_to_date`, `not_due` and `upstream_incomplete` ([reference](docs/reference/artifacts.md#skip-reasons)).
+
 ## [1.2.0] - 2026-11-21
 
 pipeloom 1.2.0 lets you know what a change does before it merges. Manifest nodes carry split checksums and the new `state:modified.<part>` selectors tell a code edit from a config, contract, tests or upstream edit, `pipeloom plan --diff` sorts each changed model into change categories and gates CI with `--fail-on`, and `pipeloom diff` compares one model's table with a reference by key. The release also adds canonical dataset identity, machine-readable output and `AGENTS.md` generation, `ctx.sql` on pandas through DuckDB (the extra is `pipeloom-pandas[sql]`), a 1,000-model performance budget and artifact schema compatibility guards. The docs are overhauled: a new home page, concepts, a comparison with other tools, an FAQ, an API reference, an examples gallery with four walkthrough projects, paired light and dark diagrams and a site theme. 1.2.0 needs no config change, the plugin API stays (1, 0), and the new manifest and artifact fields are optional.
@@ -407,7 +439,8 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/emanuel-luis/pipeloom/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/emanuel-luis/pipeloom/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/emanuel-luis/pipeloom/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/emanuel-luis/pipeloom/compare/v1.0.0rc1...v1.0.0

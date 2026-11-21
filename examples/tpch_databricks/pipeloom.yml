@@ -45,6 +45,6 @@ targets:
           kind: serverless
           environment_version: "5"
           dependencies:
-            - "pipeloom==1.2.0"
-            - "pipeloom-spark==1.2.0"
-            - "pipeloom-databricks==1.2.0"
+            - "pipeloom==1.3.0"
+            - "pipeloom-spark==1.3.0"
+            - "pipeloom-databricks==1.3.0"
