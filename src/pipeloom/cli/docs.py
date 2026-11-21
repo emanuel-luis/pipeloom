@@ -184,6 +184,7 @@ def _refresher(opts: ProjectOptions, folder: Path) -> Callable[[], None] | None:
 @click.option(
     "--port", type=click.IntRange(0, 65535), default=8000, show_default=True, help="Port to use."
 )
+@log_format_option
 def serve(
     project_dir: Path,
     vars_: dict[str, Any],
@@ -192,6 +193,7 @@ def serve(
     directory: Path | None,
     host: str,
     port: int,
+    log_format: str,
 ) -> None:
     """Serve the generated site until Ctrl+C, rebuilding it when the models change. It never
     opens a browser."""
@@ -215,14 +217,19 @@ def serve(
             "docs serve: the project does not resolve; serving the page without rebuilding it",
             err=True,
         )
+    inv = Invocation("docs serve", log_format)
     try:
         server = make_server(folder, host, port, refresh)
     except OSError as err:
         raise click.UsageError(f"cannot listen on {host}:{port}: {err}") from err
     click.echo(f"serving {folder.as_posix()} at http://{host}:{server.server_address[1]}/")
+    bus = inv.open_bus(None, project_sinks=False)
+    inv.started(bus, None, None, None)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
         server.server_close()
+        inv.completed(bus, 0, [])
+        bus.close()

@@ -74,11 +74,17 @@ def render(engine: str, values: Mapping[str, str]) -> dict[str, bytes]:
     return dict(sorted(out.items()))
 
 
-def scaffold(directory: Path, engine: str, values: Mapping[str, str]) -> Written:
-    """Write the project into `directory`. An existing file is never overwritten."""
+def scaffold(
+    directory: Path,
+    engine: str,
+    values: Mapping[str, str],
+    extra: Mapping[str, bytes] | None = None,
+) -> Written:
+    """Write the project into `directory`, plus the `extra` files. An existing file is never
+    overwritten."""
     created: list[str] = []
     skipped: list[str] = []
-    for rel, content in render(engine, values).items():
+    for rel, content in {**render(engine, values), **(extra or {})}.items():
         target = directory / rel
         if target.exists():
             skipped.append(rel)

@@ -15,6 +15,7 @@ ROOT = Path(__file__).parent.parent
 PAGES = [
     "reference/engine-capabilities.md",
     "reference/errors.md",
+    "schema/v1/compile_result.json",
     "schema/v1/event.json",
     "schema/v1/manifest.json",
     "schema/v1/project.json",

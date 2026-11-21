@@ -25,6 +25,7 @@ from pipeloom.plan.manifest import MANIFEST_SCHEMA
 from pipeloom.plan.model import PlanMetadata, PlanNode, PlanSelection, PlanSource
 
 UNIT_STATES_SCHEMA: Final = "pipeloom.unit_states/1"
+COMPILE_RESULT_SCHEMA: Final = "pipeloom.compile_result/1"
 
 _DEFS: Final = "#/$defs/"
 _STRING: Final = {"type": "string"}
@@ -378,6 +379,30 @@ def unit_states_schema() -> dict[str, Any]:
     return _document("unit_states.json", UNIT_STATES_SCHEMA, "pipeloom unit states", body)
 
 
+def compile_result_schema() -> dict[str, Any]:
+    """`pipeloom.compile_result/1`: the output of `pipeloom compile --output json`."""
+    props = {
+        "project": _STRING,
+        "target": _STRING,
+        "plan_hash": _STRING,
+        "manifest": {
+            **_STRING,
+            "description": "Manifest path, relative to the project dir unless absolute.",
+        },
+        "manifest_sha256": _STRING,
+        "units": _INTEGER,
+        "by_materialization": {"type": "object", "additionalProperties": _INTEGER},
+        "ephemeral_inlined": _INTEGER,
+        "selected": _INTEGER,
+    }
+    body = {
+        "description": "What `compile` wrote: the manifest path and hash, and the plan counts.",
+        "properties": props,
+        "required": list(props),
+    }
+    return _document("compile_result.json", COMPILE_RESULT_SCHEMA, "pipeloom compile result", body)
+
+
 def unit_graph_schema() -> dict[str, Any]:
     """`pipeloom.unit_graph/1`: the output of `pipeloom graph --units --output json`."""
     defs: dict[str, Any] = {}
@@ -445,6 +470,7 @@ def manifest_schema() -> dict[str, Any]:
 
 # File name under schema/v1/ to builder.
 _BUILDERS: Final[Mapping[str, Callable[[], dict[str, Any]]]] = {
+    "compile_result.json": compile_result_schema,
     "event.json": event_schema,
     "manifest.json": manifest_schema,
     "run_results.json": run_results_schema,

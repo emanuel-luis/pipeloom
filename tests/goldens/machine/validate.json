@@ -1,0 +1,70 @@
+[
+  {
+    "attempt": null,
+    "context": {},
+    "data": {
+      "args": {
+        "log_format": "json",
+        "project_dir": "<path>"
+      },
+      "command": "validate",
+      "pipeloom_version": "X",
+      "project": null,
+      "target": null
+    },
+    "level": "info",
+    "model": null,
+    "run_id": null,
+    "schema": "pipeloom.event/1",
+    "seq": 1,
+    "type": "invocation.started",
+    "unit_id": null
+  },
+  {
+    "attempt": null,
+    "context": {},
+    "data": {
+      "code": "PLS101",
+      "context": {
+        "pydantic_type": "extra_forbidden"
+      },
+      "explain_url": "https://emanuel-luis.github.io/pipeloom/latest/reference/errors/#pls101",
+      "hint": null,
+      "location": {
+        "col": 1,
+        "file": "pipeloom.yml",
+        "json_pointer": "/bogus",
+        "line": 3
+      },
+      "message": "unknown field 'bogus'",
+      "severity": "error"
+    },
+    "level": "error",
+    "model": null,
+    "run_id": null,
+    "schema": "pipeloom.event/1",
+    "seq": 2,
+    "type": "diagnostic",
+    "unit_id": null
+  },
+  {
+    "attempt": null,
+    "context": {},
+    "data": {
+      "command": "validate",
+      "counts": {
+        "errors": 1,
+        "warnings": 0
+      },
+      "duration_ms": 0,
+      "exit_code": 1
+    },
+    "level": "info",
+    "model": null,
+    "run_id": null,
+    "schema": "pipeloom.event/1",
+    "seq": 3,
+    "type": "invocation.completed",
+    "unit_id": null
+  }
+]

@@ -120,9 +120,10 @@ def test_current_goldens_validate_against_the_frozen_1_0_schemas() -> None:
         p.name: Draft202012Validator(json.loads(p.read_bytes().decode("utf-8")))
         for p in (FROZEN / "schemas").glob("*.json")
     }
-    assert set(frozen) == set(SCHEMAS)
+    assert set(frozen) <= set(SCHEMAS)  # a document added after 1.0 has no frozen schema
     for doc in GOLDEN_DOCS.values():
-        frozen[BY_TAG[doc["schema"]]].validate(doc)
+        if BY_TAG[doc["schema"]] in frozen:
+            frozen[BY_TAG[doc["schema"]]].validate(doc)
 
 
 def test_every_core_event_type_has_a_data_schema() -> None:
