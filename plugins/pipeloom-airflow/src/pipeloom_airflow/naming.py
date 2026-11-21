@@ -1,4 +1,5 @@
-"""Ids: the pipeloom run id, Airflow task ids and asset URIs. Pure and deterministic."""
+"""Ids: the pipeloom run id and Airflow task ids. Asset URIs come from `pipeloom.plan.identity`.
+Pure and deterministic."""
 
 from __future__ import annotations
 
@@ -7,7 +8,8 @@ import re
 from collections import Counter
 from collections.abc import Collection, Sequence
 from typing import Final
-from urllib.parse import quote
+
+from pipeloom.plan.identity import URI_PLACEHOLDERS
 
 TASK_ID_MAX: Final = 200
 FINALIZE_ID: Final = "pipeloom_finalize"
@@ -42,18 +44,4 @@ def task_ids(raw: Sequence[str], *, reserved: Collection[str]) -> dict[str, str]
     return out
 
 
-PLACEHOLDERS: Final = ("project", "target", "model", "relation", "unique_id")
-
-
-def asset_uri(
-    template: str, *, project: str, target: str, model: str, relation: str, unique_id: str
-) -> str:
-    """Fill the placeholders; each value is percent-encoded so the URI stays one string."""
-    values = {
-        "project": project,
-        "target": target,
-        "model": model,
-        "relation": relation,
-        "unique_id": unique_id,
-    }
-    return template.format_map({k: quote(v, safe="._-~") for k, v in values.items()})
+PLACEHOLDERS: Final = URI_PLACEHOLDERS
