@@ -854,6 +854,29 @@ _ACTIVE_12: Final = (
 )
 
 
+# Active since 1.3.
+_ACTIVE_13: Final = (
+    (
+        "PLP417",
+        E,
+        "Interval options conflict",
+        "A model sets incremental.interval (ADR-0054) with an option the interval run cannot apply: it is not materialized incremental, its write strategy is not append (each window replaces its own range), it also sets incremental.column (the watermark column), or it declares a contract (columns) without the event_time column. The message lists each problem.",
+    ),
+    (
+        "PLC514",
+        E,
+        "Engine has no interval writes",
+        "The model sets incremental.interval, and the selected engine does not declare the interval_writes capability, so it cannot replace one window of the target without touching other rows. Use an engine with interval_writes (polars, pandas or DuckDB), or remove incremental.interval.",
+    ),
+    (
+        "PLM209",
+        E,
+        "Interval cannot be used",
+        "An interval model cannot run a window: the event_time column is missing from the incremental input or from the model output, it is not a timestamp or date column (hour grain needs a timestamp), or the interval ledger in the state store holds something else. Nothing is read in full and the failing window writes nothing; earlier windows of the unit stay committed. A model output row whose event_time falls outside its window fails the write with PLM206 instead. Permanent.",
+    ),
+)
+
+
 # Reserved: in the catalog, not emitted yet. (code, severity, title, since)
 _RESERVED: Final = (
     ("PLF701", E, "Engine unreachable", "0.2"),
@@ -886,6 +909,7 @@ def _build() -> Mapping[str, CodeInfo]:
         ("0.9", _ACTIVE_09),
         ("1.1", _ACTIVE_11),
         ("1.2", _ACTIVE_12),
+        ("1.3", _ACTIVE_13),
     ):
         for code, sev, title, expl in table:
             retired = _RETIRED.get(code)

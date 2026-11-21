@@ -829,6 +829,18 @@
           "title": "Input",
           "type": "string"
         },
+        "interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IntervalConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Process the input in windows of event_time instead of after a watermark (since 1.3)."
+        },
         "lookback": {
           "anyOf": [
             {
@@ -859,6 +871,58 @@
         "input"
       ],
       "title": "IncrementalConfig",
+      "type": "object"
+    },
+    "IntervalConfig": {
+      "additionalProperties": false,
+      "description": "Interval incrementals (ADR-0054): the model runs one half-open UTC window at a time.",
+      "properties": {
+        "begin": {
+          "description": "ISO date or date-time; the first window is the one that holds it. Naive means UTC.",
+          "format": "date-time",
+          "title": "Begin",
+          "type": "string"
+        },
+        "event_time": {
+          "description": "Column of the input and of the output that places a row in a window.",
+          "minLength": 1,
+          "title": "Event Time",
+          "type": "string"
+        },
+        "grain": {
+          "description": "Window length. Windows start at the grain boundary in UTC; weeks start on Monday.",
+          "enum": [
+            "hour",
+            "day",
+            "week",
+            "month",
+            "year"
+          ],
+          "title": "Grain",
+          "type": "string"
+        },
+        "lookback": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            }
+          ],
+          "default": 0,
+          "description": "Windows before the first missing one that run again.",
+          "title": "Lookback"
+        }
+      },
+      "required": [
+        "event_time",
+        "grain",
+        "begin"
+      ],
+      "title": "IntervalConfig",
       "type": "object"
     },
     "PluginBlock": {

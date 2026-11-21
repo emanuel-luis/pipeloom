@@ -31,7 +31,28 @@ def _lookback_append(m: ResolvedModel) -> bool:
         and effective_strategy(c) == "append"
         and c.incremental is not None
         and c.incremental.lookback > 0
+        and c.incremental.interval is None
     )
+
+
+def _interval_problems(m: ResolvedModel) -> list[str]:
+    """PLP417: what an interval model sets that the interval run cannot apply (ADR-0054)."""
+    c = m.config
+    inc = c.incremental
+    if inc is None or inc.interval is None:
+        return []
+    out: list[str] = []
+    if c.materialized != "incremental":
+        out.append(f"it is materialized {c.materialized}, not incremental")
+    strategy = effective_strategy(c)
+    if strategy not in (None, "append"):
+        out.append(f"write.strategy is {strategy}, not append")
+    if inc.column is not None:
+        out.append("incremental.column is set too")
+    names = [col.name for col in m.entry.columns or ()]
+    if m.entry.columns is not None and inc.interval.event_time not in names:
+        out.append(f"the contract has no event_time column '{inc.interval.event_time}'")
+    return out
 
 
 def _scd2_problems(m: ResolvedModel) -> list[str]:
@@ -86,7 +107,12 @@ def _check_model(project: ResolvedProject, m: ResolvedModel, report: Report) -> 
             "set write.unique_key to the columns that identify a row",
             "/unique_key",
         )
-    if c.materialized == "incremental" and (c.incremental is None or c.incremental.column is None):
+    interval = c.incremental is not None and c.incremental.interval is not None
+    if (
+        c.materialized == "incremental"
+        and not interval
+        and (c.incremental is None or c.incremental.column is None)
+    ):
         err(
             "PLP402",
             f"incremental model '{m.name}' has no incremental.column",
@@ -109,6 +135,16 @@ def _check_model(project: ResolvedProject, m: ResolvedModel, report: Report) -> 
             "incremental",
             "use write.strategy: merge with a unique_key, or set lookback to 0",
             "/lookback",
+        )
+    problems = _interval_problems(m)
+    if problems:
+        err(
+            "PLP417",
+            f"interval options of model '{m.name}' conflict: {'; '.join(problems)}",
+            "incremental",
+            "an interval model is materialized incremental, appends (each window replaces its "
+            "own range) and places rows by incremental.interval.event_time only",
+            "/interval",
         )
     for i, e in enumerate(c.expectations):
         aggregate = e.check is not None and any(

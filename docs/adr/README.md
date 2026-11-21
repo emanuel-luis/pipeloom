@@ -57,6 +57,7 @@ Each significant decision is one file here, written as Context, Options, Decisio
 | 0051 | [DuckDB engine](0051-duckdb-engine.md) | Accepted | 2026-11-20 |
 | 0052 | [Split checksums and change categories](0052-split-checksums-and-change-categories.md) | Accepted (amended 1.2) | 2026-11-20 |
 | 0053 | [Table diff](0053-table-diff.md) | Accepted | 2026-11-21 |
+| 0054 | [Interval incrementals and the interval ledger](0054-interval-incrementals.md) | Accepted | 2026-11-21 |
 | 0055 | [Canonical dataset identity](0055-canonical-dataset-identity.md) | Accepted | 2026-11-20 |
 | 0067 | [Conformance kit as an opt-in pytest plugin](0067-conformance-kit.md) | Accepted | 2026-11-20 |
 | 0068 | [pandas runs ctx.sql through DuckDB](0068-pandas-sql-through-duckdb.md) | Accepted | 2026-11-21 |

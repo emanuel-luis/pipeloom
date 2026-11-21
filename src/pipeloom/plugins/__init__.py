@@ -22,7 +22,7 @@ from pydantic import BaseModel, ConfigDict
 from pipeloom.diagnostics import Location, Report
 from pipeloom.engine.types import CatalogCapabilities, EngineCapabilities, StateStoreCapabilities
 
-API_VERSION: Final = (1, 0)
+API_VERSION: Final = (1, 1)
 
 Group = Literal[
     "engines",

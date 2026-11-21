@@ -23,6 +23,7 @@ CAPABILITIES = EngineCapabilities(
     bytes_metrics=False,
     portable=True,
     quality=True,
+    interval_writes=True,
     sql_dialect="duckdb",
 )
 

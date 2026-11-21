@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLC514",
+    "severity": "error",
+    "message": "engine 'memory' has no interval writes (model 'daily')",
+    "hint": "use an engine with the interval_writes capability, or remove incremental.interval",
+    "location": {
+      "file": "src/m.py",
+      "line": 6,
+      "col": 5,
+      "json_pointer": "/@model/incremental/interval"
+    },
+    "context": {
+      "model": "daily",
+      "engine": "memory"
+    }
+  }
+]

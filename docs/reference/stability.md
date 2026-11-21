@@ -17,7 +17,11 @@ Within a major version these do not change in a breaking way:
   types.
 - Plugin API 1.0 for plugin authors: the protocols, `PluginSpec`, the capabilities and
   `pipeloom.testing`. A plugin works with a core that has the same major and a minor equal to or
-  above the plugin's; otherwise you get PLU001.
+  above the plugin's; otherwise you get PLU001. Plugin API 1.1 (pipeloom 1.3) adds the capability
+  `interval_writes`, the `WriteConfig.replace_range` field and the optional
+  `SupportsFilterBetween` protocol ([ADR-0054](../adr/0054-interval-incrementals.md)). An optional
+  member lives in its own protocol and is reached through a core helper with a fallback, so a
+  plugin built for 1.0 keeps loading and simply does not declare `interval_writes`.
 - The engine conformance kit: the `-p pipeloom.testing.pytest_plugin` plugin, its
   `--pipeloom-harness` option, `EngineContract` and `EngineHarness`, and the kit version in the
   report header. Within 1.x the kit changes only additively: a minor kit version adds cells and

@@ -77,7 +77,7 @@ docs = ["mkdocs-material", "mkdocstrings[python]", "mkdocs-click", "mike", "mkdo
 
 [tool.pipeloom]
 config-version = 1
-plugin-api = "1.0"
+plugin-api = "1.1"
 
 [tool.uv.workspace]
 members = ["plugins/*"]

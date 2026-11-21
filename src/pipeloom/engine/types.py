@@ -50,6 +50,9 @@ class EngineCapabilities:
     sql_dialect: str | None = None
     """The sqlglot dialect `sql` runs, or None when the engine has no SQL. `ctx.sql` translates a
     query declared in another dialect to this one (plugin API 0.5)."""
+    interval_writes: bool = False
+    """Materializers honor `WriteConfig.replace_range` with the append strategy; L5 rejects
+    interval models otherwise (PLC514). Plugin API (1, 1), ADR-0054."""
 
 
 @dataclass(frozen=True)
@@ -120,6 +123,18 @@ class DeleteSpec:
 
 
 @dataclass(frozen=True)
+class ReplaceRange:
+    """Replace the rows whose `column` falls in `[start, end)`: delete them, then insert the
+    batch, in one atomic step where the engine allows it. Rows outside the range are never
+    touched, and a batch row outside it (or with a null `column`) is a `WriteKeyError`. The
+    bounds are values of the column's type (ADR-0054)."""
+
+    column: str
+    start: Any
+    end: Any
+
+
+@dataclass(frozen=True)
 class WriteConfig:
     strategy: str
     unique_key: tuple[str, ...] = ()
@@ -141,6 +156,8 @@ class WriteConfig:
     the table has no business column besides the key and the delete column."""
     full_refresh: bool = False
     """scd2: drop the history and reload the batch as a first load."""
+    replace_range: ReplaceRange | None = None
+    """append on an engine with `interval_writes`: replace one interval of the target."""
 
 
 SCD2_COLUMNS: Final[Schema] = (

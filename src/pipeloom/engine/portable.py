@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Any, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import narwhals.stable.v2 as nw
 
@@ -155,6 +156,36 @@ def filter_since(native: Any, column: str, lower: Any, *, inclusive: bool = True
     col = nw.col(column)
     keep = col >= lower if inclusive else col > lower
     return nw.to_native(nw.from_native(native).filter(keep))
+
+
+def _in_zone(frame: Any, column: str, value: Any) -> Any:
+    """An aware bound in the time zone of a zoned datetime column: polars compares a zoned
+    column only with values of its own zone."""
+    zone = getattr(frame.collect_schema().get(column), "time_zone", None)
+    if not zone or not isinstance(value, datetime) or value.tzinfo is None:
+        return value
+    try:
+        return value.astimezone(ZoneInfo(zone))
+    except (ZoneInfoNotFoundError, ValueError):  # a fixed offset: the engine converts it
+        return value
+
+
+def _inside(frame: Any, column: str, start: Any, end: Any) -> Any:
+    lo, hi = _in_zone(frame, column, start), _in_zone(frame, column, end)
+    return nw.col(column).is_between(lo, hi, closed="left")
+
+
+def filter_between(native: Any, column: str, start: Any, end: Any) -> Any:
+    """Rows with `start <= column < end`; null rows are dropped."""
+    frame = nw.from_native(native)
+    return nw.to_native(frame.filter(_inside(frame, column, start, end)))
+
+
+def split_range(native: Any, column: str, start: Any, end: Any) -> tuple[Any, int]:
+    """The rows outside `[start, end)` (nulls included) and the count of rows inside it."""
+    frame = _eager(native)
+    kept = frame.filter(nw.col(column).is_null() | ~_inside(frame, column, start, end))
+    return nw.to_native(kept), int(frame.shape[0] - kept.shape[0])
 
 
 _QUALIFIED = re.compile(r"'(?:[^']|'')*'|\b(source|target)\.(\w+)")

@@ -322,6 +322,14 @@ class DuckDBSession:
             self._on(rel, f"SELECT * FROM {{r}} WHERE {ident(column)} {op} {literal(lower)}")
         )
 
+    def filter_between(self, rel: Relation, column: str, start: Any, end: Any) -> Relation:
+        c = ident(column)
+        return _rel(
+            self._on(
+                rel, f"SELECT * FROM {{r}} WHERE {c} >= {literal(start)} AND {c} < {literal(end)}"
+            )
+        )
+
     def align(self, rel: Relation, schema: Schema) -> Relation:
         have = set(self._types(rel))
         exprs = []
@@ -626,8 +634,26 @@ class _Write:
             )
         )
 
+    def _in_range(self) -> str:
+        rng = self.cfg.replace_range
+        assert rng is not None
+        c = ident(rng.column)
+        return f"{c} >= {literal(rng.start)} AND {c} < {literal(rng.end)}"
+
     def check(self) -> None:
         cfg = self.cfg
+        if cfg.replace_range is not None:
+            if cfg.strategy != "append":
+                raise ValueError(f"replace_range needs the append strategy, not {cfg.strategy}")
+            self._has((cfg.replace_range.column,), "replace_range")
+            outside = self._one(
+                f"SELECT count(*) FROM {self.stage} WHERE NOT coalesce({self._in_range()}, false)"
+            )
+            if outside:
+                raise WriteKeyError(
+                    f"the batch has {outside} row(s) with '{cfg.replace_range.column}' outside "
+                    "the replace_range or null"
+                )
         if cfg.strategy == "merge":
             if not cfg.unique_key:
                 raise WriteKeyError("merge needs a unique_key")
@@ -669,8 +695,11 @@ class _Write:
         elif self.cfg.columns is not None:
             self._evolve(self.cfg.columns)
         if strategy == "append":
+            deleted = None
+            if self.cfg.replace_range is not None and self.exists:
+                deleted = int(self._one(f"DELETE FROM {self.target} WHERE {self._in_range()}"))
             n = self._one(f"INSERT INTO {self.target} BY NAME SELECT * FROM {self.stage}")
-            return WriteResult(rows_written=int(n))
+            return WriteResult(rows_written=int(n), rows_deleted=deleted)
         if strategy == "replace_partitions":
             return self._replace_partitions()
         return self._merge()

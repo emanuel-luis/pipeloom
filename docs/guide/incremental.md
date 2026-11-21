@@ -154,3 +154,66 @@ runs of one target at once.
   `rows_inserted`, `rows_updated` and `rows_deleted` for merge. See
   [Run artifacts](../reference/artifacts.md).
 - Engines that can run incremental models: polars and pandas (and the in-memory test engine).
+
+## Interval models
+
+An interval model processes its input in time windows instead of after a watermark. pipeloom
+remembers which windows it has processed, so a later run fills a gap or reprocesses one window
+without duplicates ([ADR-0054](../adr/0054-interval-incrementals.md), since 1.3).
+
+```python
+@model(
+    inputs={"raw": source("raw", "events")},
+    materialized="incremental",
+    incremental={
+        "input": "raw",
+        "interval": {"event_time": "ts", "grain": "day", "begin": "2026-01-01", "lookback": 1},
+    },
+)
+def daily_events(ctx, raw):
+    start, end = ctx.interval  # the window this call runs, in UTC
+    return raw
+```
+
+- `event_time` is a column of the input and of the output. It must be a timestamp or a date;
+  `grain: hour` needs a timestamp.
+- `grain` is `hour`, `day`, `week`, `month` or `year`. Windows are half-open UTC ranges
+  `[start, end)`. They start at the start of the hour, at midnight, on Monday, on the first of
+  the month or on January 1, all in UTC. An offset in `begin` is converted to UTC, so a daylight
+  saving change never makes a window shorter or longer.
+- `begin` is an ISO date or date-time. The first window is the one that holds it. A value without
+  an offset is UTC.
+- `lookback` is a number of windows. They run again before the first missing window.
+
+Each window reads the incremental input filtered to `start <= event_time < end`, runs the
+function once, and replaces the window in the target: rows of the target in the window are
+deleted and the new rows are inserted, in one commit. An empty window removes the window's old
+rows. Rows outside the window are never touched, even in a table partitioned by month while the
+grain is a day. A row the function returns outside its window fails the write with PLM206.
+
+Which windows run:
+
+- The first run, or a run with `--full-refresh`, runs every window from `begin` up to the one
+  that holds the run's start time. The current window is partial and runs too. A full refresh
+  overwrites the table with its first window.
+- A later run runs the windows the ledger does not cover yet, plus `lookback` windows before the
+  first of them. The partial window of the previous run counts as covered only up to that run's
+  start, so the next run processes it again in full.
+- When nothing is missing, nothing runs and the row reports zero rows written.
+
+The windows run first to last inside one execution unit, so the DAG and the orchestrator
+renderers do not change. If a window fails, the unit stops there and the earlier windows stay
+written and recorded. A retry with the same `--run-id` skips the windows it already wrote,
+because each window has its own idempotency token, `<run_id>:<model>:<interval_id>`.
+
+The ledger lives in the state store under the reserved key `<model>@intervals` of the target, as
+a list of `[start, end]` pairs. A dev target never reads or writes the ledger of prod.
+
+Rules checked before a run: an interval model is materialized incremental, writes with append,
+does not set `incremental.column`, and has the event_time column in its contract when it declares
+one (PLP417). The engine must declare `interval_writes`: polars, pandas and DuckDB do; Spark does
+not yet (PLC514). A missing or unusable event_time column at run time is PLM209.
+
+In `run_results.json`, an interval model's row has an `intervals` array with one entry per window:
+`interval_id`, `start`, `end`, `idempotency_token`, `skipped` and `rows_written`. The row's counts
+are the sums over its windows.

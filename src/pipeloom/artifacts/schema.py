@@ -285,6 +285,26 @@ def _row() -> dict[str, Any]:
             "description": "upstream_failed, fail_fast, not_run or an orchestrator's own reason.",
         },
         "orchestrator_ids": _ORCHESTRATOR_IDS,
+        "intervals": {
+            "type": "array",
+            "description": "Interval models only (since 1.3, ADR-0054): the windows the unit "
+            "ran, first to last, each with its own idempotency token. Absent on other rows.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "interval_id": _STRING,
+                    "start": {**_STRING, "description": "RFC 3339, UTC; inclusive."},
+                    "end": {**_STRING, "description": "RFC 3339, UTC; exclusive."},
+                    "idempotency_token": _STRING,
+                    "skipped": {
+                        **_BOOLEAN,
+                        "description": "The token was already applied: nothing was written.",
+                    },
+                    "rows_written": counter,
+                },
+                "required": ["interval_id", "start", "end", "idempotency_token"],
+            },
+        },
     }
     return {"type": "object", "properties": props, "required": list(ROW_REQUIRED)}
 
@@ -467,6 +487,11 @@ def manifest_schema() -> dict[str, Any]:
     # `_config` drops `sql_dialect` while it is None.
     config["properties"]["sql_dialect"] = {**_STRING, "description": "Absent while unset."}
     config["required"] = list(MANIFEST_CONFIG_REQUIRED)
+    # `drop_unset` drops `incremental.interval` while it is None (since 1.3).
+    interval = defs["IncrementalConfig"]["properties"]["interval"]
+    interval.pop("default", None)
+    interval["anyOf"] = [a for a in interval["anyOf"] if a.get("type") != "null"]
+    interval["description"] = interval.get("description", "") + " Absent while unset."
     ids = {"type": "object", "additionalProperties": _STRINGS}
     body = {
         "description": "The compiled plan: nodes, sources, execution units and edges.",

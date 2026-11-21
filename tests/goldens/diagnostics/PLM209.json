@@ -1,0 +1,18 @@
+[
+  {
+    "code": "PLM209",
+    "severity": "error",
+    "message": "cannot run the intervals of model 'daily': event_time column 'ts' is not in input 'raw': KeyError: 'ts'",
+    "hint": "check incremental.interval.event_time against the input and the output, and the state store",
+    "location": {
+      "file": "src/m.py",
+      "line": 8,
+      "col": null,
+      "json_pointer": null
+    },
+    "context": {
+      "unit": "daily",
+      "category": "permanent"
+    }
+  }
+]

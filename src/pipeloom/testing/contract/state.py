@@ -29,6 +29,7 @@ from typing import Any, ClassVar
 import pytest
 
 from pipeloom.platform import Clock, SystemClock
+from pipeloom.runtime import intervals
 from pipeloom.state.types import (
     LEASE_SECONDS,
     LockHeld,
@@ -130,6 +131,38 @@ class StateStoreContract:
             t.join()
         assert wins.count(True) == 1 and len(wins) == 8
         assert store.get_watermark(KEY) is not None
+
+    def test_the_interval_ledger_round_trips(self, store: StateStore, clock: FakeClock) -> None:
+        """ADR-0054: a list of ISO pairs under `pipeloom.intervals/1`; the target is in the key."""
+        day = timedelta(days=1)
+        intervals.record(store, KEY, T0, T0 + day, run_id="r1", clock=clock)
+        intervals.record(store, KEY, T0 + 2 * day, T0 + 3 * day, run_id="r1", clock=clock)
+        intervals.record(store, KEY, T0 + day, T0 + 2 * day, run_id="r2", clock=clock)
+        assert intervals.load(store, KEY) == [(T0, T0 + 3 * day)]
+        raw = store.get_watermark(intervals.ledger_key(KEY))
+        assert raw is not None and raw.dtype == intervals.LEDGER_TYPE
+        assert raw.value == [[T0.isoformat(), (T0 + 3 * day).isoformat()]]
+        assert intervals.load(store, StateKey(KEY.project, "prod", KEY.model)) == []
+        assert store.get_watermark(KEY) is None  # the model's own watermark is untouched
+
+    def test_concurrent_ledger_writers_lose_no_interval(
+        self, store: StateStore, clock: FakeClock
+    ) -> None:
+        barrier = threading.Barrier(8)
+        hour = timedelta(hours=1)
+
+        def add(i: int) -> None:
+            barrier.wait()
+            start = T0 + 2 * i * hour  # gaps between them: nothing merges by accident
+            intervals.record(store, KEY, start, start + hour, run_id=f"r{i}", clock=clock)
+
+        threads = [threading.Thread(target=add, args=(i,)) for i in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        got = intervals.load(store, KEY)
+        assert got == [(T0 + 2 * i * hour, T0 + (2 * i + 1) * hour) for i in range(8)]
 
     @pytest.mark.parametrize(
         ("value", "dtype"),

@@ -1,0 +1,4 @@
+error PLC514 src/m.py:7:5 engine 'memory' has no interval writes (model 'daily')
+      hint: use an engine with the interval_writes capability, or remove incremental.interval
+error PLP417 src/m.py:7:5 interval options of model 'daily' conflict: write.strategy is merge, not append; incremental.column is set too
+      hint: an interval model is materialized incremental, appends (each window replaces its own range) and places rows by incremental.interval.event_time only

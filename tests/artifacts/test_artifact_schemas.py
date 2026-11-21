@@ -11,7 +11,7 @@ import pytest
 from click.testing import CliRunner
 from jsonschema import Draft202012Validator, ValidationError
 
-from pipeloom.artifacts.results import ROW_DEFAULTS
+from pipeloom.artifacts.results import ROW_DEFAULTS, ROW_OPTIONAL
 from pipeloom.artifacts.schema import (
     MANIFEST_CONFIG_REQUIRED,
     METADATA_REQUIRED,
@@ -80,7 +80,7 @@ def test_schema_goldens(golden: Callable[[str, str], None], name: str) -> None:
 
 def test_row_properties_match_the_row_defaults() -> None:
     row = run_results_schema()["$defs"]["result"]
-    assert list(row["properties"]) == list(ROW_DEFAULTS)
+    assert list(row["properties"]) == [*ROW_DEFAULTS, *ROW_OPTIONAL]
     # A field added after 1.0 is optional: only the frozen 1.0 set is required (ADR-0049).
     assert row["required"] == list(ROW_REQUIRED)
     assert set(ROW_REQUIRED) <= set(ROW_DEFAULTS)
