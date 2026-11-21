@@ -6,7 +6,7 @@ Models are Python functions marked with `@model`; YAML holds the project and the
 polars, PySpark, DuckDB or later engines, and runs locally, as one Databricks job, or as an Airflow DAG.
 Every run produces a single event stream and artifacts you can query.
 
-**Status: 1.1, stable.** From 1.0 the config, the plugin API, the artifact
+**Status: 1.2, stable.** From 1.0 the config, the plugin API, the artifact
 schemas and the CLI are stable within the major version; see
 [Stability and deprecations](docs/reference/stability.md). pipeloom discovers the `@model` functions of a project, validates it in
 layers (YAML, schema, references, graph, plan semantics, engine capabilities, Python callables),
@@ -93,8 +93,8 @@ Every distribution is released together and carries the same version.
 | 0.8 | `init`, `new model` and editor setup, `explain`, `state:modified` and `--defer`, `retry --from`, `docs generate` and `serve` |
 | 0.9 | Python-first models (`@model`, `ctx.sql`), contracts, unit and data tests, `build`, SCD2, OpenLineage, run history and alerts, Airflow WATCHER mode |
 | 1.0 | Stable config, plugin API (1, 0), published artifact schemas including the manifest, the orchestrator protocol and `graph --units`, the stability and deprecation policy |
-| 1.1 (current) | DuckDB engine (`pipeloom-duckdb`), conformance kit, portable models guide, `pipeloom demo`, Airflow 3.4 |
-| 1.2 | Planned: split checksums, `plan --diff`, `pipeloom diff`, machine-readable diagnostics |
+| 1.1 | DuckDB engine (`pipeloom-duckdb`), conformance kit, portable models guide, `pipeloom demo`, Airflow 3.4 |
+| 1.2 (current) | Split checksums and `state:modified.<part>`, `plan --diff`, `pipeloom diff`, canonical dataset identity, machine-readable output and `AGENTS.md`, `ctx.sql` on pandas through DuckDB, docs overhaul |
 | 1.3 | Planned: interval incrementals, interval ledger, `pipeloom backfill`, outcome fields |
 | 1.4 | Planned: partitions in artifacts, Airflow and Databricks updates, `pipeloom-dagster` |
 | 1.5 | Planned: freshness, anomaly and reconcile checks, `--skip-unchanged`, schema contracts |
