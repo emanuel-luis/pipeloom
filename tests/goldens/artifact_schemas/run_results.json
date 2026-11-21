@@ -150,6 +150,10 @@
           },
           "type": "array"
         },
+        "failed_upstream": {
+          "description": "Since 1.3 (ADR-0056), upstream_failed rows only: the unit whose failure skipped this one, or <unit_id>.<data_test> when a blocking data test failed. Absent on other rows.",
+          "type": "string"
+        },
         "full_refresh": {
           "type": "boolean"
         },
@@ -297,7 +301,7 @@
           ]
         },
         "skip_reason": {
-          "description": "upstream_failed, fail_fast, not_run or an orchestrator's own reason.",
+          "description": "An open set (ADR-0056). Failing: upstream_failed, fail_fast. Non-failing: not_run, not_selected, up_to_date, not_due, upstream_incomplete, an orchestrator's own reason, and any value a reader does not know.",
           "type": [
             "string",
             "null"

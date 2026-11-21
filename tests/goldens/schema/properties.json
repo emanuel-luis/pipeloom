@@ -229,6 +229,23 @@
       "additionalProperties": false,
       "description": "A check run against the whole written table after the write (ADR-0045).",
       "properties": {
+        "blocking": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "pattern": "^\\$\\{.+\\}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Since 1.3 (ADR-0056): with `on_violation: fail`, whether a failure skips the model's\ndescendants. Unset means true. false still fails the unit and the run, but the descendants\nrun.",
+          "title": "Blocking"
+        },
         "check": {
           "$ref": "#/$defs/DataCheckConfig",
           "description": "The check."

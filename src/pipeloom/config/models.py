@@ -15,7 +15,9 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    SerializerFunctionWrapHandler,
     field_validator,
+    model_serializer,
     model_validator,
 )
 from pydantic_core import PydanticCustomError
@@ -412,6 +414,18 @@ class DataTestConfig(_Model):
     """The check."""
     on_violation: Literal["warn", "fail"] = "fail"
     """warn records the count; fail fails the unit with PLQ303 (the data stays written)."""
+    blocking: bool | None = None
+    """Since 1.3 (ADR-0056): with `on_violation: fail`, whether a failure skips the model's
+    descendants. Unset means true. false still fails the unit and the run, but the descendants
+    run."""
+
+    @model_serializer(mode="wrap")
+    def _drop_unset(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        """`blocking` is absent while unset, so 1.0 checksums and plan hashes hold."""
+        out: dict[str, Any] = handler(self)
+        if out.get("blocking") is None:
+            out.pop("blocking", None)
+        return out
 
 
 class GivenConfig(_Model):

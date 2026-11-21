@@ -25,6 +25,11 @@ models:
         check:
           row_count:
             min: 1
+  - name: d
+    inputs:
+      c:
+        ref: c
+    sql: select * from c
 """
 # In properties, where `${var:...}` interpolates (a decorator keyword cannot).
 PROPS = """\
@@ -46,7 +51,12 @@ models:
 """
 
 
-def _root(tmp_path: Path, seed: dict[str, Any] | None = None) -> Path:
+def _root(tmp_path: Path, seed: dict[str, Any] | None = None, *, blocking: str = "") -> Path:
+    props = PROPS
+    if blocking:
+        props = props.replace(
+            "on_violation: ${var:act}", f"on_violation: ${{var:act}}\n        blocking: {blocking}"
+        )
     project = (
         "config_version: 1\nname: dt\nvars:\n  act: fail\n"
         + engine_block(tmp_path, seed or {})
@@ -57,7 +67,7 @@ def _root(tmp_path: Path, seed: dict[str, Any] | None = None) -> Path:
     )
     return make_project(
         tmp_path,
-        {"pipeloom.yml": project, "models/m.yml": MODELS, "models/_props.yml": PROPS},
+        {"pipeloom.yml": project, "models/m.yml": MODELS, "models/_props.yml": props},
     )
 
 
@@ -116,3 +126,41 @@ def test_defer_reads_the_parent_from_the_reference(tmp_path: Path) -> None:
     assert outcome.exit_code == 0, outcome.diagnostics
     entries = {e["name"]: e for e in _row(root, "r1", "c")["expectations"]}
     assert entries["id_in_p"]["failed"] == 0  # main.p holds 1 and 3
+
+
+def test_a_failing_blocking_test_skips_the_descendants_and_names_itself(tmp_path: Path) -> None:
+    # ADR-0056: unset `blocking` keeps the 1.0 behavior, and the skipped row names the test.
+    root = _root(tmp_path)
+    assert _run(root, run_id="r1").exit_code == 1
+    c, d = _row(root, "r1", "c"), _row(root, "r1", "d")
+    assert c["status"] == "failed" and c["rows_written"] == 2  # the data stays written
+    assert (d["status"], d["skip_reason"]) == ("skipped", "upstream_failed")
+    assert d["failed_upstream"] == "c.id_in_p"
+    assert all("blocking" not in e for e in c["expectations"])
+    assert "failed_upstream" not in _row(root, "r1", "p")
+
+
+def test_a_non_blocking_failing_test_fails_the_unit_but_the_descendants_run(
+    tmp_path: Path,
+) -> None:
+    root = _root(tmp_path, blocking="false")
+    outcome = _run(root, run_id="r1")
+    assert outcome.exit_code == 1
+    assert {d.code for d in outcome.diagnostics} == {"PLQ303"}
+    c, d = _row(root, "r1", "c"), _row(root, "r1", "d")
+    assert c["status"] == "failed"
+    assert {e["name"]: e.get("blocking") for e in c["expectations"]}["id_in_p"] is False
+    assert d["status"] == "succeeded" and "failed_upstream" not in d
+
+
+def test_blocking_true_is_the_default(tmp_path: Path) -> None:
+    root = _root(tmp_path, blocking="true")
+    assert _run(root, run_id="r1").exit_code == 1
+    assert _row(root, "r1", "d")["failed_upstream"] == "c.id_in_p"
+
+
+def test_fail_fast_does_not_stop_for_a_non_blocking_failure(tmp_path: Path) -> None:
+    root = _root(tmp_path, blocking="false")
+    assert _run(root, run_id="r1", fail_fast=True).exit_code == 1
+    assert _row(root, "r1", "c")["status"] == "failed"
+    assert _row(root, "r1", "d")["status"] == "succeeded"

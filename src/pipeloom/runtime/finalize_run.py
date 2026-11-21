@@ -24,6 +24,7 @@ from pipeloom.artifacts.results import (
     RunHeader,
     RunStatusName,
     exit_code_of,
+    failure_cause,
     git_sha,
     result_row,
 )
@@ -130,15 +131,17 @@ def parse_unit_states(data: bytes) -> dict[str, ExternalUnitState]:
     return out
 
 
-def _fails(row: Mapping[str, Any]) -> bool:
-    """A row that makes its descendants `upstream_failed`."""
+def _cause(unit_id: str, row: Mapping[str, Any]) -> tuple[bool, str | None]:
+    """Whether a row makes its descendants `upstream_failed`, and what they name in
+    `failed_upstream` when that is known (ADR-0056). A skipped row passes on only the cause it
+    names: an orchestrator's skip or a `fail_fast` skip names none."""
     if row["status"] in ("failed", "timed_out"):
-        return True
-    return row["status"] == "skipped" and row["skip_reason"] in (
-        None,
-        "upstream_failed",
-        "fail_fast",
-    )
+        cause = failure_cause(unit_id, row)
+        return cause is not None, cause
+    if row["status"] == "skipped" and row["skip_reason"] in (None, "upstream_failed", "fail_fast"):
+        named = row.get("failed_upstream")
+        return True, None if named is None else str(named)
+    return False, None
 
 
 def _external_row(
@@ -289,7 +292,14 @@ def finalize_run(project: Project, opts: FinalizeOptions, bus: EventBus) -> RunO
                     external[unit_id] = _external_row(unit_id, unit_nodes[unit_id], known, ids)
             # A unit the scheduler skipped wrote no attempt file: when nothing else is known,
             # an upstream that failed (walked in topological order) tells why it did not run.
-            failing = {u for u, row in {**have, **external}.items() if _fails(row)}
+            failing: set[str] = set()
+            causes: dict[str, str] = {}  # only causes that are known (ADR-0056)
+            for u, row in {**have, **external}.items():
+                fails, cause = _cause(u, row)
+                if fails:
+                    failing.add(u)
+                if cause is not None:
+                    causes[u] = cause
             not_run: dict[str, tuple[str, str | None]] = {}
             for unit_id in UnitGraph.from_plan(plan, plan.units).parents:
                 if unit_id not in units or unit_id in have or unit_id in external:
@@ -303,8 +313,10 @@ def finalize_run(project: Project, opts: FinalizeOptions, bus: EventBus) -> RunO
                 if failed_up is None:
                     not_run[unit_id] = ("not_run", None)
                 else:
-                    not_run[unit_id] = ("upstream_failed", failed_up)
+                    not_run[unit_id] = ("upstream_failed", causes.get(failed_up))
                     failing.add(unit_id)
+                    if failed_up in causes:
+                        causes[unit_id] = causes[failed_up]
 
             ended = clock.now()
             header = RunHeader(

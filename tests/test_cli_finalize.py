@@ -200,6 +200,7 @@ def test_external_states_fill_the_missing_units(root: Path) -> None:
         "skipped",
         "upstream_failed",
     )
+    assert "failed_upstream" not in got["after_bad"]  # the orchestrator did not say
     assert results(root)["run"]["status"] == "failed"
     assert "PLD011" in r.stderr
 
@@ -222,6 +223,7 @@ def test_a_failed_attempt_file_fails_the_run(root: Path) -> None:
     assert got["bad"]["status"] == "failed"
     # the scheduler's skip wrote no file: the failed upstream tells why
     assert got["after_bad"]["skip_reason"] == "upstream_failed"
+    assert got["after_bad"]["failed_upstream"] == "bad"  # ADR-0056
     assert got["z"]["status"] == "succeeded"
 
 
@@ -555,3 +557,31 @@ def test_finalize_manifest_vars_bind_the_project_and_explicit_vars_win(tmp_path:
     r = finalize(root, "--manifest", str(out), "--vars", '{"out": "x"}')
     assert r.exit_code == 0, r.stderr
     assert (root / "x/runs/r1/run_results.json").is_file()
+
+
+@pytest.fixture
+def deep(tmp_path: Path) -> Path:
+    """`last` reads `after_bad`, which reads `bad`: a grandchild of the failing unit."""
+    extra = (
+        "  - {name: last, sql: select * from after_bad, inputs: {after_bad: {ref: after_bad}}}\n"
+    )
+    return make_project(tmp_path, {"pipeloom.yml": YML, "models/m.yml": MODELS + extra})
+
+
+def test_an_orchestrator_skip_passes_on_no_cause(deep: Path) -> None:
+    # ADR-0056: the orchestrator named no failed unit, so the inferred row names none either.
+    path = states(deep, {"after_bad": {"status": "skipped", "reason": "upstream_failed"}})
+    r = finalize(deep, "--unit-states", str(path))
+    assert r.exit_code == 1, r.stderr
+    got = rows(deep)
+    assert (got["last"]["status"], got["last"]["skip_reason"]) == ("skipped", "upstream_failed")
+    assert "failed_upstream" not in got["last"] and "failed_upstream" not in got["after_bad"]
+
+
+def test_a_known_cause_is_carried_down_to_the_grandchild(deep: Path) -> None:
+    invoke("run", deep, "--run-id", "r1", "--workers", "1")
+    r = finalize(deep)
+    assert r.exit_code == 1, r.stderr
+    got = rows(deep)
+    assert got["after_bad"]["failed_upstream"] == "bad"
+    assert got["last"]["failed_upstream"] == "bad"

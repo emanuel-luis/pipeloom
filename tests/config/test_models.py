@@ -6,6 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from pipeloom.config.models import (
+    DataTestConfig,
     InputConfig,
     ModelConfig,
     ModelSettings,
@@ -129,3 +130,13 @@ def test_resolved_fields_match_settings() -> None:
 
 def test_attribute_docstrings_become_descriptions() -> None:
     assert ModelConfig.model_fields["python"].description == "Python body as `module:function`."
+
+
+def test_data_test_blocking_is_absent_from_dumps_while_unset() -> None:
+    # ADR-0056: an unset `blocking` keeps 1.0 checksums and plan hashes.
+    unset = DataTestConfig.model_validate({"name": "t", "check": {"unique": ["id"]}})
+    assert "blocking" not in unset.model_dump(mode="json")
+    off = DataTestConfig.model_validate(
+        {"name": "t", "check": {"unique": ["id"]}, "blocking": False}
+    )
+    assert off.model_dump(mode="json")["blocking"] is False

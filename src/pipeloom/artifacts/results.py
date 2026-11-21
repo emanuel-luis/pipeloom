@@ -59,8 +59,36 @@ ROW_DEFAULTS: Final[Mapping[str, Any]] = {
 }
 
 
-ROW_OPTIONAL: Final = ("intervals",)
+ROW_OPTIONAL: Final = ("intervals", "failed_upstream")
 """Row fields added after 1.0 that only some rows carry (absent, not null, elsewhere)."""
+
+MAX_LISTED: Final = 20
+"""Names a message lists before it counts the rest (ADR-0056)."""
+
+
+def listed(names: Sequence[str], limit: int = MAX_LISTED) -> str:
+    """`a, b, c`, or the first `limit` names and `and N more`."""
+    shown = ", ".join(names[:limit])
+    rest = len(names) - limit
+    return f"{shown} and {rest} more" if rest > 0 else shown
+
+
+def failure_cause(unit_id: str, row: Mapping[str, Any]) -> str | None:
+    """What the descendants of a failed unit name in `failed_upstream` (ADR-0056):
+    `<unit_id>.<data_test>` when a blocking data test failed (PLQ303), else the unit id.
+    None when only non-blocking data tests failed: the descendants still run."""
+    error = row.get("error") or {}
+    if error.get("code") != "PLQ303":
+        return unit_id
+    failed = [
+        e
+        for e in row.get("expectations", ())
+        if e.get("scope") == "table" and e.get("action") == "fail" and e.get("failed")
+    ]
+    blocking = [e["name"] for e in failed if e.get("blocking", True)]
+    if blocking:
+        return f"{unit_id}.{blocking[0]}"
+    return None if failed else unit_id
 
 
 def result_row(**fields: Any) -> dict[str, Any]:
@@ -99,7 +127,8 @@ def git_sha(cwd: Path, timeout: float = 2.0) -> str | None:
 
 def status_of(rows: Sequence[Mapping[str, Any]], *, failure_first: bool = False) -> RunStatusName:
     """A skipped unit fails the run only for `upstream_failed` or `fail_fast` (or no reason);
-    `not_run` and an orchestrator's own reason count for nothing. A run that was stopped is
+    every other reason (`not_run`, the reserved ones of ADR-0056, an orchestrator's own, a reason
+    added later) counts for nothing. A run that was stopped is
     cancelled even when a unit failed; `failure_first` (`pipeloom finalize`) lets a failure
     win instead."""
     statuses = {

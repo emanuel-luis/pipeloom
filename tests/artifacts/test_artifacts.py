@@ -11,6 +11,8 @@ from pipeloom.artifacts.layout import RunPaths
 from pipeloom.artifacts.results import (
     RunHeader,
     build_run_results,
+    failure_cause,
+    listed,
     result_row,
     schema_hash,
     status_of,
@@ -135,3 +137,54 @@ def test_finalize_lets_a_timed_out_verdict_win_over_a_late_result(tmp_path: Path
     assert rows["kept"]["warnings"] == [] and rows["none"]["warnings"] == []
     assert done.run_results["run"]["counts"]["timed_out"] == 3
     assert done.run_results["run"]["exit_code"] == 1
+
+
+def test_reserved_skip_reasons_do_not_fail_the_run() -> None:
+    # ADR-0056: only upstream_failed and fail_fast (or no reason) fail; any other value is
+    # non-failing, including the reserved ones and reasons added later.
+    ok = result_row(unit_id="a", status="succeeded")
+    for reason in ("not_run", "not_selected", "up_to_date", "not_due", "upstream_incomplete", "x"):
+        skipped = result_row(unit_id="b", status="skipped", skip_reason=reason)
+        assert status_of([ok, skipped]) == "succeeded", reason
+    for reason in ("upstream_failed", "fail_fast"):
+        skipped = result_row(unit_id="b", status="skipped", skip_reason=reason)
+        assert status_of([ok, skipped]) == "failed", reason
+
+
+def test_listed_caps_the_names_and_counts_the_rest() -> None:
+    assert listed(["a", "b"]) == "a, b"
+    assert listed([f"t{i}" for i in range(25)]) == ", ".join(f"t{i}" for i in range(20)) + (
+        " and 5 more"
+    )
+
+
+def _entry(name: str, failed: int, **extra: object) -> dict[str, object]:
+    return {"name": name, "action": "fail", "failed": failed, "scope": "table", **extra}
+
+
+def test_failure_cause_names_the_first_blocking_test() -> None:
+    plq303 = {"code": "PLQ303"}
+    assert failure_cause("a", result_row(status="failed", error={"code": "PLX101"})) == "a"
+    assert failure_cause("a", result_row(status="failed")) == "a"
+    row = result_row(
+        status="failed",
+        error=plq303,
+        expectations=[_entry("t1", 1, blocking=False), _entry("t2", 0), _entry("t3", 2)],
+    )
+    assert failure_cause("a", row) == "a.t3"
+    row["expectations"] = [_entry("t1", 1, blocking=False), _entry("t3", 0)]
+    assert failure_cause("a", row) is None
+
+
+def test_finalize_writes_failed_upstream_on_skipped_rows_only(tmp_path: Path) -> None:
+    paths = RunPaths(tmp_path / "target", "r")
+    nodes = {"b": "model.p.b", "c": "model.p.c"}
+    done = finalize(
+        paths,
+        header(),
+        unit_nodes=nodes,
+        skipped={"b": ("upstream_failed", "a.t1"), "c": ("fail_fast", None)},
+        cancelled=[],
+    )
+    rows = {r["unit_id"]: r for r in done.run_results["results"]}
+    assert rows["b"]["failed_upstream"] == "a.t1" and "failed_upstream" not in rows["c"]
