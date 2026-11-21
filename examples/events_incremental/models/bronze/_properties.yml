@@ -1,0 +1,4 @@
+# yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
+models:
+  - name: events
+    description: Every event of every daily file, typed. Rebuilt on each run.
