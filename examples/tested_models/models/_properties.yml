@@ -8,17 +8,38 @@ models:
         given:
           orders:
             rows:
-              - {order_id: 1, order_date: 2026-03-01, customer_id: c1, currency: EUR, amount: 50.0, status: paid}
-              - {order_id: 2, order_date: 2026-03-02, customer_id: c1, currency: EUR, amount: 50.0, status: paid}
-              - {order_id: 3, order_date: 2026-03-01, customer_id: c2, currency: USD, amount: 10.0, status: cancelled}
+              - order_id: 1
+                order_date: 2026-03-01
+                customer_id: c1
+                currency: EUR
+                amount: 50.0
+                status: paid
+              - order_id: 2
+                order_date: 2026-03-02
+                customer_id: c1
+                currency: EUR
+                amount: 50.0
+                status: paid
+              - order_id: 3
+                order_date: 2026-03-01
+                customer_id: c2
+                currency: USD
+                amount: 10.0
+                status: cancelled
           fx_rates:
             rows:
-              - {rate_date: 2026-03-01, currency: EUR, rate: 1.10}
-              - {rate_date: 2026-03-02, currency: EUR, rate: 1.20}
+              - rate_date: 2026-03-01
+                currency: EUR
+                rate: 1.10
+              - rate_date: 2026-03-02
+                currency: EUR
+                rate: 1.20
         expect:
           rows:
-            - {order_id: 1, amount_usd: 55.0}
-            - {order_id: 2, amount_usd: 60.0}
+            - order_id: 1
+              amount_usd: 55.0
+            - order_id: 2
+              amount_usd: 60.0
     data_tests:
       - name: order_id_unique
         check:
@@ -32,16 +53,27 @@ models:
         given:
           orders_usd:
             rows:
-              - {order_id: 1, order_date: 2026-03-01, customer_id: c1, rate: 1.10, amount_usd: 110.0}
-              - {order_id: 2, order_date: 2026-03-01, customer_id: c2, rate: 1.0, amount_usd: 40.0}
+              - order_id: 1
+                order_date: 2026-03-01
+                customer_id: c1
+                rate: 1.10
+                amount_usd: 110.0
+              - order_id: 2
+                order_date: 2026-03-01
+                customer_id: c2
+                rate: 1.0
+                amount_usd: 40.0
           refunds:
             csv: tests/data/refunds.csv
             columns:
-              - {name: refund_amount, dtype: float64}
+              - name: refund_amount
+                dtype: float64
         expect:
           rows:
-            - {order_id: 1, net_usd: 77.0}
-            - {order_id: 2, net_usd: 40.0}
+            - order_id: 1
+              net_usd: 77.0
+            - order_id: 2
+              net_usd: 40.0
     data_tests:
       - name: order_exists
         check:
@@ -60,14 +92,19 @@ models:
           net_revenue:
             csv: tests/data/net_revenue.csv
             columns:
-              - {name: order_date, dtype: date}
-              - {name: net_usd, dtype: float64}
+              - name: order_date
+                dtype: date
+              - name: net_usd
+                dtype: float64
         expect:
           csv: tests/data/daily_revenue.csv
           columns:
-            - {name: order_date, dtype: date}
-            - {name: net_usd, dtype: float64}
-            - {name: running_net_usd, dtype: float64}
+            - name: order_date
+              dtype: date
+            - name: net_usd
+              dtype: float64
+            - name: running_net_usd
+              dtype: float64
     data_tests:
       - name: one_row_per_day
         check:
