@@ -870,6 +870,8 @@
       
         
       
+        
+      
     
     
     
@@ -1238,6 +1240,34 @@
     
   
     Recipe: GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-1.x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating within 1.x
   
 
     
@@ -3043,7 +3073,7 @@ to it, or repairs it when a task failed. Databricks owns the task retries.</p>
 <p>LOCAL starts one Python process per unit. On a wide DAG of short models that start-up dominates.
 WATCHER runs the whole selection once and keeps one Airflow task per model for its state, retries,
 logs and asset events.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">execution_config</span><span class="o">=</span><span class="n">ExecutionConfig</span><span class="p">(</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">execution_config</span> <span class="o">=</span> <span class="n">ExecutionConfig</span><span class="p">(</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">mode</span><span class="o">=</span><span class="n">ExecutionMode</span><span class="o">.</span><span class="n">WATCHER</span><span class="p">,</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">watcher_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">watcher_poll_interval</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>

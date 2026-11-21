@@ -868,6 +868,8 @@
       
         
       
+        
+      
     
     
     
@@ -1236,6 +1238,34 @@
     
   
     Recipe: GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-1.x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating within 1.x
   
 
     
@@ -3405,6 +3435,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plx132" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX132
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -5364,6 +5405,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#plx132" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PLX132
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -6010,6 +6062,9 @@
 <h3 id="plx131">PLX131<a class="headerlink" href="#plx131" title="Permanent link">&para;</a></h3>
 <p>Table diff failed. Severity: error. Status: active. Since: 1.2.</p>
 <p>pipeloom diff could not read or compare the two relations: a table is missing, a key column is missing on one side, or the engine's frames are not supported by the portable comparison. The message names the cause. Exit code 1.</p>
+<h3 id="plx132">PLX132<a class="headerlink" href="#plx132" title="Permanent link">&para;</a></h3>
+<p>Nothing to backfill. Severity: error. Status: active. Since: 1.3.</p>
+<p>pipeloom backfill runs interval models (ADR-0054), and the selection holds none, or --mark-done was given with selected models that have no incremental.interval (mark-done runs nothing, so it cannot run them). The message lists those models. Nothing runs and no run id is used. Select the interval models, and run the others with pipeloom run. Exit code 2.</p>
 <h2 id="renderers">Renderers<a class="headerlink" href="#renderers" title="Permanent link">&para;</a></h2>
 <h3 id="pla001">PLA001<a class="headerlink" href="#pla001" title="Permanent link">&para;</a></h3>
 <p>Unsupported execution mode. Severity: error. Status: active. Since: 0.6.</p>

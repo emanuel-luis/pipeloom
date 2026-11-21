@@ -868,6 +868,8 @@
       
         
       
+        
+      
     
     
     
@@ -1236,6 +1238,34 @@
     
   
     Recipe: GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-1.x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating within 1.x
   
 
     
@@ -1962,6 +1992,17 @@
   
     <nav class="md-nav" aria-label="pipeloom">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeloom-backfill" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        backfill
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#pipeloom-build" class="md-nav__link">
@@ -2801,6 +2842,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#pipeloom-backfill" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        backfill
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#pipeloom-build" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3216,6 +3268,10 @@ commands are for. A test keeps this table in step with the commands.</p>
 <td><a href="../../guide/testing/#build">Testing models</a></td>
 </tr>
 <tr>
+<td><code>pipeloom backfill</code></td>
+<td><a href="../../guide/incremental/#backfilling-a-range">Backfilling a range</a>, <a href="../../guide/migrate-1.x/">Migrating within 1.x</a></td>
+</tr>
+<tr>
 <td><code>pipeloom runs</code></td>
 <td><a href="../../guide/run-history/">Run history</a></td>
 </tr>
@@ -3364,114 +3420,180 @@ of each changed model).
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>  --version  Show the version and exit.
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  --help     Show this message and exit.
 </code></pre></div>
+<h4 id="pipeloom-backfill">pipeloom backfill<a class="headerlink" href="#pipeloom-backfill" title="Permanent link">&para;</a></h4>
+<p>Run the selected interval models over [--start, --end).</p>
+<p>Each model runs the windows of its own grain that overlap the range, clipped to its begin and to the run's start, through the same path as run: one token per window, and the ledger records each window it writes. Rerunning the same backfill runs only what is missing. Models without incremental.interval run as in run when selected (with + for descendants); a selection with no interval model is PLX132. Takes the run flags except --full-refresh, --manifest, --state and --defer. Exit codes: 0 ok, 1 a window or a unit failed, 2 bad usage, 130 stopped.</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pipeloom backfill [OPTIONS]
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>  --project-dir DIRECTORY       Directory that holds pipeloom.yml.  [default:
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>                                .]
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  --vars TEXT                   Variables as a YAML or JSON mapping; they
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>                                override the vars block.
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  --target TEXT                 Target to bind; default_target or the only
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>                                target when omitted.
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  --plugin MODULE:ATTR          A PluginSpec to load besides the installed
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>                                plugins. Repeatable.
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  -s, --select SELECTOR         Models to include: name, tag:x, path:dir,
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>                                materialized:x, +model, model+, N+model,
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>                                model+N. Space unions, comma intersects.
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>                                Repeatable, all are unioned.
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>  --exclude SELECTOR            Remove the models this selector matches from
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>                                the selection. Repeatable.
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>  --log-format [text|json]      Diagnostics and events on stderr: readable
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>                                text or one JSON object per line.  [default:
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>                                text]
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>  --run-id TEXT                 Name of the run. Reusing it continues that
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>                                run. Default: a timestamp and a suffix.
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>  --run-started-at ISO8601      Start time of the run, with a UTC offset (for
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>                                example the start of the orchestrator job).
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>                                Engines use it to make writes idempotent.
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>                                Needs --run-id. A reused run id keeps the
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>                                start it recorded.
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>  --orchestrator-id KEY=VALUE   An id the orchestrator gave this run, such as
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>                                job_run_id=42. It goes into the attempt files,
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>                                the run results and the context of every
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>                                event. Repeatable; a later duplicate wins.
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>                                Key: [a-z][a-z0-9_]{0,63}; value: 1 to 256
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>                                printable characters.
+<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a>  --fail-fast                   After the first failure, start no more units.
+<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a>  --no-lock                     Do not take the run lock.
+<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a>  --workers INTEGER RANGE       Units to run at once. Default: the target's
+<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a>                                setting, else min(4, CPUs).  [x&gt;=1]
+<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a>  --boundary [process|task]     process runs units on threads here; task runs
+<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a>                                each in its own process. Default: the target's
+<a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a>                                boundary.
+<a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a>  --warn-error                  Exit 1 on warnings too.
+<a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a>  --cancel-grace DURATION       After a stop request (Ctrl+C, SIGTERM) or a
+<a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a>                                timeout, how long running units may finish
+<a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a>                                before they are killed, as 30s, 2m or 30.
+<a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a>                                Default: the setting, else 30s.
+<a id="__codelineno-3-43" name="__codelineno-3-43" href="#__codelineno-3-43"></a>  --start ISO                   First moment of the range, inclusive: an ISO
+<a id="__codelineno-3-44" name="__codelineno-3-44" href="#__codelineno-3-44"></a>                                date or date-time; naive is UTC. Rounds down
+<a id="__codelineno-3-45" name="__codelineno-3-45" href="#__codelineno-3-45"></a>                                to the start of its window.  [required]
+<a id="__codelineno-3-46" name="__codelineno-3-46" href="#__codelineno-3-46"></a>  --end ISO                     End of the range, exclusive. Rounds up to the
+<a id="__codelineno-3-47" name="__codelineno-3-47" href="#__codelineno-3-47"></a>                                end of its window.  [required]
+<a id="__codelineno-3-48" name="__codelineno-3-48" href="#__codelineno-3-48"></a>  --rerun [missing|all]         missing runs the windows the ledger does not
+<a id="__codelineno-3-49" name="__codelineno-3-49" href="#__codelineno-3-49"></a>                                hold; all restates the range: it removes the
+<a id="__codelineno-3-50" name="__codelineno-3-50" href="#__codelineno-3-50"></a>                                range from the ledger first, then runs every
+<a id="__codelineno-3-51" name="__codelineno-3-51" href="#__codelineno-3-51"></a>                                window.  [default: missing]
+<a id="__codelineno-3-52" name="__codelineno-3-52" href="#__codelineno-3-52"></a>  --on-failure [stop|continue]  stop ends a model at its first failing window;
+<a id="__codelineno-3-53" name="__codelineno-3-53" href="#__codelineno-3-53"></a>                                continue runs the rest and reports every
+<a id="__codelineno-3-54" name="__codelineno-3-54" href="#__codelineno-3-54"></a>                                failed window.  [default: stop]
+<a id="__codelineno-3-55" name="__codelineno-3-55" href="#__codelineno-3-55"></a>  --mark-done                   Record the range in the ledger exactly as
+<a id="__codelineno-3-56" name="__codelineno-3-56" href="#__codelineno-3-56"></a>                                given and run nothing, for a model converted
+<a id="__codelineno-3-57" name="__codelineno-3-57" href="#__codelineno-3-57"></a>                                from a watermark. Safe to repeat.
+<a id="__codelineno-3-58" name="__codelineno-3-58" href="#__codelineno-3-58"></a>  --help                        Show this message and exit.
+</code></pre></div>
 <h4 id="pipeloom-build">pipeloom build<a class="headerlink" href="#pipeloom-build" title="Permanent link">&para;</a></h4>
 <p>Run the unit tests of the selected models, then run them with data tests.</p>
 <p>Any failed unit test stops the build with exit 1 before a run id exists and before any write. Each model's data tests then run after its write; a failed one (PLQ303) fails the unit, skips its descendants and leaves the data written. Takes the flags of run. Exit codes: 0 ok, 1 a unit test, a unit or a check failed, 2 bad usage, 130 stopped.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pipeloom build [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pipeloom build [OPTIONS]
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>  --project-dir DIRECTORY      Directory that holds pipeloom.yml.  [default:
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>                               .]
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  --vars TEXT                  Variables as a YAML or JSON mapping; they
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>                               override the vars block.
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  --target TEXT                Target to bind; default_target or the only
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>                               target when omitted.
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  --plugin MODULE:ATTR         A PluginSpec to load besides the installed
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>                               plugins. Repeatable.
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  -s, --select SELECTOR        Models to include: name, tag:x, path:dir,
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>                               materialized:x, +model, model+, N+model,
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>                               model+N. Space unions, comma intersects.
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>                               Repeatable, all are unioned.
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>  --exclude SELECTOR           Remove the models this selector matches from
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>                               the selection. Repeatable.
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>  --state DIR                  Folder of a reference manifest.json (and
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>                               optionally run_results.json), for the state:
-<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>                               and result: selectors. Relative to the project
-<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>                               dir unless absolute. `compile --stable` or the
-<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>                               artifacts root (target) both work.
-<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>  --defer                      Read the parents this run does not select from
-<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>                               the relations of the --state manifest instead
-<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>                               of this target's, so a dev run of one model
-<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>                               reads the production tables. Needs --state.
-<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>                               Refused for unit invocations and the task
-<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>                               boundary (PLX111).
-<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>  --log-format [text|json]     Diagnostics and events on stderr: readable text
-<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>                               or one JSON object per line.  [default: text]
-<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>  --manifest FILE              Run the plan of this manifest instead of
-<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>                               compiling the project.
-<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>  --expect-plan-hash HEX       Stop with PLX103 unless the plan hash is this
-<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a>                               sha256.
-<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a>  --run-id TEXT                Name of the run. Reusing it continues that run.
-<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a>                               Default: a timestamp and a suffix.
-<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a>  --full-refresh BOOLEAN       Rebuild append tables from scratch. Takes an
-<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a>                               optional true or false.  [default: False]
-<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a>  --run-started-at ISO8601     Start time of the run, with a UTC offset (for
-<a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a>                               example the start of the orchestrator job).
-<a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a>                               Engines use it to make writes idempotent. Needs
-<a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a>                               --run-id. A reused run id keeps the start it
-<a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a>                               recorded.
-<a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a>  --orchestrator-id KEY=VALUE  An id the orchestrator gave this run, such as
-<a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a>                               job_run_id=42. It goes into the attempt files,
-<a id="__codelineno-3-43" name="__codelineno-3-43" href="#__codelineno-3-43"></a>                               the run results and the context of every event.
-<a id="__codelineno-3-44" name="__codelineno-3-44" href="#__codelineno-3-44"></a>                               Repeatable; a later duplicate wins. Key:
-<a id="__codelineno-3-45" name="__codelineno-3-45" href="#__codelineno-3-45"></a>                               [a-z][a-z0-9_]{0,63}; value: 1 to 256 printable
-<a id="__codelineno-3-46" name="__codelineno-3-46" href="#__codelineno-3-46"></a>                               characters.
-<a id="__codelineno-3-47" name="__codelineno-3-47" href="#__codelineno-3-47"></a>  --fail-fast                  After the first failure, start no more units.
-<a id="__codelineno-3-48" name="__codelineno-3-48" href="#__codelineno-3-48"></a>  --no-lock                    Do not take the run lock.
-<a id="__codelineno-3-49" name="__codelineno-3-49" href="#__codelineno-3-49"></a>  --workers INTEGER RANGE      Units to run at once. Default: the target's
-<a id="__codelineno-3-50" name="__codelineno-3-50" href="#__codelineno-3-50"></a>                               setting, else min(4, CPUs).  [x&gt;=1]
-<a id="__codelineno-3-51" name="__codelineno-3-51" href="#__codelineno-3-51"></a>  --boundary [process|task]    process runs units on threads here; task runs
-<a id="__codelineno-3-52" name="__codelineno-3-52" href="#__codelineno-3-52"></a>                               each in its own process. Default: the target's
-<a id="__codelineno-3-53" name="__codelineno-3-53" href="#__codelineno-3-53"></a>                               boundary.
-<a id="__codelineno-3-54" name="__codelineno-3-54" href="#__codelineno-3-54"></a>  --warn-error                 Exit 1 on warnings too.
-<a id="__codelineno-3-55" name="__codelineno-3-55" href="#__codelineno-3-55"></a>  --cancel-grace DURATION      After a stop request (Ctrl+C, SIGTERM) or a
-<a id="__codelineno-3-56" name="__codelineno-3-56" href="#__codelineno-3-56"></a>                               timeout, how long running units may finish
-<a id="__codelineno-3-57" name="__codelineno-3-57" href="#__codelineno-3-57"></a>                               before they are killed, as 30s, 2m or 30.
-<a id="__codelineno-3-58" name="__codelineno-3-58" href="#__codelineno-3-58"></a>                               Default: the setting, else 30s.
-<a id="__codelineno-3-59" name="__codelineno-3-59" href="#__codelineno-3-59"></a>  --help                       Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>  --project-dir DIRECTORY      Directory that holds pipeloom.yml.  [default:
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>                               .]
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>  --vars TEXT                  Variables as a YAML or JSON mapping; they
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>                               override the vars block.
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>  --target TEXT                Target to bind; default_target or the only
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>                               target when omitted.
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>  --plugin MODULE:ATTR         A PluginSpec to load besides the installed
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>                               plugins. Repeatable.
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>  -s, --select SELECTOR        Models to include: name, tag:x, path:dir,
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>                               materialized:x, +model, model+, N+model,
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>                               model+N. Space unions, comma intersects.
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>                               Repeatable, all are unioned.
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>  --exclude SELECTOR           Remove the models this selector matches from
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>                               the selection. Repeatable.
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>  --state DIR                  Folder of a reference manifest.json (and
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>                               optionally run_results.json), for the state:
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>                               and result: selectors. Relative to the project
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>                               dir unless absolute. `compile --stable` or the
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>                               artifacts root (target) both work.
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>  --defer                      Read the parents this run does not select from
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>                               the relations of the --state manifest instead
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>                               of this target's, so a dev run of one model
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>                               reads the production tables. Needs --state.
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>                               Refused for unit invocations and the task
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>                               boundary (PLX111).
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>  --log-format [text|json]     Diagnostics and events on stderr: readable text
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>                               or one JSON object per line.  [default: text]
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>  --manifest FILE              Run the plan of this manifest instead of
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>                               compiling the project.
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>  --expect-plan-hash HEX       Stop with PLX103 unless the plan hash is this
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>                               sha256.
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>  --run-id TEXT                Name of the run. Reusing it continues that run.
+<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>                               Default: a timestamp and a suffix.
+<a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a>  --full-refresh BOOLEAN       Rebuild append tables from scratch. Takes an
+<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a>                               optional true or false.  [default: False]
+<a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a>  --run-started-at ISO8601     Start time of the run, with a UTC offset (for
+<a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a>                               example the start of the orchestrator job).
+<a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a>                               Engines use it to make writes idempotent. Needs
+<a id="__codelineno-5-39" name="__codelineno-5-39" href="#__codelineno-5-39"></a>                               --run-id. A reused run id keeps the start it
+<a id="__codelineno-5-40" name="__codelineno-5-40" href="#__codelineno-5-40"></a>                               recorded.
+<a id="__codelineno-5-41" name="__codelineno-5-41" href="#__codelineno-5-41"></a>  --orchestrator-id KEY=VALUE  An id the orchestrator gave this run, such as
+<a id="__codelineno-5-42" name="__codelineno-5-42" href="#__codelineno-5-42"></a>                               job_run_id=42. It goes into the attempt files,
+<a id="__codelineno-5-43" name="__codelineno-5-43" href="#__codelineno-5-43"></a>                               the run results and the context of every event.
+<a id="__codelineno-5-44" name="__codelineno-5-44" href="#__codelineno-5-44"></a>                               Repeatable; a later duplicate wins. Key:
+<a id="__codelineno-5-45" name="__codelineno-5-45" href="#__codelineno-5-45"></a>                               [a-z][a-z0-9_]{0,63}; value: 1 to 256 printable
+<a id="__codelineno-5-46" name="__codelineno-5-46" href="#__codelineno-5-46"></a>                               characters.
+<a id="__codelineno-5-47" name="__codelineno-5-47" href="#__codelineno-5-47"></a>  --fail-fast                  After the first failure, start no more units.
+<a id="__codelineno-5-48" name="__codelineno-5-48" href="#__codelineno-5-48"></a>  --no-lock                    Do not take the run lock.
+<a id="__codelineno-5-49" name="__codelineno-5-49" href="#__codelineno-5-49"></a>  --workers INTEGER RANGE      Units to run at once. Default: the target's
+<a id="__codelineno-5-50" name="__codelineno-5-50" href="#__codelineno-5-50"></a>                               setting, else min(4, CPUs).  [x&gt;=1]
+<a id="__codelineno-5-51" name="__codelineno-5-51" href="#__codelineno-5-51"></a>  --boundary [process|task]    process runs units on threads here; task runs
+<a id="__codelineno-5-52" name="__codelineno-5-52" href="#__codelineno-5-52"></a>                               each in its own process. Default: the target's
+<a id="__codelineno-5-53" name="__codelineno-5-53" href="#__codelineno-5-53"></a>                               boundary.
+<a id="__codelineno-5-54" name="__codelineno-5-54" href="#__codelineno-5-54"></a>  --warn-error                 Exit 1 on warnings too.
+<a id="__codelineno-5-55" name="__codelineno-5-55" href="#__codelineno-5-55"></a>  --cancel-grace DURATION      After a stop request (Ctrl+C, SIGTERM) or a
+<a id="__codelineno-5-56" name="__codelineno-5-56" href="#__codelineno-5-56"></a>                               timeout, how long running units may finish
+<a id="__codelineno-5-57" name="__codelineno-5-57" href="#__codelineno-5-57"></a>                               before they are killed, as 30s, 2m or 30.
+<a id="__codelineno-5-58" name="__codelineno-5-58" href="#__codelineno-5-58"></a>                               Default: the setting, else 30s.
+<a id="__codelineno-5-59" name="__codelineno-5-59" href="#__codelineno-5-59"></a>  --help                       Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-compile-">pipeloom compile-<a class="headerlink" href="#pipeloom-compile-" title="Permanent link">&para;</a></h4>
 <p>Validate the project and write the plan to a manifest file.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pipeloom compile- [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pipeloom compile- [OPTIONS]
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>  --project-dir DIRECTORY    Directory that holds pipeloom.yml.  [default: .]
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>  --vars TEXT                Variables as a YAML or JSON mapping; they
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>                             override the vars block.
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>  --target TEXT              Target to bind; default_target or the only target
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>                             when omitted.
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>  --plugin MODULE:ATTR       A PluginSpec to load besides the installed
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>                             plugins. Repeatable.
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>  -s, --select SELECTOR      Models to include: name, tag:x, path:dir,
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>                             materialized:x, +model, model+, N+model, model+N.
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>                             Space unions, comma intersects. Repeatable, all
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>                             are unioned.
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>  --exclude SELECTOR         Remove the models this selector matches from the
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>                             selection. Repeatable.
-<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>  --state DIR                Folder of a reference manifest.json (and
-<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>                             optionally run_results.json), for the state: and
-<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>                             result: selectors. Relative to the project dir
-<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>                             unless absolute. `compile --stable` or the
-<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>                             artifacts root (target) both work.
-<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>  --log-format [text|json]   Diagnostics and events on stderr: readable text
-<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>                             or one JSON object per line.  [default: text]
-<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>  --boundary [process|task]  Where units run; default is the target's boundary
-<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>                             (process).
-<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>  --out PATH                 Manifest file, relative to the project dir unless
-<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>                             absolute.  [default: target/manifest.json]
-<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>  --stable                   Blank generated_at, invocation_id and the
-<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>                             selection so the same project and target always
-<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>                             give the same bytes. `run --manifest` then runs
-<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>                             every model unless --select or --exclude is
-<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>                             given.
-<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>  --output [text|json]       stdout: the manifest path, or a
-<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>                             pipeloom.compile_result/1 JSON object with the
-<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>                             path, the manifest hash and the plan counts.
-<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>                             [default: text]
-<a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a>  --warn-error               Exit 1 on warnings too.
-<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a>  --help                     Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>  --project-dir DIRECTORY    Directory that holds pipeloom.yml.  [default: .]
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  --vars TEXT                Variables as a YAML or JSON mapping; they
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>                             override the vars block.
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>  --target TEXT              Target to bind; default_target or the only target
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>                             when omitted.
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>  --plugin MODULE:ATTR       A PluginSpec to load besides the installed
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>                             plugins. Repeatable.
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>  -s, --select SELECTOR      Models to include: name, tag:x, path:dir,
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>                             materialized:x, +model, model+, N+model, model+N.
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>                             Space unions, comma intersects. Repeatable, all
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>                             are unioned.
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>  --exclude SELECTOR         Remove the models this selector matches from the
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>                             selection. Repeatable.
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>  --state DIR                Folder of a reference manifest.json (and
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>                             optionally run_results.json), for the state: and
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>                             result: selectors. Relative to the project dir
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>                             unless absolute. `compile --stable` or the
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>                             artifacts root (target) both work.
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>  --log-format [text|json]   Diagnostics and events on stderr: readable text
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>                             or one JSON object per line.  [default: text]
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>  --boundary [process|task]  Where units run; default is the target's boundary
+<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>                             (process).
+<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>  --out PATH                 Manifest file, relative to the project dir unless
+<a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>                             absolute.  [default: target/manifest.json]
+<a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>  --stable                   Blank generated_at, invocation_id and the
+<a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>                             selection so the same project and target always
+<a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>                             give the same bytes. `run --manifest` then runs
+<a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>                             every model unless --select or --exclude is
+<a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>                             given.
+<a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>  --output [text|json]       stdout: the manifest path, or a
+<a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>                             pipeloom.compile_result/1 JSON object with the
+<a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a>                             path, the manifest hash and the plan counts.
+<a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a>                             [default: text]
+<a id="__codelineno-7-34" name="__codelineno-7-34" href="#__codelineno-7-34"></a>  --warn-error               Exit 1 on warnings too.
+<a id="__codelineno-7-35" name="__codelineno-7-35" href="#__codelineno-7-35"></a>  --help                     Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-demo">pipeloom demo<a class="headerlink" href="#pipeloom-demo" title="Permanent link">&para;</a></h4>
 <p>Create a sample project on DuckDB in DIRECTORY, build it and write its docs site.</p>
@@ -3479,12 +3601,12 @@ of each changed model).
 2 otherwise). Needs the DuckDB engine: pip install "pipeloom[duckdb]"; without it the
 command stops with PLU004 (exit 1). It never falls back to another engine.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pipeloom demo [OPTIONS] [DIRECTORY]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pipeloom demo [OPTIONS] [DIRECTORY]
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>                            one JSON object per line.  [default: text]
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>  --help                    Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>                            one JSON object per line.  [default: text]
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>  --help                    Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-diff">pipeloom diff<a class="headerlink" href="#pipeloom-diff" title="Permanent link">&para;</a></h4>
 <p>Compare MODEL's relation in the --state reference with its relation on this target.</p>
@@ -3492,67 +3614,42 @@ command stops with PLU004 (exit 1). It never falls back to another engine.</p>
 --samples the output holds counts and the schema diff, never a cell value. Exit codes: 0 no
 differences, 1 differences or a failure, 2 usage error.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pipeloom diff [OPTIONS] MODEL
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>pipeloom diff [OPTIONS] MODEL
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>  --vars TEXT               Variables as a YAML or JSON mapping; they override
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>                            the vars block.
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>  --target TEXT             Target to bind; default_target or the only target
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>                            when omitted.
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>                            plugins. Repeatable.
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>  --state DIR               Folder of the reference manifest.json, whose
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>                            relation of MODEL is the source side. Relative to
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>                            the project dir unless absolute.  [required]
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>  --key COLUMN              Key column; repeatable. Default: the model's
-<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>                            write.unique_key.
-<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>  --samples                 Add up to 10 rows per kind of difference. Columns
-<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>                            tagged sensitive are masked.
-<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>  --output [markdown|json]  Markdown for a pull request comment, or the
-<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>                            pipeloom.table_diff/1 document.  [default:
-<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>                            markdown]
-<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
-<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>                            one JSON object per line.  [default: text]
-<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>  --help                    Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>  --vars TEXT               Variables as a YAML or JSON mapping; they override
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>                            the vars block.
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>  --target TEXT             Target to bind; default_target or the only target
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>                            when omitted.
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>                            plugins. Repeatable.
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>  --state DIR               Folder of the reference manifest.json, whose
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>                            relation of MODEL is the source side. Relative to
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>                            the project dir unless absolute.  [required]
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>  --key COLUMN              Key column; repeatable. Default: the model's
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>                            write.unique_key.
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>  --samples                 Add up to 10 rows per kind of difference. Columns
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>                            tagged sensitive are masked.
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>  --output [markdown|json]  Markdown for a pull request comment, or the
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>                            pipeloom.table_diff/1 document.  [default:
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>                            markdown]
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>                            one JSON object per line.  [default: text]
+<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>  --help                    Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-docs">pipeloom docs<a class="headerlink" href="#pipeloom-docs" title="Permanent link">&para;</a></h4>
 <p>Build and serve the docs site (one HTML file, read only).</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>pipeloom docs [OPTIONS] COMMAND [ARGS]...
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>pipeloom docs [OPTIONS] COMMAND [ARGS]...
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>  --help  Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>  --help  Show this message and exit.
 </code></pre></div>
 <h5 id="pipeloom-docs-generate">pipeloom docs generate<a class="headerlink" href="#pipeloom-docs-generate" title="Permanent link">&para;</a></h5>
 <p>Write index.html: the graph, every model and source, and the last run's results.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>pipeloom docs generate [OPTIONS]
-</code></pre></div>
-<p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>  --vars TEXT               Variables as a YAML or JSON mapping; they override
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>                            the vars block.
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>  --target TEXT             Target to bind; default_target or the only target
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>                            when omitted.
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
-<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>                            plugins. Repeatable.
-<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
-<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>                            one JSON object per line.  [default: text]
-<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>  --out PATH                Output folder, relative to the project dir unless
-<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>                            absolute. Default: target/docs.
-<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>  --manifest FILE           Render this manifest instead of compiling the
-<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>                            project.
-<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>  --run-results FILE        A run_results.json to show. Default: the one at
-<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>                            the root of the artifacts root, when it exists
-<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a>                            (never with --manifest).
-<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a>  --help                    Show this message and exit.
-</code></pre></div>
-<h5 id="pipeloom-docs-serve">pipeloom docs serve<a class="headerlink" href="#pipeloom-docs-serve" title="Permanent link">&para;</a></h5>
-<p>Serve the generated site until Ctrl+C, rebuilding it when the models change. It never
-opens a browser.</p>
-<p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>pipeloom docs serve [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>pipeloom docs generate [OPTIONS]
 </code></pre></div>
 <p><strong>Options:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
@@ -3562,25 +3659,50 @@ opens a browser.</p>
 <a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>                            when omitted.
 <a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
 <a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>                            plugins. Repeatable.
-<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>  --dir PATH                Folder to serve, relative to the project dir
-<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>                            unless absolute. Default: target/docs.
-<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>  --host TEXT               Address to listen on.  [default: 127.0.0.1]
-<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>  --port INTEGER RANGE      Port to use.  [default: 8000; 0&lt;=x&lt;=65535]
-<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
-<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>                            one JSON object per line.  [default: text]
-<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a>  --help                    Show this message and exit.
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>                            one JSON object per line.  [default: text]
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>  --out PATH                Output folder, relative to the project dir unless
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>                            absolute. Default: target/docs.
+<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>  --manifest FILE           Render this manifest instead of compiling the
+<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>                            project.
+<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a>  --run-results FILE        A run_results.json to show. Default: the one at
+<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a>                            the root of the artifacts root, when it exists
+<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a>                            (never with --manifest).
+<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a>  --help                    Show this message and exit.
+</code></pre></div>
+<h5 id="pipeloom-docs-serve">pipeloom docs serve<a class="headerlink" href="#pipeloom-docs-serve" title="Permanent link">&para;</a></h5>
+<p>Serve the generated site until Ctrl+C, rebuilding it when the models change. It never
+opens a browser.</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>pipeloom docs serve [OPTIONS]
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>  --vars TEXT               Variables as a YAML or JSON mapping; they override
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>                            the vars block.
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>  --target TEXT             Target to bind; default_target or the only target
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>                            when omitted.
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>                            plugins. Repeatable.
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>  --dir PATH                Folder to serve, relative to the project dir
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>                            unless absolute. Default: target/docs.
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>  --host TEXT               Address to listen on.  [default: 127.0.0.1]
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>  --port INTEGER RANGE      Port to use.  [default: 8000; 0&lt;=x&lt;=65535]
+<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>                            one JSON object per line.  [default: text]
+<a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a>  --help                    Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-explain">pipeloom explain<a class="headerlink" href="#pipeloom-explain" title="Permanent link">&para;</a></h4>
 <p>Print what a diagnostic CODE means, for example PLX101 (case-insensitive).</p>
 <p>Shows the title, layer, severity, status, the version the code appeared in, the explanation
 and the link to the error-code page. Reads no project.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>pipeloom explain [OPTIONS] CODE
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>pipeloom explain [OPTIONS] CODE
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>                            one JSON object per line.  [default: text]
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>  --help                    Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>                            one JSON object per line.  [default: text]
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>  --help                    Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-finalize">pipeloom finalize<a class="headerlink" href="#pipeloom-finalize" title="Permanent link">&para;</a></h4>
 <p>Merge the unit results of a run into run_results.json and close the run.</p>
@@ -3589,93 +3711,93 @@ and the link to the error-code page. Reads no project.</p>
 the run. A unit marked excluded gets no row. Exit codes: 0 ok, 1 a unit failed, 2 bad usage,
 130 cancelled. Running it again rewrites the same results.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>pipeloom finalize [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>pipeloom finalize [OPTIONS]
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>  --project-dir DIRECTORY      Directory that holds pipeloom.yml.  [default:
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>                               .]
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>  --vars TEXT                  Variables as a YAML or JSON mapping; they
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>                               override the vars block.
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>  --target TEXT                Target to bind; default_target or the only
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>                               target when omitted.
-<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>  --plugin MODULE:ATTR         A PluginSpec to load besides the installed
-<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>                               plugins. Repeatable.
-<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>  -s, --select SELECTOR        Models to include: name, tag:x, path:dir,
-<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>                               materialized:x, +model, model+, N+model,
-<a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>                               model+N. Space unions, comma intersects.
-<a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>                               Repeatable, all are unioned.
-<a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>  --exclude SELECTOR           Remove the models this selector matches from
-<a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a>                               the selection. Repeatable.
-<a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a>  --log-format [text|json]     Diagnostics and events on stderr: readable text
-<a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a>                               or one JSON object per line.  [default: text]
-<a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a>  --run-id TEXT                The run to close: the run id every unit
-<a id="__codelineno-19-18" name="__codelineno-19-18" href="#__codelineno-19-18"></a>                               invocation used.  [required]
-<a id="__codelineno-19-19" name="__codelineno-19-19" href="#__codelineno-19-19"></a>  --manifest FILE              Use the plan of this manifest instead of
-<a id="__codelineno-19-20" name="__codelineno-19-20" href="#__codelineno-19-20"></a>                               compiling the project.
-<a id="__codelineno-19-21" name="__codelineno-19-21" href="#__codelineno-19-21"></a>  --expect-plan-hash HEX       Stop with PLX103 unless the plan hash is this
-<a id="__codelineno-19-22" name="__codelineno-19-22" href="#__codelineno-19-22"></a>                               sha256.
-<a id="__codelineno-19-23" name="__codelineno-19-23" href="#__codelineno-19-23"></a>  --unit-states PATH           A JSON file, schema pipeloom.unit_states/1,
-<a id="__codelineno-19-24" name="__codelineno-19-24" href="#__codelineno-19-24"></a>                               with what the orchestrator knows about units
-<a id="__codelineno-19-25" name="__codelineno-19-25" href="#__codelineno-19-25"></a>                               that wrote no attempt file: {unit_id: {status:
-<a id="__codelineno-19-26" name="__codelineno-19-26" href="#__codelineno-19-26"></a>                               skipped|cancelled|failed|excluded, reason,
-<a id="__codelineno-19-27" name="__codelineno-19-27" href="#__codelineno-19-27"></a>                               code, message, orchestrator_ids}}.
-<a id="__codelineno-19-28" name="__codelineno-19-28" href="#__codelineno-19-28"></a>  --unit-states-json TEXT      The same document as --unit-states, given
-<a id="__codelineno-19-29" name="__codelineno-19-29" href="#__codelineno-19-29"></a>                               inline (for an orchestrator that cannot share a
-<a id="__codelineno-19-30" name="__codelineno-19-30" href="#__codelineno-19-30"></a>                               file). Not together with --unit-states.
-<a id="__codelineno-19-31" name="__codelineno-19-31" href="#__codelineno-19-31"></a>  --orchestrator-id KEY=VALUE  An id the orchestrator gave this run, such as
-<a id="__codelineno-19-32" name="__codelineno-19-32" href="#__codelineno-19-32"></a>                               job_run_id=42. It goes into the attempt files,
-<a id="__codelineno-19-33" name="__codelineno-19-33" href="#__codelineno-19-33"></a>                               the run results and the context of every event.
-<a id="__codelineno-19-34" name="__codelineno-19-34" href="#__codelineno-19-34"></a>                               Repeatable; a later duplicate wins. Key:
-<a id="__codelineno-19-35" name="__codelineno-19-35" href="#__codelineno-19-35"></a>                               [a-z][a-z0-9_]{0,63}; value: 1 to 256 printable
-<a id="__codelineno-19-36" name="__codelineno-19-36" href="#__codelineno-19-36"></a>                               characters.
-<a id="__codelineno-19-37" name="__codelineno-19-37" href="#__codelineno-19-37"></a>  --run-started-at ISO8601     Start time of the run, with a UTC offset. A run
-<a id="__codelineno-19-38" name="__codelineno-19-38" href="#__codelineno-19-38"></a>                               that recorded its start keeps it.
-<a id="__codelineno-19-39" name="__codelineno-19-39" href="#__codelineno-19-39"></a>  --help                       Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>  --project-dir DIRECTORY      Directory that holds pipeloom.yml.  [default:
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>                               .]
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>  --vars TEXT                  Variables as a YAML or JSON mapping; they
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>                               override the vars block.
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>  --target TEXT                Target to bind; default_target or the only
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>                               target when omitted.
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>  --plugin MODULE:ATTR         A PluginSpec to load besides the installed
+<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>                               plugins. Repeatable.
+<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>  -s, --select SELECTOR        Models to include: name, tag:x, path:dir,
+<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>                               materialized:x, +model, model+, N+model,
+<a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>                               model+N. Space unions, comma intersects.
+<a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a>                               Repeatable, all are unioned.
+<a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a>  --exclude SELECTOR           Remove the models this selector matches from
+<a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a>                               the selection. Repeatable.
+<a id="__codelineno-21-15" name="__codelineno-21-15" href="#__codelineno-21-15"></a>  --log-format [text|json]     Diagnostics and events on stderr: readable text
+<a id="__codelineno-21-16" name="__codelineno-21-16" href="#__codelineno-21-16"></a>                               or one JSON object per line.  [default: text]
+<a id="__codelineno-21-17" name="__codelineno-21-17" href="#__codelineno-21-17"></a>  --run-id TEXT                The run to close: the run id every unit
+<a id="__codelineno-21-18" name="__codelineno-21-18" href="#__codelineno-21-18"></a>                               invocation used.  [required]
+<a id="__codelineno-21-19" name="__codelineno-21-19" href="#__codelineno-21-19"></a>  --manifest FILE              Use the plan of this manifest instead of
+<a id="__codelineno-21-20" name="__codelineno-21-20" href="#__codelineno-21-20"></a>                               compiling the project.
+<a id="__codelineno-21-21" name="__codelineno-21-21" href="#__codelineno-21-21"></a>  --expect-plan-hash HEX       Stop with PLX103 unless the plan hash is this
+<a id="__codelineno-21-22" name="__codelineno-21-22" href="#__codelineno-21-22"></a>                               sha256.
+<a id="__codelineno-21-23" name="__codelineno-21-23" href="#__codelineno-21-23"></a>  --unit-states PATH           A JSON file, schema pipeloom.unit_states/1,
+<a id="__codelineno-21-24" name="__codelineno-21-24" href="#__codelineno-21-24"></a>                               with what the orchestrator knows about units
+<a id="__codelineno-21-25" name="__codelineno-21-25" href="#__codelineno-21-25"></a>                               that wrote no attempt file: {unit_id: {status:
+<a id="__codelineno-21-26" name="__codelineno-21-26" href="#__codelineno-21-26"></a>                               skipped|cancelled|failed|excluded, reason,
+<a id="__codelineno-21-27" name="__codelineno-21-27" href="#__codelineno-21-27"></a>                               code, message, orchestrator_ids}}.
+<a id="__codelineno-21-28" name="__codelineno-21-28" href="#__codelineno-21-28"></a>  --unit-states-json TEXT      The same document as --unit-states, given
+<a id="__codelineno-21-29" name="__codelineno-21-29" href="#__codelineno-21-29"></a>                               inline (for an orchestrator that cannot share a
+<a id="__codelineno-21-30" name="__codelineno-21-30" href="#__codelineno-21-30"></a>                               file). Not together with --unit-states.
+<a id="__codelineno-21-31" name="__codelineno-21-31" href="#__codelineno-21-31"></a>  --orchestrator-id KEY=VALUE  An id the orchestrator gave this run, such as
+<a id="__codelineno-21-32" name="__codelineno-21-32" href="#__codelineno-21-32"></a>                               job_run_id=42. It goes into the attempt files,
+<a id="__codelineno-21-33" name="__codelineno-21-33" href="#__codelineno-21-33"></a>                               the run results and the context of every event.
+<a id="__codelineno-21-34" name="__codelineno-21-34" href="#__codelineno-21-34"></a>                               Repeatable; a later duplicate wins. Key:
+<a id="__codelineno-21-35" name="__codelineno-21-35" href="#__codelineno-21-35"></a>                               [a-z][a-z0-9_]{0,63}; value: 1 to 256 printable
+<a id="__codelineno-21-36" name="__codelineno-21-36" href="#__codelineno-21-36"></a>                               characters.
+<a id="__codelineno-21-37" name="__codelineno-21-37" href="#__codelineno-21-37"></a>  --run-started-at ISO8601     Start time of the run, with a UTC offset. A run
+<a id="__codelineno-21-38" name="__codelineno-21-38" href="#__codelineno-21-38"></a>                               that recorded its start keeps it.
+<a id="__codelineno-21-39" name="__codelineno-21-39" href="#__codelineno-21-39"></a>  --help                       Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-graph">pipeloom graph<a class="headerlink" href="#pipeloom-graph" title="Permanent link">&para;</a></h4>
 <p>Print the graph of the selected models, in dependency order.</p>
 <p>With --units --output json, print the selected execution units instead, for an orchestrator
 that runs them one by one.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>pipeloom graph [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>pipeloom graph [OPTIONS]
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>  --project-dir DIRECTORY         Directory that holds pipeloom.yml.
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>                                  [default: .]
-<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>  --vars TEXT                     Variables as a YAML or JSON mapping; they
-<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>                                  override the vars block.
-<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>  --target TEXT                   Target to bind; default_target or the only
-<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>                                  target when omitted.
-<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>  --plugin MODULE:ATTR            A PluginSpec to load besides the installed
-<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>                                  plugins. Repeatable.
-<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>  -s, --select SELECTOR           Models to include: name, tag:x, path:dir,
-<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>                                  materialized:x, +model, model+, N+model,
-<a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>                                  model+N. Space unions, comma intersects.
-<a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a>                                  Repeatable, all are unioned.
-<a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a>  --exclude SELECTOR              Remove the models this selector matches from
-<a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a>                                  the selection. Repeatable.
-<a id="__codelineno-21-15" name="__codelineno-21-15" href="#__codelineno-21-15"></a>  --state DIR                     Folder of a reference manifest.json (and
-<a id="__codelineno-21-16" name="__codelineno-21-16" href="#__codelineno-21-16"></a>                                  optionally run_results.json), for the state:
-<a id="__codelineno-21-17" name="__codelineno-21-17" href="#__codelineno-21-17"></a>                                  and result: selectors. Relative to the
-<a id="__codelineno-21-18" name="__codelineno-21-18" href="#__codelineno-21-18"></a>                                  project dir unless absolute. `compile
-<a id="__codelineno-21-19" name="__codelineno-21-19" href="#__codelineno-21-19"></a>                                  --stable` or the artifacts root (target)
-<a id="__codelineno-21-20" name="__codelineno-21-20" href="#__codelineno-21-20"></a>                                  both work.
-<a id="__codelineno-21-21" name="__codelineno-21-21" href="#__codelineno-21-21"></a>  --log-format [text|json]        Diagnostics and events on stderr: readable
-<a id="__codelineno-21-22" name="__codelineno-21-22" href="#__codelineno-21-22"></a>                                  text or one JSON object per line.  [default:
-<a id="__codelineno-21-23" name="__codelineno-21-23" href="#__codelineno-21-23"></a>                                  text]
-<a id="__codelineno-21-24" name="__codelineno-21-24" href="#__codelineno-21-24"></a>  --output [text|dot|mermaid|json]
-<a id="__codelineno-21-25" name="__codelineno-21-25" href="#__codelineno-21-25"></a>                                  Format of the graph: text (name &lt;- parents),
-<a id="__codelineno-21-26" name="__codelineno-21-26" href="#__codelineno-21-26"></a>                                  Graphviz dot, Mermaid or JSON. --units needs
-<a id="__codelineno-21-27" name="__codelineno-21-27" href="#__codelineno-21-27"></a>                                  json.  [default: text]
-<a id="__codelineno-21-28" name="__codelineno-21-28" href="#__codelineno-21-28"></a>  --units                         Print the execution units of the plan
-<a id="__codelineno-21-29" name="__codelineno-21-29" href="#__codelineno-21-29"></a>                                  instead of the models, with the command line
-<a id="__codelineno-21-30" name="__codelineno-21-30" href="#__codelineno-21-30"></a>                                  that runs each and the one that finalizes
-<a id="__codelineno-21-31" name="__codelineno-21-31" href="#__codelineno-21-31"></a>                                  the run (schema pipeloom.unit_graph/1).
-<a id="__codelineno-21-32" name="__codelineno-21-32" href="#__codelineno-21-32"></a>                                  Needs --output json.
-<a id="__codelineno-21-33" name="__codelineno-21-33" href="#__codelineno-21-33"></a>  --manifest FILE                 With --units: read the plan from this
-<a id="__codelineno-21-34" name="__codelineno-21-34" href="#__codelineno-21-34"></a>                                  manifest instead of compiling the project,
-<a id="__codelineno-21-35" name="__codelineno-21-35" href="#__codelineno-21-35"></a>                                  so plan_hash is the manifest's.
-<a id="__codelineno-21-36" name="__codelineno-21-36" href="#__codelineno-21-36"></a>  --help                          Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>  --project-dir DIRECTORY         Directory that holds pipeloom.yml.
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>                                  [default: .]
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>  --vars TEXT                     Variables as a YAML or JSON mapping; they
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>                                  override the vars block.
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>  --target TEXT                   Target to bind; default_target or the only
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>                                  target when omitted.
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>  --plugin MODULE:ATTR            A PluginSpec to load besides the installed
+<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>                                  plugins. Repeatable.
+<a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>  -s, --select SELECTOR           Models to include: name, tag:x, path:dir,
+<a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a>                                  materialized:x, +model, model+, N+model,
+<a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a>                                  model+N. Space unions, comma intersects.
+<a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a>                                  Repeatable, all are unioned.
+<a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a>  --exclude SELECTOR              Remove the models this selector matches from
+<a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a>                                  the selection. Repeatable.
+<a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a>  --state DIR                     Folder of a reference manifest.json (and
+<a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a>                                  optionally run_results.json), for the state:
+<a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a>                                  and result: selectors. Relative to the
+<a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a>                                  project dir unless absolute. `compile
+<a id="__codelineno-23-19" name="__codelineno-23-19" href="#__codelineno-23-19"></a>                                  --stable` or the artifacts root (target)
+<a id="__codelineno-23-20" name="__codelineno-23-20" href="#__codelineno-23-20"></a>                                  both work.
+<a id="__codelineno-23-21" name="__codelineno-23-21" href="#__codelineno-23-21"></a>  --log-format [text|json]        Diagnostics and events on stderr: readable
+<a id="__codelineno-23-22" name="__codelineno-23-22" href="#__codelineno-23-22"></a>                                  text or one JSON object per line.  [default:
+<a id="__codelineno-23-23" name="__codelineno-23-23" href="#__codelineno-23-23"></a>                                  text]
+<a id="__codelineno-23-24" name="__codelineno-23-24" href="#__codelineno-23-24"></a>  --output [text|dot|mermaid|json]
+<a id="__codelineno-23-25" name="__codelineno-23-25" href="#__codelineno-23-25"></a>                                  Format of the graph: text (name &lt;- parents),
+<a id="__codelineno-23-26" name="__codelineno-23-26" href="#__codelineno-23-26"></a>                                  Graphviz dot, Mermaid or JSON. --units needs
+<a id="__codelineno-23-27" name="__codelineno-23-27" href="#__codelineno-23-27"></a>                                  json.  [default: text]
+<a id="__codelineno-23-28" name="__codelineno-23-28" href="#__codelineno-23-28"></a>  --units                         Print the execution units of the plan
+<a id="__codelineno-23-29" name="__codelineno-23-29" href="#__codelineno-23-29"></a>                                  instead of the models, with the command line
+<a id="__codelineno-23-30" name="__codelineno-23-30" href="#__codelineno-23-30"></a>                                  that runs each and the one that finalizes
+<a id="__codelineno-23-31" name="__codelineno-23-31" href="#__codelineno-23-31"></a>                                  the run (schema pipeloom.unit_graph/1).
+<a id="__codelineno-23-32" name="__codelineno-23-32" href="#__codelineno-23-32"></a>                                  Needs --output json.
+<a id="__codelineno-23-33" name="__codelineno-23-33" href="#__codelineno-23-33"></a>  --manifest FILE                 With --units: read the plan from this
+<a id="__codelineno-23-34" name="__codelineno-23-34" href="#__codelineno-23-34"></a>                                  manifest instead of compiling the project,
+<a id="__codelineno-23-35" name="__codelineno-23-35" href="#__codelineno-23-35"></a>                                  so plan_hash is the manifest's.
+<a id="__codelineno-23-36" name="__codelineno-23-36" href="#__codelineno-23-36"></a>  --help                          Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-init">pipeloom init<a class="headerlink" href="#pipeloom-init" title="Permanent link">&para;</a></h4>
 <p>Create a project in DIRECTORY (default: a new folder named after the project).</p>
@@ -3683,158 +3805,158 @@ that runs them one by one.</p>
 out: the project name, the engine and, on databricks, the catalog. Also writes AGENTS.md and
 skills under .agents/skills/, generated from the code and never fetched.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>pipeloom init [OPTIONS] [DIRECTORY]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>pipeloom init [OPTIONS] [DIRECTORY]
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>  --name TEXT                     Project name. Default: the directory name.
-<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>  --engine [polars|pandas|spark|databricks|duckdb]
-<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>                                  Engine of the dev target. Default: polars.
-<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>  --catalog TEXT                  Unity Catalog catalog of the dev target
-<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>                                  (databricks only). Default: main.
-<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>  --no-input                      Never prompt: use the flags and the
-<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>                                  defaults.
-<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>  --force                         Allow a directory that is not empty.
-<a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>                                  Existing files are kept, never overwritten,
-<a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a>                                  and listed as skipped.
-<a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a>  --update-agents                 Regenerate AGENTS.md and the skills in the
-<a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a>                                  project at DIRECTORY (default: the current
-<a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a>                                  directory) and change nothing else. Takes no
-<a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a>                                  other option except --log-format.
-<a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a>  --log-format [text|json]        Diagnostics and events on stderr: readable
-<a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a>                                  text or one JSON object per line.  [default:
-<a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a>                                  text]
-<a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a>  --help                          Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>  --name TEXT                     Project name. Default: the directory name.
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>  --engine [polars|pandas|spark|databricks|duckdb]
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>                                  Engine of the dev target. Default: polars.
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>  --catalog TEXT                  Unity Catalog catalog of the dev target
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>                                  (databricks only). Default: main.
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>  --no-input                      Never prompt: use the flags and the
+<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a>                                  defaults.
+<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>  --force                         Allow a directory that is not empty.
+<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a>                                  Existing files are kept, never overwritten,
+<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a>                                  and listed as skipped.
+<a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a>  --update-agents                 Regenerate AGENTS.md and the skills in the
+<a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a>                                  project at DIRECTORY (default: the current
+<a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a>                                  directory) and change nothing else. Takes no
+<a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a>                                  other option except --log-format.
+<a id="__codelineno-25-15" name="__codelineno-25-15" href="#__codelineno-25-15"></a>  --log-format [text|json]        Diagnostics and events on stderr: readable
+<a id="__codelineno-25-16" name="__codelineno-25-16" href="#__codelineno-25-16"></a>                                  text or one JSON object per line.  [default:
+<a id="__codelineno-25-17" name="__codelineno-25-17" href="#__codelineno-25-17"></a>                                  text]
+<a id="__codelineno-25-18" name="__codelineno-25-18" href="#__codelineno-25-18"></a>  --help                          Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-ls">pipeloom ls<a class="headerlink" href="#pipeloom-ls" title="Permanent link">&para;</a></h4>
 <p>List the models that --select and --exclude choose (all by default).</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>pipeloom ls [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>pipeloom ls [OPTIONS]
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
-<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>  --vars TEXT               Variables as a YAML or JSON mapping; they override
-<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>                            the vars block.
-<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>  --target TEXT             Target to bind; default_target or the only target
-<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>                            when omitted.
-<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
-<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a>                            plugins. Repeatable.
-<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>  -s, --select SELECTOR     Models to include: name, tag:x, path:dir,
-<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a>                            materialized:x, +model, model+, N+model, model+N.
-<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a>                            Space unions, comma intersects. Repeatable, all
-<a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a>                            are unioned.
-<a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a>  --exclude SELECTOR        Remove the models this selector matches from the
-<a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a>                            selection. Repeatable.
-<a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a>  --state DIR               Folder of a reference manifest.json (and
-<a id="__codelineno-25-15" name="__codelineno-25-15" href="#__codelineno-25-15"></a>                            optionally run_results.json), for the state: and
-<a id="__codelineno-25-16" name="__codelineno-25-16" href="#__codelineno-25-16"></a>                            result: selectors. Relative to the project dir
-<a id="__codelineno-25-17" name="__codelineno-25-17" href="#__codelineno-25-17"></a>                            unless absolute. `compile --stable` or the
-<a id="__codelineno-25-18" name="__codelineno-25-18" href="#__codelineno-25-18"></a>                            artifacts root (target) both work.
-<a id="__codelineno-25-19" name="__codelineno-25-19" href="#__codelineno-25-19"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
-<a id="__codelineno-25-20" name="__codelineno-25-20" href="#__codelineno-25-20"></a>                            one JSON object per line.  [default: text]
-<a id="__codelineno-25-21" name="__codelineno-25-21" href="#__codelineno-25-21"></a>  --output [text|json]      One model name per line, or a JSON list.
-<a id="__codelineno-25-22" name="__codelineno-25-22" href="#__codelineno-25-22"></a>                            [default: text]
-<a id="__codelineno-25-23" name="__codelineno-25-23" href="#__codelineno-25-23"></a>  --why                     With --state and text output, print after each
-<a id="__codelineno-25-24" name="__codelineno-25-24" href="#__codelineno-25-24"></a>                            name how it differs from the reference: new, the
-<a id="__codelineno-25-25" name="__codelineno-25-25" href="#__codelineno-25-25"></a>                            split checksums that changed, legacy, or
-<a id="__codelineno-25-26" name="__codelineno-25-26" href="#__codelineno-25-26"></a>                            unchanged.
-<a id="__codelineno-25-27" name="__codelineno-25-27" href="#__codelineno-25-27"></a>  --help                    Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>  --vars TEXT               Variables as a YAML or JSON mapping; they override
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>                            the vars block.
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>  --target TEXT             Target to bind; default_target or the only target
+<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>                            when omitted.
+<a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
+<a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a>                            plugins. Repeatable.
+<a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>  -s, --select SELECTOR     Models to include: name, tag:x, path:dir,
+<a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a>                            materialized:x, +model, model+, N+model, model+N.
+<a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a>                            Space unions, comma intersects. Repeatable, all
+<a id="__codelineno-27-11" name="__codelineno-27-11" href="#__codelineno-27-11"></a>                            are unioned.
+<a id="__codelineno-27-12" name="__codelineno-27-12" href="#__codelineno-27-12"></a>  --exclude SELECTOR        Remove the models this selector matches from the
+<a id="__codelineno-27-13" name="__codelineno-27-13" href="#__codelineno-27-13"></a>                            selection. Repeatable.
+<a id="__codelineno-27-14" name="__codelineno-27-14" href="#__codelineno-27-14"></a>  --state DIR               Folder of a reference manifest.json (and
+<a id="__codelineno-27-15" name="__codelineno-27-15" href="#__codelineno-27-15"></a>                            optionally run_results.json), for the state: and
+<a id="__codelineno-27-16" name="__codelineno-27-16" href="#__codelineno-27-16"></a>                            result: selectors. Relative to the project dir
+<a id="__codelineno-27-17" name="__codelineno-27-17" href="#__codelineno-27-17"></a>                            unless absolute. `compile --stable` or the
+<a id="__codelineno-27-18" name="__codelineno-27-18" href="#__codelineno-27-18"></a>                            artifacts root (target) both work.
+<a id="__codelineno-27-19" name="__codelineno-27-19" href="#__codelineno-27-19"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+<a id="__codelineno-27-20" name="__codelineno-27-20" href="#__codelineno-27-20"></a>                            one JSON object per line.  [default: text]
+<a id="__codelineno-27-21" name="__codelineno-27-21" href="#__codelineno-27-21"></a>  --output [text|json]      One model name per line, or a JSON list.
+<a id="__codelineno-27-22" name="__codelineno-27-22" href="#__codelineno-27-22"></a>                            [default: text]
+<a id="__codelineno-27-23" name="__codelineno-27-23" href="#__codelineno-27-23"></a>  --why                     With --state and text output, print after each
+<a id="__codelineno-27-24" name="__codelineno-27-24" href="#__codelineno-27-24"></a>                            name how it differs from the reference: new, the
+<a id="__codelineno-27-25" name="__codelineno-27-25" href="#__codelineno-27-25"></a>                            split checksums that changed, legacy, or
+<a id="__codelineno-27-26" name="__codelineno-27-26" href="#__codelineno-27-26"></a>                            unchanged.
+<a id="__codelineno-27-27" name="__codelineno-27-27" href="#__codelineno-27-27"></a>  --help                    Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-new">pipeloom new<a class="headerlink" href="#pipeloom-new" title="Permanent link">&para;</a></h4>
 <p>Add files to an existing project.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>pipeloom new [OPTIONS] COMMAND [ARGS]...
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>pipeloom new [OPTIONS] COMMAND [ARGS]...
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>  --help  Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>  --help  Show this message and exit.
 </code></pre></div>
 <h5 id="pipeloom-new-model">pipeloom new model<a class="headerlink" href="#pipeloom-new-model" title="Permanent link">&para;</a></h5>
 <p>Create a model named NAME: a decorated function in models/<folder>/NAME.py.</p>
 <p>The path written is printed.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>pipeloom new model [OPTIONS] NAME
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>pipeloom new model [OPTIONS] NAME
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
-<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>  --vars TEXT               Variables as a YAML or JSON mapping; they override
-<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>                            the vars block.
-<a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
-<a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>                            one JSON object per line.  [default: text]
-<a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>  --sql                     Write a body that returns ctx.sql(...) (default
-<a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a>                            unless pandas).
-<a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a>  --python                  Write a frame stub (default on a pandas default
-<a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a>                            target).
-<a id="__codelineno-29-10" name="__codelineno-29-10" href="#__codelineno-29-10"></a>  --folder TEXT             Folder under the first model path to put the file
-<a id="__codelineno-29-11" name="__codelineno-29-11" href="#__codelineno-29-11"></a>                            in. Default: the model path itself.
-<a id="__codelineno-29-12" name="__codelineno-29-12" href="#__codelineno-29-12"></a>  --help                    Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>  --vars TEXT               Variables as a YAML or JSON mapping; they override
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>                            the vars block.
+<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>                            one JSON object per line.  [default: text]
+<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>  --sql                     Write a body that returns ctx.sql(...) (default
+<a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a>                            unless pandas).
+<a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a>  --python                  Write a frame stub (default on a pandas default
+<a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a>                            target).
+<a id="__codelineno-31-10" name="__codelineno-31-10" href="#__codelineno-31-10"></a>  --folder TEXT             Folder under the first model path to put the file
+<a id="__codelineno-31-11" name="__codelineno-31-11" href="#__codelineno-31-11"></a>                            in. Default: the model path itself.
+<a id="__codelineno-31-12" name="__codelineno-31-12" href="#__codelineno-31-12"></a>  --help                    Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-plan">pipeloom plan<a class="headerlink" href="#pipeloom-plan" title="Permanent link">&para;</a></h4>
 <p>Show what a change does before it runs: with --diff, how each model differs from the
 --state reference (new, removed, breaking, non-breaking, metadata or indirect).</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>pipeloom plan [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>pipeloom plan [OPTIONS]
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>  --project-dir DIRECTORY        Directory that holds pipeloom.yml.  [default:
-<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>                                 .]
-<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>  --vars TEXT                    Variables as a YAML or JSON mapping; they
-<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>                                 override the vars block.
-<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>  --target TEXT                  Target to bind; default_target or the only
-<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>                                 target when omitted.
-<a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a>  --plugin MODULE:ATTR           A PluginSpec to load besides the installed
-<a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a>                                 plugins. Repeatable.
-<a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a>  -s, --select SELECTOR          Models to include: name, tag:x, path:dir,
-<a id="__codelineno-31-10" name="__codelineno-31-10" href="#__codelineno-31-10"></a>                                 materialized:x, +model, model+, N+model,
-<a id="__codelineno-31-11" name="__codelineno-31-11" href="#__codelineno-31-11"></a>                                 model+N. Space unions, comma intersects.
-<a id="__codelineno-31-12" name="__codelineno-31-12" href="#__codelineno-31-12"></a>                                 Repeatable, all are unioned.
-<a id="__codelineno-31-13" name="__codelineno-31-13" href="#__codelineno-31-13"></a>  --exclude SELECTOR             Remove the models this selector matches from
-<a id="__codelineno-31-14" name="__codelineno-31-14" href="#__codelineno-31-14"></a>                                 the selection. Repeatable.
-<a id="__codelineno-31-15" name="__codelineno-31-15" href="#__codelineno-31-15"></a>  --state DIR                    Folder of a reference manifest.json (and
-<a id="__codelineno-31-16" name="__codelineno-31-16" href="#__codelineno-31-16"></a>                                 optionally run_results.json), for the state:
-<a id="__codelineno-31-17" name="__codelineno-31-17" href="#__codelineno-31-17"></a>                                 and result: selectors. Relative to the
-<a id="__codelineno-31-18" name="__codelineno-31-18" href="#__codelineno-31-18"></a>                                 project dir unless absolute. `compile
-<a id="__codelineno-31-19" name="__codelineno-31-19" href="#__codelineno-31-19"></a>                                 --stable` or the artifacts root (target) both
-<a id="__codelineno-31-20" name="__codelineno-31-20" href="#__codelineno-31-20"></a>                                 work.
-<a id="__codelineno-31-21" name="__codelineno-31-21" href="#__codelineno-31-21"></a>  --log-format [text|json]       Diagnostics and events on stderr: readable
-<a id="__codelineno-31-22" name="__codelineno-31-22" href="#__codelineno-31-22"></a>                                 text or one JSON object per line.  [default:
-<a id="__codelineno-31-23" name="__codelineno-31-23" href="#__codelineno-31-23"></a>                                 text]
-<a id="__codelineno-31-24" name="__codelineno-31-24" href="#__codelineno-31-24"></a>  --diff                         Compare the project with the --state manifest
-<a id="__codelineno-31-25" name="__codelineno-31-25" href="#__codelineno-31-25"></a>                                 and sort each model's change into a category.
-<a id="__codelineno-31-26" name="__codelineno-31-26" href="#__codelineno-31-26"></a>                                 Required: it is the only mode of plan for
-<a id="__codelineno-31-27" name="__codelineno-31-27" href="#__codelineno-31-27"></a>                                 now.
-<a id="__codelineno-31-28" name="__codelineno-31-28" href="#__codelineno-31-28"></a>  --fail-on [breaking|any|none]  Exit 1 when a change is breaking (breaking,
-<a id="__codelineno-31-29" name="__codelineno-31-29" href="#__codelineno-31-29"></a>                                 indirect-breaking or removed), when anything
-<a id="__codelineno-31-30" name="__codelineno-31-30" href="#__codelineno-31-30"></a>                                 changed, or never.  [default: breaking]
-<a id="__codelineno-31-31" name="__codelineno-31-31" href="#__codelineno-31-31"></a>  --output [text|json]           A table of the changed models, or a
-<a id="__codelineno-31-32" name="__codelineno-31-32" href="#__codelineno-31-32"></a>                                 pipeloom.plan_diff/1 JSON object.  [default:
-<a id="__codelineno-31-33" name="__codelineno-31-33" href="#__codelineno-31-33"></a>                                 text]
-<a id="__codelineno-31-34" name="__codelineno-31-34" href="#__codelineno-31-34"></a>  --help                         Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>  --project-dir DIRECTORY        Directory that holds pipeloom.yml.  [default:
+<a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>                                 .]
+<a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>  --vars TEXT                    Variables as a YAML or JSON mapping; they
+<a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>                                 override the vars block.
+<a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>  --target TEXT                  Target to bind; default_target or the only
+<a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>                                 target when omitted.
+<a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>  --plugin MODULE:ATTR           A PluginSpec to load besides the installed
+<a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>                                 plugins. Repeatable.
+<a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a>  -s, --select SELECTOR          Models to include: name, tag:x, path:dir,
+<a id="__codelineno-33-10" name="__codelineno-33-10" href="#__codelineno-33-10"></a>                                 materialized:x, +model, model+, N+model,
+<a id="__codelineno-33-11" name="__codelineno-33-11" href="#__codelineno-33-11"></a>                                 model+N. Space unions, comma intersects.
+<a id="__codelineno-33-12" name="__codelineno-33-12" href="#__codelineno-33-12"></a>                                 Repeatable, all are unioned.
+<a id="__codelineno-33-13" name="__codelineno-33-13" href="#__codelineno-33-13"></a>  --exclude SELECTOR             Remove the models this selector matches from
+<a id="__codelineno-33-14" name="__codelineno-33-14" href="#__codelineno-33-14"></a>                                 the selection. Repeatable.
+<a id="__codelineno-33-15" name="__codelineno-33-15" href="#__codelineno-33-15"></a>  --state DIR                    Folder of a reference manifest.json (and
+<a id="__codelineno-33-16" name="__codelineno-33-16" href="#__codelineno-33-16"></a>                                 optionally run_results.json), for the state:
+<a id="__codelineno-33-17" name="__codelineno-33-17" href="#__codelineno-33-17"></a>                                 and result: selectors. Relative to the
+<a id="__codelineno-33-18" name="__codelineno-33-18" href="#__codelineno-33-18"></a>                                 project dir unless absolute. `compile
+<a id="__codelineno-33-19" name="__codelineno-33-19" href="#__codelineno-33-19"></a>                                 --stable` or the artifacts root (target) both
+<a id="__codelineno-33-20" name="__codelineno-33-20" href="#__codelineno-33-20"></a>                                 work.
+<a id="__codelineno-33-21" name="__codelineno-33-21" href="#__codelineno-33-21"></a>  --log-format [text|json]       Diagnostics and events on stderr: readable
+<a id="__codelineno-33-22" name="__codelineno-33-22" href="#__codelineno-33-22"></a>                                 text or one JSON object per line.  [default:
+<a id="__codelineno-33-23" name="__codelineno-33-23" href="#__codelineno-33-23"></a>                                 text]
+<a id="__codelineno-33-24" name="__codelineno-33-24" href="#__codelineno-33-24"></a>  --diff                         Compare the project with the --state manifest
+<a id="__codelineno-33-25" name="__codelineno-33-25" href="#__codelineno-33-25"></a>                                 and sort each model's change into a category.
+<a id="__codelineno-33-26" name="__codelineno-33-26" href="#__codelineno-33-26"></a>                                 Required: it is the only mode of plan for
+<a id="__codelineno-33-27" name="__codelineno-33-27" href="#__codelineno-33-27"></a>                                 now.
+<a id="__codelineno-33-28" name="__codelineno-33-28" href="#__codelineno-33-28"></a>  --fail-on [breaking|any|none]  Exit 1 when a change is breaking (breaking,
+<a id="__codelineno-33-29" name="__codelineno-33-29" href="#__codelineno-33-29"></a>                                 indirect-breaking or removed), when anything
+<a id="__codelineno-33-30" name="__codelineno-33-30" href="#__codelineno-33-30"></a>                                 changed, or never.  [default: breaking]
+<a id="__codelineno-33-31" name="__codelineno-33-31" href="#__codelineno-33-31"></a>  --output [text|json]           A table of the changed models, or a
+<a id="__codelineno-33-32" name="__codelineno-33-32" href="#__codelineno-33-32"></a>                                 pipeloom.plan_diff/1 JSON object.  [default:
+<a id="__codelineno-33-33" name="__codelineno-33-33" href="#__codelineno-33-33"></a>                                 text]
+<a id="__codelineno-33-34" name="__codelineno-33-34" href="#__codelineno-33-34"></a>  --help                         Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-plugins">pipeloom plugins<a class="headerlink" href="#pipeloom-plugins" title="Permanent link">&para;</a></h4>
 <p>Inspect installed plugins.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>pipeloom plugins [OPTIONS] COMMAND [ARGS]...
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>pipeloom plugins [OPTIONS] COMMAND [ARGS]...
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>  --help  Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>  --help  Show this message and exit.
 </code></pre></div>
 <h5 id="pipeloom-plugins-list">pipeloom plugins list<a class="headerlink" href="#pipeloom-plugins-list" title="Permanent link">&para;</a></h5>
 <p>List plugins by group and kind. Nothing is imported unless --check is given.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>pipeloom plugins list [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>pipeloom plugins list [OPTIONS]
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>  --group [engines|catalogs|state_stores|sinks|secret_providers|executors|renderers|naming|commands]
-<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>                                  Only this group.
-<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>  --output [text|json]            Print a table, or a JSON array with one
-<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>                                  object per plugin.  [default: text]
-<a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>  --check                         Import each plugin and report its API and
-<a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a>                                  status.
-<a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a>  --plugin MODULE:ATTR            A PluginSpec to load besides the installed
-<a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a>                                  plugins. Repeatable.
-<a id="__codelineno-35-9" name="__codelineno-35-9" href="#__codelineno-35-9"></a>  --log-format [text|json]        Diagnostics and events on stderr: readable
-<a id="__codelineno-35-10" name="__codelineno-35-10" href="#__codelineno-35-10"></a>                                  text or one JSON object per line.  [default:
-<a id="__codelineno-35-11" name="__codelineno-35-11" href="#__codelineno-35-11"></a>                                  text]
-<a id="__codelineno-35-12" name="__codelineno-35-12" href="#__codelineno-35-12"></a>  --help                          Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>  --group [engines|catalogs|state_stores|sinks|secret_providers|executors|renderers|naming|commands]
+<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>                                  Only this group.
+<a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>  --output [text|json]            Print a table, or a JSON array with one
+<a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a>                                  object per plugin.  [default: text]
+<a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a>  --check                         Import each plugin and report its API and
+<a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a>                                  status.
+<a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a>  --plugin MODULE:ATTR            A PluginSpec to load besides the installed
+<a id="__codelineno-37-8" name="__codelineno-37-8" href="#__codelineno-37-8"></a>                                  plugins. Repeatable.
+<a id="__codelineno-37-9" name="__codelineno-37-9" href="#__codelineno-37-9"></a>  --log-format [text|json]        Diagnostics and events on stderr: readable
+<a id="__codelineno-37-10" name="__codelineno-37-10" href="#__codelineno-37-10"></a>                                  text or one JSON object per line.  [default:
+<a id="__codelineno-37-11" name="__codelineno-37-11" href="#__codelineno-37-11"></a>                                  text]
+<a id="__codelineno-37-12" name="__codelineno-37-12" href="#__codelineno-37-12"></a>  --help                          Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-retry">pipeloom retry<a class="headerlink" href="#pipeloom-retry" title="Permanent link">&para;</a></h4>
 <p>Run again what a finished run did not finish. Exit codes as <code>run</code>; 1 also for PLX113.</p>
@@ -3843,48 +3965,48 @@ runs them in a new run that records RUN_ID as its parent. The project is compile
 a fixed model is picked up. The retry inherits the vars (<code>--vars</code> wins), <code>--full-refresh</code>,
 <code>--state</code> and <code>--defer</code> of the run it retries.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>pipeloom retry [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>pipeloom retry [OPTIONS]
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>  --project-dir DIRECTORY         Directory that holds pipeloom.yml.
-<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>                                  [default: .]
-<a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>  --vars TEXT                     Variables as a YAML or JSON mapping; they
-<a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a>                                  override the vars block.
-<a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a>  --target TEXT                   Target to bind; default_target or the only
-<a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a>                                  target when omitted.
-<a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a>  --plugin MODULE:ATTR            A PluginSpec to load besides the installed
-<a id="__codelineno-37-8" name="__codelineno-37-8" href="#__codelineno-37-8"></a>                                  plugins. Repeatable.
-<a id="__codelineno-37-9" name="__codelineno-37-9" href="#__codelineno-37-9"></a>  --log-format [text|json]        Diagnostics and events on stderr: readable
-<a id="__codelineno-37-10" name="__codelineno-37-10" href="#__codelineno-37-10"></a>                                  text or one JSON object per line.  [default:
-<a id="__codelineno-37-11" name="__codelineno-37-11" href="#__codelineno-37-11"></a>                                  text]
-<a id="__codelineno-37-12" name="__codelineno-37-12" href="#__codelineno-37-12"></a>  --from RUN_ID                   The finished run to retry: its failed,
-<a id="__codelineno-37-13" name="__codelineno-37-13" href="#__codelineno-37-13"></a>                                  skipped and cancelled units run again.
-<a id="__codelineno-37-14" name="__codelineno-37-14" href="#__codelineno-37-14"></a>                                  [required]
-<a id="__codelineno-37-15" name="__codelineno-37-15" href="#__codelineno-37-15"></a>  --run-id TEXT                   Name of the new run; it must differ from
-<a id="__codelineno-37-16" name="__codelineno-37-16" href="#__codelineno-37-16"></a>                                  --from. Default: a timestamp and a suffix.
-<a id="__codelineno-37-17" name="__codelineno-37-17" href="#__codelineno-37-17"></a>  --full-refresh / --no-full-refresh
-<a id="__codelineno-37-18" name="__codelineno-37-18" href="#__codelineno-37-18"></a>                                  Rebuild append tables from scratch. Default:
-<a id="__codelineno-37-19" name="__codelineno-37-19" href="#__codelineno-37-19"></a>                                  what the retried run did.
-<a id="__codelineno-37-20" name="__codelineno-37-20" href="#__codelineno-37-20"></a>  --orchestrator-id KEY=VALUE     An id the orchestrator gave this run, such
-<a id="__codelineno-37-21" name="__codelineno-37-21" href="#__codelineno-37-21"></a>                                  as job_run_id=42. It goes into the attempt
-<a id="__codelineno-37-22" name="__codelineno-37-22" href="#__codelineno-37-22"></a>                                  files, the run results and the context of
-<a id="__codelineno-37-23" name="__codelineno-37-23" href="#__codelineno-37-23"></a>                                  every event. Repeatable; a later duplicate
-<a id="__codelineno-37-24" name="__codelineno-37-24" href="#__codelineno-37-24"></a>                                  wins. Key: [a-z][a-z0-9_]{0,63}; value: 1 to
-<a id="__codelineno-37-25" name="__codelineno-37-25" href="#__codelineno-37-25"></a>                                  256 printable characters.
-<a id="__codelineno-37-26" name="__codelineno-37-26" href="#__codelineno-37-26"></a>  --fail-fast                     After the first failure, start no more
-<a id="__codelineno-37-27" name="__codelineno-37-27" href="#__codelineno-37-27"></a>                                  units.
-<a id="__codelineno-37-28" name="__codelineno-37-28" href="#__codelineno-37-28"></a>  --no-lock                       Do not take the run lock.
-<a id="__codelineno-37-29" name="__codelineno-37-29" href="#__codelineno-37-29"></a>  --workers INTEGER RANGE         Units to run at once. Default: the target's
-<a id="__codelineno-37-30" name="__codelineno-37-30" href="#__codelineno-37-30"></a>                                  setting, else min(4, CPUs).  [x&gt;=1]
-<a id="__codelineno-37-31" name="__codelineno-37-31" href="#__codelineno-37-31"></a>  --boundary [process|task]       process runs units on threads here; task
-<a id="__codelineno-37-32" name="__codelineno-37-32" href="#__codelineno-37-32"></a>                                  runs each in its own process. Default: the
-<a id="__codelineno-37-33" name="__codelineno-37-33" href="#__codelineno-37-33"></a>                                  target's boundary.
-<a id="__codelineno-37-34" name="__codelineno-37-34" href="#__codelineno-37-34"></a>  --warn-error                    Exit 1 on warnings too.
-<a id="__codelineno-37-35" name="__codelineno-37-35" href="#__codelineno-37-35"></a>  --cancel-grace DURATION         After a stop request (Ctrl+C, SIGTERM) or a
-<a id="__codelineno-37-36" name="__codelineno-37-36" href="#__codelineno-37-36"></a>                                  timeout, how long running units may finish
-<a id="__codelineno-37-37" name="__codelineno-37-37" href="#__codelineno-37-37"></a>                                  before they are killed, as 30s, 2m or 30.
-<a id="__codelineno-37-38" name="__codelineno-37-38" href="#__codelineno-37-38"></a>                                  Default: the setting, else 30s.
-<a id="__codelineno-37-39" name="__codelineno-37-39" href="#__codelineno-37-39"></a>  --help                          Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>  --project-dir DIRECTORY         Directory that holds pipeloom.yml.
+<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>                                  [default: .]
+<a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>  --vars TEXT                     Variables as a YAML or JSON mapping; they
+<a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a>                                  override the vars block.
+<a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a>  --target TEXT                   Target to bind; default_target or the only
+<a id="__codelineno-39-6" name="__codelineno-39-6" href="#__codelineno-39-6"></a>                                  target when omitted.
+<a id="__codelineno-39-7" name="__codelineno-39-7" href="#__codelineno-39-7"></a>  --plugin MODULE:ATTR            A PluginSpec to load besides the installed
+<a id="__codelineno-39-8" name="__codelineno-39-8" href="#__codelineno-39-8"></a>                                  plugins. Repeatable.
+<a id="__codelineno-39-9" name="__codelineno-39-9" href="#__codelineno-39-9"></a>  --log-format [text|json]        Diagnostics and events on stderr: readable
+<a id="__codelineno-39-10" name="__codelineno-39-10" href="#__codelineno-39-10"></a>                                  text or one JSON object per line.  [default:
+<a id="__codelineno-39-11" name="__codelineno-39-11" href="#__codelineno-39-11"></a>                                  text]
+<a id="__codelineno-39-12" name="__codelineno-39-12" href="#__codelineno-39-12"></a>  --from RUN_ID                   The finished run to retry: its failed,
+<a id="__codelineno-39-13" name="__codelineno-39-13" href="#__codelineno-39-13"></a>                                  skipped and cancelled units run again.
+<a id="__codelineno-39-14" name="__codelineno-39-14" href="#__codelineno-39-14"></a>                                  [required]
+<a id="__codelineno-39-15" name="__codelineno-39-15" href="#__codelineno-39-15"></a>  --run-id TEXT                   Name of the new run; it must differ from
+<a id="__codelineno-39-16" name="__codelineno-39-16" href="#__codelineno-39-16"></a>                                  --from. Default: a timestamp and a suffix.
+<a id="__codelineno-39-17" name="__codelineno-39-17" href="#__codelineno-39-17"></a>  --full-refresh / --no-full-refresh
+<a id="__codelineno-39-18" name="__codelineno-39-18" href="#__codelineno-39-18"></a>                                  Rebuild append tables from scratch. Default:
+<a id="__codelineno-39-19" name="__codelineno-39-19" href="#__codelineno-39-19"></a>                                  what the retried run did.
+<a id="__codelineno-39-20" name="__codelineno-39-20" href="#__codelineno-39-20"></a>  --orchestrator-id KEY=VALUE     An id the orchestrator gave this run, such
+<a id="__codelineno-39-21" name="__codelineno-39-21" href="#__codelineno-39-21"></a>                                  as job_run_id=42. It goes into the attempt
+<a id="__codelineno-39-22" name="__codelineno-39-22" href="#__codelineno-39-22"></a>                                  files, the run results and the context of
+<a id="__codelineno-39-23" name="__codelineno-39-23" href="#__codelineno-39-23"></a>                                  every event. Repeatable; a later duplicate
+<a id="__codelineno-39-24" name="__codelineno-39-24" href="#__codelineno-39-24"></a>                                  wins. Key: [a-z][a-z0-9_]{0,63}; value: 1 to
+<a id="__codelineno-39-25" name="__codelineno-39-25" href="#__codelineno-39-25"></a>                                  256 printable characters.
+<a id="__codelineno-39-26" name="__codelineno-39-26" href="#__codelineno-39-26"></a>  --fail-fast                     After the first failure, start no more
+<a id="__codelineno-39-27" name="__codelineno-39-27" href="#__codelineno-39-27"></a>                                  units.
+<a id="__codelineno-39-28" name="__codelineno-39-28" href="#__codelineno-39-28"></a>  --no-lock                       Do not take the run lock.
+<a id="__codelineno-39-29" name="__codelineno-39-29" href="#__codelineno-39-29"></a>  --workers INTEGER RANGE         Units to run at once. Default: the target's
+<a id="__codelineno-39-30" name="__codelineno-39-30" href="#__codelineno-39-30"></a>                                  setting, else min(4, CPUs).  [x&gt;=1]
+<a id="__codelineno-39-31" name="__codelineno-39-31" href="#__codelineno-39-31"></a>  --boundary [process|task]       process runs units on threads here; task
+<a id="__codelineno-39-32" name="__codelineno-39-32" href="#__codelineno-39-32"></a>                                  runs each in its own process. Default: the
+<a id="__codelineno-39-33" name="__codelineno-39-33" href="#__codelineno-39-33"></a>                                  target's boundary.
+<a id="__codelineno-39-34" name="__codelineno-39-34" href="#__codelineno-39-34"></a>  --warn-error                    Exit 1 on warnings too.
+<a id="__codelineno-39-35" name="__codelineno-39-35" href="#__codelineno-39-35"></a>  --cancel-grace DURATION         After a stop request (Ctrl+C, SIGTERM) or a
+<a id="__codelineno-39-36" name="__codelineno-39-36" href="#__codelineno-39-36"></a>                                  timeout, how long running units may finish
+<a id="__codelineno-39-37" name="__codelineno-39-37" href="#__codelineno-39-37"></a>                                  before they are killed, as 30s, 2m or 30.
+<a id="__codelineno-39-38" name="__codelineno-39-38" href="#__codelineno-39-38"></a>                                  Default: the setting, else 30s.
+<a id="__codelineno-39-39" name="__codelineno-39-39" href="#__codelineno-39-39"></a>  --help                          Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-run">pipeloom run<a class="headerlink" href="#pipeloom-run" title="Permanent link">&para;</a></h4>
 <p>Run the selected models. Exit codes: 0 ok, 1 a unit or a check failed, 2 bad usage, 130 stopped.</p>
@@ -3893,104 +4015,81 @@ to finish; a second one kills them at once; a third raises KeyboardInterrupt.</p
 <p><code>-s unit:NAME</code> runs one unit without a lock or run results, and never retries it; the
 process executor uses it.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>pipeloom run [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>pipeloom run [OPTIONS]
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>  --project-dir DIRECTORY      Directory that holds pipeloom.yml.  [default:
-<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>                               .]
-<a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a>  --vars TEXT                  Variables as a YAML or JSON mapping; they
-<a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a>                               override the vars block.
-<a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a>  --target TEXT                Target to bind; default_target or the only
-<a id="__codelineno-39-6" name="__codelineno-39-6" href="#__codelineno-39-6"></a>                               target when omitted.
-<a id="__codelineno-39-7" name="__codelineno-39-7" href="#__codelineno-39-7"></a>  --plugin MODULE:ATTR         A PluginSpec to load besides the installed
-<a id="__codelineno-39-8" name="__codelineno-39-8" href="#__codelineno-39-8"></a>                               plugins. Repeatable.
-<a id="__codelineno-39-9" name="__codelineno-39-9" href="#__codelineno-39-9"></a>  -s, --select SELECTOR        Models to include: name, tag:x, path:dir,
-<a id="__codelineno-39-10" name="__codelineno-39-10" href="#__codelineno-39-10"></a>                               materialized:x, +model, model+, N+model,
-<a id="__codelineno-39-11" name="__codelineno-39-11" href="#__codelineno-39-11"></a>                               model+N. Space unions, comma intersects.
-<a id="__codelineno-39-12" name="__codelineno-39-12" href="#__codelineno-39-12"></a>                               Repeatable, all are unioned.
-<a id="__codelineno-39-13" name="__codelineno-39-13" href="#__codelineno-39-13"></a>  --exclude SELECTOR           Remove the models this selector matches from
-<a id="__codelineno-39-14" name="__codelineno-39-14" href="#__codelineno-39-14"></a>                               the selection. Repeatable.
-<a id="__codelineno-39-15" name="__codelineno-39-15" href="#__codelineno-39-15"></a>  --state DIR                  Folder of a reference manifest.json (and
-<a id="__codelineno-39-16" name="__codelineno-39-16" href="#__codelineno-39-16"></a>                               optionally run_results.json), for the state:
-<a id="__codelineno-39-17" name="__codelineno-39-17" href="#__codelineno-39-17"></a>                               and result: selectors. Relative to the project
-<a id="__codelineno-39-18" name="__codelineno-39-18" href="#__codelineno-39-18"></a>                               dir unless absolute. `compile --stable` or the
-<a id="__codelineno-39-19" name="__codelineno-39-19" href="#__codelineno-39-19"></a>                               artifacts root (target) both work.
-<a id="__codelineno-39-20" name="__codelineno-39-20" href="#__codelineno-39-20"></a>  --defer                      Read the parents this run does not select from
-<a id="__codelineno-39-21" name="__codelineno-39-21" href="#__codelineno-39-21"></a>                               the relations of the --state manifest instead
-<a id="__codelineno-39-22" name="__codelineno-39-22" href="#__codelineno-39-22"></a>                               of this target's, so a dev run of one model
-<a id="__codelineno-39-23" name="__codelineno-39-23" href="#__codelineno-39-23"></a>                               reads the production tables. Needs --state.
-<a id="__codelineno-39-24" name="__codelineno-39-24" href="#__codelineno-39-24"></a>                               Refused for unit invocations and the task
-<a id="__codelineno-39-25" name="__codelineno-39-25" href="#__codelineno-39-25"></a>                               boundary (PLX111).
-<a id="__codelineno-39-26" name="__codelineno-39-26" href="#__codelineno-39-26"></a>  --log-format [text|json]     Diagnostics and events on stderr: readable text
-<a id="__codelineno-39-27" name="__codelineno-39-27" href="#__codelineno-39-27"></a>                               or one JSON object per line.  [default: text]
-<a id="__codelineno-39-28" name="__codelineno-39-28" href="#__codelineno-39-28"></a>  --manifest FILE              Run the plan of this manifest instead of
-<a id="__codelineno-39-29" name="__codelineno-39-29" href="#__codelineno-39-29"></a>                               compiling the project.
-<a id="__codelineno-39-30" name="__codelineno-39-30" href="#__codelineno-39-30"></a>  --expect-plan-hash HEX       Stop with PLX103 unless the plan hash is this
-<a id="__codelineno-39-31" name="__codelineno-39-31" href="#__codelineno-39-31"></a>                               sha256.
-<a id="__codelineno-39-32" name="__codelineno-39-32" href="#__codelineno-39-32"></a>  --run-id TEXT                Name of the run. Reusing it continues that run.
-<a id="__codelineno-39-33" name="__codelineno-39-33" href="#__codelineno-39-33"></a>                               Default: a timestamp and a suffix.
-<a id="__codelineno-39-34" name="__codelineno-39-34" href="#__codelineno-39-34"></a>  --full-refresh BOOLEAN       Rebuild append tables from scratch. Takes an
-<a id="__codelineno-39-35" name="__codelineno-39-35" href="#__codelineno-39-35"></a>                               optional true or false.  [default: False]
-<a id="__codelineno-39-36" name="__codelineno-39-36" href="#__codelineno-39-36"></a>  --run-started-at ISO8601     Start time of the run, with a UTC offset (for
-<a id="__codelineno-39-37" name="__codelineno-39-37" href="#__codelineno-39-37"></a>                               example the start of the orchestrator job).
-<a id="__codelineno-39-38" name="__codelineno-39-38" href="#__codelineno-39-38"></a>                               Engines use it to make writes idempotent. Needs
-<a id="__codelineno-39-39" name="__codelineno-39-39" href="#__codelineno-39-39"></a>                               --run-id. A reused run id keeps the start it
-<a id="__codelineno-39-40" name="__codelineno-39-40" href="#__codelineno-39-40"></a>                               recorded.
-<a id="__codelineno-39-41" name="__codelineno-39-41" href="#__codelineno-39-41"></a>  --orchestrator-id KEY=VALUE  An id the orchestrator gave this run, such as
-<a id="__codelineno-39-42" name="__codelineno-39-42" href="#__codelineno-39-42"></a>                               job_run_id=42. It goes into the attempt files,
-<a id="__codelineno-39-43" name="__codelineno-39-43" href="#__codelineno-39-43"></a>                               the run results and the context of every event.
-<a id="__codelineno-39-44" name="__codelineno-39-44" href="#__codelineno-39-44"></a>                               Repeatable; a later duplicate wins. Key:
-<a id="__codelineno-39-45" name="__codelineno-39-45" href="#__codelineno-39-45"></a>                               [a-z][a-z0-9_]{0,63}; value: 1 to 256 printable
-<a id="__codelineno-39-46" name="__codelineno-39-46" href="#__codelineno-39-46"></a>                               characters.
-<a id="__codelineno-39-47" name="__codelineno-39-47" href="#__codelineno-39-47"></a>  --fail-fast                  After the first failure, start no more units.
-<a id="__codelineno-39-48" name="__codelineno-39-48" href="#__codelineno-39-48"></a>  --no-lock                    Do not take the run lock.
-<a id="__codelineno-39-49" name="__codelineno-39-49" href="#__codelineno-39-49"></a>  --workers INTEGER RANGE      Units to run at once. Default: the target's
-<a id="__codelineno-39-50" name="__codelineno-39-50" href="#__codelineno-39-50"></a>                               setting, else min(4, CPUs).  [x&gt;=1]
-<a id="__codelineno-39-51" name="__codelineno-39-51" href="#__codelineno-39-51"></a>  --boundary [process|task]    process runs units on threads here; task runs
-<a id="__codelineno-39-52" name="__codelineno-39-52" href="#__codelineno-39-52"></a>                               each in its own process. Default: the target's
-<a id="__codelineno-39-53" name="__codelineno-39-53" href="#__codelineno-39-53"></a>                               boundary.
-<a id="__codelineno-39-54" name="__codelineno-39-54" href="#__codelineno-39-54"></a>  --warn-error                 Exit 1 on warnings too.
-<a id="__codelineno-39-55" name="__codelineno-39-55" href="#__codelineno-39-55"></a>  --cancel-grace DURATION      After a stop request (Ctrl+C, SIGTERM) or a
-<a id="__codelineno-39-56" name="__codelineno-39-56" href="#__codelineno-39-56"></a>                               timeout, how long running units may finish
-<a id="__codelineno-39-57" name="__codelineno-39-57" href="#__codelineno-39-57"></a>                               before they are killed, as 30s, 2m or 30.
-<a id="__codelineno-39-58" name="__codelineno-39-58" href="#__codelineno-39-58"></a>                               Default: the setting, else 30s.
-<a id="__codelineno-39-59" name="__codelineno-39-59" href="#__codelineno-39-59"></a>  --help                       Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>  --project-dir DIRECTORY      Directory that holds pipeloom.yml.  [default:
+<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>                               .]
+<a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a>  --vars TEXT                  Variables as a YAML or JSON mapping; they
+<a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a>                               override the vars block.
+<a id="__codelineno-41-5" name="__codelineno-41-5" href="#__codelineno-41-5"></a>  --target TEXT                Target to bind; default_target or the only
+<a id="__codelineno-41-6" name="__codelineno-41-6" href="#__codelineno-41-6"></a>                               target when omitted.
+<a id="__codelineno-41-7" name="__codelineno-41-7" href="#__codelineno-41-7"></a>  --plugin MODULE:ATTR         A PluginSpec to load besides the installed
+<a id="__codelineno-41-8" name="__codelineno-41-8" href="#__codelineno-41-8"></a>                               plugins. Repeatable.
+<a id="__codelineno-41-9" name="__codelineno-41-9" href="#__codelineno-41-9"></a>  -s, --select SELECTOR        Models to include: name, tag:x, path:dir,
+<a id="__codelineno-41-10" name="__codelineno-41-10" href="#__codelineno-41-10"></a>                               materialized:x, +model, model+, N+model,
+<a id="__codelineno-41-11" name="__codelineno-41-11" href="#__codelineno-41-11"></a>                               model+N. Space unions, comma intersects.
+<a id="__codelineno-41-12" name="__codelineno-41-12" href="#__codelineno-41-12"></a>                               Repeatable, all are unioned.
+<a id="__codelineno-41-13" name="__codelineno-41-13" href="#__codelineno-41-13"></a>  --exclude SELECTOR           Remove the models this selector matches from
+<a id="__codelineno-41-14" name="__codelineno-41-14" href="#__codelineno-41-14"></a>                               the selection. Repeatable.
+<a id="__codelineno-41-15" name="__codelineno-41-15" href="#__codelineno-41-15"></a>  --state DIR                  Folder of a reference manifest.json (and
+<a id="__codelineno-41-16" name="__codelineno-41-16" href="#__codelineno-41-16"></a>                               optionally run_results.json), for the state:
+<a id="__codelineno-41-17" name="__codelineno-41-17" href="#__codelineno-41-17"></a>                               and result: selectors. Relative to the project
+<a id="__codelineno-41-18" name="__codelineno-41-18" href="#__codelineno-41-18"></a>                               dir unless absolute. `compile --stable` or the
+<a id="__codelineno-41-19" name="__codelineno-41-19" href="#__codelineno-41-19"></a>                               artifacts root (target) both work.
+<a id="__codelineno-41-20" name="__codelineno-41-20" href="#__codelineno-41-20"></a>  --defer                      Read the parents this run does not select from
+<a id="__codelineno-41-21" name="__codelineno-41-21" href="#__codelineno-41-21"></a>                               the relations of the --state manifest instead
+<a id="__codelineno-41-22" name="__codelineno-41-22" href="#__codelineno-41-22"></a>                               of this target's, so a dev run of one model
+<a id="__codelineno-41-23" name="__codelineno-41-23" href="#__codelineno-41-23"></a>                               reads the production tables. Needs --state.
+<a id="__codelineno-41-24" name="__codelineno-41-24" href="#__codelineno-41-24"></a>                               Refused for unit invocations and the task
+<a id="__codelineno-41-25" name="__codelineno-41-25" href="#__codelineno-41-25"></a>                               boundary (PLX111).
+<a id="__codelineno-41-26" name="__codelineno-41-26" href="#__codelineno-41-26"></a>  --log-format [text|json]     Diagnostics and events on stderr: readable text
+<a id="__codelineno-41-27" name="__codelineno-41-27" href="#__codelineno-41-27"></a>                               or one JSON object per line.  [default: text]
+<a id="__codelineno-41-28" name="__codelineno-41-28" href="#__codelineno-41-28"></a>  --manifest FILE              Run the plan of this manifest instead of
+<a id="__codelineno-41-29" name="__codelineno-41-29" href="#__codelineno-41-29"></a>                               compiling the project.
+<a id="__codelineno-41-30" name="__codelineno-41-30" href="#__codelineno-41-30"></a>  --expect-plan-hash HEX       Stop with PLX103 unless the plan hash is this
+<a id="__codelineno-41-31" name="__codelineno-41-31" href="#__codelineno-41-31"></a>                               sha256.
+<a id="__codelineno-41-32" name="__codelineno-41-32" href="#__codelineno-41-32"></a>  --run-id TEXT                Name of the run. Reusing it continues that run.
+<a id="__codelineno-41-33" name="__codelineno-41-33" href="#__codelineno-41-33"></a>                               Default: a timestamp and a suffix.
+<a id="__codelineno-41-34" name="__codelineno-41-34" href="#__codelineno-41-34"></a>  --full-refresh BOOLEAN       Rebuild append tables from scratch. Takes an
+<a id="__codelineno-41-35" name="__codelineno-41-35" href="#__codelineno-41-35"></a>                               optional true or false.  [default: False]
+<a id="__codelineno-41-36" name="__codelineno-41-36" href="#__codelineno-41-36"></a>  --run-started-at ISO8601     Start time of the run, with a UTC offset (for
+<a id="__codelineno-41-37" name="__codelineno-41-37" href="#__codelineno-41-37"></a>                               example the start of the orchestrator job).
+<a id="__codelineno-41-38" name="__codelineno-41-38" href="#__codelineno-41-38"></a>                               Engines use it to make writes idempotent. Needs
+<a id="__codelineno-41-39" name="__codelineno-41-39" href="#__codelineno-41-39"></a>                               --run-id. A reused run id keeps the start it
+<a id="__codelineno-41-40" name="__codelineno-41-40" href="#__codelineno-41-40"></a>                               recorded.
+<a id="__codelineno-41-41" name="__codelineno-41-41" href="#__codelineno-41-41"></a>  --orchestrator-id KEY=VALUE  An id the orchestrator gave this run, such as
+<a id="__codelineno-41-42" name="__codelineno-41-42" href="#__codelineno-41-42"></a>                               job_run_id=42. It goes into the attempt files,
+<a id="__codelineno-41-43" name="__codelineno-41-43" href="#__codelineno-41-43"></a>                               the run results and the context of every event.
+<a id="__codelineno-41-44" name="__codelineno-41-44" href="#__codelineno-41-44"></a>                               Repeatable; a later duplicate wins. Key:
+<a id="__codelineno-41-45" name="__codelineno-41-45" href="#__codelineno-41-45"></a>                               [a-z][a-z0-9_]{0,63}; value: 1 to 256 printable
+<a id="__codelineno-41-46" name="__codelineno-41-46" href="#__codelineno-41-46"></a>                               characters.
+<a id="__codelineno-41-47" name="__codelineno-41-47" href="#__codelineno-41-47"></a>  --fail-fast                  After the first failure, start no more units.
+<a id="__codelineno-41-48" name="__codelineno-41-48" href="#__codelineno-41-48"></a>  --no-lock                    Do not take the run lock.
+<a id="__codelineno-41-49" name="__codelineno-41-49" href="#__codelineno-41-49"></a>  --workers INTEGER RANGE      Units to run at once. Default: the target's
+<a id="__codelineno-41-50" name="__codelineno-41-50" href="#__codelineno-41-50"></a>                               setting, else min(4, CPUs).  [x&gt;=1]
+<a id="__codelineno-41-51" name="__codelineno-41-51" href="#__codelineno-41-51"></a>  --boundary [process|task]    process runs units on threads here; task runs
+<a id="__codelineno-41-52" name="__codelineno-41-52" href="#__codelineno-41-52"></a>                               each in its own process. Default: the target's
+<a id="__codelineno-41-53" name="__codelineno-41-53" href="#__codelineno-41-53"></a>                               boundary.
+<a id="__codelineno-41-54" name="__codelineno-41-54" href="#__codelineno-41-54"></a>  --warn-error                 Exit 1 on warnings too.
+<a id="__codelineno-41-55" name="__codelineno-41-55" href="#__codelineno-41-55"></a>  --cancel-grace DURATION      After a stop request (Ctrl+C, SIGTERM) or a
+<a id="__codelineno-41-56" name="__codelineno-41-56" href="#__codelineno-41-56"></a>                               timeout, how long running units may finish
+<a id="__codelineno-41-57" name="__codelineno-41-57" href="#__codelineno-41-57"></a>                               before they are killed, as 30s, 2m or 30.
+<a id="__codelineno-41-58" name="__codelineno-41-58" href="#__codelineno-41-58"></a>                               Default: the setting, else 30s.
+<a id="__codelineno-41-59" name="__codelineno-41-59" href="#__codelineno-41-59"></a>  --help                       Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-runs">pipeloom runs<a class="headerlink" href="#pipeloom-runs" title="Permanent link">&para;</a></h4>
 <p>List past runs and show one run (read only).</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>pipeloom runs [OPTIONS] COMMAND [ARGS]...
+<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>pipeloom runs [OPTIONS] COMMAND [ARGS]...
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>  --help  Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>  --help  Show this message and exit.
 </code></pre></div>
 <h5 id="pipeloom-runs-ls">pipeloom runs ls<a class="headerlink" href="#pipeloom-runs-ls" title="Permanent link">&para;</a></h5>
 <p>List the last runs of the target, newest first. Exit 1 for PLX117 and PLX118.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>pipeloom runs ls [OPTIONS]
-</code></pre></div>
-<p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
-<a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>  --vars TEXT               Variables as a YAML or JSON mapping; they override
-<a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>                            the vars block.
-<a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a>  --target TEXT             Target to bind; default_target or the only target
-<a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a>                            when omitted.
-<a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a>  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
-<a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a>                            plugins. Repeatable.
-<a id="__codelineno-43-8" name="__codelineno-43-8" href="#__codelineno-43-8"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
-<a id="__codelineno-43-9" name="__codelineno-43-9" href="#__codelineno-43-9"></a>                            one JSON object per line.  [default: text]
-<a id="__codelineno-43-10" name="__codelineno-43-10" href="#__codelineno-43-10"></a>  --artifacts               Read runs/*/run_results.json under the artifacts
-<a id="__codelineno-43-11" name="__codelineno-43-11" href="#__codelineno-43-11"></a>                            root instead of the state store.
-<a id="__codelineno-43-12" name="__codelineno-43-12" href="#__codelineno-43-12"></a>  --output [text|json]      Tab-separated lines, or JSON.  [default: text]
-<a id="__codelineno-43-13" name="__codelineno-43-13" href="#__codelineno-43-13"></a>  --limit INTEGER RANGE     Runs to list, newest first.  [default: 20; x&gt;=1]
-<a id="__codelineno-43-14" name="__codelineno-43-14" href="#__codelineno-43-14"></a>  --before RUN_ID           List the runs older than this one: the next page
-<a id="__codelineno-43-15" name="__codelineno-43-15" href="#__codelineno-43-15"></a>                            after the last run shown.
-<a id="__codelineno-43-16" name="__codelineno-43-16" href="#__codelineno-43-16"></a>  --help                    Show this message and exit.
-</code></pre></div>
-<h5 id="pipeloom-runs-show">pipeloom runs show<a class="headerlink" href="#pipeloom-runs-show" title="Permanent link">&para;</a></h5>
-<p>Show one run and its unit attempts. Exit 1 for PLX118.</p>
-<p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>pipeloom runs show [OPTIONS] RUN_ID
+<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>pipeloom runs ls [OPTIONS]
 </code></pre></div>
 <p><strong>Options:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
@@ -4005,33 +4104,56 @@ process executor uses it.</p>
 <a id="__codelineno-45-10" name="__codelineno-45-10" href="#__codelineno-45-10"></a>  --artifacts               Read runs/*/run_results.json under the artifacts
 <a id="__codelineno-45-11" name="__codelineno-45-11" href="#__codelineno-45-11"></a>                            root instead of the state store.
 <a id="__codelineno-45-12" name="__codelineno-45-12" href="#__codelineno-45-12"></a>  --output [text|json]      Tab-separated lines, or JSON.  [default: text]
-<a id="__codelineno-45-13" name="__codelineno-45-13" href="#__codelineno-45-13"></a>  --help                    Show this message and exit.
+<a id="__codelineno-45-13" name="__codelineno-45-13" href="#__codelineno-45-13"></a>  --limit INTEGER RANGE     Runs to list, newest first.  [default: 20; x&gt;=1]
+<a id="__codelineno-45-14" name="__codelineno-45-14" href="#__codelineno-45-14"></a>  --before RUN_ID           List the runs older than this one: the next page
+<a id="__codelineno-45-15" name="__codelineno-45-15" href="#__codelineno-45-15"></a>                            after the last run shown.
+<a id="__codelineno-45-16" name="__codelineno-45-16" href="#__codelineno-45-16"></a>  --help                    Show this message and exit.
+</code></pre></div>
+<h5 id="pipeloom-runs-show">pipeloom runs show<a class="headerlink" href="#pipeloom-runs-show" title="Permanent link">&para;</a></h5>
+<p>Show one run and its unit attempts. Exit 1 for PLX118.</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>pipeloom runs show [OPTIONS] RUN_ID
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
+<a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>  --vars TEXT               Variables as a YAML or JSON mapping; they override
+<a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a>                            the vars block.
+<a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a>  --target TEXT             Target to bind; default_target or the only target
+<a id="__codelineno-47-5" name="__codelineno-47-5" href="#__codelineno-47-5"></a>                            when omitted.
+<a id="__codelineno-47-6" name="__codelineno-47-6" href="#__codelineno-47-6"></a>  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
+<a id="__codelineno-47-7" name="__codelineno-47-7" href="#__codelineno-47-7"></a>                            plugins. Repeatable.
+<a id="__codelineno-47-8" name="__codelineno-47-8" href="#__codelineno-47-8"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+<a id="__codelineno-47-9" name="__codelineno-47-9" href="#__codelineno-47-9"></a>                            one JSON object per line.  [default: text]
+<a id="__codelineno-47-10" name="__codelineno-47-10" href="#__codelineno-47-10"></a>  --artifacts               Read runs/*/run_results.json under the artifacts
+<a id="__codelineno-47-11" name="__codelineno-47-11" href="#__codelineno-47-11"></a>                            root instead of the state store.
+<a id="__codelineno-47-12" name="__codelineno-47-12" href="#__codelineno-47-12"></a>  --output [text|json]      Tab-separated lines, or JSON.  [default: text]
+<a id="__codelineno-47-13" name="__codelineno-47-13" href="#__codelineno-47-13"></a>  --help                    Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-schema">pipeloom schema<a class="headerlink" href="#pipeloom-schema" title="Permanent link">&para;</a></h4>
 <p>JSON Schemas for the YAML files.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>pipeloom schema [OPTIONS] COMMAND [ARGS]...
+<div class="highlight"><pre><span></span><code><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>pipeloom schema [OPTIONS] COMMAND [ARGS]...
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>  --help  Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>  --help  Show this message and exit.
 </code></pre></div>
 <h5 id="pipeloom-schema-export">pipeloom schema export<a class="headerlink" href="#pipeloom-schema-export" title="Permanent link">&para;</a></h5>
 <p>Write the JSON Schemas, with plugin options as oneOf branches.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>pipeloom schema export [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>pipeloom schema export [OPTIONS]
 </code></pre></div>
 <p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>  --out DIRECTORY                Directory to write project.json and
-<a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>                                 properties.json into.  [required]
-<a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>  --plugins [installed|builtin]  Plugins whose options appear in the schema;
-<a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a>                                 installed imports every plugin.  [default:
-<a id="__codelineno-49-5" name="__codelineno-49-5" href="#__codelineno-49-5"></a>                                 installed]
-<a id="__codelineno-49-6" name="__codelineno-49-6" href="#__codelineno-49-6"></a>  --plugin MODULE:ATTR           A PluginSpec to load besides the installed
-<a id="__codelineno-49-7" name="__codelineno-49-7" href="#__codelineno-49-7"></a>                                 plugins. Repeatable.
-<a id="__codelineno-49-8" name="__codelineno-49-8" href="#__codelineno-49-8"></a>  --log-format [text|json]       Diagnostics and events on stderr: readable
-<a id="__codelineno-49-9" name="__codelineno-49-9" href="#__codelineno-49-9"></a>                                 text or one JSON object per line.  [default:
-<a id="__codelineno-49-10" name="__codelineno-49-10" href="#__codelineno-49-10"></a>                                 text]
-<a id="__codelineno-49-11" name="__codelineno-49-11" href="#__codelineno-49-11"></a>  --help                         Show this message and exit.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>  --out DIRECTORY                Directory to write project.json and
+<a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a>                                 properties.json into.  [required]
+<a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a>  --plugins [installed|builtin]  Plugins whose options appear in the schema;
+<a id="__codelineno-51-4" name="__codelineno-51-4" href="#__codelineno-51-4"></a>                                 installed imports every plugin.  [default:
+<a id="__codelineno-51-5" name="__codelineno-51-5" href="#__codelineno-51-5"></a>                                 installed]
+<a id="__codelineno-51-6" name="__codelineno-51-6" href="#__codelineno-51-6"></a>  --plugin MODULE:ATTR           A PluginSpec to load besides the installed
+<a id="__codelineno-51-7" name="__codelineno-51-7" href="#__codelineno-51-7"></a>                                 plugins. Repeatable.
+<a id="__codelineno-51-8" name="__codelineno-51-8" href="#__codelineno-51-8"></a>  --log-format [text|json]       Diagnostics and events on stderr: readable
+<a id="__codelineno-51-9" name="__codelineno-51-9" href="#__codelineno-51-9"></a>                                 text or one JSON object per line.  [default:
+<a id="__codelineno-51-10" name="__codelineno-51-10" href="#__codelineno-51-10"></a>                                 text]
+<a id="__codelineno-51-11" name="__codelineno-51-11" href="#__codelineno-51-11"></a>  --help                         Show this message and exit.
 </code></pre></div>
 <h4 id="pipeloom-unit-tests">pipeloom unit-tests<a class="headerlink" href="#pipeloom-unit-tests" title="Permanent link">&para;</a></h4>
 <p>Run the unit tests of the selected models on their given rows.</p>
@@ -4039,35 +4161,7 @@ process executor uses it.</p>
 expected rows. Nothing is written and no run is recorded. Exit codes: 0 every case passed,
 1 a case failed or the project does not validate, 2 usage error, 130 interrupted.</p>
 <p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>pipeloom unit-tests [OPTIONS]
-</code></pre></div>
-<p><strong>Options:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
-<a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a>  --vars TEXT               Variables as a YAML or JSON mapping; they override
-<a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a>                            the vars block.
-<a id="__codelineno-51-4" name="__codelineno-51-4" href="#__codelineno-51-4"></a>  --target TEXT             Target to bind; default_target or the only target
-<a id="__codelineno-51-5" name="__codelineno-51-5" href="#__codelineno-51-5"></a>                            when omitted.
-<a id="__codelineno-51-6" name="__codelineno-51-6" href="#__codelineno-51-6"></a>  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
-<a id="__codelineno-51-7" name="__codelineno-51-7" href="#__codelineno-51-7"></a>                            plugins. Repeatable.
-<a id="__codelineno-51-8" name="__codelineno-51-8" href="#__codelineno-51-8"></a>  -s, --select SELECTOR     Models to include: name, tag:x, path:dir,
-<a id="__codelineno-51-9" name="__codelineno-51-9" href="#__codelineno-51-9"></a>                            materialized:x, +model, model+, N+model, model+N.
-<a id="__codelineno-51-10" name="__codelineno-51-10" href="#__codelineno-51-10"></a>                            Space unions, comma intersects. Repeatable, all
-<a id="__codelineno-51-11" name="__codelineno-51-11" href="#__codelineno-51-11"></a>                            are unioned.
-<a id="__codelineno-51-12" name="__codelineno-51-12" href="#__codelineno-51-12"></a>  --exclude SELECTOR        Remove the models this selector matches from the
-<a id="__codelineno-51-13" name="__codelineno-51-13" href="#__codelineno-51-13"></a>                            selection. Repeatable.
-<a id="__codelineno-51-14" name="__codelineno-51-14" href="#__codelineno-51-14"></a>  --state DIR               Folder of a reference manifest.json (and
-<a id="__codelineno-51-15" name="__codelineno-51-15" href="#__codelineno-51-15"></a>                            optionally run_results.json), for the state: and
-<a id="__codelineno-51-16" name="__codelineno-51-16" href="#__codelineno-51-16"></a>                            result: selectors. Relative to the project dir
-<a id="__codelineno-51-17" name="__codelineno-51-17" href="#__codelineno-51-17"></a>                            unless absolute. `compile --stable` or the
-<a id="__codelineno-51-18" name="__codelineno-51-18" href="#__codelineno-51-18"></a>                            artifacts root (target) both work.
-<a id="__codelineno-51-19" name="__codelineno-51-19" href="#__codelineno-51-19"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
-<a id="__codelineno-51-20" name="__codelineno-51-20" href="#__codelineno-51-20"></a>                            one JSON object per line.  [default: text]
-<a id="__codelineno-51-21" name="__codelineno-51-21" href="#__codelineno-51-21"></a>  --help                    Show this message and exit.
-</code></pre></div>
-<h4 id="pipeloom-validate">pipeloom validate<a class="headerlink" href="#pipeloom-validate" title="Permanent link">&para;</a></h4>
-<p>Check the project: YAML, schema, secrets, target and plugin options (L0 to L6).</p>
-<p><strong>Usage:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>pipeloom validate [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>pipeloom unit-tests [OPTIONS]
 </code></pre></div>
 <p><strong>Options:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
@@ -4077,10 +4171,38 @@ expected rows. Nothing is written and no run is recorded. Exit codes: 0 every ca
 <a id="__codelineno-53-5" name="__codelineno-53-5" href="#__codelineno-53-5"></a>                            when omitted.
 <a id="__codelineno-53-6" name="__codelineno-53-6" href="#__codelineno-53-6"></a>  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
 <a id="__codelineno-53-7" name="__codelineno-53-7" href="#__codelineno-53-7"></a>                            plugins. Repeatable.
-<a id="__codelineno-53-8" name="__codelineno-53-8" href="#__codelineno-53-8"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
-<a id="__codelineno-53-9" name="__codelineno-53-9" href="#__codelineno-53-9"></a>                            one JSON object per line.  [default: text]
-<a id="__codelineno-53-10" name="__codelineno-53-10" href="#__codelineno-53-10"></a>  --warn-error              Exit 1 on warnings too.
-<a id="__codelineno-53-11" name="__codelineno-53-11" href="#__codelineno-53-11"></a>  --help                    Show this message and exit.
+<a id="__codelineno-53-8" name="__codelineno-53-8" href="#__codelineno-53-8"></a>  -s, --select SELECTOR     Models to include: name, tag:x, path:dir,
+<a id="__codelineno-53-9" name="__codelineno-53-9" href="#__codelineno-53-9"></a>                            materialized:x, +model, model+, N+model, model+N.
+<a id="__codelineno-53-10" name="__codelineno-53-10" href="#__codelineno-53-10"></a>                            Space unions, comma intersects. Repeatable, all
+<a id="__codelineno-53-11" name="__codelineno-53-11" href="#__codelineno-53-11"></a>                            are unioned.
+<a id="__codelineno-53-12" name="__codelineno-53-12" href="#__codelineno-53-12"></a>  --exclude SELECTOR        Remove the models this selector matches from the
+<a id="__codelineno-53-13" name="__codelineno-53-13" href="#__codelineno-53-13"></a>                            selection. Repeatable.
+<a id="__codelineno-53-14" name="__codelineno-53-14" href="#__codelineno-53-14"></a>  --state DIR               Folder of a reference manifest.json (and
+<a id="__codelineno-53-15" name="__codelineno-53-15" href="#__codelineno-53-15"></a>                            optionally run_results.json), for the state: and
+<a id="__codelineno-53-16" name="__codelineno-53-16" href="#__codelineno-53-16"></a>                            result: selectors. Relative to the project dir
+<a id="__codelineno-53-17" name="__codelineno-53-17" href="#__codelineno-53-17"></a>                            unless absolute. `compile --stable` or the
+<a id="__codelineno-53-18" name="__codelineno-53-18" href="#__codelineno-53-18"></a>                            artifacts root (target) both work.
+<a id="__codelineno-53-19" name="__codelineno-53-19" href="#__codelineno-53-19"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+<a id="__codelineno-53-20" name="__codelineno-53-20" href="#__codelineno-53-20"></a>                            one JSON object per line.  [default: text]
+<a id="__codelineno-53-21" name="__codelineno-53-21" href="#__codelineno-53-21"></a>  --help                    Show this message and exit.
+</code></pre></div>
+<h4 id="pipeloom-validate">pipeloom validate<a class="headerlink" href="#pipeloom-validate" title="Permanent link">&para;</a></h4>
+<p>Check the project: YAML, schema, secrets, target and plugin options (L0 to L6).</p>
+<p><strong>Usage:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>pipeloom validate [OPTIONS]
+</code></pre></div>
+<p><strong>Options:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>  --project-dir DIRECTORY   Directory that holds pipeloom.yml.  [default: .]
+<a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>  --vars TEXT               Variables as a YAML or JSON mapping; they override
+<a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>                            the vars block.
+<a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a>  --target TEXT             Target to bind; default_target or the only target
+<a id="__codelineno-55-5" name="__codelineno-55-5" href="#__codelineno-55-5"></a>                            when omitted.
+<a id="__codelineno-55-6" name="__codelineno-55-6" href="#__codelineno-55-6"></a>  --plugin MODULE:ATTR      A PluginSpec to load besides the installed
+<a id="__codelineno-55-7" name="__codelineno-55-7" href="#__codelineno-55-7"></a>                            plugins. Repeatable.
+<a id="__codelineno-55-8" name="__codelineno-55-8" href="#__codelineno-55-8"></a>  --log-format [text|json]  Diagnostics and events on stderr: readable text or
+<a id="__codelineno-55-9" name="__codelineno-55-9" href="#__codelineno-55-9"></a>                            one JSON object per line.  [default: text]
+<a id="__codelineno-55-10" name="__codelineno-55-10" href="#__codelineno-55-10"></a>  --warn-error              Exit 1 on warnings too.
+<a id="__codelineno-55-11" name="__codelineno-55-11" href="#__codelineno-55-11"></a>  --help                    Show this message and exit.
 </code></pre></div>
 
 

@@ -1025,6 +1025,8 @@
       
         
       
+        
+      
     
     
     
@@ -1393,6 +1395,34 @@
     
   
     Recipe: GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/migrate-1.x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating within 1.x
   
 
     
@@ -2641,9 +2671,7 @@ named like the model or source table it reads, then fill in the body. See
 <a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
 <a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="nd">@model</span>
 <a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="k">def</span><span class="w"> </span><span class="nf">orders_by_customer</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">ModelContext</span><span class="p">,</span> <span class="n">stg_orders</span><span class="p">):</span>
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span>
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        <span class="s2">"select customer_id, sum(amount) as total from stg_orders group by customer_id"</span>
-<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="p">)</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s2">"select customer_id, sum(amount) as total from stg_orders group by customer_id"</span><span class="p">)</span>
 </code></pre></div>
 <p>A model is a function marked with <code>@model</code>. Its parameters are its inputs: <code>orders</code> binds to the
 source table <code>raw.orders</code>, and <code>stg_orders</code> to the model of that name. <code>ctx.sql</code> runs a query over

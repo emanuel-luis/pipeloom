@@ -862,6 +862,8 @@
       
         
       
+        
+      
     
     
     
@@ -1230,6 +1232,34 @@
     
   
     Recipe: GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/migrate-1.x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating within 1.x
   
 
     
@@ -2289,6 +2319,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Decision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backfill-amendment-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backfill (amendment, 1.3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2370,7 +2417,19 @@
 <p>Idempotency (amends ADR-0032). Each window has its own token <code>run_id:model:interval_id</code>. The interval id is deterministic: <code>&lt;start&gt;_&lt;end&gt;</code> as <code>YYYYMMDDTHHMMSSZ</code>. A retry of the unit in the same run finds the tokens of the windows it already wrote and skips them, so the second window of a run is never mistaken for the first. On Delta each window will get its own transaction version when Spark gains interval writes. The run_results row keeps its unit <code>idempotency_token</code> and gains an optional <code>intervals</code> array: one entry per window with <code>interval_id</code>, <code>start</code>, <code>end</code>, <code>idempotency_token</code>, <code>skipped</code> and <code>rows_written</code>. Rows of other models do not carry it, and the frozen 1.0 required set is unchanged.</p>
 <p>Ledger. The processed time of a model is stored as a watermark record under the reserved key <code>&lt;model&gt;@intervals</code> (model names are identifiers, so it never names a model), with the dtype <code>pipeloom.intervals/1</code> and a value that is a list of merged <code>[start, end]</code> ISO-string pairs. The state codec does not convert datetimes nested in a list, so the pairs are text. After each window the runner merges <code>[start, min(end, run start)]</code> in with a compare-and-swap loop: a concurrent writer makes it read and merge again, so no interval is lost. The key carries the target, so a dev target never reads or writes the prod ledger. The Delta store encodes values through the same codec, so the round trip holds there by code reading; the state contract suite covers sqlite and json.</p>
 <p>Which windows run. Without a ledger, or on a full refresh, every window from <code>begin</code> to now. Otherwise the windows whose time up to the run start the ledger does not cover, plus the <code>lookback</code> windows just before the first of them. The partial window of the previous run is covered only up to that run's start, so the next run processes it again in full. When nothing is missing, nothing runs and the row reports zero rows written.</p>
-<p>Left for later 1.3 changes, with hooks in place: <code>pipeloom backfill</code> (it calls the same window plan with an explicit range), <code>restate</code> and <code>--mark-done</code> (they write the same ledger), Spark and Delta interval writes, the outcome fields of ADR-0056 and <code>on_cursor_value_missing</code>.</p>
+<p>Left for later 1.3 changes, with hooks in place: Spark and Delta interval writes, the outcome fields of ADR-0056 and <code>on_cursor_value_missing</code>. Backfill, restate and <code>--mark-done</code> follow in the Backfill section.</p>
+<h3 id="backfill-amendment-13">Backfill (amendment, 1.3)<a class="headerlink" href="#backfill-amendment-13" title="Permanent link">&para;</a></h3>
+<p><code>pipeloom backfill --select ... --start ... --end ... [--rerun missing|all] [--on-failure stop|continue] [--mark-done]</code> is <code>pipeloom run</code> with an explicit range. It reuses the run's flags (not <code>--full-refresh</code>, <code>--manifest</code>, <code>--state</code> or <code>--defer</code>), and <code>RunOptions.backfill</code> carries the range to the runner, to <code>RuntimeContext.backfill</code> and, through a hidden <code>--backfill JSON</code> flag, to the child processes of the task boundary. The <code>args</code> of run_results record it under <code>backfill</code>.</p>
+<ul>
+<li>Range. The bounds are ISO dates or date-times, naive meaning UTC, as <code>begin</code>. A model runs the windows of its grain that overlap <code>[start, end)</code>, so bounds off a window edge round outward: a backfill never leaves part of a window it touches unprocessed. The range is clipped to <code>begin</code> and to the run start. <code>lookback</code> does not apply, since the range is explicit.</li>
+<li><code>--rerun missing</code> (default) runs the windows the ledger does not cover, with the same coverage test as a run. Interval ids and tokens are unchanged, so a backfill and a run of the same window share its id.</li>
+<li>Restate is <code>--rerun all</code>, not a subcommand: one command with one more value is the smaller surface. It first removes the rounded range from the ledger (the same compare-and-swap loop, subtracting instead of merging), then runs as <code>missing</code>. Removing first means a restate that stops halfway leaves exactly the windows it did not redo as missing, so <code>--rerun missing</code> or <code>pipeloom retry</code> finishes it. A retry of a backfill run inherits its range with <code>rerun</code> set to <code>missing</code> for that reason.</li>
+<li><code>--on-failure stop</code> (default) stops a model at its first failing window, as a run does. <code>continue</code> runs every window, then fails the unit with the first error's code and a message that lists every failed window. Failed windows get the optional <code>failed: true</code> in their <code>intervals</code> entry, in both modes.</li>
+<li><code>--mark-done</code> records <code>[start, min(end, run start))</code> in the ledger as given, without rounding, and runs nothing: it never claims time the user did not name. Merging an interval the ledger holds changes nothing, so it is safe to repeat.</li>
+<li>Selection. Selectors work as in run: a selected model without <code>interval</code> runs as in run, so <code>+</code> brings descendants. A selection with no interval model, and <code>--mark-done</code> with any selected model that has no interval (it would have to run), stop with PLX132 (exit 2) before a run id is used.</li>
+<li>A backfill is never a full refresh (<code>RunOptions</code> refuses both).</li>
+</ul>
+<p>Provenance of the amendment: designed from the roadmap item and the behavior of the interval runner above. No code from other projects was used.</p>
 <p>Provenance: designed from the public dbt microbatch documentation (window rounding and lookback behavior) and from the behavior of pipeloom 1.2. No code from other projects was used.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <p>A model can be rerun for a gap and reprocesses late data per window without duplicates. Window writes on the filesystem catalog read every file of the table; per-file statistics would let them skip files, which is a later optimization. A run that starts many windows does one write and one ledger update per window. The <code>intervals</code> array grows with the number of windows in a run.</p>

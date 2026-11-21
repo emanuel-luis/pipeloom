@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://emanuel-luis.github.io/pipeloom/latest/dev/guide/migrate-0.9/">
       
       
-        <link rel="prev" href="../recipe-github-actions/">
+        <link rel="prev" href="../migrate-1.x/">
       
       
         <link rel="next" href="../../plugins/duckdb/">
@@ -870,6 +870,8 @@
       
         
       
+        
+      
     
     
     
@@ -1241,6 +1243,34 @@
     
   
     Recipe: GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrate-1.x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating within 1.x
   
 
     
@@ -2723,8 +2753,7 @@ other than passing them to <code>ctx.sql</code>, and <code>ctx.sql</code> may no
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nd">@model</span><span class="p">(</span><span class="n">retries</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">enriched</span><span class="p">(</span><span class="n">orders_clean</span><span class="p">):</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="o">...</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">enriched</span><span class="p">(</span><span class="n">orders_clean</span><span class="p">):</span> <span class="o">...</span>
 </code></pre></div>
 <p>The parameter <code>orders_clean</code> binds to the model of that name. To keep the old alias, write
 <code>inputs={"orders": ref("orders_clean")}</code> and name the parameter <code>orders</code>. Inputs are passed by
@@ -2822,7 +2851,7 @@ a group under <code>targets.&lt;name&gt;.sources.&lt;group&gt;</code>, and <code
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../recipe-github-actions/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Recipe: GitHub Actions">
+          <a href="../migrate-1.x/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Migrating within 1.x">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2832,7 +2861,7 @@ a group under <code>targets.&lt;name&gt;.sources.&lt;group&gt;</code>, and <code
                 Previous
               </span>
               <div class="md-ellipsis">
-                Recipe: GitHub Actions
+                Migrating within 1.x
               </div>
             </div>
           </a>

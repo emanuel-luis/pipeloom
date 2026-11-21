@@ -870,6 +870,8 @@
       
         
       
+        
+      
     
     
     
@@ -1094,6 +1096,17 @@
     <span class="md-ellipsis">
       
         Interval models
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backfilling-a-range" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backfilling a range
       
     </span>
   </a>
@@ -1376,6 +1389,34 @@
     
   
     Recipe: GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrate-1.x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating within 1.x
   
 
     
@@ -2492,6 +2533,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#backfilling-a-range" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backfilling a range
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2710,7 +2762,38 @@ one (PLP417). The engine must declare <code>interval_writes</code>: polars, pand
 not yet (PLC514). A missing or unusable event_time column at run time is PLM209.</p>
 <p>In <code>run_results.json</code>, an interval model's row has an <code>intervals</code> array with one entry per window:
 <code>interval_id</code>, <code>start</code>, <code>end</code>, <code>idempotency_token</code>, <code>skipped</code> and <code>rows_written</code>. The row's counts
-are the sums over its windows.</p>
+are the sums over its windows.
+Each entry of a failed window also has <code>failed: true</code>.</p>
+<h2 id="backfilling-a-range">Backfilling a range<a class="headerlink" href="#backfilling-a-range" title="Permanent link">&para;</a></h2>
+<p><code>pipeloom backfill</code> runs interval models over a range you name instead of from <code>begin</code> to now
+(since 1.3):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pipeloom<span class="w"> </span>backfill<span class="w"> </span>--select<span class="w"> </span>daily_events<span class="w"> </span>--start<span class="w"> </span><span class="m">2026</span>-01-01<span class="w"> </span>--end<span class="w"> </span><span class="m">2026</span>-02-01
+</code></pre></div>
+<ul>
+<li><code>--start</code> and <code>--end</code> are ISO dates or date-times; a value without an offset is UTC. The range
+  is <code>[start, end)</code>. Each model runs the windows of its own grain that overlap it, so a bound that
+  is not on a window edge rounds outward: the whole window that holds it runs. The range is
+  clipped to the model's <code>begin</code> and to the run's start. <code>lookback</code> does not apply.</li>
+<li><code>--rerun missing</code> (the default) runs only the windows the ledger does not cover. Run the same
+  backfill again after a failure, or after you stopped it, and it picks up the missing windows
+  only. After a backfill that succeeded it writes nothing.</li>
+<li><code>--rerun all</code> restates the range: it removes the range from the ledger, then runs every window
+  in it. Use it when the windows are wrong, for example after a fix to the model or to late data
+  upstream. If it stops halfway, <code>--rerun missing</code> over the same range (or <code>pipeloom retry</code>)
+  finishes it.</li>
+<li><code>--on-failure stop</code> (the default) ends a model at its first failing window; the earlier windows
+  stay written and recorded. <code>--on-failure continue</code> runs the rest of the windows and then fails
+  the unit with a message that lists every failed window.</li>
+<li><code>--mark-done</code> records the range in the ledger exactly as given, without rounding, and runs
+  nothing. It is for a model converted from a watermark: see
+  <a href="../migrate-1.x/">Migrating within 1.x</a>. Repeating it changes nothing.</li>
+</ul>
+<p>Each window keeps its token and its ledger entry, exactly as in <code>pipeloom run</code>. A selected model
+without <code>incremental.interval</code> runs as it would in <code>pipeloom run</code>, so <code>--select daily_events+</code>
+also rebuilds what reads it. A selection with no interval model is PLX132, and so is
+<code>--mark-done</code> with a selected model that has no interval. <code>backfill</code> takes the flags of <code>run</code>
+except <code>--full-refresh</code>, <code>--manifest</code>, <code>--state</code> and <code>--defer</code>. The <code>args</code> of
+<code>run_results.json</code> record the range under <code>backfill</code>.</p>
 
 
 
