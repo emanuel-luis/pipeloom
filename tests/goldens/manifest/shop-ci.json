@@ -297,7 +297,7 @@
       },
       "checksum_version": 1,
       "sql": {
-        "shell": "0c7d59fca6086a752374924f4632351748e259de7f49ced4ba8c3a5c0d676d1c",
+        "shell": "7f2c9ab6a86cd5a5fd0d215cd10ce05b08b4a8bfe39f412f5fe4458eefbab78c",
         "queries": [
           {
             "sql": "select customer_id, sum(amount) as revenue from fct_orders group by customer_id",
@@ -373,7 +373,7 @@
       },
       "checksum_version": 1,
       "sql": {
-        "shell": "1d99841fe45ab3c6d5ebda628e9cc16906099f42f888da7b9dcf8e0467a42799",
+        "shell": "93e997581ea18b70c1f295ceda486f09d91a397f9d4b5714c19fff64de6a5bfe",
         "queries": [
           {
             "sql": "select id, lower(email) as email from raw_customers",
@@ -449,7 +449,7 @@
       },
       "checksum_version": 1,
       "sql": {
-        "shell": "9a04a2077cb085489c7ee76233e0decc44c9ffa620ebebe398044c11c86d51b7",
+        "shell": "b8ee1467c1e9dfac07c068dfff4842abbcf8124b73c6ee0636c2674e15324015",
         "queries": [
           {
             "sql": "select id, customer_id, amount from raw_orders",
@@ -525,7 +525,7 @@
       },
       "checksum_version": 1,
       "sql": {
-        "shell": "d98b40aa18b966c8e80c1c7c39ef4a1a9ffe2ffa6651de1bfe29904a64f7a5fc",
+        "shell": "c5c7378bba1f50d3a1bc4c4ea938a21c082c3b971900bbb8e4f1353aea96bc43",
         "queries": [
           {
             "sql": "select order_id, amount from raw_payments",
@@ -597,7 +597,7 @@
       },
       "checksum_version": 1,
       "sql": {
-        "shell": "7ebe44eece262c9e3bf7f62e15bccf48230ef2caabd878bec4dd9538c7cfeea6",
+        "shell": "7e7d575c8c304e83fa72cc50e6087753a9a22c0996758334116ef9352ead3c5f",
         "queries": [
           {
             "sql": "select customer_id, revenue from rpt_revenue where revenue > 0",

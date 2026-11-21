@@ -116,32 +116,46 @@ def _ctx_sql_literal(node: ast.AST) -> bool:
     )
 
 
-def sql_record(source: bytes, callable_ref: str) -> PlanSql | None:
-    """What `plan --diff` needs to compare a SQL model's code (ADR-0052): the literal
-    `ctx.sql("...")` queries of the model's function, each with its literal `dialect=`, and
-    `shell`, the code digest with those query strings blanked. None when the function has no
-    such query, or passes `dialect=` as anything but a string literal."""
-    tree = ast.parse(source)
-    name = callable_ref.partition(":")[2]
-    defs = (ast.FunctionDef, ast.AsyncFunctionDef)
-    fns = [s for s in tree.body if isinstance(s, defs) and s.name == name]
-    calls = [n for n in ast.walk(fns[-1]) if _ctx_sql_literal(n)] if fns else []
-    queries: list[SqlQuery] = []
-    for call in calls:
-        assert isinstance(call, ast.Call)
-        arg = call.args[0]
-        assert isinstance(arg, ast.Constant)
+def _queries(fn: ast.AST) -> list[tuple[ast.Constant, SqlQuery]] | None:
+    """The literal `ctx.sql` queries in `fn`; None when a `dialect=` is not a string literal."""
+    out: list[tuple[ast.Constant, SqlQuery]] = []
+    for call in ast.walk(fn):
+        if not _ctx_sql_literal(call):
+            continue
+        assert isinstance(call, ast.Call) and isinstance(call.args[0], ast.Constant)
         dialect = next((k.value for k in call.keywords if k.arg == "dialect"), None)
         if dialect is not None and not (
             isinstance(dialect, ast.Constant) and isinstance(dialect.value, str)
         ):
             return None
         literal = None if dialect is None else str(dialect.value)
-        queries.append(SqlQuery(sql=str(arg.value), dialect=literal))
-        arg.value = ""
-    if not queries:
-        return None
-    return PlanSql(shell=_sha(canonical(callable_ref, _normalized(tree))), queries=tuple(queries))
+        out.append((call.args[0], SqlQuery(sql=str(call.args[0].value), dialect=literal)))
+    return out
+
+
+def sql_records(source: bytes, callable_refs: Iterable[str]) -> dict[str, PlanSql | None]:
+    """What `plan --diff` needs to compare the code of a module's SQL models (ADR-0052): per
+    callable, the literal `ctx.sql("...")` queries of its function, each with its literal
+    `dialect=`, and `shell`, the code digest of the module with the queries of every model
+    function blanked. A sibling model's SQL edit leaves the shell alone; any other edit,
+    including SQL in a helper, moves it. None for a function with no such query, or with a
+    `dialect=` that is not a string literal. One parse and one digest per module."""
+    tree = ast.parse(source)
+    defs = (ast.FunctionDef, ast.AsyncFunctionDef)
+    fns = {s.name: s for s in tree.body if isinstance(s, defs)}  # the last def of a name wins
+    found: dict[str, list[SqlQuery] | None] = {}
+    for ref in callable_refs:
+        fn = fns.get(ref.partition(":")[2])
+        pairs = None if fn is None else _queries(fn)
+        if pairs:
+            for arg, _ in pairs:
+                arg.value = ""
+        found[ref] = [q for _, q in pairs] if pairs else None
+    module = _sha(canonical(_normalized(tree)))
+    return {
+        ref: None if not qs else PlanSql(shell=_sha(canonical(ref, module)), queries=tuple(qs))
+        for ref, qs in found.items()
+    }
 
 
 def canonical(*values: Any) -> bytes:

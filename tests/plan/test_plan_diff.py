@@ -346,3 +346,33 @@ def test_golden_outputs(root: Path, golden: Callable[[str, str], None]) -> None:
     js = run(root, "plan", "--diff", "--state", "state", "--output", "json", "--fail-on", "any")
     assert js.exit_code == 1
     golden("plan_diff/plan_diff.json", js.stdout)
+
+
+TWO = """from pipeloom import model
+
+
+def helper(ctx):
+    return ctx.sql("select 1 as h")
+
+
+@model
+def p(ctx):
+    return ctx.sql("select 1 as x")
+
+
+@model
+def q(ctx):
+    return ctx.sql("select 2 as y")
+"""
+
+
+def test_a_sibling_query_is_not_a_change_but_a_helper_query_is(tmp_path: Path) -> None:
+    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/two.py": TWO}, convert=False)
+    assert run(root, "compile", "--stable", "--out", "state/manifest.json").exit_code == 0
+    edit(root, "two", "select 1 as x", "select 1 as x, 3 as z")
+    assert categories(root) == {"p": "non-breaking"}
+    edit(root, "two", "select 1 as h", "select 2 as h")
+    assert diff(root, code=1) == {
+        "p": ("breaking", "Python code around the SQL changed"),
+        "q": ("breaking", "Python code around the SQL changed"),
+    }

@@ -57,7 +57,7 @@ The split checksums say which part of a model changed. A reviewer also wants to 
 
 - **Where the old SQL comes from.** The reference is a manifest, not a checkout, so the old module is gone.
   - Treat every code change as breaking. Then no code change can be non-breaking, which the roadmap asks for. Rejected.
-  - Record the literal `ctx.sql` queries in the manifest. Chosen. A node gains an optional `sql{shell, queries[{sql, dialect}]}`, left out of the plan hash like `checksums`. `queries` are the string literals passed to `ctx.sql` inside the model's function, in tree order, with each call's literal `dialect=`. `shell` is the `code` digest computed with those strings blanked, so it says whether anything else in the module changed. A sibling model's SQL, a helper's SQL or any Python edit changes the shell. A function with no such call, or with a `dialect=` that is not a literal, gets no record.
+  - Record the literal `ctx.sql` queries in the manifest. Chosen. A node gains an optional `sql{shell, queries[{sql, dialect}]}`, left out of the plan hash like `checksums`. `queries` are the string literals passed to `ctx.sql` inside the model's function, in tree order, with each call's literal `dialect=`. `shell` is the digest of the module tree (normalized as for `code`) with the queries of every model function of the module blanked, combined with the callable. It says whether anything but model SQL changed. A helper's SQL or any Python edit changes it; a sibling model's SQL does not, since that SQL belongs to the sibling. The module is parsed and hashed once, not once per model: a module with 1,000 models stays linear. A function with no such call, or with a `dialect=` that is not a literal, gets no record.
 - **Where sqlglot runs.** The import-linter contract allows it only in `validate.static`. The comparison `sql_change` lives there, the classifier in `artifacts.plan_diff` calls it, and the contract is unchanged. Without sqlglot it answers breaking.
 - **The command surface.** `plan` did not exist. It is added with `--diff` as its only mode, required, so a later mode can be added without changing what `plan` alone means. Rejected: a flag on `ls` or `compile`, whose output and exit codes would change meaning.
 
@@ -81,7 +81,7 @@ The split checksums say which part of a model changed. A reviewer also wants to 
 
 - SQL text now appears in the manifest. It was already in the project's source, and the manifest already names the module.
 - A manifest compiled by 1.2 before this change has split checksums but no SQL record: its code changes are breaking until the reference is compiled again.
-- Two models in one module see each other's SQL edits as breaking, through the shell. Splitting models into their own modules gives finer answers.
+- A model function that calls another model function directly would not see that function's SQL edit in its shell. Models are not meant to call each other; inputs are the way to read another model.
 - Positional readers of a table may still see a column added in the middle of a SELECT as a change. pipeloom writes by name, so this is non-breaking here.
 
 ## Status
