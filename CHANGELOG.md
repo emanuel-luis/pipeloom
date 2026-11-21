@@ -6,11 +6,6 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Documentation
-
-- The 7 large diagrams are now 20 small landscape ones (under about 1,300 px wide, labels of a few words, no titles or legends in the image): the old ones split by topic, the context and packages views updated for DuckDB, and new diagrams for the quickstart and demo, one unit attempt, the orchestrator protocol, the conformance kit, portable models, incremental runs, retry and cancel, OpenLineage to Marquez and a use-case map. Error-code prefixes moved to a table under the lifecycle diagram.
-- Each diagram renders to a light and a dark SVG. The docs embed both with Material's `#only-light` and `#only-dark`, with alt text and a caption, so a diagram follows the site's palette toggle; the README uses a `<picture>` element. `make diagrams-check` (CI job "diagrams (D2 render check)") expects both files per source and fails on a missing, stale or orphan SVG. The diagram source links point at GitHub, since the docs site does not publish `.d2` files.
-
 ## [1.1.0] - 2026-11-21
 
 pipeloom 1.1.0 adds a DuckDB engine and a one-command demo. The new `pipeloom-duckdb` distribution brings the `duckdb` engine and catalog, `pipeloom demo` builds a sample project and its docs site on DuckDB, and `pipeloom init --engine duckdb` is a new choice. The engine conformance kit lets any project run `EngineContract` against its own engine, and the portable models guide and a cross-engine matrix show one `frame_api: narwhals` model returning the same rows on polars, pandas, DuckDB and Spark. Airflow 3.4 is supported and tested, and the stability policy gains an experimental tier. 1.1.0 needs no config change, and the plugin API stays (1, 0). The 1.0.x patch items (Databricks CLI documentation, the Airflow 3.4 matrix and Polars 2 guards) ship here instead of a 1.0.1 release, because nothing was broken for users.
