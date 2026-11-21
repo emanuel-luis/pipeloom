@@ -6,13 +6,39 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-21
+
+pipeloom 1.2.0 lets you know what a change does before it merges. Manifest nodes carry split checksums and the new `state:modified.<part>` selectors tell a code edit from a config, contract, tests or upstream edit, `pipeloom plan --diff` sorts each changed model into change categories and gates CI with `--fail-on`, and `pipeloom diff` compares one model's table with a reference by key. The release also adds canonical dataset identity, machine-readable output and `AGENTS.md` generation, `ctx.sql` on pandas through DuckDB (the extra is `pipeloom-pandas[sql]`), a 1,000-model performance budget and artifact schema compatibility guards. The docs are overhauled: a new home page, concepts, a comparison with other tools, an FAQ, an API reference, an examples gallery with four walkthrough projects, paired light and dark diagrams and a site theme. 1.2.0 needs no config change, the plugin API stays (1, 0), and the new manifest and artifact fields are optional.
+
 ### Added
 
 - A performance budget: a generated 1,000-model project (static decorators, `ctx.sql` bodies, a DAG with fan-in and fan-out, properties files with data tests) must discover, resolve, validate, compile and write a stable manifest inside wall-clock budgets, with cold discovery under 2 s as ADR-0050 promised. It runs in its own ubuntu CI job (`PIPELOOM_TEST_PERF=1`); `PIPELOOM_TEST_PERF_BUDGET_SCALE` multiplies the budgets for slow machines.
+- Canonical dataset identity ([ADR-0055](docs/adr/0055-canonical-dataset-identity.md)): `pipeloom.plan.identity` is the one place that names datasets. The unit graph, the Airflow assets and the OpenLineage sink call it, and the Dagster plugin will. Names are byte-identical to 1.0.0, proven by a golden for the shop fixture and the TPC-H examples. `input_assets` and `output_assets` resolve an ephemeral input to its persisted upstream. An asset URI above 1500 characters, which Airflow rejects, now ends in a hash suffix.
+- Machine-readable diagnostics ([ADR-0018](docs/adr/0018-events-in-0-1.md) amendment 1.2): `--log-format` on `init` and `explain`, so every command has it; an optional `explain_url` on the `diagnostic` event (additive in `pipeloom.event/1`; older events still validate); and `compile --output json`, a new `pipeloom.compile_result/1` document with its published schema.
+- `pipeloom init` writes `AGENTS.md` and three skills under `.agents/skills/`, generated from the CLI and the diagnostics catalog, and `pipeloom init --update-agents` regenerates them in an existing project ([ADR-0041](docs/adr/0041-pipeloom-init.md) amendment 1.2). A test fails when a catalog code is missing from the skills.
+- The pandas engine runs `ctx.sql` through DuckDB with the new extra `pipeloom-pandas[sql]` ([ADR-0068](docs/adr/0068-pandas-sql-through-duckdb.md)): the inputs are bound by alias as Arrow tables, the result stays Arrow-backed, timestamps stay in UTC and no DuckDB extension is downloaded. The engine's `sql_dialect` is `duckdb` when DuckDB is installed; without it nothing changes (PLK606, then PLX101).
+- `pipeloom plan --diff --state DIR` ([ADR-0052](docs/adr/0052-split-checksums-and-change-categories.md), 1.2 amendment) sorts each changed model into new, removed, breaking, non-breaking, metadata, indirect-breaking or indirect-non-breaking, with the changed parts and a reason. A SQL change is non-breaking only when sqlglot reads it as projected columns added and nothing else; anything it cannot tell, Python frame code and a reference without split checksums are breaking. `--fail-on breaking|any|none` (default breaking) gates CI, and `--output json` prints `pipeloom.plan_diff/1`, published as `schema/v1/plan_diff.json`.
+- Manifest nodes gain an optional `sql{shell, queries, returned}`: the literal `ctx.sql` queries of the model's function and a digest of the rest of its module. It is left out of the plan hash.
+- Split checksums ([ADR-0052](docs/adr/0052-split-checksums-and-change-categories.md)): manifest nodes gain optional `checksums{code, config, contract, tests, upstream}` and `checksum_version`. The 1.0 `checksum` and the plan hash are unchanged. New selectors `state:modified.code`, `.config`, `.contract`, `.tests` and `.upstream`: a layout, comment or docstring edit selects nothing under `.code`, and editing a data test selects only `.tests`. Config is hashed with `${env:...}` values as written, so environment values and secrets are never hashed. `pipeloom ls --state DIR --why` prints which parts of each model changed. A reference without split checksums falls back to the 1.0 checksum with the new warning PLG309.
+- `pipeloom diff MODEL --state DIR` compares one model's relation in a reference with its relation on this target, matched by `write.unique_key` or `--key` ([ADR-0053](docs/adr/0053-table-diff.md)). It reports a schema diff and exact matched, partial, source-only and target-only counts, plus duplicate and null keys, which never crash it. The default markdown holds counts and the schema diff only; `--samples` adds up to 10 rows per kind, and `--output json` prints the new `pipeloom.table_diff/1` document, published as `schema/v1/table_diff.json`. It runs on portable frames, so polars, pandas, DuckDB and Spark share one code path. Exit codes: 0 no differences, 1 differences, 2 usage. New diagnostics PLX130 (model cannot be diffed) and PLX131 (diff failed).
+- Contract columns take an optional `sensitive: true`, which masks the column's values in `diff --samples`. It stays out of checksums and the manifest.
 
 ### Changed
 
 - The published run_results schemas require only the frozen 1.0 field set; fields added later are optional ([ADR-0049](docs/adr/0049-artifact-schemas-and-orchestrator-protocol.md) amendment). Tests check frozen 1.0 documents against the current schemas and current goldens against the frozen 1.0 schemas. No change to what pipeloom writes.
+
+### Documentation
+
+- The docs site is reorganized into tabs: Get started (a new home page with the demo command and a model example, Concepts, Compared with other tools, Troubleshooting and FAQ), Examples, Guides, Integrations (engines and platforms), Reference (with a new Python API page) and Project.
+- The 7 large diagrams are now 20 small landscape ones (under about 1,300 px wide, labels of a few words, no titles or legends in the image): the old ones split by topic, the context and packages views updated for DuckDB, and new diagrams for the quickstart and demo, one unit attempt, the orchestrator protocol, the conformance kit, portable models, incremental runs, retry and cancel, OpenLineage to Marquez and a use-case map. Error-code prefixes moved to a table under the lifecycle diagram.
+- Each diagram renders to a light and a dark SVG. The docs embed both with Material's `#only-light` and `#only-dark`, with alt text and a caption, so a diagram follows the site's palette toggle; the README uses a `<picture>` element. `make diagrams-check` (CI job "diagrams (D2 render check)") expects both files per source and fails on a missing, stale or orphan SVG. The diagram source links point at GitHub, since the docs site does not publish `.d2` files.
+- A new example, [Late-arriving events](docs/examples/events_incremental.md): an incremental model with a watermark, a lookback and a merge on a key, run on DuckDB and polars, with a walkthrough test that asserts watermarks, row counts and an idempotent rerun.
+- A `customers_scd2` example and walkthrough: three CRM snapshots build a customer dimension with history through the `scd2` write strategy on DuckDB, polars and pandas, with an as-of query and a walkthrough test.
+- A new example, `examples/orders_quality`, and its walkthrough page: an untrusted partner feed with warn, drop and quarantine expectations, a model contract that catches a schema break (PLM208) and data tests, run on DuckDB and polars and tested in CI.
+- A new example, `examples/tested_models`, with a walkthrough page: unit tests with inline and CSV rows, data tests, `pipeloom test` and `pipeloom build` on DuckDB and polars, and a plain pytest on a model function. Its CI test checks that a deliberately wrong copy fails with PLX114.
+- The docs site gets a light and dark theme that follows the OS, a logo, top tabs, copyable code, click-to-zoom diagrams, an outdated-version banner, canonical URLs on `/latest/` and a root 404 page that redirects to `/latest/`.
+- An examples gallery in the docs (Examples tab): cards for the four walkthroughs and the reference projects, the walkthrough pages in the navigation, and a test that fails when an example has no card.
+- Running guide: "Reviewing a change: plan --diff". CLI reference and artifacts reference list `plan` and `pipeloom.plan_diff/1`.
 
 ## [1.1.0] - 2026-11-21
 
@@ -381,7 +407,8 @@ once used it.
 - CI, release and docs workflows.
 - Apache-2.0 license, contributing guide, code of conduct, security policy and governance.
 
-[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/emanuel-luis/pipeloom/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/emanuel-luis/pipeloom/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/emanuel-luis/pipeloom/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/emanuel-luis/pipeloom/compare/v1.0.0rc1...v1.0.0
 [1.0.0rc1]: https://github.com/emanuel-luis/pipeloom/compare/v0.9.0...v1.0.0rc1

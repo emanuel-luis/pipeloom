@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: plan as of 2026-11-21, written against 1.1.0. Versions 0.8 to 1.1 are delivered; this page now plans 1.2 to
+Status: plan as of 2026-11-21, written against 1.2.0. Versions 0.8 to 1.2 are delivered; this page now plans 1.3 to
 1.9 and lists the breaking changes the stability policy holds back. Section 16 of [architecture.md](architecture.md#16-roadmap) keeps the record of what each
 delivered version contains. The market research behind the plan is in [Market landscape](landscape.md). Items that
 change a decision name the ADR they need: ADRs up to 0050 exist and are accepted, and new ones continue from 0051.
@@ -119,7 +119,7 @@ Summary by version:
 | 0.8 to 1.0 | First hour, Python-first authoring, stable contracts | Author, validate, run and export projects with published schemas | Delivered |
 | 1.0.x | Upstream patches | Run on Polars 2.0, the current Databricks CLI and Airflow 3.3 and 3.4 | Delivered in 1.1.0 |
 | 1.1 | DuckDB and a one-command demo | Run a project and a demo on a laptop with DuckDB | Delivered |
-| 1.2 | Know what a change does before it merges | See the effect of a change with plan diff and table diff before merging | Planned |
+| 1.2 | Know what a change does before it merges | See the effect of a change with plan diff and table diff before merging | Delivered |
 | 1.3 | Intervals and backfills | Backfill a date range and rerun only the missing windows | Planned |
 | 1.4 | Orchestrators run partitions | Run one partition from Airflow, Databricks or Dagster | Planned |
 | 1.5 | Run history does the work | Catch stale or unusual data from run history | Planned |
@@ -137,22 +137,11 @@ Summary by version:
 | 1.0 | Stable contracts: published schemas including the manifest, the [orchestrator protocol](guide/orchestrators.md), `graph --units`, plugin API (1, 0) and the [stability policy](reference/stability.md) ([ADR-0049](adr/0049-artifact-schemas-and-orchestrator-protocol.md)) |
 | 1.0.x | Delivered in 1.1.0, with no 1.0.1 release because nothing was broken for users: Databricks CLI version documentation, the Airflow 3.4 matrix and Polars 2 guards |
 | 1.1 | Delivered in 1.1.0: DuckDB engine ([ADR-0051](adr/0051-duckdb-engine.md)), conformance kit ([ADR-0067](adr/0067-conformance-kit.md)), portable models guide and cross-engine matrix, `pipeloom demo`, `init --engine duckdb`, experimental tier in the stability policy. The stretch items Sail CI recipe and `show --limit` did not ship and are dropped |
+| 1.2 | Delivered in 1.2.0: split checksums and `state:modified.<part>` ([ADR-0052](adr/0052-split-checksums-and-change-categories.md)), `plan --diff`, `pipeloom diff` ([ADR-0053](adr/0053-table-diff.md)), canonical dataset identity ([ADR-0055](adr/0055-canonical-dataset-identity.md)), machine-readable output and generated `AGENTS.md`, `ctx.sql` on pandas through DuckDB ([ADR-0068](adr/0068-pandas-sql-through-duckdb.md)), performance budget, docs overhaul. The stretch items Slim CI recipe on DuckDB, `validate --dry-run`, `llms.txt` and the Coming from dbt guide did not ship and stay stretch for a later minor |
 
 The full list per version is in the CHANGELOG and in section 16 of the architecture.
 
-### 1.2: Know what a change does before it merges
-
-- Optional `checksums{code,config,contract,tests,upstream}` and `checksum_version` on manifest nodes. The 1.0 `checksum` is unchanged. Sub-selectors `state:modified.{code,config,contract,tests,upstream}` and `ls --why`. Config is hashed after `${var}` resolution and before `${env}` and `${secret}`, so secrets are never hashed. ADR: 0052. Done when: A whitespace, comment or docstring edit selects nothing under `state:modified.code`, while legacy `state:modified` still selects it. Editing a data test selects only `.tests`. A 1.0 reference manifest falls back to the legacy checksum with a warning.
-- `plan --diff --state <dir>` with categories new, removed, breaking, non-breaking, metadata and indirect. A comparison of the old and new SQL syntax trees where an unknown result never counts as safe. Contract gate, `--fail-on breaking`, `plan_diff/1`. ADR: 0052. Done when: Fixture pairs give the expected category per unit. A dropped contract column exits 1, and its descendants are indirect-breaking.
-- `pipeloom diff <model>`: same-engine keyed diff with schema diff, counts and samples, `table_diff/1` and markdown. Runs through `session.sql` or portable frames. The default markdown carries counts and the schema diff only; `--samples` adds rows, and columns tagged `sensitive` in contracts are masked. ADR: 0053. Done when: Seeded fixtures on DuckDB and polars give exact matched, partial, source-only and target-only counts. A duplicate key is reported, not a crash. The default markdown contains no cell values.
-- Canonical dataset identity: one pure function in core, with `input_assets` and `output_assets` resolved through ephemerals. A hash suffix applies only to names 1.0 rejected. ADR: 0055. Done when: Airflow asset URIs and OpenLineage names for shop and TPC-H are byte-identical to 1.0.0. An ephemeral input resolves to its persisted upstream.
-- Machine-readable diagnostics: `--log-format json` on the commands that lack it (validate, test), an explain URL on the diagnostic event, and `--output json` for command results of plan, compile and diff. `init` writes AGENTS.md and skills generated from the code catalog, `init --update-agents` regenerates them, and nothing is fetched remotely. Done when: One schema-validated golden per command. A test fails when a catalog code is missing from the skills.
-- Performance budget: a synthetic 1,000-model project with a compile and plan time budget in CI. Done when: CI fails when the budget is exceeded.
-- `ctx.sql` on pandas through DuckDB, as the optional extra `pipeloom-pandas[sql]`: the input frames are registered as Arrow tables in an in-memory DuckDB connection and the result comes back Arrow-backed; the engine's `sql_dialect` becomes `duckdb` when DuckDB is installed. ADR: 0068. Done when: the SQL cells of the engine contract pass on pandas, and without DuckDB the engine still declares no SQL (PLK606, PLX101).
-
-Plugin API: unchanged.
-
-Stretch: Slim CI recipe on DuckDB with a step summary and Azure DevOps, `validate --dry-run`, `llms.txt`
+Stretch (not shipped in 1.2, kept for a later minor): Slim CI recipe on DuckDB with a step summary and Azure DevOps, `validate --dry-run`, `llms.txt`
 from `docs generate`, a "Coming from dbt" concept-mapping guide.
 
 ### 1.3: Intervals and backfills

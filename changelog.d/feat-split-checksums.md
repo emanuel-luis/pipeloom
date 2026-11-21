@@ -1,3 +1,0 @@
-### Added
-
-- Split checksums ([ADR-0052](docs/adr/0052-split-checksums-and-change-categories.md)): manifest nodes gain optional `checksums{code, config, contract, tests, upstream}` and `checksum_version`. The 1.0 `checksum` and the plan hash are unchanged. New selectors `state:modified.code`, `.config`, `.contract`, `.tests` and `.upstream`: a layout, comment or docstring edit selects nothing under `.code`, and editing a data test selects only `.tests`. Config is hashed with `${env:...}` values as written, so environment values and secrets are never hashed. `pipeloom ls --state DIR --why` prints which parts of each model changed. A reference without split checksums falls back to the 1.0 checksum with the new warning PLG309.

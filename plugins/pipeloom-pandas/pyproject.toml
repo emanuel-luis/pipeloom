@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pipeloom-pandas"
-version = "1.1.0"
+version = "1.2.0"
 description = "pandas engine for pipeloom: eager DataFrames and file tables."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
 ]
-dependencies = ["pipeloom~=1.1.0", "pandas>=2.3.3,<4", "pyarrow>=22"]
+dependencies = ["pipeloom~=1.2.0", "pandas>=2.3.3,<4", "pyarrow>=22"]
 
 [project.optional-dependencies]
 # ctx.sql runs through DuckDB (ADR-0068).

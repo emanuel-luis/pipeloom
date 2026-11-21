@@ -1,4 +1,0 @@
-### Added
-
-- `pipeloom diff MODEL --state DIR` compares one model's relation in a reference with its relation on this target, matched by `write.unique_key` or `--key` ([ADR-0053](docs/adr/0053-table-diff.md)). It reports a schema diff and exact matched, partial, source-only and target-only counts, plus duplicate and null keys, which never crash it. The default markdown holds counts and the schema diff only; `--samples` adds up to 10 rows per kind, and `--output json` prints the new `pipeloom.table_diff/1` document, published as `schema/v1/table_diff.json`. It runs on portable frames, so polars, pandas, DuckDB and Spark share one code path. Exit codes: 0 no differences, 1 differences, 2 usage. New diagnostics PLX130 (model cannot be diffed) and PLX131 (diff failed).
-- Contract columns take an optional `sensitive: true`, which masks the column's values in `diff --samples`. It stays out of checksums and the manifest.
