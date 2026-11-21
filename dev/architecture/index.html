@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://emanuel-luis.github.io/pipeloom/dev/architecture/">
+        <link rel="canonical" href="https://emanuel-luis.github.io/pipeloom/latest/dev/architecture/">
       
       
         <link rel="prev" href="../reference/stability/">
@@ -22,7 +22,7 @@
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../assets/favicon.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
@@ -32,6 +32,9 @@
     
     
       <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -52,16 +55,34 @@
     
       <link rel="stylesheet" href="../assets/_mkdocstrings.css">
     
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
     <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
-  </head>
+   <link href="../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+    html.glightbox-open { overflow: initial; height: 100%; }
+    .gslide-title { margin-top: 0px; user-select: text; }
+    .gslide-desc { color: #666; user-select: text; }
+    .gslide-image img { background: white; }
+    .gscrollbar-fixer { padding-right: 15px; }
+    .gdesc-inner { font-size: 0.75rem; }
+    body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
+    body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../assets/javascripts/glightbox.min.js"></script></head>
   
   
-    <body dir="ltr">
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
   
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
@@ -79,17 +100,30 @@
       
     </div>
     
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+          <aside class="md-banner md-banner--warning">
+            <div class="md-banner__inner md-grid md-typeset">
+              
+  You are not viewing the latest version.
+  <a href="../..">
+    <strong>Click here to go to latest.</strong>
+  </a>
+
+            </div>
+            <script>var el=document.querySelector("[data-md-component=outdated]"),base=new URL(".."),outdated=__md_get("__outdated",sessionStorage,base);!0===outdated&&el&&(el.hidden=!1)</script>
+          </aside>
+        
+      </div>
+    
     
       
 
-  
-
-<header class="md-header md-header--shadow" data-md-component="header">
+<header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href=".." title="pipeloom" class="md-header__button md-logo" aria-label="pipeloom" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../assets/logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -112,6 +146,42 @@
         </div>
       </div>
     </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
     
     
       <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
@@ -142,6 +212,8 @@
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
       
     </form>
     <div class="md-search__output">
@@ -180,6 +252,197 @@
       
         
           
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../quickstart/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Quickstart
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../guide/running/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../plugins/polars/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Plugins
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../reference/cli/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../roadmap/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Roadmap
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../landscape/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Market landscape
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../adr/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Decisions
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
         
       
       <main class="md-main" data-md-component="main">
@@ -193,13 +456,14 @@
                     
 
 
+  
 
-<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href=".." title="pipeloom" class="md-nav__button md-logo" aria-label="pipeloom" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../assets/logo.svg" alt="logo">
 
     </a>
     pipeloom
@@ -281,7 +545,42 @@
   
     
     
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
     
+    
+    
+      
+      
+        
+      
     
     
     <li class="md-nav__item md-nav__item--nested">
@@ -727,7 +1026,28 @@
   
     
     
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
     
+    
+    
+      
+      
+        
+      
     
     
     <li class="md-nav__item md-nav__item--nested">
@@ -977,7 +1297,28 @@
   
     
     
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
     
+    
+    
+      
+      
+        
+      
     
     
     <li class="md-nav__item md-nav__item--nested">
@@ -1879,6 +2220,11 @@
 
 
   
+    <a href="https://github.com/emanuel-luis/pipeloom/edit/main/docs/architecture.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
   
 
 
@@ -1933,42 +2279,42 @@ From 0.9 models are decorated Python functions, and YAML keeps the project and p
 </ul>
 <h2 id="3-architecture-overview">3. Architecture overview<a class="headerlink" href="#3-architecture-overview" title="Permanent link">&para;</a></h2>
 <figure>
-  <img alt="pipeloom in context: an author writes YAML and @model functions, the core runs them on the polars, pandas, DuckDB or Spark engine, writes tables, state and run artifacts, sends events to sinks and OpenLineage, and renders Databricks jobs and Airflow DAGs." src="../diagrams/context.light.svg#only-light" />
-  <img alt="pipeloom in context: an author writes YAML and @model functions, the core runs them on the polars, pandas, DuckDB or Spark engine, writes tables, state and run artifacts, sends events to sinks and OpenLineage, and renders Databricks jobs and Airflow DAGs." src="../diagrams/context.dark.svg#only-dark" />
+  <a class="glightbox" href="../diagrams/context.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="pipeloom in context: an author writes YAML and @model functions, the core runs them on the polars, pandas, DuckDB or Spark engine, writes tables, state and run artifacts, sends events to sinks and OpenLineage, and renders Databricks jobs and Airflow DAGs." src="../diagrams/context.light.svg#only-light" /></a>
+  <a class="glightbox" href="../diagrams/context.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="pipeloom in context: an author writes YAML and @model functions, the core runs them on the polars, pandas, DuckDB or Spark engine, writes tables, state and run artifacts, sends events to sinks and OpenLineage, and renders Databricks jobs and Airflow DAGs." src="../diagrams/context.dark.svg#only-dark" /></a>
 <br />
 <figcaption>pipeloom in context. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/context.d2">context.d2</a>.</figcaption>
 </figure>
 <p><strong>Layers.</strong> Arrows point toward dependencies. The core never imports a plugin, and an import-linter contract enforces this in CI.</p>
-<pre><code>CLI / Python API (pipeloom.api.Project)
-  ├─ diagnostics  Diagnostic, Report, Outcome and the error-code catalog (`pipeloom.diagnostics.codes`); a leaf package
-  ├─ platform   Clock and Identity seams
-  ├─ authoring  `@model`, `ModelSpec`, `ref`, `source`, `var` and the check helpers (from 0.9)
-  ├─ discovery  AST resolver, discovery cache, ModuleLoader, load summary (from 0.9)
-  ├─ config     YAML loader with line marks, pydantic models, defaults resolution, target binding, schema export
-  ├─ validate   L2 references, L4 plan semantics, L5 capabilities, L6 static code (L0-L1 live in config, L3 in graph)
-  ├─ graph      DAG, selectors, topological order, cycle paths
-  ├─ plan       Plan, ExecutionUnit, Manifest, plan_hash
-  ├─ runtime    Scheduler, Executor(thread|process), ModelRunner, ModelContext
-  ├─ engine     protocols, logical types, capabilities, portable helpers (Narwhals)
-  ├─ incremental / quality / state
-  ├─ events     Event models, EventBus, console/jsonl/file sinks
-  ├─ artifacts  manifest.json, run_results.json writers
-  ├─ secrets    env provider, interpolation, redaction
-  ├─ plugins    entry-point discovery, built-in table, API-version gate
-  ├─ builtins   naming strategies, filesystem catalog spec, env secret provider
-  └─ testing    contract suites, RecordingSink, FakeClock, MemoryEngine
-Plugins: pipeloom-pandas | -polars | -spark (0.4) | -databricks (0.5) | -airflow (0.6) | -openlineage (0.9)
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>CLI / Python API (pipeloom.api.Project)
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  ├─ diagnostics  Diagnostic, Report, Outcome and the error-code catalog (`pipeloom.diagnostics.codes`); a leaf package
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  ├─ platform   Clock and Identity seams
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  ├─ authoring  `@model`, `ModelSpec`, `ref`, `source`, `var` and the check helpers (from 0.9)
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  ├─ discovery  AST resolver, discovery cache, ModuleLoader, load summary (from 0.9)
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  ├─ config     YAML loader with line marks, pydantic models, defaults resolution, target binding, schema export
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  ├─ validate   L2 references, L4 plan semantics, L5 capabilities, L6 static code (L0-L1 live in config, L3 in graph)
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>  ├─ graph      DAG, selectors, topological order, cycle paths
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>  ├─ plan       Plan, ExecutionUnit, Manifest, plan_hash
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>  ├─ runtime    Scheduler, Executor(thread|process), ModelRunner, ModelContext
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>  ├─ engine     protocols, logical types, capabilities, portable helpers (Narwhals)
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>  ├─ incremental / quality / state
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>  ├─ events     Event models, EventBus, console/jsonl/file sinks
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>  ├─ artifacts  manifest.json, run_results.json writers
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>  ├─ secrets    env provider, interpolation, redaction
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>  ├─ plugins    entry-point discovery, built-in table, API-version gate
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>  ├─ builtins   naming strategies, filesystem catalog spec, env secret provider
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>  └─ testing    contract suites, RecordingSink, FakeClock, MemoryEngine
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>Plugins: pipeloom-pandas | -polars | -spark (0.4) | -databricks (0.5) | -airflow (0.6) | -openlineage (0.9)
+</code></pre></div>
 <p><code>pipeloom-spark</code> depends only on <code>pipeloom</code>. pyspark is not a dependency of it: the extra <code>local</code> brings <code>pyspark[connect]</code> and <code>delta-spark</code>, and <code>pipeloom[spark]</code> pulls <code>pipeloom-spark[local]</code> (<a href="../adr/0031-spark-engine/">ADR-0031</a>). Databricks runtimes and Databricks Connect ship their own pyspark, so there the plugin is installed without extras.</p>
 <figure>
-  <img alt="The seven plugin distributions (polars, pandas, DuckDB, Spark, Databricks, Airflow, OpenLineage) depend on the core; Databricks also depends on Spark; the core imports no plugin." src="../diagrams/packages.light.svg#only-light" />
-  <img alt="The seven plugin distributions (polars, pandas, DuckDB, Spark, Databricks, Airflow, OpenLineage) depend on the core; Databricks also depends on Spark; the core imports no plugin." src="../diagrams/packages.dark.svg#only-dark" />
+  <a class="glightbox" href="../diagrams/packages.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="The seven plugin distributions (polars, pandas, DuckDB, Spark, Databricks, Airflow, OpenLineage) depend on the core; Databricks also depends on Spark; the core imports no plugin." src="../diagrams/packages.light.svg#only-light" /></a>
+  <a class="glightbox" href="../diagrams/packages.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="The seven plugin distributions (polars, pandas, DuckDB, Spark, Databricks, Airflow, OpenLineage) depend on the core; Databricks also depends on Spark; the core imports no plugin." src="../diagrams/packages.dark.svg#only-dark" /></a>
 <br />
 <figcaption>Distributions and their dependencies. The entry-point groups each plugin fills are listed in section 6. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/packages.d2">packages.d2</a>.</figcaption>
 </figure>
 <figure>
-  <img alt="Core modules: the CLI and Project API import plugins, runtime and plan; runtime imports plan, engine protocols, incremental, quality and state, and events and artifacts; plan imports validate and graph, which import config and discovery." src="../diagrams/core-modules.light.svg#only-light" />
-  <img alt="Core modules: the CLI and Project API import plugins, runtime and plan; runtime imports plan, engine protocols, incremental, quality and state, and events and artifacts; plan imports validate and graph, which import config and discovery." src="../diagrams/core-modules.dark.svg#only-dark" />
+  <a class="glightbox" href="../diagrams/core-modules.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Core modules: the CLI and Project API import plugins, runtime and plan; runtime imports plan, engine protocols, incremental, quality and state, and events and artifacts; plan imports validate and graph, which import config and discovery." src="../diagrams/core-modules.light.svg#only-light" /></a>
+  <a class="glightbox" href="../diagrams/core-modules.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Core modules: the CLI and Project API import plugins, runtime and plan; runtime imports plan, engine protocols, incremental, quality and state, and events and artifacts; plan imports validate and graph, which import config and discovery." src="../diagrams/core-modules.dark.svg#only-dark" /></a>
 <br />
 <figcaption>Core modules; arrows point at the module imported. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/core-modules.d2">core-modules.d2</a>.</figcaption>
 </figure>
@@ -1984,8 +2330,8 @@ Plugins: pipeloom-pandas | -polars | -spark (0.4) | -databricks (0.5) | -airflow
 </ol>
 <p><strong>Commands.</strong> <code>init</code> (scaffold a new project, <a href="../adr/0041-pipeloom-init/">ADR-0041</a>), <code>new model</code> (add one decorated <code>.py</code> model file; ADR-0041 amendments), <code>validate</code>, <code>compile</code>, <code>ls</code>, <code>graph</code> (with <code>--units</code>, the unit graph for orchestrators, <a href="../adr/0049-artifact-schemas-and-orchestrator-protocol/">ADR-0049</a>), <code>run</code>, <code>retry</code> (run again what a finished run did not finish, ADR-0013 amendment), <code>test</code> and <code>build</code> (unit tests, then a run with data tests, <a href="../adr/0045-unit-and-data-tests/">ADR-0045</a>), <code>runs ls|show</code> (run history, <a href="../adr/0047-run-history-and-webhook/">ADR-0047</a>), <code>finalize</code>, <code>docs generate|serve</code> (a read-only one-file site, <a href="../adr/0043-docs-site/">ADR-0043</a>), <code>schema export</code>, <code>explain</code> (print a diagnostic code's catalog entry and docs link) and <code>plugins list</code>; plugins add their own through <code>pipeloom.commands</code> (for example <code>pipeloom databricks</code>).</p>
 <figure>
-  <img alt="The seven lifecycle stages in order: load, validate schema, resolve graph, validate plan, compile, execute, finalize. Compile writes manifest.json, execute writes the unit attempt files, finalize writes run_results.json." src="../diagrams/lifecycle.light.svg#only-light" />
-  <img alt="The seven lifecycle stages in order: load, validate schema, resolve graph, validate plan, compile, execute, finalize. Compile writes manifest.json, execute writes the unit attempt files, finalize writes run_results.json." src="../diagrams/lifecycle.dark.svg#only-dark" />
+  <a class="glightbox" href="../diagrams/lifecycle.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="The seven lifecycle stages in order: load, validate schema, resolve graph, validate plan, compile, execute, finalize. Compile writes manifest.json, execute writes the unit attempt files, finalize writes run_results.json." src="../diagrams/lifecycle.light.svg#only-light" /></a>
+  <a class="glightbox" href="../diagrams/lifecycle.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="The seven lifecycle stages in order: load, validate schema, resolve graph, validate plan, compile, execute, finalize. Compile writes manifest.json, execute writes the unit attempt files, finalize writes run_results.json." src="../diagrams/lifecycle.dark.svg#only-dark" /></a>
 <br />
 <figcaption>Lifecycle stages and the artifacts they write. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/lifecycle.d2">lifecycle.d2</a>.</figcaption>
 </figure>
@@ -2038,106 +2384,106 @@ Plugins: pipeloom-pandas | -polars | -spark (0.4) | -databricks (0.5) | -airflow
 <h2 id="4-configuration">4. Configuration<a class="headerlink" href="#4-configuration" title="Permanent link">&para;</a></h2>
 <p>From 0.9 (<a href="../adr/0050-python-first-authoring/">ADR-0050</a>) a project is one <code>pipeloom.yml</code>, Python model modules and optional properties files. The YAML model files of 0.8 are gone; see "YAML model files" below.</p>
 <p><strong>Project file.</strong></p>
-<pre><code class="language-yaml"># yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json
-config_version: 1
-name: shop
-model_paths: [models]
-python_paths: [&quot;.&quot;]            # default; model modules are imported relative to these roots
-vars:
-  country: BR
-models:                        # folder config, from 0.9
-  +materialized: table         # root +keys are project defaults
-  +retries: 1
-  +timeout: 30m
-  marts:
-    +tags: [daily]
-sources:                       # source groups, from 0.9
-  raw:
-    format: parquet
-    location: data/raw
-    tables:
-      orders:
-        location: orders/
-      customers:
-        location: customers/
-targets:
-  dev:
-    engine:
-      kind: polars
-    catalog:
-      kind: filesystem
-      root: ./warehouse
-    naming:
-      kind: per_user
-    state:
-      kind: sqlite
-      path: .pipeloom/state.db
-    workers: 4
-  prod:
-    engine:
-      kind: spark
-    catalog:
-      kind: unity
-      catalog: main
-    naming:
-      kind: prefix
-      schema_prefix: prod_
-    state:
-      kind: table
-      table: ops._pipeloom_state
-    artifacts:
-      root: /Volumes/main/ops/pipeloom
-    deploy:                                  # 0.5: a plugin block, validated against `renderers`
-      kind: databricks
-      pipelines:
-        main: {}
-        daily:
-          select: [&quot;tag:daily&quot;]
-      compute:
-        default:
-          kind: serverless
-          environment_version: &quot;5&quot;
-      task_grouping: none
-events:
-  sinks:
-    - kind: console
-    - kind: jsonl
-      path: target/events.jsonl
-      failure_budget: 5
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/project.json</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nt">config_version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shop</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nt">model_paths</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">models</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="nt">python_paths</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"."</span><span class="p p-Indicator">]</span><span class="w">            </span><span class="c1"># default; model modules are imported relative to these roots</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nt">vars</span><span class="p">:</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">country</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BR</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="nt">models</span><span class="p">:</span><span class="w">                        </span><span class="c1"># folder config, from 0.9</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">+materialized</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">table</span><span class="w">         </span><span class="c1"># root +keys are project defaults</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">+retries</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nt">+timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30m</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="nt">marts</span><span class="p">:</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="nt">+tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">daily</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="nt">sources</span><span class="p">:</span><span class="w">                       </span><span class="c1"># source groups, from 0.9</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="nt">raw</span><span class="p">:</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span><span class="nt">format</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">parquet</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">    </span><span class="nt">location</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data/raw</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">    </span><span class="nt">tables</span><span class="p">:</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">      </span><span class="nt">orders</span><span class="p">:</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">        </span><span class="nt">location</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">orders/</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">      </span><span class="nt">customers</span><span class="p">:</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">        </span><span class="nt">location</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">customers/</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="nt">targets</span><span class="p">:</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="w">  </span><span class="nt">dev</span><span class="p">:</span>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">    </span><span class="nt">engine</span><span class="p">:</span>
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">polars</span>
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">    </span><span class="nt">catalog</span><span class="p">:</span>
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">filesystem</span>
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">      </span><span class="nt">root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./warehouse</span>
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="w">    </span><span class="nt">naming</span><span class="p">:</span>
+<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">per_user</span>
+<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="w">    </span><span class="nt">state</span><span class="p">:</span>
+<a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqlite</span>
+<a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.pipeloom/state.db</span>
+<a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a><span class="w">    </span><span class="nt">workers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a><span class="w">  </span><span class="nt">prod</span><span class="p">:</span>
+<a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a><span class="w">    </span><span class="nt">engine</span><span class="p">:</span>
+<a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a><span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spark</span>
+<a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a><span class="w">    </span><span class="nt">catalog</span><span class="p">:</span>
+<a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a><span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unity</span>
+<a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a><span class="w">      </span><span class="nt">catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">main</span>
+<a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a><span class="w">    </span><span class="nt">naming</span><span class="p">:</span>
+<a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a><span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prefix</span>
+<a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a><span class="w">      </span><span class="nt">schema_prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prod_</span>
+<a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a><span class="w">    </span><span class="nt">state</span><span class="p">:</span>
+<a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a><span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">table</span>
+<a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a><span class="w">      </span><span class="nt">table</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ops._pipeloom_state</span>
+<a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a><span class="w">    </span><span class="nt">artifacts</span><span class="p">:</span>
+<a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a><span class="w">      </span><span class="nt">root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/Volumes/main/ops/pipeloom</span>
+<a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a><span class="w">    </span><span class="nt">deploy</span><span class="p">:</span><span class="w">                                  </span><span class="c1"># 0.5: a plugin block, validated against `renderers`</span>
+<a id="__codelineno-1-51" name="__codelineno-1-51" href="#__codelineno-1-51"></a><span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">databricks</span>
+<a id="__codelineno-1-52" name="__codelineno-1-52" href="#__codelineno-1-52"></a><span class="w">      </span><span class="nt">pipelines</span><span class="p">:</span>
+<a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a><span class="w">        </span><span class="nt">main</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<a id="__codelineno-1-54" name="__codelineno-1-54" href="#__codelineno-1-54"></a><span class="w">        </span><span class="nt">daily</span><span class="p">:</span>
+<a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a><span class="w">          </span><span class="nt">select</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"tag:daily"</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a><span class="w">      </span><span class="nt">compute</span><span class="p">:</span>
+<a id="__codelineno-1-57" name="__codelineno-1-57" href="#__codelineno-1-57"></a><span class="w">        </span><span class="nt">default</span><span class="p">:</span>
+<a id="__codelineno-1-58" name="__codelineno-1-58" href="#__codelineno-1-58"></a><span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">serverless</span>
+<a id="__codelineno-1-59" name="__codelineno-1-59" href="#__codelineno-1-59"></a><span class="w">          </span><span class="nt">environment_version</span><span class="p">:</span><span class="w"> </span><span class="s">"5"</span>
+<a id="__codelineno-1-60" name="__codelineno-1-60" href="#__codelineno-1-60"></a><span class="w">      </span><span class="nt">task_grouping</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">none</span>
+<a id="__codelineno-1-61" name="__codelineno-1-61" href="#__codelineno-1-61"></a><span class="nt">events</span><span class="p">:</span>
+<a id="__codelineno-1-62" name="__codelineno-1-62" href="#__codelineno-1-62"></a><span class="w">  </span><span class="nt">sinks</span><span class="p">:</span>
+<a id="__codelineno-1-63" name="__codelineno-1-63" href="#__codelineno-1-63"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">console</span>
+<a id="__codelineno-1-64" name="__codelineno-1-64" href="#__codelineno-1-64"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jsonl</span>
+<a id="__codelineno-1-65" name="__codelineno-1-65" href="#__codelineno-1-65"></a><span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">target/events.jsonl</span>
+<a id="__codelineno-1-66" name="__codelineno-1-66" href="#__codelineno-1-66"></a><span class="w">      </span><span class="nt">failure_budget</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+</code></pre></div>
 <p><strong>Sources (from 0.9).</strong> <code>sources</code> maps a group name to <code>format</code>, <code>location</code>, <code>schema</code>, <code>options</code>, <code>tags</code>, <code>meta</code> and <code>tables</code>. A table may set the same keys plus <code>location</code> or <code>table</code>: a table <code>location</code> is joined to the group <code>location</code>, a table <code>table</code> is qualified by the group <code>schema</code>. A table entry whose merged result has no <code>location</code> and no <code>table</code> uses its key as <code>table</code>, qualified by the group <code>schema</code>; one with both is PLS108. <code>targets.&lt;t&gt;.sources.&lt;group&gt;</code> deep-merges over the group, and an explicit <code>null</code> removes a key, so a prod target can read the same tables from a catalog. Sources in properties files are rejected for now.</p>
 <p><strong>Models (from 0.9).</strong> A model is a function marked with <code>@model</code> in any <code>*.py</code> file under <code>model_paths</code> (a directory scanned recursively, or a glob) or inside a package named in <code>model_packages</code>. Every model file must lie under a <code>python_paths</code> root.</p>
-<pre><code class="language-python">from pipeloom import ModelContext, Write, model
-
-@model(materialized=&quot;incremental&quot;,
-       incremental={&quot;input&quot;: &quot;orders&quot;, &quot;column&quot;: &quot;updated_at&quot;, &quot;lookback&quot;: &quot;2d&quot;},
-       write=Write(strategy=&quot;merge&quot;, unique_key=[&quot;order_id&quot;]))
-def fct_orders(ctx: ModelContext, orders, stg_customers):
-    return ctx.sql(&quot;select o.*, c.name from orders o join stg_customers c using (customer_id)&quot;)
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pipeloom</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelContext</span><span class="p">,</span> <span class="n">Write</span><span class="p">,</span> <span class="n">model</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nd">@model</span><span class="p">(</span><span class="n">materialized</span><span class="o">=</span><span class="s2">"incremental"</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>       <span class="n">incremental</span><span class="o">=</span><span class="p">{</span><span class="s2">"input"</span><span class="p">:</span> <span class="s2">"orders"</span><span class="p">,</span> <span class="s2">"column"</span><span class="p">:</span> <span class="s2">"updated_at"</span><span class="p">,</span> <span class="s2">"lookback"</span><span class="p">:</span> <span class="s2">"2d"</span><span class="p">},</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>       <span class="n">write</span><span class="o">=</span><span class="n">Write</span><span class="p">(</span><span class="n">strategy</span><span class="o">=</span><span class="s2">"merge"</span><span class="p">,</span> <span class="n">unique_key</span><span class="o">=</span><span class="p">[</span><span class="s2">"order_id"</span><span class="p">]))</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">fct_orders</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">ModelContext</span><span class="p">,</span> <span class="n">orders</span><span class="p">,</span> <span class="n">stg_customers</span><span class="p">):</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s2">"select o.*, c.name from orders o join stg_customers c using (customer_id)"</span><span class="p">)</span>
+</code></pre></div>
 <ul>
 <li>Parameters are the inputs. Each binds in this order: (1) an <code>inputs=</code> entry (<code>ref(...)</code>, <code>source(...)</code> or a bare name, which resolves by steps 3 and 4); (2) a parameter with a default is never an input unless <code>inputs=</code> lists it; (3) a model of that name other than the model itself; (4) a source table of that name when exactly one group has it; (5) anything else is PLR201. A table name in two groups is PLR210. <code>ctx</code> is optional and reserved.</li>
 <li>The default name is the function name, and a file may hold several models. Decorator arguments use the YAML keys, as plain dicts or as the re-exported config models (<code>Write</code>, <code>Incremental</code>, <code>Column</code>, <code>Expectation</code>, <code>Quality</code>, <code>Deletes</code>, <code>DataTest</code>), plus the helpers <code>ref</code>, <code>source</code>, <code>var</code> and the check helpers (<code>not_null</code>, <code>unique</code>, <code>accepted_values</code>, <code>between</code>, <code>regex</code>, <code>row_count</code>, <code>freshness</code>).</li>
 <li>SQL runs through <code>ctx.sql(query, *, dialect=None, inputs=None)</code> against the inputs by alias (section 5). There are no SQL model files.</li>
 </ul>
 <p><strong>Properties files (from 0.9).</strong> Any <code>*.yml</code> or <code>*.yaml</code> under <code>model_paths</code> except <code>pipeloom.yml</code>. They describe and configure models; they never create one or set <code>inputs</code>.</p>
-<pre><code class="language-yaml"># yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json
-models:
-  - name: fct_orders
-    description: One row per order.
-    config:
-      partition_by: [order_date]
-      tags: [finance]
-    columns:
-      - name: order_id
-        dtype: int64
-        nullable: false
-    data_tests:
-      - name: order_id_unique
-        check:
-          unique: [order_id]
-        on_violation: fail
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># yaml-language-server: $schema=https://emanuel-luis.github.io/pipeloom/latest/schema/v1/properties.json</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nt">models</span><span class="p">:</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fct_orders</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">One row per order.</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="nt">config</span><span class="p">:</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">      </span><span class="nt">partition_by</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">order_date</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">      </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">finance</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="nt">columns</span><span class="p">:</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">order_id</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">        </span><span class="nt">dtype</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">int64</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">        </span><span class="nt">nullable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">    </span><span class="nt">data_tests</span><span class="p">:</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">order_id_unique</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">        </span><span class="nt">check</span><span class="p">:</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">          </span><span class="nt">unique</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">order_id</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">        </span><span class="nt">on_violation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fail</span>
+</code></pre></div>
 <p>An entry that names no model, or a model another entry already describes, is PLR209 (suppressed while any PLY005 exists). <code>unit_tests</code> also live here (ADR-0045).</p>
 <p><strong>Discovery (from 0.9).</strong> One scan of <code>model_paths</code> and <code>model_packages</code> finds model modules and properties files.
 - An AST pass parses every <code>.py</code> file that imports pipeloom. A <code>@model</code> on a top-level <code>def</code> whose arguments are all static (literals, containers of static values, or calls to known helpers and re-exported config classes on static values) is resolved without importing the module. Any other use makes the module dynamic. Unknown keywords are PLS101 from the AST in both cases.
@@ -2162,124 +2508,124 @@ models:
 - Targets may change runtime keys (engine options, catalog, naming, state, workers, artifacts, deploy) and, from 0.9, override source groups (<code>targets.&lt;t&gt;.sources</code>: format, location, schema, options, tables). <code>deploy</code> is a runtime key like the others: the target block wins over the top-level one. The core validates its options with the <code>config_model</code> of the <code>renderers</code> plugin it names (the factory is never called), records them in the manifest as <code>metadata.deploy</code> (not part of the plan hash) and resolves nothing in them at runtime except <code>${secret:...}</code> references in plugin options. They may not change model semantics, so plans differ across targets only in physical names, source relations and runtime settings.
 - Interpolation: <code>${env:NAME}</code>, <code>${env:NAME:-default}</code> and <code>${var:name}</code> resolve at compile time and are recorded in the manifest. <code>${secret:provider/path}</code> resolves only at runtime (section 14).</p>
 <h2 id="5-core-protocols">5. Core protocols<a class="headerlink" href="#5-core-protocols" title="Permanent link">&para;</a></h2>
-<pre><code class="language-python">from typing import Any, Protocol, Mapping, Sequence, Iterator, ContextManager
-from dataclasses import dataclass
-from datetime import datetime
-
-@dataclass(frozen=True)
-class Column: name: str; dtype: str; nullable: bool = True   # logical type: int64, decimal(18,2), timestamp[UTC]...
-Schema = tuple[Column, ...]
-
-@dataclass(frozen=True)
-class Relation:                      # opaque handle; never inspected by core
-    native: Any                      # pandas/polars frame, Spark DataFrame...
-    engine: str
-    lazy: bool
-
-@dataclass(frozen=True)
-class EngineCapabilities:
-    formats: frozenset[str]; strategies: frozenset[str]
-    sql_models: bool; views: bool; idempotent_writes: bool
-    cancel: bool; bytes_metrics: bool; portable: bool   # Narwhals-compatible frames
-    quality: bool                                       # evaluate and apply_drops (0.3)
-    materializations: frozenset[str]                    # table, view, ephemeral (0.2)
-    sql_dialect: str | None = None                      # sqlglot dialect for ctx.sql (0.9, ADR-0050)
-
-@dataclass(frozen=True)
-class StateStoreCapabilities: shared: bool              # visible to every process and task of a run
-
-class Engine(Protocol):
-    name: str
-    version: str                                       # recorded as engine_version in run_results
-    capabilities: EngineCapabilities
-    def session(self, ctx: &quot;RuntimeContext&quot;, *, catalog: &quot;Catalog&quot;) -&gt; ContextManager[&quot;EngineSession&quot;]: ...  # one per invocation, thread-safe, cleanup guaranteed (L10)
-
-class EngineSession(Protocol):
-    native: Any                                        # escape hatch
-    def reader(self, fmt: str) -&gt; &quot;Reader&quot;: ...
-    def materializer(self, strategy: str) -&gt; &quot;Materializer&quot;: ...
-    def sql(self, query: str, inputs: Mapping[str, Relation]) -&gt; Relation: ...
-    def schema(self, rel: Relation) -&gt; Schema: ...
-    def count(self, rel: Relation) -&gt; int: ...
-    def filter_since(self, rel: Relation, column: str, lower: Any, *, inclusive: bool = True) -&gt; Relation: ...  # strict (&gt;) when not inclusive
-    def relation(self, native: Any) -&gt; Relation: ...   # check a model's return value and wrap it; TypeError for a foreign type
-    def persist(self, rel: Relation) -&gt; Relation: ...  # in-memory copy for results shared by several units
-    def create_view(self, target: &quot;TargetRef&quot;, query: str, inputs: Mapping[str, &quot;ReadSpec&quot;]) -&gt; &quot;WriteResult&quot;: ...  # catalog view, never a session view
-    def max_value(self, rel: Relation, column: str) -&gt; Any: ...      # a plain Python value, never numpy or pandas
-    def evaluate(self, rel: Relation, checks: Sequence[&quot;ExpectationSpec&quot;]) -&gt; &quot;QualityCounts&quot;: ...  # raw counts; the core judges
-    def apply_drops(self, rel: Relation, checks: Sequence[&quot;ExpectationSpec&quot;], *, quarantine: &quot;QuarantineMeta | None&quot;) -&gt; &quot;DropResult&quot;: ...
-    def align(self, rel: Relation, schema: Schema) -&gt; Relation: ...  # schema order, missing columns as typed nulls, cast
-    def write_intermediate(self, rel: Relation, ref: &quot;IntermediateRef&quot;, token: str) -&gt; &quot;WriteResult&quot;: ...  # overwrite at ref.location; a repeated token writes nothing (0.4)
-    def applied_token(self, target: &quot;TargetRef&quot;, token: str) -&gt; &quot;WriteResult | None&quot;: ...  # stored result with skipped=True
-    def unit_scope(self, unit_id: str) -&gt; ContextManager[None]: ...  # tags this thread's work so cancel can find it
-    def is_transient(self, exc: BaseException) -&gt; bool | None: ...   # True retryable, False permanent, None no opinion
-    def cancel(self, unit_id: str) -&gt; None: ...        # cooperative; no-op if not capable
-
-class Reader(Protocol):
-    def read(self, spec: &quot;ReadSpec&quot;) -&gt; Relation: ...            # source or upstream target
-class Writer(Protocol):                                           # format-level primitive
-    def write(self, rel: Relation, target: &quot;TargetRef&quot;, mode: str, opts: &quot;WriteOptions&quot;) -&gt; None: ...
-
-class Materializer(Protocol):                                     # one per strategy
-    strategy: str
-    def materialize(self, rel: Relation, target: &quot;TargetRef&quot;, cfg: &quot;WriteConfig&quot;,
-                    token: str) -&gt; &quot;WriteResult&quot;: ...             # token = idempotency key; cfg.run_started_at = the run's start (the session opens before it is resolved)
-
-class Catalog(Protocol):
-    def exists(self, target: &quot;TargetRef&quot;) -&gt; bool: ...
-    def ensure_namespace(self, ns: &quot;Namespace&quot;) -&gt; None: ...      # idempotent, cached per invocation
-    def table_schema(self, target: &quot;TargetRef&quot;) -&gt; Schema | None: ...
-    def apply_grants(self, target: &quot;TargetRef&quot;, grants: Sequence[&quot;Grant&quot;]) -&gt; None: ...
-    def maintain(self, target: &quot;TargetRef&quot;, ops: Sequence[&quot;MaintenanceOp&quot;]) -&gt; None: ...  # explicit (L8)
-
-class MetricsProvider(Protocol):                      # plugin-internal since 0.4: not part of the core API
-    def before_write(self, target: &quot;TargetRef&quot;) -&gt; &quot;MetricsToken&quot;: ...
-    def after_write(self, target: &quot;TargetRef&quot;, token: &quot;MetricsToken&quot;, result: &quot;WriteResult&quot;) -&gt; &quot;WriteMetrics&quot;: ...
-
-class StateStore(Protocol):
-    def get_watermark(self, key: &quot;StateKey&quot;) -&gt; &quot;Watermark | None&quot;: ...
-    def cas_watermark(self, key: &quot;StateKey&quot;, expected: &quot;Watermark | None&quot;, new: &quot;Watermark&quot;) -&gt; bool: ...
-    def record_run(self, record: &quot;RunRecord&quot;) -&gt; None: ...           # insert or replace
-    def get_run(self, run_id: str) -&gt; &quot;RunRecord | None&quot;: ...
-    def record_unit(self, record: &quot;UnitRecord&quot;) -&gt; None: ...         # keyed by (run_id, unit_id, attempt)
-    def list_units(self, run_id: str) -&gt; tuple[&quot;UnitRecord&quot;, ...]: ...  # sorted by (unit_id, attempt)
-    def list_runs(self, project: str, target: str, limit: int, before: str | None = None) -&gt; tuple[&quot;RunRecord&quot;, ...]: ...  # 0.9: newest first; before is a run id
-    def lock(self, scope: str, run_id: str) -&gt; ContextManager[&quot;LockInfo&quot;]: ...  # non-blocking; raises LockHeld; 60 s lease renewed every 20 s
-    def close(self) -&gt; None: ...
-
-class EventSink(Protocol):
-    name: str
-    def handle(self, event: &quot;Event&quot;) -&gt; None: ...
-    def flush(self) -&gt; None: ...
-    def close(self) -&gt; None: ...
-
-class Renderer(Protocol):
-    name: str
-    def render(self, plan: &quot;Plan&quot;, options: Mapping[str, Any]) -&gt; Mapping[str, bytes]: ...  # path -&gt; content
-    # 0.5: the core only binds a renderer's options; it never builds one. The Databricks plugin
-    # keeps rendering internal (`render_job`) and exposes `pipeloom_databricks.api`, so this
-    # protocol stays a plugin-internal convention and is not called by the core.
-
-class Executor(Protocol):
-    name: str
-    boundary: str                                    # &quot;process&quot; | &quot;task&quot;
-    def submit(self, unit_id: str, *, queued_at: float) -&gt; &quot;UnitHandle&quot;: ...
-    def wait_any(self, timeout: float | None) -&gt; &quot;UnitCompletion | None&quot;: ...  # None on timeout or wake
-    def cancel(self, handle: &quot;UnitHandle&quot;, reason: str, *, final: bool = False) -&gt; bool: ...  # timeout and final also abandon the unit
-    def has_terminal_event(self, handle: &quot;UnitHandle&quot;) -&gt; bool: ...  # a child process already emitted its own
-    def wake(self) -&gt; None: ...                      # unblocks wait_any; safe from a signal handler
-    def shutdown(self, *, wait: bool) -&gt; None: ...
-
-class Clock(Protocol):
-    def now(self) -&gt; datetime: ...                   # timezone-aware UTC
-    def monotonic(self) -&gt; float: ...
-
-class IdentityProvider(Protocol):
-    def current(self) -&gt; &quot;Identity&quot;: ...             # user, host, orchestrator, orchestrator ids
-
-class SecretProvider(Protocol):
-    def resolve(self, path: str) -&gt; str: ...
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">ContextManager</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">Column</span><span class="p">:</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">nullable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>   <span class="c1"># logical type: int64, decimal(18,2), timestamp[UTC]...</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">Schema</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Column</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="k">class</span><span class="w"> </span><span class="nc">Relation</span><span class="p">:</span>                      <span class="c1"># opaque handle; never inspected by core</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="n">native</span><span class="p">:</span> <span class="n">Any</span>                      <span class="c1"># pandas/polars frame, Spark DataFrame...</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="n">engine</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="n">lazy</span><span class="p">:</span> <span class="nb">bool</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="k">class</span><span class="w"> </span><span class="nc">EngineCapabilities</span><span class="p">:</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    <span class="n">formats</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">];</span> <span class="n">strategies</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>    <span class="n">sql_models</span><span class="p">:</span> <span class="nb">bool</span><span class="p">;</span> <span class="n">views</span><span class="p">:</span> <span class="nb">bool</span><span class="p">;</span> <span class="n">idempotent_writes</span><span class="p">:</span> <span class="nb">bool</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="n">cancel</span><span class="p">:</span> <span class="nb">bool</span><span class="p">;</span> <span class="n">bytes_metrics</span><span class="p">:</span> <span class="nb">bool</span><span class="p">;</span> <span class="n">portable</span><span class="p">:</span> <span class="nb">bool</span>   <span class="c1"># Narwhals-compatible frames</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>    <span class="n">quality</span><span class="p">:</span> <span class="nb">bool</span>                                       <span class="c1"># evaluate and apply_drops (0.3)</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>    <span class="n">materializations</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>                    <span class="c1"># table, view, ephemeral (0.2)</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>    <span class="n">sql_dialect</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>                      <span class="c1"># sqlglot dialect for ctx.sql (0.9, ADR-0050)</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="k">class</span><span class="w"> </span><span class="nc">StateStoreCapabilities</span><span class="p">:</span> <span class="n">shared</span><span class="p">:</span> <span class="nb">bool</span>              <span class="c1"># visible to every process and task of a run</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="k">class</span><span class="w"> </span><span class="nc">Engine</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>    <span class="n">version</span><span class="p">:</span> <span class="nb">str</span>                                       <span class="c1"># recorded as engine_version in run_results</span>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>    <span class="n">capabilities</span><span class="p">:</span> <span class="n">EngineCapabilities</span>
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">"RuntimeContext"</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">catalog</span><span class="p">:</span> <span class="s2">"Catalog"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContextManager</span><span class="p">[</span><span class="s2">"EngineSession"</span><span class="p">]:</span> <span class="o">...</span>  <span class="c1"># one per invocation, thread-safe, cleanup guaranteed (L10)</span>
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="k">class</span><span class="w"> </span><span class="nc">EngineSession</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a>    <span class="n">native</span><span class="p">:</span> <span class="n">Any</span>                                        <span class="c1"># escape hatch</span>
+<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fmt</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Reader"</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">materializer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strategy</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Materializer"</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Relation</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Relation</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rel</span><span class="p">:</span> <span class="n">Relation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Schema</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rel</span><span class="p">:</span> <span class="n">Relation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">filter_since</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rel</span><span class="p">:</span> <span class="n">Relation</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">lower</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">inclusive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Relation</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># strict (&gt;) when not inclusive</span>
+<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">relation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">native</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Relation</span><span class="p">:</span> <span class="o">...</span>   <span class="c1"># check a model's return value and wrap it; TypeError for a foreign type</span>
+<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">persist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rel</span><span class="p">:</span> <span class="n">Relation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Relation</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># in-memory copy for results shared by several units</span>
+<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">create_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="s2">"TargetRef"</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="s2">"ReadSpec"</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">"WriteResult"</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># catalog view, never a session view</span>
+<a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">max_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rel</span><span class="p">:</span> <span class="n">Relation</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span> <span class="o">...</span>      <span class="c1"># a plain Python value, never numpy or pandas</span>
+<a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rel</span><span class="p">:</span> <span class="n">Relation</span><span class="p">,</span> <span class="n">checks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="s2">"ExpectationSpec"</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">"QualityCounts"</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># raw counts; the core judges</span>
+<a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">apply_drops</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rel</span><span class="p">:</span> <span class="n">Relation</span><span class="p">,</span> <span class="n">checks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="s2">"ExpectationSpec"</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">quarantine</span><span class="p">:</span> <span class="s2">"QuarantineMeta | None"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"DropResult"</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">align</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rel</span><span class="p">:</span> <span class="n">Relation</span><span class="p">,</span> <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Relation</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># schema order, missing columns as typed nulls, cast</span>
+<a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">write_intermediate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rel</span><span class="p">:</span> <span class="n">Relation</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="s2">"IntermediateRef"</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"WriteResult"</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># overwrite at ref.location; a repeated token writes nothing (0.4)</span>
+<a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">applied_token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="s2">"TargetRef"</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"WriteResult | None"</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># stored result with skipped=True</span>
+<a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">unit_scope</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContextManager</span><span class="p">[</span><span class="kc">None</span><span class="p">]:</span> <span class="o">...</span>  <span class="c1"># tags this thread's work so cancel can find it</span>
+<a id="__codelineno-4-51" name="__codelineno-4-51" href="#__codelineno-4-51"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">is_transient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>   <span class="c1"># True retryable, False permanent, None no opinion</span>
+<a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>        <span class="c1"># cooperative; no-op if not capable</span>
+<a id="__codelineno-4-53" name="__codelineno-4-53" href="#__codelineno-4-53"></a>
+<a id="__codelineno-4-54" name="__codelineno-4-54" href="#__codelineno-4-54"></a><span class="k">class</span><span class="w"> </span><span class="nc">Reader</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-4-55" name="__codelineno-4-55" href="#__codelineno-4-55"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="p">:</span> <span class="s2">"ReadSpec"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Relation</span><span class="p">:</span> <span class="o">...</span>            <span class="c1"># source or upstream target</span>
+<a id="__codelineno-4-56" name="__codelineno-4-56" href="#__codelineno-4-56"></a><span class="k">class</span><span class="w"> </span><span class="nc">Writer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>                                           <span class="c1"># format-level primitive</span>
+<a id="__codelineno-4-57" name="__codelineno-4-57" href="#__codelineno-4-57"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rel</span><span class="p">:</span> <span class="n">Relation</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="s2">"TargetRef"</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">opts</span><span class="p">:</span> <span class="s2">"WriteOptions"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-58" name="__codelineno-4-58" href="#__codelineno-4-58"></a>
+<a id="__codelineno-4-59" name="__codelineno-4-59" href="#__codelineno-4-59"></a><span class="k">class</span><span class="w"> </span><span class="nc">Materializer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>                                     <span class="c1"># one per strategy</span>
+<a id="__codelineno-4-60" name="__codelineno-4-60" href="#__codelineno-4-60"></a>    <span class="n">strategy</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-4-61" name="__codelineno-4-61" href="#__codelineno-4-61"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">materialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rel</span><span class="p">:</span> <span class="n">Relation</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="s2">"TargetRef"</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="s2">"WriteConfig"</span><span class="p">,</span>
+<a id="__codelineno-4-62" name="__codelineno-4-62" href="#__codelineno-4-62"></a>                    <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"WriteResult"</span><span class="p">:</span> <span class="o">...</span>             <span class="c1"># token = idempotency key; cfg.run_started_at = the run's start (the session opens before it is resolved)</span>
+<a id="__codelineno-4-63" name="__codelineno-4-63" href="#__codelineno-4-63"></a>
+<a id="__codelineno-4-64" name="__codelineno-4-64" href="#__codelineno-4-64"></a><span class="k">class</span><span class="w"> </span><span class="nc">Catalog</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-4-65" name="__codelineno-4-65" href="#__codelineno-4-65"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="s2">"TargetRef"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-66" name="__codelineno-4-66" href="#__codelineno-4-66"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">ensure_namespace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ns</span><span class="p">:</span> <span class="s2">"Namespace"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>      <span class="c1"># idempotent, cached per invocation</span>
+<a id="__codelineno-4-67" name="__codelineno-4-67" href="#__codelineno-4-67"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">table_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="s2">"TargetRef"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Schema</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-68" name="__codelineno-4-68" href="#__codelineno-4-68"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">apply_grants</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="s2">"TargetRef"</span><span class="p">,</span> <span class="n">grants</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="s2">"Grant"</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-69" name="__codelineno-4-69" href="#__codelineno-4-69"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">maintain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="s2">"TargetRef"</span><span class="p">,</span> <span class="n">ops</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="s2">"MaintenanceOp"</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># explicit (L8)</span>
+<a id="__codelineno-4-70" name="__codelineno-4-70" href="#__codelineno-4-70"></a>
+<a id="__codelineno-4-71" name="__codelineno-4-71" href="#__codelineno-4-71"></a><span class="k">class</span><span class="w"> </span><span class="nc">MetricsProvider</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>                      <span class="c1"># plugin-internal since 0.4: not part of the core API</span>
+<a id="__codelineno-4-72" name="__codelineno-4-72" href="#__codelineno-4-72"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">before_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="s2">"TargetRef"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"MetricsToken"</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-73" name="__codelineno-4-73" href="#__codelineno-4-73"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">after_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="s2">"TargetRef"</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="s2">"MetricsToken"</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="s2">"WriteResult"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"WriteMetrics"</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-74" name="__codelineno-4-74" href="#__codelineno-4-74"></a>
+<a id="__codelineno-4-75" name="__codelineno-4-75" href="#__codelineno-4-75"></a><span class="k">class</span><span class="w"> </span><span class="nc">StateStore</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-4-76" name="__codelineno-4-76" href="#__codelineno-4-76"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_watermark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="s2">"StateKey"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Watermark | None"</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-77" name="__codelineno-4-77" href="#__codelineno-4-77"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cas_watermark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="s2">"StateKey"</span><span class="p">,</span> <span class="n">expected</span><span class="p">:</span> <span class="s2">"Watermark | None"</span><span class="p">,</span> <span class="n">new</span><span class="p">:</span> <span class="s2">"Watermark"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-78" name="__codelineno-4-78" href="#__codelineno-4-78"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">record_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="s2">"RunRecord"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>           <span class="c1"># insert or replace</span>
+<a id="__codelineno-4-79" name="__codelineno-4-79" href="#__codelineno-4-79"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"RunRecord | None"</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-80" name="__codelineno-4-80" href="#__codelineno-4-80"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">record_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="s2">"UnitRecord"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>         <span class="c1"># keyed by (run_id, unit_id, attempt)</span>
+<a id="__codelineno-4-81" name="__codelineno-4-81" href="#__codelineno-4-81"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">list_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="s2">"UnitRecord"</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span> <span class="o">...</span>  <span class="c1"># sorted by (unit_id, attempt)</span>
+<a id="__codelineno-4-82" name="__codelineno-4-82" href="#__codelineno-4-82"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">list_runs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">before</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="s2">"RunRecord"</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span> <span class="o">...</span>  <span class="c1"># 0.9: newest first; before is a run id</span>
+<a id="__codelineno-4-83" name="__codelineno-4-83" href="#__codelineno-4-83"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">lock</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">run_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContextManager</span><span class="p">[</span><span class="s2">"LockInfo"</span><span class="p">]:</span> <span class="o">...</span>  <span class="c1"># non-blocking; raises LockHeld; 60 s lease renewed every 20 s</span>
+<a id="__codelineno-4-84" name="__codelineno-4-84" href="#__codelineno-4-84"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-85" name="__codelineno-4-85" href="#__codelineno-4-85"></a>
+<a id="__codelineno-4-86" name="__codelineno-4-86" href="#__codelineno-4-86"></a><span class="k">class</span><span class="w"> </span><span class="nc">EventSink</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-4-87" name="__codelineno-4-87" href="#__codelineno-4-87"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-4-88" name="__codelineno-4-88" href="#__codelineno-4-88"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="s2">"Event"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-89" name="__codelineno-4-89" href="#__codelineno-4-89"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-90" name="__codelineno-4-90" href="#__codelineno-4-90"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-91" name="__codelineno-4-91" href="#__codelineno-4-91"></a>
+<a id="__codelineno-4-92" name="__codelineno-4-92" href="#__codelineno-4-92"></a><span class="k">class</span><span class="w"> </span><span class="nc">Renderer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-4-93" name="__codelineno-4-93" href="#__codelineno-4-93"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-4-94" name="__codelineno-4-94" href="#__codelineno-4-94"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plan</span><span class="p">:</span> <span class="s2">"Plan"</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">]:</span> <span class="o">...</span>  <span class="c1"># path -&gt; content</span>
+<a id="__codelineno-4-95" name="__codelineno-4-95" href="#__codelineno-4-95"></a>    <span class="c1"># 0.5: the core only binds a renderer's options; it never builds one. The Databricks plugin</span>
+<a id="__codelineno-4-96" name="__codelineno-4-96" href="#__codelineno-4-96"></a>    <span class="c1"># keeps rendering internal (`render_job`) and exposes `pipeloom_databricks.api`, so this</span>
+<a id="__codelineno-4-97" name="__codelineno-4-97" href="#__codelineno-4-97"></a>    <span class="c1"># protocol stays a plugin-internal convention and is not called by the core.</span>
+<a id="__codelineno-4-98" name="__codelineno-4-98" href="#__codelineno-4-98"></a>
+<a id="__codelineno-4-99" name="__codelineno-4-99" href="#__codelineno-4-99"></a><span class="k">class</span><span class="w"> </span><span class="nc">Executor</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-4-100" name="__codelineno-4-100" href="#__codelineno-4-100"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-4-101" name="__codelineno-4-101" href="#__codelineno-4-101"></a>    <span class="n">boundary</span><span class="p">:</span> <span class="nb">str</span>                                    <span class="c1"># "process" | "task"</span>
+<a id="__codelineno-4-102" name="__codelineno-4-102" href="#__codelineno-4-102"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">submit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">queued_at</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"UnitHandle"</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-103" name="__codelineno-4-103" href="#__codelineno-4-103"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">wait_any</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"UnitCompletion | None"</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># None on timeout or wake</span>
+<a id="__codelineno-4-104" name="__codelineno-4-104" href="#__codelineno-4-104"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">:</span> <span class="s2">"UnitHandle"</span><span class="p">,</span> <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">final</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># timeout and final also abandon the unit</span>
+<a id="__codelineno-4-105" name="__codelineno-4-105" href="#__codelineno-4-105"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">has_terminal_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handle</span><span class="p">:</span> <span class="s2">"UnitHandle"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span> <span class="o">...</span>  <span class="c1"># a child process already emitted its own</span>
+<a id="__codelineno-4-106" name="__codelineno-4-106" href="#__codelineno-4-106"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">wake</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>                      <span class="c1"># unblocks wait_any; safe from a signal handler</span>
+<a id="__codelineno-4-107" name="__codelineno-4-107" href="#__codelineno-4-107"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">wait</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-108" name="__codelineno-4-108" href="#__codelineno-4-108"></a>
+<a id="__codelineno-4-109" name="__codelineno-4-109" href="#__codelineno-4-109"></a><span class="k">class</span><span class="w"> </span><span class="nc">Clock</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-4-110" name="__codelineno-4-110" href="#__codelineno-4-110"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">now</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="p">:</span> <span class="o">...</span>                   <span class="c1"># timezone-aware UTC</span>
+<a id="__codelineno-4-111" name="__codelineno-4-111" href="#__codelineno-4-111"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">monotonic</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-4-112" name="__codelineno-4-112" href="#__codelineno-4-112"></a>
+<a id="__codelineno-4-113" name="__codelineno-4-113" href="#__codelineno-4-113"></a><span class="k">class</span><span class="w"> </span><span class="nc">IdentityProvider</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-4-114" name="__codelineno-4-114" href="#__codelineno-4-114"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">current</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Identity"</span><span class="p">:</span> <span class="o">...</span>             <span class="c1"># user, host, orchestrator, orchestrator ids</span>
+<a id="__codelineno-4-115" name="__codelineno-4-115" href="#__codelineno-4-115"></a>
+<a id="__codelineno-4-116" name="__codelineno-4-116" href="#__codelineno-4-116"></a><span class="k">class</span><span class="w"> </span><span class="nc">SecretProvider</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<a id="__codelineno-4-117" name="__codelineno-4-117" href="#__codelineno-4-117"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span> <span class="o">...</span>
+</code></pre></div>
 <p>The engine protocols above omit <code>Writer</code>, <code>Catalog.apply_grants</code> and <code>Catalog.maintain</code>; they arrive with the versions that need them (section 16). <code>MetricsProvider</code> is shown for the shape of the <code>before_write</code> and <code>after_write</code> pair; with one implementation, the Spark engine's <code>DeltaMetrics</code>, it stays plugin-internal in 0.4 and the core has no such protocol. <code>ReadSpec.format</code> accepts <code>"table"</code> to read a catalog table through <code>ReadSpec.table</code>. The plugin API is (0, 2) in 0.2 (<a href="../adr/0021-plugin-api-0-2/">ADR-0021</a>) and (0, 3) in 0.3 (<a href="../adr/0024-plugin-api-0-3/">ADR-0024</a>) and (0, 4) in 0.4 (<a href="../adr/0030-plugin-api-0-4-and-intermediates/">ADR-0030</a>) and (0, 5) in 0.9 (<a href="../adr/0047-run-history-and-webhook/">ADR-0047</a>); while the major version is 0 a plugin must match exactly.</p>
 <p><strong>0.3 contract additions.</strong>
 - <code>WriteConfig</code> carries <code>strategy</code>, <code>unique_key</code>, <code>partition_by</code>, <code>update_condition</code> (engine dialect; <code>source.</code> and <code>target.</code> qualifiers, a bare name means source), <code>deletes</code> (<code>DeleteSpec</code>), <code>columns</code> (the final schema, chosen by the core) and <code>commit_meta</code>.
@@ -2412,30 +2758,30 @@ class SecretProvider(Protocol):
 - Ready units are ordered by descending count of downstream units, then by name, which is deterministic.
 - <code>workers</code> caps concurrency. <code>pool</code> tags (a later milestone) cap per-resource concurrency.</p>
 <p><strong>Unit state machine.</strong></p>
-<pre><code>pending → queued → running → succeeded | failed | timed_out | cancelled
-                    running → retrying → running
-pending → skipped   (an upstream is failed, timed_out or skipped)
-queued  → skipped   (fail_fast stopped the run)
-pending → cancelled (run cancelled)
-queued  → cancelled (run cancelled)
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>pending → queued → running → succeeded | failed | timed_out | cancelled
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>                    running → retrying → running
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>pending → skipped   (an upstream is failed, timed_out or skipped)
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>queued  → skipped   (fail_fast stopped the run)
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>pending → cancelled (run cancelled)
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>queued  → cancelled (run cancelled)
+</code></pre></div>
 <p>The transition table is checked in code (<code>pipeloom.runtime.states</code>). <code>retrying -&gt; cancelled</code> is part of it: a stop request, or fail-fast, cancels a unit that waits for its next attempt. A skipped unit carries a reason: <code>upstream_failed</code> (with the failed upstream) or <code>fail_fast</code>; <code>pipeloom finalize</code> adds <code>not_run</code> for a unit with neither an attempt file nor an orchestrator state (ADR-0034).</p>
 <p><strong>Run state machine:</strong> <code>created → compiled → running → succeeded | failed | cancelled</code>. A run with warnings is still <code>succeeded</code>.</p>
 <figure>
-  <img alt="Unit states: pending, queued, running; running ends succeeded, failed, timed_out or cancelled, or goes to retrying after a transient error and back to running after the delay; pending becomes skipped when an upstream failed." src="../diagrams/unit-states.light.svg#only-light" />
-  <img alt="Unit states: pending, queued, running; running ends succeeded, failed, timed_out or cancelled, or goes to retrying after a transient error and back to running after the delay; pending becomes skipped when an upstream failed." src="../diagrams/unit-states.dark.svg#only-dark" />
+  <a class="glightbox" href="../diagrams/unit-states.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Unit states: pending, queued, running; running ends succeeded, failed, timed_out or cancelled, or goes to retrying after a transient error and back to running after the delay; pending becomes skipped when an upstream failed." src="../diagrams/unit-states.light.svg#only-light" /></a>
+  <a class="glightbox" href="../diagrams/unit-states.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Unit states: pending, queued, running; running ends succeeded, failed, timed_out or cancelled, or goes to retrying after a transient error and back to running after the delay; pending becomes skipped when an upstream failed." src="../diagrams/unit-states.dark.svg#only-dark" /></a>
 <br />
 <figcaption>Unit states. The cancel and fail-fast transitions of pending, queued and retrying units are in the transition list above. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/unit-states.d2">unit-states.d2</a>.</figcaption>
 </figure>
 <figure>
-  <img alt="Run states: created, compiled, running; running ends succeeded when no unit failed, failed when a unit failed, cancelled on SIGINT or SIGTERM." src="../diagrams/run-states.light.svg#only-light" />
-  <img alt="Run states: created, compiled, running; running ends succeeded when no unit failed, failed when a unit failed, cancelled on SIGINT or SIGTERM." src="../diagrams/run-states.dark.svg#only-dark" />
+  <a class="glightbox" href="../diagrams/run-states.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Run states: created, compiled, running; running ends succeeded when no unit failed, failed when a unit failed, cancelled on SIGINT or SIGTERM." src="../diagrams/run-states.light.svg#only-light" /></a>
+  <a class="glightbox" href="../diagrams/run-states.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Run states: created, compiled, running; running ends succeeded when no unit failed, failed when a unit failed, cancelled on SIGINT or SIGTERM." src="../diagrams/run-states.dark.svg#only-dark" /></a>
 <br />
 <figcaption>Run states. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/run-states.d2">run-states.d2</a>.</figcaption>
 </figure>
 <figure>
-  <img alt="One unit attempt: read the inputs filtered by the watermark from the state store, run the model body, apply expectations (dropped rows go to quarantine), write the target table with the idempotency token, commit the watermark, write the attempt file." src="../diagrams/unit-lifecycle.light.svg#only-light" />
-  <img alt="One unit attempt: read the inputs filtered by the watermark from the state store, run the model body, apply expectations (dropped rows go to quarantine), write the target table with the idempotency token, commit the watermark, write the attempt file." src="../diagrams/unit-lifecycle.dark.svg#only-dark" />
+  <a class="glightbox" href="../diagrams/unit-lifecycle.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="One unit attempt: read the inputs filtered by the watermark from the state store, run the model body, apply expectations (dropped rows go to quarantine), write the target table with the idempotency token, commit the watermark, write the attempt file." src="../diagrams/unit-lifecycle.light.svg#only-light" /></a>
+  <a class="glightbox" href="../diagrams/unit-lifecycle.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="One unit attempt: read the inputs filtered by the watermark from the state store, run the model body, apply expectations (dropped rows go to quarantine), write the target table with the idempotency token, commit the watermark, write the attempt file." src="../diagrams/unit-lifecycle.dark.svg#only-dark" /></a>
 <br />
 <figcaption>What one unit attempt does; every step emits events. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/unit-lifecycle.d2">unit-lifecycle.d2</a>.</figcaption>
 </figure>
@@ -2463,12 +2809,12 @@ queued  → cancelled (run cancelled)
 <h2 id="9-incremental-processing-write-strategies-schema-change">9. Incremental processing, write strategies, schema change<a class="headerlink" href="#9-incremental-processing-write-strategies-schema-change" title="Permanent link">&para;</a></h2>
 <p><strong>ADR-0008: Incremental and state.</strong> A declared key plus a lookback (L12), with watermarks in a <code>StateStore</code>.</p>
 <p><strong>Incremental config:</strong></p>
-<pre><code class="language-yaml">incremental:
-  input: orders
-  column: updated_at
-  lookback: 2d
-  watermark_source: state  # or: target
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">incremental</span><span class="p">:</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">orders</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">updated_at</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">lookback</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2d</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nt">watermark_source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">state</span><span class="w">  </span><span class="c1"># or: target</span>
+</code></pre></div>
 <p><strong>Algorithm per unit:</strong>
 1. Look up the idempotency token with <code>EngineSession.applied_token</code>. A write that already used it is replayed: no read, no body, no write; the stored <code>commit_meta</code> gives the schema fields, the quality outcome and the watermark, and the unit goes straight to step 6 (ADR-0027).
 2. <code>is_incremental</code> is true when the materialization is <code>incremental</code>, the target exists, the run is not a full refresh, and a watermark exists. With <code>watermark_source: state</code> the watermark is <code>state.get_watermark(project, target, model)</code>; with no stored value and an existing target it is seeded from <code>max(column)</code> of the target (<code>watermark_seeded: target</code> in <code>warnings[]</code>). With <code>watermark_source: target</code> it is <code>max(column)</code> of the target and the state store is never written. The column's type family (timestamp with zone, timestamp without, date, integer, decimal, float, string) must match the stored one; a missing column or a mismatch is PLM205.
@@ -2565,28 +2911,28 @@ queued  → cancelled (run cancelled)
 <p>Table properties, <code>partition_by</code>, clustering and grants are applied by every strategy or rejected (PLP405). Maintenance (<code>optimize</code>, <code>vacuum</code>, clustering changes) runs only from <code>maintenance:</code> blocks with an explicit schedule (<code>every_n_runs</code>), never by default (L8).</p>
 <h2 id="10-data-quality">10. Data quality<a class="headerlink" href="#10-data-quality" title="Permanent link">&para;</a></h2>
 <p><strong>ADR-0009: Expectations.</strong> DLT-style actions plus quarantine, evaluated after the transformation and before the write.</p>
-<pre><code class="language-yaml">expectations:
-  - name: id_not_null
-    check:
-      not_null: [order_id]
-    on_violation: fail
-  - name: status_known
-    check:
-      accepted_values:
-        column: status
-        values: [new, paid, shipped]
-    on_violation: drop
-  - name: amount_ok
-    expr: &quot;amount &gt;= 0 and amount &lt; 1e6&quot;   # engine-dialect, non-portable
-    on_violation: warn
-  - name: unique_id
-    check:
-      unique: [order_id]                   # aggregate
-    on_violation: fail
-quality:
-  quarantine: true
-  max_drop_ratio: 0.05
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">expectations</span><span class="p">:</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">id_not_null</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nt">check</span><span class="p">:</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">      </span><span class="nt">not_null</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">order_id</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="nt">on_violation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fail</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">status_known</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="nt">check</span><span class="p">:</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">      </span><span class="nt">accepted_values</span><span class="p">:</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">        </span><span class="nt">column</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">status</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">        </span><span class="nt">values</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">new</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">paid</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">shipped</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="nt">on_violation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">drop</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">amount_ok</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">    </span><span class="nt">expr</span><span class="p">:</span><span class="w"> </span><span class="s">"amount</span><span class="nv"> </span><span class="s">&gt;=</span><span class="nv"> </span><span class="s">0</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">amount</span><span class="nv"> </span><span class="s">&lt;</span><span class="nv"> </span><span class="s">1e6"</span><span class="w">   </span><span class="c1"># engine-dialect, non-portable</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">    </span><span class="nt">on_violation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">warn</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unique_id</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">    </span><span class="nt">check</span><span class="p">:</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">      </span><span class="nt">unique</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">order_id</span><span class="p p-Indicator">]</span><span class="w">                   </span><span class="c1"># aggregate</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">    </span><span class="nt">on_violation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fail</span>
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="nt">quality</span><span class="p">:</span>
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="w">  </span><span class="nt">quarantine</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="w">  </span><span class="nt">max_drop_ratio</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.05</span>
+</code></pre></div>
 <ul>
 <li><strong>Row-level checks:</strong> <code>not_null</code>, <code>accepted_values</code>, <code>range</code>, <code>regex</code>, <code>expr</code>. Allowed actions: warn, drop, fail.</li>
 <li><strong>Aggregate checks:</strong> <code>unique</code>, <code>row_count {min,max}</code>, <code>freshness {column, max_age}</code>. Allowed actions: warn, fail; <code>drop</code> is PLP403. They see only the batch, after the drops; for an incremental model that is the new rows, not the table.</li>
@@ -2626,27 +2972,27 @@ quality:
 - <code>model.written</code> also carries <code>columns</code> (0.9): the table's columns after the write, null for intermediates, views and replayed writes.
 - <code>RecordingSink</code> in <code>pipeloom.testing</code> asserts ordered events.</p>
 <figure>
-  <img alt="Run stages, the scheduler and models emit to the EventBus; a redaction filter masks secrets before the console, jsonl, file, artifacts and openlineage sinks; the artifacts sink writes the run artifacts and the openlineage sink sends to a backend." src="../diagrams/events.light.svg#only-light" />
-  <img alt="Run stages, the scheduler and models emit to the EventBus; a redaction filter masks secrets before the console, jsonl, file, artifacts and openlineage sinks; the artifacts sink writes the run artifacts and the openlineage sink sends to a backend." src="../diagrams/events.dark.svg#only-dark" />
+  <a class="glightbox" href="../diagrams/events.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Run stages, the scheduler and models emit to the EventBus; a redaction filter masks secrets before the console, jsonl, file, artifacts and openlineage sinks; the artifacts sink writes the run artifacts and the openlineage sink sends to a backend." src="../diagrams/events.light.svg#only-light" /></a>
+  <a class="glightbox" href="../diagrams/events.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="Run stages, the scheduler and models emit to the EventBus; a redaction filter masks secrets before the console, jsonl, file, artifacts and openlineage sinks; the artifacts sink writes the run artifacts and the openlineage sink sends to a backend." src="../diagrams/events.dark.svg#only-dark" /></a>
 <br />
 <figcaption>Event fan-out. Failure budgets and buffering are in the list above. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/events.d2">events.d2</a>.</figcaption>
 </figure>
 <p><strong>Console library: rich.</strong> It provides styled tables, colors and live progress in one dependency. structlog would still need a renderer for those. JSON lines need only the stdlib.</p>
 <p><strong>Sample console output (<code>--log-format text</code>):</strong></p>
-<pre><code>14:02:11 pipeloom 0.5.0 | project shop | target dev | engine polars | run 20261029T140211Z-7f3a9c
-14:02:11 plan: 6 units (3 table, 2 incremental, 1 view; 1 ephemeral inlined) | workers 4
-14:02:12 1/6 OK    stg_customers ......... table          1,204 rows    88 KB   0.41s
-14:02:12 2/6 OK    stg_orders ............ table          9,812 rows   412 KB   0.77s
-14:02:13 3/6 WARN  fct_orders ............ merge  +311 ~42 -0  1 expectation warned  1.12s
-14:02:13 4/6 FAIL  fct_payments .......... append  PLX101 KeyError: 'amount'        0.20s
-14:02:13 5/6 SKIP  rpt_revenue ........... upstream fct_payments failed
-14:02:14 6/6 OK    dim_customers ......... table          1,204 rows            0.35s
-14:02:14 finished in 2.9s | OK 3 | WARN 1 | FAIL 1 | SKIP 1 | rows written 12,573
-         fct_payments  PLX101 model raised KeyError: 'amount'
-                       hint: column missing in input 'payments' (ref stg_payments)
-                       at src/shop/marts/payments.py:14 in build
-14:02:14 artifacts: target/run_results.json, target/manifest.json, target/events.jsonl
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>14:02:11 pipeloom 0.5.0 | project shop | target dev | engine polars | run 20261029T140211Z-7f3a9c
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>14:02:11 plan: 6 units (3 table, 2 incremental, 1 view; 1 ephemeral inlined) | workers 4
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>14:02:12 1/6 OK    stg_customers ......... table          1,204 rows    88 KB   0.41s
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>14:02:12 2/6 OK    stg_orders ............ table          9,812 rows   412 KB   0.77s
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>14:02:13 3/6 WARN  fct_orders ............ merge  +311 ~42 -0  1 expectation warned  1.12s
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>14:02:13 4/6 FAIL  fct_payments .......... append  PLX101 KeyError: 'amount'        0.20s
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>14:02:13 5/6 SKIP  rpt_revenue ........... upstream fct_payments failed
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>14:02:14 6/6 OK    dim_customers ......... table          1,204 rows            0.35s
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>14:02:14 finished in 2.9s | OK 3 | WARN 1 | FAIL 1 | SKIP 1 | rows written 12,573
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>         fct_payments  PLX101 model raised KeyError: 'amount'
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>                       hint: column missing in input 'payments' (ref stg_payments)
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>                       at src/shop/marts/payments.py:14 in build
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>14:02:14 artifacts: target/run_results.json, target/manifest.json, target/events.jsonl
+</code></pre></div>
 <p>Long engine (JVM) traces are trimmed to the first user frame and the root cause. The full trace goes to JSON events only.</p>
 <p><strong>Per-model metadata (<code>run_results.results[]</code>):</strong>
 - Identity: <code>unique_id</code> (<code>model.&lt;project&gt;.&lt;name&gt;</code>), <code>unit_id</code>, <code>materialization</code>, <code>strategy</code>, <code>relation_name</code>.
@@ -2680,23 +3026,23 @@ quality:
 <h2 id="12-the-databricks-plugin">12. The Databricks plugin<a class="headerlink" href="#12-the-databricks-plugin" title="Permanent link">&para;</a></h2>
 <p><strong><code>pipeloom-databricks</code></strong> depends on <code>pipeloom-spark</code> and <code>databricks-sdk</code> (<code>&gt;=0.50,&lt;1</code>). It provides the <code>unity</code> catalog, the <code>databricks</code> secret provider, the <code>databricks</code> renderer (the <code>deploy</code> block), the <code>pipeloom databricks</code> commands (<code>bundle</code>, <code>deploy</code>, <code>run</code>, <code>repair</code>), the task wrapper and task-value publishing. There is no <code>databricks</code> executor: ADR-0020 picks executors by boundary, and Databricks is an orchestrator. User guide: <a href="../plugins/databricks/">Databricks plugin</a>. Amended by ADR-0035 and ADR-0036; the sections below are the delivered design.</p>
 <figure>
-  <img alt="A plan becomes bundle YAML or is deployed directly as one Databricks job; the job runs one task per unit, then a finalize task; tasks write unit files and finalize writes run_results.json to a UC Volume, and tasks set task values." src="../diagrams/databricks.light.svg#only-light" />
-  <img alt="A plan becomes bundle YAML or is deployed directly as one Databricks job; the job runs one task per unit, then a finalize task; tasks write unit files and finalize writes run_results.json to a UC Volume, and tasks set task values." src="../diagrams/databricks.dark.svg#only-dark" />
+  <a class="glightbox" href="../diagrams/databricks.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="A plan becomes bundle YAML or is deployed directly as one Databricks job; the job runs one task per unit, then a finalize task; tasks write unit files and finalize writes run_results.json to a UC Volume, and tasks set task values." src="../diagrams/databricks.light.svg#only-light" /></a>
+  <a class="glightbox" href="../diagrams/databricks.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="A plan becomes bundle YAML or is deployed directly as one Databricks job; the job runs one task per unit, then a finalize task; tasks write unit files and finalize writes run_results.json to a UC Volume, and tasks set task values." src="../diagrams/databricks.dark.svg#only-dark" /></a>
 <br />
 <figcaption>One plan, one Databricks job. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/databricks.d2">databricks.d2</a>.</figcaption>
 </figure>
 <p><strong>ADR-0011 (amended by ADR-0035): Rendering.</strong></p>
 <p><strong>Task type.</strong> Each unit (or group) becomes one <code>python_wheel_task</code> that runs the plugin wrapper, not the core CLI:</p>
-<pre><code class="language-json">{&quot;task_key&quot;: &quot;fct_orders&quot;, &quot;depends_on&quot;: [{&quot;task_key&quot;: &quot;stg_orders&quot;}],
- &quot;python_wheel_task&quot;: {&quot;package_name&quot;: &quot;pipeloom_databricks&quot;, &quot;entry_point&quot;: &quot;pipeloom_databricks_task&quot;,
-   &quot;parameters&quot;: [&quot;unit&quot;, &quot;--project-dir=&lt;root&gt;&quot;, &quot;--manifest=&lt;root&gt;/&lt;stable manifest&gt;&quot;,
-     &quot;--target=prod&quot;, &quot;--pipeline=main&quot;, &quot;--unit=fct_orders&quot;, &quot;--plan-hash=&lt;h&gt;&quot;,
-     &quot;--run-id={{job.parameters.pipeloom_run_id}}&quot;, &quot;--full-refresh={{job.parameters.full_refresh}}&quot;,
-     &quot;--job-id={{job.id}}&quot;, &quot;--job-run-id={{job.run_id}}&quot;, &quot;--task-key={{task.name}}&quot;,
-     &quot;--task-run-id={{task.run_id}}&quot;, &quot;--start-ms={{job.start_time.timestamp_ms}}&quot;]},
- &quot;environment_key&quot;: &quot;pipeloom_default&quot;, &quot;max_retries&quot;: 1, &quot;min_retry_interval_millis&quot;: 60000,
- &quot;timeout_seconds&quot;: 1800}
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span><span class="nt">"task_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"fct_orders"</span><span class="p">,</span><span class="w"> </span><span class="nt">"depends_on"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">"task_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"stg_orders"</span><span class="p">}],</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w"> </span><span class="nt">"python_wheel_task"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"package_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pipeloom_databricks"</span><span class="p">,</span><span class="w"> </span><span class="nt">"entry_point"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pipeloom_databricks_task"</span><span class="p">,</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">   </span><span class="nt">"parameters"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"unit"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--project-dir=&lt;root&gt;"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--manifest=&lt;root&gt;/&lt;stable manifest&gt;"</span><span class="p">,</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">     </span><span class="s2">"--target=prod"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--pipeline=main"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--unit=fct_orders"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--plan-hash=&lt;h&gt;"</span><span class="p">,</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">     </span><span class="s2">"--run-id={{job.parameters.pipeloom_run_id}}"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--full-refresh={{job.parameters.full_refresh}}"</span><span class="p">,</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">     </span><span class="s2">"--job-id={{job.id}}"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--job-run-id={{job.run_id}}"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--task-key={{task.name}}"</span><span class="p">,</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">     </span><span class="s2">"--task-run-id={{task.run_id}}"</span><span class="p">,</span><span class="w"> </span><span class="s2">"--start-ms={{job.start_time.timestamp_ms}}"</span><span class="p">]},</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w"> </span><span class="nt">"environment_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pipeloom_default"</span><span class="p">,</span><span class="w"> </span><span class="nt">"max_retries"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"min_retry_interval_millis"</span><span class="p">:</span><span class="w"> </span><span class="mi">60000</span><span class="p">,</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w"> </span><span class="nt">"timeout_seconds"</span><span class="p">:</span><span class="w"> </span><span class="mi">1800</span><span class="p">}</span>
+</code></pre></div>
 <ul>
 <li>The wrapper is a <code>[project.scripts]</code> entry plus a lazy function of the same name in the package, so both Databricks lookups find it. It resolves the run id (empty means <code>dbx-&lt;job run id&gt;</code>), turns <code>start_ms</code> into <code>--run-started-at</code>, rejects a parameter that still holds <code>{{</code> (PLD013), calls the core CLI in the same process so an active Spark session stays the active one, passes the Databricks ids as orchestrator ids and exits with the core's code. Values use <code>--opt=value</code> so an empty value stays one argument.</li>
 <li>Task keys use <code>[A-Za-z0-9_-]</code>, at most 100 characters (a long or colliding key gets <code>_</code> and 8 hex characters of the sha256 of the original). Groups are <code>tag_&lt;tag&gt;</code> or <code>dir_&lt;folder&gt;</code>.</li>
@@ -2732,17 +3078,17 @@ quality:
 <p><strong>Unity Catalog and secrets.</strong> The <code>unity</code> catalog subclasses the Spark session catalog (three-part backticked names, schema created only when absent). The <code>databricks</code> secret provider resolves <code>${secret:databricks/&lt;scope&gt;/&lt;key&gt;}</code> through the client with no profile; failures are PLX109. Connection order: <code>--profile</code>, a user-set <code>DATABRICKS_CONFIG_PROFILE</code>, <code>DATABRICKS_HOST</code> with credentials, runtime authentication, else PLD010 (ADR-0036).</p>
 <h2 id="13-the-airflow-plugin">13. The Airflow plugin<a class="headerlink" href="#13-the-airflow-plugin" title="Permanent link">&para;</a></h2>
 <p><strong><code>pipeloom-airflow</code></strong> supports Airflow 3.2 up to 4.0 (<code>apache-airflow&gt;=3.2,&lt;4</code>, installed through the <code>airflow</code> extra; the package has no hard Airflow dependency, see <a href="../adr/0037-airflow-packaging-and-rendering/">ADR-0037</a>). It imports <code>from airflow.sdk import DAG, TaskGroup, BaseOperator, BaseSensorOperator, Asset</code>. Triggers come from the Airflow 3 trigger base (verify the module path per minor version).</p>
-<pre><code class="language-python">from pipeloom_airflow.config import ProjectConfig, RenderConfig, ExecutionConfig, ExecutionMode, LoadMode
-from pipeloom_airflow.dag import PipeloomDag
-
-shop_daily = PipeloomDag(
-    dag_id=&quot;shop_daily&quot;, schedule=&quot;@daily&quot;, start_date=datetime(2026, 1, 1),
-    project_config=ProjectConfig(project_dir=&quot;/opt/pipelines/shop&quot;, manifest_path=&quot;/opt/pipelines/shop/target/manifest.json&quot;),
-    target=&quot;prod&quot;,
-    render_config=RenderConfig(load_method=LoadMode.MANIFEST, select=(&quot;tag:daily&quot;,), emit_assets=True),
-    execution_config=ExecutionConfig(mode=ExecutionMode.DATABRICKS, databricks_conn_id=&quot;databricks_default&quot;),
-)
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pipeloom_airflow.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProjectConfig</span><span class="p">,</span> <span class="n">RenderConfig</span><span class="p">,</span> <span class="n">ExecutionConfig</span><span class="p">,</span> <span class="n">ExecutionMode</span><span class="p">,</span> <span class="n">LoadMode</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pipeloom_airflow.dag</span><span class="w"> </span><span class="kn">import</span> <span class="n">PipeloomDag</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">shop_daily</span> <span class="o">=</span> <span class="n">PipeloomDag</span><span class="p">(</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">dag_id</span><span class="o">=</span><span class="s2">"shop_daily"</span><span class="p">,</span> <span class="n">schedule</span><span class="o">=</span><span class="s2">"@daily"</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2026</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">project_config</span><span class="o">=</span><span class="n">ProjectConfig</span><span class="p">(</span><span class="n">project_dir</span><span class="o">=</span><span class="s2">"/opt/pipelines/shop"</span><span class="p">,</span> <span class="n">manifest_path</span><span class="o">=</span><span class="s2">"/opt/pipelines/shop/target/manifest.json"</span><span class="p">),</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="n">target</span><span class="o">=</span><span class="s2">"prod"</span><span class="p">,</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">render_config</span><span class="o">=</span><span class="n">RenderConfig</span><span class="p">(</span><span class="n">load_method</span><span class="o">=</span><span class="n">LoadMode</span><span class="o">.</span><span class="n">MANIFEST</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="p">(</span><span class="s2">"tag:daily"</span><span class="p">,),</span> <span class="n">emit_assets</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="n">execution_config</span><span class="o">=</span><span class="n">ExecutionConfig</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">ExecutionMode</span><span class="o">.</span><span class="n">DATABRICKS</span><span class="p">,</span> <span class="n">databricks_conn_id</span><span class="o">=</span><span class="s2">"databricks_default"</span><span class="p">),</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="p">)</span>
+</code></pre></div>
 <p><code>PipeloomTaskGroup</code> takes the same configs inside an existing DAG. <code>ExecutionConfig</code> fields: <code>mode</code>, <code>project_dir</code> and <code>manifest_path</code> (where units execute, defaulting to <code>ProjectConfig</code>'s), <code>virtualenv_dir</code>, <code>kubernetes</code> (<code>KubernetesConfig(image, namespace, python, pod_kwargs)</code>), <code>env</code>, and the <code>databricks_*</code> fields: <code>conn_id</code>, <code>pipeline</code>, <code>ensure_job</code>, <code>poll</code>, <code>poll_interval</code>, <code>timeout</code>, and the <code>watcher_*</code> fields: <code>workers</code>, <code>poll_interval</code>, <code>timeout</code>, <code>artifacts_root</code> (the user guide, <a href="../plugins/airflow/">Airflow</a>, lists them with defaults). The package has extras <code>airflow</code>, <code>kubernetes</code> (adds the cncf-kubernetes provider <code>&gt;=10.25,&lt;11</code>) and <code>databricks</code> (adds <code>pipeloom-databricks</code>, not the Databricks provider).</p>
 <p><strong>ADR-0012: Airflow rendering.</strong></p>
 <p><strong>Load methods (parse time):</strong>
@@ -2796,20 +3142,20 @@ shop_daily = PipeloomDag(
 - <code>rid</code> is <code>af-</code> plus 16 hex characters of sha256 of the NUL-separated dag_id, Airflow run_id and, inside a task group, the group id (ADR-0037), stable across task retries. A clear-and-rerun of failed tasks therefore continues the same pipeloom run.
 - With <code>emit_assets</code>, each model task declares <code>Asset(uri=&lt;target URI&gt;)</code> outlets.</p>
 <figure>
-  <img alt="LOCAL, VIRTUALENV or KUBERNETES mode: the manifest is read at parse time, one task per unit follows the plan's dependencies with all_success, a finalize task runs with all_done, and every task writes to a shared artifacts root." src="../diagrams/airflow-task-per-unit.light.svg#only-light" />
-  <img alt="LOCAL, VIRTUALENV or KUBERNETES mode: the manifest is read at parse time, one task per unit follows the plan's dependencies with all_success, a finalize task runs with all_done, and every task writes to a shared artifacts root." src="../diagrams/airflow-task-per-unit.dark.svg#only-dark" />
+  <a class="glightbox" href="../diagrams/airflow-task-per-unit.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="LOCAL, VIRTUALENV or KUBERNETES mode: the manifest is read at parse time, one task per unit follows the plan's dependencies with all_success, a finalize task runs with all_done, and every task writes to a shared artifacts root." src="../diagrams/airflow-task-per-unit.light.svg#only-light" /></a>
+  <a class="glightbox" href="../diagrams/airflow-task-per-unit.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="LOCAL, VIRTUALENV or KUBERNETES mode: the manifest is read at parse time, one task per unit follows the plan's dependencies with all_success, a finalize task runs with all_done, and every task writes to a shared artifacts root." src="../diagrams/airflow-task-per-unit.dark.svg#only-dark" /></a>
 <br />
 <figcaption>LOCAL, VIRTUALENV and KUBERNETES modes: one Airflow task per unit. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/airflow-task-per-unit.d2">airflow-task-per-unit.d2</a>.</figcaption>
 </figure>
 <figure>
-  <img alt="DATABRICKS mode: a launch task runs or repairs the saved Databricks job, one sensor per unit polls its task, and a finalize task runs with all_done." src="../diagrams/airflow-databricks.light.svg#only-light" />
-  <img alt="DATABRICKS mode: a launch task runs or repairs the saved Databricks job, one sensor per unit polls its task, and a finalize task runs with all_done." src="../diagrams/airflow-databricks.dark.svg#only-dark" />
+  <a class="glightbox" href="../diagrams/airflow-databricks.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="DATABRICKS mode: a launch task runs or repairs the saved Databricks job, one sensor per unit polls its task, and a finalize task runs with all_done." src="../diagrams/airflow-databricks.light.svg#only-light" /></a>
+  <a class="glightbox" href="../diagrams/airflow-databricks.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="DATABRICKS mode: a launch task runs or repairs the saved Databricks job, one sensor per unit polls its task, and a finalize task runs with all_done." src="../diagrams/airflow-databricks.dark.svg#only-dark" /></a>
 <br />
 <figcaption>DATABRICKS mode: launch, mirror sensors, finalize; repair stays in Databricks. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/airflow-databricks.d2">airflow-databricks.d2</a>.</figcaption>
 </figure>
 <figure>
-  <img alt="WATCHER mode: one producer task runs the selection and writes unit files to the shared artifacts root, one watcher per unit reads its file, and finalize waits for the producer and every leaf." src="../diagrams/airflow-watcher.light.svg#only-light" />
-  <img alt="WATCHER mode: one producer task runs the selection and writes unit files to the shared artifacts root, one watcher per unit reads its file, and finalize waits for the producer and every leaf." src="../diagrams/airflow-watcher.dark.svg#only-dark" />
+  <a class="glightbox" href="../diagrams/airflow-watcher.light.svg#only-light" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="WATCHER mode: one producer task runs the selection and writes unit files to the shared artifacts root, one watcher per unit reads its file, and finalize waits for the producer and every leaf." src="../diagrams/airflow-watcher.light.svg#only-light" /></a>
+  <a class="glightbox" href="../diagrams/airflow-watcher.dark.svg#only-dark" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img alt="WATCHER mode: one producer task runs the selection and writes unit files to the shared artifacts root, one watcher per unit reads its file, and finalize waits for the producer and every leaf." src="../diagrams/airflow-watcher.dark.svg#only-dark" /></a>
 <br />
 <figcaption>WATCHER mode: one producer, one watcher per unit. Source: <a href="https://github.com/emanuel-luis/pipeloom/blob/main/docs/diagrams/airflow-watcher.d2">airflow-watcher.d2</a>.</figcaption>
 </figure>
@@ -3041,42 +3387,42 @@ shop_daily = PipeloomDag(
 - Section 11: <code>events</code>. Section 12: <code>databricks</code>. Section 13: <code>airflow-task-per-unit</code>, <code>airflow-databricks</code>, <code>airflow-watcher</code>.
 - Guides: <code>quickstart</code>, <code>incremental</code>, <code>retry-cancel</code>, <code>portable-models</code>, <code>orchestrator</code>, <code>openlineage</code>, <code>conformance-kit</code> (Writing an engine), <code>use-cases</code> (home page).</p>
 <h2 id="18-package-skeleton-for-now">18. Package skeleton for now<a class="headerlink" href="#18-package-skeleton-for-now" title="Permanent link">&para;</a></h2>
-<pre><code>pipeloom/
-├── .github/
-│   ├── workflows/ci.yml            # ruff, mypy --strict, pytest matrix (3.11-3.14 on Ubuntu, Windows and macOS), uv build + wheel smoke, docs --strict, d2 compile
-│   ├── workflows/release.yml       # on tag v*: verify tag==version, uv build, one PyPI publish job per distribution (env pypi or pypi-&lt;plugin&gt;), GitHub release
-│   ├── workflows/docs.yml          # mkdocs + mike deploy on main and tags
-│   ├── dependabot.yml              # ecosystems: uv, github-actions; weekly; grouped
-│   ├── CODEOWNERS
-│   ├── pull_request_template.md
-│   └── ISSUE_TEMPLATE/{bug_report.yml, feature_request.yml, config.yml}
-├── docs/
-│   ├── index.md
-│   ├── architecture.md
-│   ├── adr/README.md               # index + status table
-│   ├── adr/0000-template.md
-│   ├── adr/0001-record-architecture-decisions.md … 0016-versioning-and-plugin-api.md
-│   └── diagrams/&lt;name&gt;.d2, &lt;name&gt;.light.svg, &lt;name&gt;.dark.svg
-├── src/pipeloom/
-│   ├── __init__.py                 # __version__ = importlib.metadata.version(&quot;pipeloom&quot;)
-│   ├── __main__.py                 # from pipeloom.cli import main; main()
-│   ├── cli.py                      # @click.group() + @click.version_option(package_name=&quot;pipeloom&quot;, prog_name=&quot;pipeloom&quot;)
-│   └── py.typed
-├── tests/
-│   ├── test_version.py             # __version__ equals installed metadata
-│   └── test_cli.py                 # CliRunner: `--version` exit 0, output &quot;pipeloom, version X&quot;; `python -m pipeloom --version`
-├── pyproject.toml                  # see below
-├── uv.lock
-├── mkdocs.yml
-├── .pre-commit-config.yaml         # ruff, ruff-format, mypy, end-of-file, check-yaml
-├── .editorconfig  .gitignore  .python-version (3.12)
-├── README.md  LICENSE (Apache-2.0)  NOTICE
-├── CONTRIBUTING.md                 # uv setup, DCO sign-off, ADR process, tests per flag
-├── CODE_OF_CONDUCT.md              # Contributor Covenant 2.1
-├── SECURITY.md                     # GitHub private vulnerability reporting, supported versions
-├── GOVERNANCE.md                   # single-maintainer model, path to maintainers
-└── CHANGELOG.md                    # Keep a Changelog; [0.0.2] entry
-</code></pre>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>pipeloom/
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>├── .github/
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>│   ├── workflows/ci.yml            # ruff, mypy --strict, pytest matrix (3.11-3.14 on Ubuntu, Windows and macOS), uv build + wheel smoke, docs --strict, d2 compile
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>│   ├── workflows/release.yml       # on tag v*: verify tag==version, uv build, one PyPI publish job per distribution (env pypi or pypi-&lt;plugin&gt;), GitHub release
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>│   ├── workflows/docs.yml          # mkdocs + mike deploy on main and tags
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>│   ├── dependabot.yml              # ecosystems: uv, github-actions; weekly; grouped
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>│   ├── CODEOWNERS
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>│   ├── pull_request_template.md
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>│   └── ISSUE_TEMPLATE/{bug_report.yml, feature_request.yml, config.yml}
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>├── docs/
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>│   ├── index.md
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>│   ├── architecture.md
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>│   ├── adr/README.md               # index + status table
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>│   ├── adr/0000-template.md
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>│   ├── adr/0001-record-architecture-decisions.md … 0016-versioning-and-plugin-api.md
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>│   └── diagrams/&lt;name&gt;.d2, &lt;name&gt;.light.svg, &lt;name&gt;.dark.svg
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>├── src/pipeloom/
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>│   ├── __init__.py                 # __version__ = importlib.metadata.version("pipeloom")
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>│   ├── __main__.py                 # from pipeloom.cli import main; main()
+<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>│   ├── cli.py                      # @click.group() + @click.version_option(package_name="pipeloom", prog_name="pipeloom")
+<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>│   └── py.typed
+<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a>├── tests/
+<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a>│   ├── test_version.py             # __version__ equals installed metadata
+<a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>│   └── test_cli.py                 # CliRunner: `--version` exit 0, output "pipeloom, version X"; `python -m pipeloom --version`
+<a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a>├── pyproject.toml                  # see below
+<a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a>├── uv.lock
+<a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a>├── mkdocs.yml
+<a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a>├── .pre-commit-config.yaml         # ruff, ruff-format, mypy, end-of-file, check-yaml
+<a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a>├── .editorconfig  .gitignore  .python-version (3.12)
+<a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a>├── README.md  LICENSE (Apache-2.0)  NOTICE
+<a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a>├── CONTRIBUTING.md                 # uv setup, DCO sign-off, ADR process, tests per flag
+<a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a>├── CODE_OF_CONDUCT.md              # Contributor Covenant 2.1
+<a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a>├── SECURITY.md                     # GitHub private vulnerability reporting, supported versions
+<a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a>├── GOVERNANCE.md                   # single-maintainer model, path to maintainers
+<a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a>└── CHANGELOG.md                    # Keep a Changelog; [0.0.2] entry
+</code></pre></div>
 <p>The core sits at the repo root so <code>README</code> and <code>LICENSE</code> ship in the distribution without copies.</p>
 <p><strong><code>pyproject.toml</code> essentials:</strong>
 - <code>[build-system] requires = ["hatchling"]</code>
@@ -3131,12 +3477,60 @@ shop_daily = PipeloomDag(
             </div>
           
           
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
         
       </main>
       
         <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../reference/stability/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Stability and deprecations">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Stability and deprecations
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../roadmap/" class="md-footer__link md-footer__link--next" aria-label="Next: Roadmap">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Roadmap
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -3163,11 +3557,13 @@ shop_daily = PipeloomDag(
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.instant", "navigation.top", "navigation.footer", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
-  </body>
+  <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(() => { lightbox.reload() });
+</script></body>
 </html>

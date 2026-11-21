@@ -1,0 +1,28 @@
+/* Palette follows docs/diagrams/_style.d2: blue 0969DA (light) and 4493F8 (dark), teal accent. */
+:root,
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #0969da;
+  --md-primary-fg-color--light: #4493f8;
+  --md-primary-fg-color--dark: #0550ae;
+  --md-accent-fg-color: #1b7f79;
+}
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #1f6feb;
+  --md-primary-fg-color--light: #4493f8;
+  --md-primary-fg-color--dark: #0d419d;
+  --md-accent-fg-color: #3fb9b0;
+}
+
+/* Wide diagrams use the full page width and are not capped by the text column. */
+.md-content__inner img[src$=".svg"],
+.glightbox img {
+  display: block;
+  margin-inline: auto;
+  max-width: 100%;
+  height: auto;
+}
+@media screen and (min-width: 76.25em) {
+  .md-grid {
+    max-width: 80rem;
+  }
+}

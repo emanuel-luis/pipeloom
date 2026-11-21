@@ -1,355 +1,371 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/architecture/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/architecture/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/landscape/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/landscape/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/quickstart/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/quickstart/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/roadmap/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/roadmap/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0000-template/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0000-template/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0001-record-architecture-decisions/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0001-record-architecture-decisions/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0002-engine-abstraction/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0002-engine-abstraction/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0003-model-authoring/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0003-model-authoring/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0004-plugin-discovery/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0004-plugin-discovery/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0005-packaging/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0005-packaging/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0006-ready-queue-scheduler/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0006-ready-queue-scheduler/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0007-data-handoff/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0007-data-handoff/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0008-incremental-and-state/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0008-incremental-and-state/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0009-expectations-and-quarantine/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0009-expectations-and-quarantine/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0010-events-sinks-artifacts/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0010-events-sinks-artifacts/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0011-databricks-job-rendering/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0011-databricks-job-rendering/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0012-airflow-rendering-and-modes/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0012-airflow-rendering-and-modes/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0013-run-identity-and-reruns/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0013-run-identity-and-reruns/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0014-secrets-by-reference/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0014-secrets-by-reference/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0015-python-version-and-toolchain/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0015-python-version-and-toolchain/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0016-versioning-and-plugin-api/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0016-versioning-and-plugin-api/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0017-plugin-spec-and-builtins/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0017-plugin-spec-and-builtins/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0018-events-in-0-1/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0018-events-in-0-1/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0019-yaml-dialect/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0019-yaml-dialect/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0020-execution-model-0-2/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0020-execution-model-0-2/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0021-plugin-api-0-2/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0021-plugin-api-0-2/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0022-filesystem-table-format/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0022-filesystem-table-format/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0023-multi-distribution-release/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0023-multi-distribution-release/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0024-plugin-api-0-3/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0024-plugin-api-0-3/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0025-filesystem-tables-v2/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0025-filesystem-tables-v2/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0026-schema-change-policy/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0026-schema-change-policy/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0027-incremental-models/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0027-incremental-models/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0028-expectation-evaluation/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0028-expectation-evaluation/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0029-retries-timeouts-cancellation/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0029-retries-timeouts-cancellation/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0030-plugin-api-0-4-and-intermediates/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0030-plugin-api-0-4-and-intermediates/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0031-spark-engine/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0031-spark-engine/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0032-delta-writes-and-idempotency/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0032-delta-writes-and-idempotency/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0033-delta-table-state-store/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0033-delta-table-state-store/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0034-core-orchestration-hooks/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0034-core-orchestration-hooks/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0035-databricks-rendering-and-job-lifecycle/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0035-databricks-rendering-and-job-lifecycle/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0036-databricks-client-and-connection/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0036-databricks-client-and-connection/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0037-airflow-packaging-and-rendering/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0037-airflow-packaging-and-rendering/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0038-airflow-execution-modes-and-artifact-store/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0038-airflow-execution-modes-and-artifact-store/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0039-airflow-databricks-mode/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0039-airflow-databricks-mode/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0040-per-model-catalog/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0040-per-model-catalog/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0041-pipeloom-init/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0041-pipeloom-init/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0042-state-selection-and-defer/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0042-state-selection-and-defer/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0043-docs-site/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0043-docs-site/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0044-model-contracts/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0044-model-contracts/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0045-unit-and-data-tests/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0045-unit-and-data-tests/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0046-openlineage/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0046-openlineage/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0047-run-history-and-webhook/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0047-run-history-and-webhook/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0048-airflow-watcher-mode/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0048-airflow-watcher-mode/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0049-artifact-schemas-and-orchestrator-protocol/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0049-artifact-schemas-and-orchestrator-protocol/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0050-python-first-authoring/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0050-python-first-authoring/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0051-duckdb-engine/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0051-duckdb-engine/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0055-canonical-dataset-identity/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0055-canonical-dataset-identity/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/adr/0067-conformance-kit/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/adr/0067-conformance-kit/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/alerts/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/examples/customers_scd2/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/docs-site/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/examples/events_incremental/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/incremental/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/examples/orders_quality/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/migrate-0.9/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/examples/tested-models/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/openlineage/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/alerts/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/orchestrators/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/docs-site/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/portable-models/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/incremental/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/quality/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/migrate-0.9/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/recipe-github-actions/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/openlineage/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/retries-and-cancellation/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/orchestrators/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/run-history/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/portable-models/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/running/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/quality/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/testing/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/recipe-github-actions/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/guide/write-strategies/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/retries-and-cancellation/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/plugins/airflow/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/run-history/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/plugins/databricks/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/running/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/plugins/duckdb/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/testing/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/plugins/pandas/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/guide/write-strategies/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/plugins/polars/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/plugins/airflow/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/plugins/spark/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/plugins/databricks/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/plugins/writing-an-engine/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/plugins/duckdb/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/reference/artifacts/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/plugins/pandas/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/reference/cli/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/plugins/polars/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/reference/databricks-cli/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/plugins/spark/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/reference/schema/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/plugins/writing-an-engine/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/reference/stability/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/reference/artifacts/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/reference/errors/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/reference/cli/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
     <url>
-         <loc>https://emanuel-luis.github.io/pipeloom/dev/reference/engine-capabilities/</loc>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/reference/databricks-cli/</loc>
+         <lastmod>2026-11-21</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/reference/schema/</loc>
+         <lastmod>2026-11-21</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/reference/stability/</loc>
+         <lastmod>2026-11-21</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/reference/errors/</loc>
+         <lastmod>2026-11-21</lastmod>
+    </url>
+    <url>
+         <loc>https://emanuel-luis.github.io/pipeloom/latest/dev/reference/engine-capabilities/</loc>
          <lastmod>2026-11-21</lastmod>
     </url>
 </urlset>
