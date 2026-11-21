@@ -198,12 +198,19 @@ def sql_change(old: str, new: str, dialect: str | None) -> tuple[str, str]:
         return "breaking", "a column was added to a DISTINCT or aggregate query"
     if any(e.is_star for e in before.expressions):
         return "breaking", "a column was added next to *, so its name may clash"
+    # set-returning or row-changing shapes; generate_series returns rows in some dialects
+    rows = (exp.Select, exp.Subquery, exp.UDTF, exp.Unnest, exp.Anonymous, exp.GenerateSeries)
     for e in added:
         if not e.alias_or_name or e.alias_or_name in names:
             return "breaking", "an added column has no name or reuses one"
         names.add(e.alias_or_name)
+        # ORDER BY, WHERE, windows and the like could now read the new alias
+        mine = {id(n) for n in e.walk()}
+        used = {c.name for c in after.find_all(exp.Column) if id(c) not in mine}
+        if e.alias_or_name in used:
+            return "breaking", f"added column '{e.alias_or_name}' shadows a name the query uses"
         if any(
-            isinstance(n, exp.Select | exp.Subquery | exp.UDTF | exp.Unnest | exp.Anonymous)
+            isinstance(n, rows)
             or (isinstance(n, exp.AggFunc) and n.find_ancestor(exp.Window) is None)
             for n in e.walk()
         ):

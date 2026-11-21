@@ -133,28 +133,63 @@ def _queries(fn: ast.AST) -> list[tuple[ast.Constant, SqlQuery]] | None:
     return out
 
 
+def _own_nodes(fn: ast.AST) -> Iterable[ast.AST]:
+    """The nodes of `fn`'s body, without nested functions, lambdas or classes."""
+    stack = list(ast.iter_child_nodes(fn))
+    while stack:
+        node = stack.pop()
+        yield node
+        if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda | ast.ClassDef):
+            stack += ast.iter_child_nodes(node)
+
+
+def _returned(fn: ast.AST) -> bool:
+    """True when `fn` has exactly one literal `ctx.sql` query, called with at most
+    `dialect=`, and returns that call as it is: its result is the model's output."""
+    calls = [n for n in ast.walk(fn) if _ctx_sql_literal(n)]
+    if len(calls) != 1:
+        return False
+    call = calls[0]
+    assert isinstance(call, ast.Call)
+    if len(call.args) != 1 or any(k.arg != "dialect" for k in call.keywords):
+        return False
+    return any(isinstance(n, ast.Return) and n.value is call for n in _own_nodes(fn))
+
+
 def sql_records(source: bytes, callable_refs: Iterable[str]) -> dict[str, PlanSql | None]:
     """What `plan --diff` needs to compare the code of a module's SQL models (ADR-0052): per
     callable, the literal `ctx.sql("...")` queries of its function, each with its literal
-    `dialect=`, and `shell`, the code digest of the module with the queries of every model
-    function blanked. A sibling model's SQL edit leaves the shell alone; any other edit,
-    including SQL in a helper, moves it. None for a function with no such query, or with a
-    `dialect=` that is not a string literal. One parse and one digest per module."""
+    `dialect=`, whether the one query is the returned value (`returned`), and `shell`, the code
+    digest of the module with the queries of model functions blanked. A model function whose
+    name is used anywhere else in the module keeps its queries in the shell, so its callers see
+    them change. Any other edit, including SQL in a helper, moves the shell. None for a function
+    with no such query, or with a `dialect=` that is not a string literal. One parse and one
+    digest per module."""
     tree = ast.parse(source)
     defs = (ast.FunctionDef, ast.AsyncFunctionDef)
     fns = {s.name: s for s in tree.body if isinstance(s, defs)}  # the last def of a name wins
-    found: dict[str, list[SqlQuery] | None] = {}
+    used = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
+    used |= {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    found: dict[str, tuple[list[SqlQuery], bool] | None] = {}
+    blank: list[ast.Constant] = []
     for ref in callable_refs:
-        fn = fns.get(ref.partition(":")[2])
+        name = ref.partition(":")[2]
+        fn = fns.get(name)
         pairs = None if fn is None else _queries(fn)
-        if pairs:
-            for arg, _ in pairs:
-                arg.value = ""
-        found[ref] = [q for _, q in pairs] if pairs else None
+        if not pairs or fn is None:
+            found[ref] = None
+            continue
+        found[ref] = ([q for _, q in pairs], _returned(fn))
+        if name not in used:
+            blank += [arg for arg, _ in pairs]
+    for arg in blank:
+        arg.value = ""
     module = _sha(canonical(_normalized(tree)))
     return {
-        ref: None if not qs else PlanSql(shell=_sha(canonical(ref, module)), queries=tuple(qs))
-        for ref, qs in found.items()
+        ref: None
+        if rec is None
+        else PlanSql(shell=_sha(canonical(ref, module)), queries=tuple(rec[0]), returned=rec[1])
+        for ref, rec in found.items()
     }
 
 

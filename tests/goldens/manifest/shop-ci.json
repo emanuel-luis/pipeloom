@@ -303,7 +303,8 @@
             "sql": "select customer_id, sum(amount) as revenue from fct_orders group by customer_id",
             "dialect": null
           }
-        ]
+        ],
+        "returned": true
       }
     },
     "model.shop.stg_customers": {
@@ -379,7 +380,8 @@
             "sql": "select id, lower(email) as email from raw_customers",
             "dialect": null
           }
-        ]
+        ],
+        "returned": true
       }
     },
     "model.shop.stg_orders": {
@@ -455,7 +457,8 @@
             "sql": "select id, customer_id, amount from raw_orders",
             "dialect": null
           }
-        ]
+        ],
+        "returned": true
       }
     },
     "model.shop.stg_payments": {
@@ -531,7 +534,8 @@
             "sql": "select order_id, amount from raw_payments",
             "dialect": null
           }
-        ]
+        ],
+        "returned": true
       }
     },
     "model.shop.top_customers": {
@@ -603,7 +607,8 @@
             "sql": "select customer_id, revenue from rpt_revenue where revenue > 0",
             "dialect": null
           }
-        ]
+        ],
+        "returned": true
       }
     }
   },

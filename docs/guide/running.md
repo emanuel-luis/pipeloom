@@ -148,10 +148,11 @@ the reference into one category
 | `indirect-non-breaking` | A model above it is non-breaking, and nothing above is breaking. |
 
 An unknown result never counts as safe. A code change is non-breaking only when the model's
-function passes string literals to `ctx.sql`, nothing else in its module changed, and sqlglot
-reads the new query as the old one plus projected columns, with no change to the existing
-columns, filters, joins or grouping. An added column that may change the row count (an aggregate,
-a subquery, a table function or an unknown function) is breaking. Python frame code, SQL that
+function has one string literal query and returns it as it is (`return ctx.sql("...")`),
+nothing else in its module changed, and sqlglot reads the new query as the old one plus
+projected columns, with no change to the existing columns, filters, joins or grouping. An added
+column that may change the row count (an aggregate, a subquery, a table function or an unknown
+function), or whose name the query already reads elsewhere, is breaking. Python frame code, SQL that
 sqlglot cannot parse, a missing sqlglot, and a reference compiled before 1.2 (PLG309) all count
 as breaking. In the contract, dropping or retyping a column, or changing its nullability, is
 breaking. In the config, everything not listed above is breaking, for example

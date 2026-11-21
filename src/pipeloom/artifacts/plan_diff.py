@@ -103,6 +103,9 @@ def _code(old: PlanNode, new: PlanNode, engine_dialect: str | None) -> list[tupl
     for before, after in zip(old.sql.queries, new.sql.queries, strict=True):
         dialect = after.dialect or new.config.sql_dialect or engine_dialect
         level, why = sql_change(before.sql, after.sql, dialect)
+        if level == "non-breaking" and not (old.sql.returned and new.sql.returned):
+            # the query feeds more code (a DISTINCT, a join, `.unique()`), not the output itself
+            level, why = "breaking", "the changed query is not the value the model returns"
         if level != "same":
             out.append((level, why))
     return out

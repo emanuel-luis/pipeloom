@@ -44,6 +44,9 @@ class PlanSql(_Frozen):
     shell: str
     """The code digest with these query strings blanked."""
     queries: tuple[SqlQuery, ...]
+    returned: bool = False
+    """True when the function has exactly one literal query, called with at most `dialect=`,
+    and returns that call as it is. Only then can a query change be non-breaking."""
 
 
 class PlanNode(_Frozen):

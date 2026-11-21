@@ -134,6 +134,10 @@ def test_a_filter_is_breaking_and_reaches_descendants(root: Path) -> None:
         ("select x from a", "an existing column changed or was removed"),
         ("select x, y, count(*) as n from a", "added column 'n' may change the row count"),
         ("select x, y, (select 1) as s from a", "added column 's' may change the row count"),
+        (
+            "select x, y, generate_series(1, 3) as g from a",
+            "added column 'g' may change the row count",
+        ),
         ("select x, y, x as y from a", "an added column has no name or reuses one"),
         ("select x, y from a union all select x, y from a", "the query changed"),
         ("select from from", "the SQL cannot be parsed"),
@@ -376,3 +380,62 @@ def test_a_sibling_query_is_not_a_change_but_a_helper_query_is(tmp_path: Path) -
         "p": ("breaking", "Python code around the SQL changed"),
         "q": ("breaking", "Python code around the SQL changed"),
     }
+
+
+FEEDS = """from pipeloom import model
+
+
+@model
+def m(ctx):
+    k = ctx.sql("select 1 as k")
+    return ctx.sql("select distinct * from k", inputs={"k": k})
+
+
+@model
+def n(ctx):
+    return ctx.sql("select 1 as k").unique()
+"""
+
+
+def test_a_query_that_is_not_the_returned_value_is_breaking(tmp_path: Path) -> None:
+    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/f.py": FEEDS}, convert=False)
+    assert run(root, "compile", "--stable", "--out", "state/manifest.json").exit_code == 0
+    edit(root, "f", '"select 1 as k")\n', '"select 1 as k, 2 as v")\n')
+    edit(root, "f", '"select 1 as k").unique', '"select 1 as k, 2 as v").unique')
+    why = "the changed query is not the value the model returns"
+    assert diff(root, code=1) == {"m": ("breaking", why), "n": ("breaking", why)}
+
+
+CALLS = """from pipeloom import model
+
+
+@model
+def p(ctx):
+    return ctx.sql("select 1 as x")
+
+
+@model
+def r(ctx):
+    return p(ctx)
+"""
+
+
+def test_a_caller_of_a_model_function_sees_its_sql_change(tmp_path: Path) -> None:
+    root = make_project(tmp_path, {"pipeloom.yml": YML, "models/c.py": CALLS}, convert=False)
+    assert run(root, "compile", "--stable", "--out", "state/manifest.json").exit_code == 0
+    edit(root, "c", "select 1 as x", "select 1 as x where 1 = 0")
+    got = categories(root)
+    assert got == {"p": "breaking", "r": "breaking"}
+
+
+def test_an_added_alias_that_the_query_reads_is_breaking() -> None:
+    old, new = "select a from t order by b limit 10", "select a, c as b from t order by b limit 10"
+    assert sql_change(old, new, "duckdb") == (
+        "breaking",
+        "added column 'b' shadows a name the query uses",
+    )
+    assert (
+        sql_change("select a from t where b > 0", "select a, c as b from t where b > 0", None)[0]
+        == "breaking"
+    )
+    assert sql_change("select a from t", "select a, b as x from t", None)[0] == "non-breaking"

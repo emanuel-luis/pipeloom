@@ -752,6 +752,11 @@
           "title": "Queries",
           "type": "array"
         },
+        "returned": {
+          "default": false,
+          "title": "Returned",
+          "type": "boolean"
+        },
         "shell": {
           "title": "Shell",
           "type": "string"
