@@ -1552,6 +1552,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQL
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#frames" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2371,6 +2382,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQL
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#frames" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2464,7 +2486,11 @@ catalog keeps <code>&lt;root&gt;/&lt;schema&gt;/&lt;name&gt;/</code>.</p>
 <td>yes (<code>expr</code> limited to column names, literals and operators)</td>
 </tr>
 <tr>
-<td>SQL models and views</td>
+<td><code>ctx.sql</code></td>
+<td>with DuckDB installed (<code>pipeloom-pandas[sql]</code>), in the <code>duckdb</code> dialect</td>
+</tr>
+<tr>
+<td>Views</td>
 <td>no</td>
 </tr>
 <tr>
@@ -2481,9 +2507,19 @@ catalog keeps <code>&lt;root&gt;/&lt;schema&gt;/&lt;name&gt;/</code>.</p>
 </tr>
 </tbody>
 </table>
-<p>A model that calls <code>ctx.sql</code> gets a PLK606 warning at validate and fails at run time with PLX101; a view is rejected with PLC507. An <code>intermediate</code>
-materialization is supported (files under the artifacts root). <code>incremental</code> is supported. SQL on pandas is deferred past 0.2. The supported
-versions are <code>pandas&gt;=2.3.3,&lt;4</code> and <code>pyarrow&gt;=22</code>.</p>
+<p>A view is rejected with PLC507. An <code>intermediate</code> materialization is supported (files under the artifacts root), and so is
+<code>incremental</code>. The supported versions are <code>pandas&gt;=2.3.3,&lt;4</code> and <code>pyarrow&gt;=22</code>.</p>
+<h2 id="sql">SQL<a class="headerlink" href="#sql" title="Permanent link">&para;</a></h2>
+<p>pandas has no SQL engine of its own. Install the <code>sql</code> extra and the pandas engine runs <code>ctx.sql</code> through DuckDB
+(<a href="../../adr/0068-pandas-sql-through-duckdb/">ADR-0068</a>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"pipeloom-pandas[sql]"</span>
+</code></pre></div>
+<p>Each query opens an in-memory DuckDB connection, binds the model's inputs by alias as Arrow tables (no copy for
+Arrow-backed columns), and returns an Arrow-backed DataFrame, the same dtypes the pandas reader produces. The
+connection uses UTC and never downloads a DuckDB extension. The engine's <code>sql_dialect</code> is <code>duckdb</code>, so a model
+written in another dialect is translated with the <code>sqlglot</code> extra, as on the other engines.</p>
+<p>Without DuckDB the engine declares no SQL: a model that calls <code>ctx.sql</code> gets a PLK606 warning at validate and
+fails at run time with PLX101.</p>
 <h2 id="frames">Frames<a class="headerlink" href="#frames" title="Permanent link">&para;</a></h2>
 <p>Relations are eager <code>DataFrame</code>s, so <code>rows_read</code> is filled in <code>run_results.json</code>. A Python model
 receives <code>DataFrame</code> inputs and returns a <code>DataFrame</code>. With <code>frame_api: narwhals</code> the model receives

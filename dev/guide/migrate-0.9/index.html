@@ -2698,7 +2698,8 @@ without <code>inputs=</code>: <code>def orders_clean(ctx, orders)</code> reads t
 <code>ctx</code> is optional; take it only when the function needs <code>ctx.sql</code> or the run context.</p>
 <p>The query is written in the engine's dialect. Set <code>sql_dialect</code> (a keyword, or <code>+sql_dialect</code> in
 the tree) to write it in another dialect; pipeloom translates it with sqlglot, which is the
-<code>pipeloom[sqlglot]</code> extra. pandas has no SQL: write those models with frames.</p>
+<code>pipeloom[sqlglot]</code> extra. pandas had no SQL in 0.9: write those models with frames, or, from 1.2,
+install <code>pipeloom-pandas[sql]</code>, which runs <code>ctx.sql</code> through DuckDB.</p>
 <h2 id="views">Views<a class="headerlink" href="#views" title="Permanent link">&para;</a></h2>
 <p>A view is a function that returns <code>ctx.sql(...)</code> with <code>materialized="view"</code>. The runner calls it
 in view mode and stores the query, so the function may not use its input frames for anything

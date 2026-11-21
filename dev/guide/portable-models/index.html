@@ -2619,8 +2619,8 @@ functions with frames, <code>QUALIFY</code>, engine-specific functions. Use <cod
 </code></pre></div>
 <p>The query is written in the dialect of the engine, or in the <code>sql_dialect</code> the model declares, and
 pipeloom translates it when they differ (this needs the sqlglot extra, otherwise
-<a href="../../reference/errors/#plc513">PLC513</a>). pandas has no SQL: a model that calls <code>ctx.sql</code> is not
-portable to it, and the validation warns with <a href="../../reference/errors/#plk606">PLK606</a>. If you need
+<a href="../../reference/errors/#plc513">PLC513</a>). pandas runs <code>ctx.sql</code> only when DuckDB is installed
+(<code>pipeloom-pandas[sql]</code>); without it the validation warns with <a href="../../reference/errors/#plk606">PLK606</a>. If you need
 all four engines, stay in the frame API; if you need windows over an explicit order, <code>over</code> covers
 most of it.</p>
 <h2 id="checklist">Checklist<a class="headerlink" href="#checklist" title="Permanent link">&para;</a></h2>
