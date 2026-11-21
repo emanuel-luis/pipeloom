@@ -18,6 +18,7 @@ from pipeloom.config.models import ColumnConfig, DataTestConfig
 from pipeloom.config.resolve import ResolvedModel, SettingsLayer
 from pipeloom.config.yaml import LoadedDocument
 from pipeloom.plan.manifest import canonical_json
+from pipeloom.plan.model import PlanSql, SqlQuery
 from pipeloom.secrets.interpolation import InterpolationRecord
 
 _QUOTED = r"""'(?:[^']|'')*'|"(?:[^"]|"")*"|`[^`]*`"""
@@ -81,7 +82,10 @@ def module_tree(source: bytes) -> Any:
     string passed to any `.sql(...)` call normalized by `normalize_sql`. An f-string is left as
     the tree has it, since its pieces cannot be read as SQL one at a time. `@model` decorators
     are left out: what they set is config, contract, tests or inputs, which other parts cover."""
-    tree = ast.parse(source)
+    return _normalized(ast.parse(source))
+
+
+def _normalized(tree: ast.Module) -> Any:
     for node in ast.walk(tree):
         if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
             _strip_docstring(node.body)
@@ -97,6 +101,46 @@ def module_tree(source: bytes) -> Any:
             if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                 arg.value = normalize_sql(arg.value)
     return _dump(tree)
+
+
+def _ctx_sql_literal(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "sql"
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "ctx"
+        and bool(node.args)
+        and isinstance(node.args[0], ast.Constant)
+        and isinstance(node.args[0].value, str)
+    )
+
+
+def sql_record(source: bytes, callable_ref: str) -> PlanSql | None:
+    """What `plan --diff` needs to compare a SQL model's code (ADR-0052): the literal
+    `ctx.sql("...")` queries of the model's function, each with its literal `dialect=`, and
+    `shell`, the code digest with those query strings blanked. None when the function has no
+    such query, or passes `dialect=` as anything but a string literal."""
+    tree = ast.parse(source)
+    name = callable_ref.partition(":")[2]
+    defs = (ast.FunctionDef, ast.AsyncFunctionDef)
+    fns = [s for s in tree.body if isinstance(s, defs) and s.name == name]
+    calls = [n for n in ast.walk(fns[-1]) if _ctx_sql_literal(n)] if fns else []
+    queries: list[SqlQuery] = []
+    for call in calls:
+        assert isinstance(call, ast.Call)
+        arg = call.args[0]
+        assert isinstance(arg, ast.Constant)
+        dialect = next((k.value for k in call.keywords if k.arg == "dialect"), None)
+        if dialect is not None and not (
+            isinstance(dialect, ast.Constant) and isinstance(dialect.value, str)
+        ):
+            return None
+        queries.append(SqlQuery(sql=arg.value, dialect=None if dialect is None else dialect.value))
+        arg.value = ""
+    if not queries:
+        return None
+    return PlanSql(shell=_sha(canonical(callable_ref, _normalized(tree))), queries=tuple(queries))
 
 
 def canonical(*values: Any) -> bytes:

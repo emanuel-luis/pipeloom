@@ -155,6 +155,65 @@ def check_sql(pg: ProjectGraph, report: Report) -> None:
             )
 
 
+def sql_change(old: str, new: str, dialect: str | None) -> tuple[str, str]:
+    """How a query changed, for `plan --diff` (ADR-0052): `("same", "")`, `("non-breaking",
+    why)` when the new query only adds projected columns, or `("breaking", why)`. Anything this
+    cannot tell is breaking: sqlglot missing, a query it cannot parse, more than one statement,
+    or any change it does not recognize as a pure addition."""
+    if importlib.util.find_spec("sqlglot") is None:
+        return "breaking", "sqlglot is not installed, so the SQL change is unknown"
+    from sqlglot import exp, parse
+    from sqlglot.errors import SqlglotError
+
+    try:
+        a, b = parse(old, read=dialect), parse(new, read=dialect)
+    except (SqlglotError, ValueError):  # ValueError: an unknown dialect name
+        return "breaking", "the SQL cannot be parsed"
+    if len(a) != 1 or len(b) != 1 or a[0] is None or b[0] is None:
+        return "breaking", "the SQL is not one statement"
+    before, after = a[0], b[0]
+
+    def text(e: exp.Expression) -> str:
+        return e.sql(dialect=dialect, comments=False)
+
+    if text(before) == text(after):
+        return "same", ""
+    if not isinstance(before, exp.Select) or not isinstance(after, exp.Select):
+        return "breaking", "the query changed"
+    olds = [text(e) for e in before.expressions]
+    kept: list[exp.Expression] = []
+    added: list[exp.Expression] = []
+    for e in after.expressions:
+        (kept if len(kept) < len(olds) and text(e) == olds[len(kept)] else added).append(e)
+    if len(kept) < len(olds):
+        return "breaking", "an existing column changed or was removed"
+    names = {e.alias_or_name for e in before.expressions}
+    aggregate = before.args.get("group") or any(
+        agg.find_ancestor(exp.Window) is None
+        for e in before.expressions
+        for agg in e.find_all(exp.AggFunc)
+    )
+    if before.args.get("distinct") or aggregate:
+        return "breaking", "a column was added to a DISTINCT or aggregate query"
+    if any(e.is_star for e in before.expressions):
+        return "breaking", "a column was added next to *, so its name may clash"
+    for e in added:
+        if not e.alias_or_name or e.alias_or_name in names:
+            return "breaking", "an added column has no name or reuses one"
+        names.add(e.alias_or_name)
+        if any(
+            isinstance(n, exp.Select | exp.Subquery | exp.UDTF | exp.Unnest | exp.Anonymous)
+            or (isinstance(n, exp.AggFunc) and n.find_ancestor(exp.Window) is None)
+            for n in e.walk()
+        ):
+            return "breaking", f"added column '{e.alias_or_name}' may change the row count"
+    rest = after.copy()
+    rest.set("expressions", [e.copy() for e in kept])
+    if text(rest) != text(before):
+        return "breaking", "the query changed beyond the added columns"
+    return "non-breaking", "added " + ", ".join(e.alias_or_name for e in added)
+
+
 def check_static(pg: ProjectGraph, report: Report) -> None:
     """Report PLK602 (found while binding) and PLK606 for Python models."""
     project = pg.project

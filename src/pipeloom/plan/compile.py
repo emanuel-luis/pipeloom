@@ -19,6 +19,7 @@ from pipeloom.plan.checksums import (
     config_view,
     module_tree,
     part_digests,
+    sql_record,
     upstream_digest,
 )
 from pipeloom.plan.manifest import compute_plan_hash, drop_unset, node_checksum
@@ -152,6 +153,7 @@ def compile_plan(
             data_tests=None if m.entry.data_tests is None else tuple(m.entry.data_tests),
             checksums=parts[uid],
             checksum_version=CHECKSUM_VERSION,
+            sql=sql_record((loaded.project_dir / m.site.file).read_bytes(), m.entry.python),
         )
     sources = {
         uid: PlanSource(

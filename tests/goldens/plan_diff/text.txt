@@ -1,0 +1,6 @@
+model  category               parts          reason
+a      non-breaking           code           added w
+b      indirect-non-breaking  upstream       downstream of a
+c      breaking               code,upstream  Python code changed
+d      removed                removed        not in the project
+e      new                    new            not in the reference
