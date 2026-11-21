@@ -866,7 +866,7 @@ _ACTIVE_13: Final = (
         "PLC514",
         E,
         "Engine has no interval writes",
-        "The model sets incremental.interval, and the selected engine does not declare the interval_writes capability, so it cannot replace one window of the target without touching other rows. Use an engine with interval_writes (polars, pandas or DuckDB), or remove incremental.interval.",
+        "The model sets incremental.interval, and the selected engine does not declare the interval_writes capability, so it cannot replace one window of the target without touching other rows. Use an engine with interval_writes (polars, pandas, DuckDB or Spark), or remove incremental.interval.",
     ),
     (
         "PLM209",

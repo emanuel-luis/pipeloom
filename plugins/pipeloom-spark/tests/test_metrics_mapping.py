@@ -92,6 +92,9 @@ def test_token_metadata_round_trips() -> None:
 def test_app_id_suffixes() -> None:
     assert app_id("shop", "20260101T000000Z-abc123:orders") == "pipeloom/shop/orders"
     assert app_id("shop", "r:orders#quarantine") == "pipeloom/shop/orders#quarantine"
+    assert app_id("shop", "r:orders:W1") == "pipeloom/shop/orders/W1"
+    assert app_id("shop", "r:orders:W1#quarantine") == "pipeloom/shop/orders/W1#quarantine"
+    assert app_id("shop", "seed") == "pipeloom/shop/seed"
 
 
 def test_merge_statement_shapes() -> None:

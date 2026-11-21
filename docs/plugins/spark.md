@@ -87,6 +87,16 @@ fails and tells you to use mode `active`. Classic and Connect cannot share one P
 | Metrics | rows and bytes, from the commit history |
 | Cancel | yes, through Spark job tags |
 | Portable frames (`frame_api: narwhals`) | yes |
+| Interval writes (`incremental.interval`) | yes, one `replaceWhere` commit per window |
+
+Interval models ([guide](../guide/incremental.md#interval-models)) write each window with one Delta
+`replaceWhere` commit over `event_time >= start AND event_time < end`: the window's old rows go,
+its new rows land, and rows outside the window stay, whatever the table's partitioning. An empty
+window removes its old rows. Each window commits under its own transaction app id,
+`pipeloom/<project>/<model>/<interval_id>`, so a retried run replays the windows it wrote and
+writes the rest ([ADR-0032](../adr/0032-delta-writes-and-idempotency.md), amendment 1.3). The input
+is filtered with the same predicate, so Delta can skip files. Spark stores `TIMESTAMP` in UTC and
+the bounds are UTC instants, so the session time zone never moves a window.
 
 `csv` reads a header and infers types; `json` is one multi-line document and `ndjson` is one
 document per line. Reader options pass through as strings.

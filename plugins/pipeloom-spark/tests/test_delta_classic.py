@@ -15,7 +15,14 @@ import pytest
 
 from pipeloom.engine.errors import WriteRefusedError
 from pipeloom.engine.protocols import EngineSession
-from pipeloom.engine.types import Column, DeleteSpec, ReadSpec, TargetRef, WriteConfig
+from pipeloom.engine.types import (
+    Column,
+    DeleteSpec,
+    ReadSpec,
+    ReplaceRange,
+    TargetRef,
+    WriteConfig,
+)
 from pipeloom.platform import Identity
 from pipeloom.runtime.context import RuntimeContext
 from pipeloom.testing.clock import FakeClock
@@ -326,3 +333,48 @@ def test_a_removed_column_runs_a_migration_commit_first(classic_spark: Any, tmp_
         commits = delta.history(classic_spark, catalog.ident(_target("m")), None)
         assert any('"migration_for":"r1:m"' in (c.user_metadata or "") for c in commits)
         assert s.applied_token(_target("m"), "r1:m") is not None
+
+
+def test_each_window_commits_under_its_own_transaction(classic_spark: Any, tmp_path: Path) -> None:
+    """Windows of one run share the run's txnVersion: each needs its own app id, or Delta would
+    skip the second window as a replay of the first (ADR-0032, amendment 1.3)."""
+    ddl = "ts TIMESTAMP, v BIGINT"
+    days = [datetime(2026, 1, d, tzinfo=UTC) for d in (1, 2, 3)]
+
+    def window(k: int) -> WriteConfig:
+        rng = ReplaceRange("ts", days[k], days[k + 1])
+        return WriteConfig("append", replace_range=rng, run_started_at=T0)
+
+    with _open(tmp_path) as (s, catalog):
+        _write(
+            s,
+            classic_spark,
+            "m",
+            [(days[0], 0), (days[1], 0)],
+            ddl,
+            WriteConfig("overwrite"),
+            "seed",
+        )
+        first = _write(s, classic_spark, "m", [(days[0], 1)], ddl, window(0), "r1:m:w0")
+        second = _write(s, classic_spark, "m", [(days[1], 2)], ddl, window(1), "r1:m:w1")
+        assert not first.skipped and not second.skipped
+        assert (first.rows_deleted, second.rows_deleted) == (1, 1)
+        again = _write(s, classic_spark, "m", [(days[0], 9)], ddl, window(0), "r1:m:w0")
+        assert again.skipped and again == s.applied_token(_target("m"), "r1:m:w0")
+        assert _rows(s, "m", "ts") == [(days[0], 1), (days[1], 2)]
+        history = delta.history(classic_spark, catalog.ident(_target("m")), None)
+        tokens = [t[0] for t in map(delta.parse_token, (c.user_metadata for c in history)) if t]
+        assert sorted(tokens) == ["r1:m:w0", "r1:m:w1", "seed"]  # none for the replay
+
+
+def test_a_window_releases_its_batch_after_the_write(classic_spark: Any, tmp_path: Path) -> None:
+    """A unit of many windows caches one window at most (a 365-window backfill)."""
+    days = [datetime(2026, 1, d, tzinfo=UTC) for d in (1, 2, 3, 4)]
+    with _open(tmp_path) as (s, _), s.unit_scope("daily"):
+        persisted = s._persisted  # type: ignore[attr-defined]
+        for k in range(3):
+            rng = ReplaceRange("ts", days[k], days[k + 1])
+            cfg = WriteConfig("append", replace_range=rng, run_started_at=T0)
+            ddl = "ts TIMESTAMP, v BIGINT"
+            _write(s, classic_spark, "m", [(days[k], k)], ddl, cfg, f"r1:daily:w{k}")
+            assert persisted.get("daily", []) == []
