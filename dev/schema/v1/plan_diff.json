@@ -1,0 +1,121 @@
+{
+  "$defs": {
+    "change": {
+      "properties": {
+        "category": {
+          "enum": [
+            "new",
+            "removed",
+            "breaking",
+            "indirect-breaking",
+            "non-breaking",
+            "indirect-non-breaking",
+            "metadata"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "parts": {
+          "description": "The split checksums that differ, or new, removed or legacy.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "unique_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "unique_id",
+        "name",
+        "category",
+        "parts",
+        "reason"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://emanuel-luis.github.io/pipeloom/latest/schema/v1/plan_diff.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "How each changed model differs from the --state reference (ADR-0052).",
+  "properties": {
+    "changes": {
+      "items": {
+        "$ref": "#/$defs/change"
+      },
+      "type": "array"
+    },
+    "counts": {
+      "properties": {
+        "breaking": {
+          "type": "integer"
+        },
+        "indirect-breaking": {
+          "type": "integer"
+        },
+        "indirect-non-breaking": {
+          "type": "integer"
+        },
+        "metadata": {
+          "type": "integer"
+        },
+        "new": {
+          "type": "integer"
+        },
+        "non-breaking": {
+          "type": "integer"
+        },
+        "removed": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "new",
+        "removed",
+        "breaking",
+        "indirect-breaking",
+        "non-breaking",
+        "indirect-non-breaking",
+        "metadata"
+      ],
+      "type": "object"
+    },
+    "fail_on": {
+      "enum": [
+        "breaking",
+        "any",
+        "none"
+      ]
+    },
+    "failed": {
+      "description": "True when the command exits 1 for --fail-on.",
+      "type": "boolean"
+    },
+    "project": {
+      "type": "string"
+    },
+    "schema": {
+      "const": "pipeloom.plan_diff/1",
+      "description": "Schema name and version."
+    },
+    "target": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "project",
+    "target",
+    "fail_on",
+    "failed",
+    "counts",
+    "changes"
+  ],
+  "title": "pipeloom plan diff",
+  "type": "object"
+}

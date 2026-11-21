@@ -2303,6 +2303,67 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#amendment-12-plan-diff-and-change-categories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (1.2): plan --diff and change categories
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Amendment (1.2): plan --diff and change categories">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#context_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decision_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#consequences_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#status" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2353,7 +2414,7 @@
 <p>Architecture: <a href="../../architecture/">Section 7, Error codes, and section 11, Artifacts</a></p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
 <p>A node of the 1.0 manifest has one <code>checksum</code>. It covers the resolved config, the callable and the bytes of the model's module file, the contract columns and the data tests (<a href="../0042-state-selection-and-defer/">ADR-0042</a>, <a href="../0050-python-first-authoring/">ADR-0050</a>). <code>state:modified</code> can only say that something changed. A reformatted file, a new comment, a fixed docstring and an edited data test all look like a change to the model's logic, and a reviewer cannot tell which. Environment values also land in the checksum, because the config is hashed after <code>${env:...}</code> is resolved.</p>
-<p>Version 1.2 adds <code>plan --diff</code>, which sorts each change into a category. It needs to know which part of a node changed first. This ADR covers that part. The change categories are the planned next step and will be added to this ADR by the PR that adds <code>plan --diff</code>.</p>
+<p>Version 1.2 adds <code>plan --diff</code>, which sorts each change into a category. It needs to know which part of a node changed first. This ADR covers that part. The change categories are in the 1.2 amendment below.</p>
 <p>The 1.x stability rules (<a href="../0016-versioning-and-plugin-api/">ADR-0016</a>) allow only additive manifest fields. The 1.0 <code>checksum</code> and the plan hash must stay byte-identical for an unchanged project.</p>
 <h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
 <ul>
@@ -2390,8 +2451,43 @@
 <li>A non-finite float literal such as <code>1e999</code> is hashed as its text, since canonical JSON has no infinity.</li>
 <li>Changing the normalization later bumps <code>checksum_version</code>, and references written before fall back with PLG309 until they are compiled again.</li>
 </ul>
+<h2 id="amendment-12-plan-diff-and-change-categories">Amendment (1.2): plan --diff and change categories<a class="headerlink" href="#amendment-12-plan-diff-and-change-categories" title="Permanent link">&para;</a></h2>
+<p>Decided on 2026-11-21 with the <code>plan --diff</code> change (roadmap 1.2).</p>
+<h3 id="context_1">Context<a class="headerlink" href="#context_1" title="Permanent link">&para;</a></h3>
+<p>The split checksums say which part of a model changed. A reviewer also wants to know what the change does to the data readers see, and CI wants to stop a change that may break them. A category must never call a change safe when pipeloom cannot tell.</p>
+<h3 id="options_1">Options<a class="headerlink" href="#options_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Where the old SQL comes from.</strong> The reference is a manifest, not a checkout, so the old module is gone.</li>
+<li>Treat every code change as breaking. Then no code change can be non-breaking, which the roadmap asks for. Rejected.</li>
+<li>Record the literal <code>ctx.sql</code> queries in the manifest. Chosen. A node gains an optional <code>sql{shell, queries[{sql, dialect}], returned}</code>, left out of the plan hash like <code>checksums</code>. <code>queries</code> are the string literals passed to <code>ctx.sql</code> inside the model's function, in tree order, with each call's literal <code>dialect=</code>. <code>returned</code> is true when the function has exactly one such query, called with at most <code>dialect=</code>, and returns that call as it is, so the query is the model's output. <code>shell</code> is the digest of the module tree (normalized as for <code>code</code>) with the queries of the model functions blanked, combined with the callable. A model function whose name is used anywhere else in the module (a call, a reference) keeps its queries in the shell, so a caller sees them change. A helper's SQL or any Python edit changes the shell; the SQL of a sibling model that nothing else uses does not. The module is parsed and hashed once, not once per model: a module with 1,000 models stays linear. A function with no such call, or with a <code>dialect=</code> that is not a literal, gets no record.</li>
+<li><strong>Where sqlglot runs.</strong> The import-linter contract allows it only in <code>validate.static</code>. The comparison <code>sql_change</code> lives there, the classifier in <code>artifacts.plan_diff</code> calls it, and the contract is unchanged. Without sqlglot it answers breaking.</li>
+<li><strong>The command surface.</strong> <code>plan</code> did not exist. It is added with <code>--diff</code> as its only mode, required, so a later mode can be added without changing what <code>plan</code> alone means. Rejected: a flag on <code>ls</code> or <code>compile</code>, whose output and exit codes would change meaning.</li>
+</ul>
+<h3 id="decision_1">Decision<a class="headerlink" href="#decision_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>pipeloom plan --diff --state DIR [--select ...] [--exclude ...] [--fail-on breaking|any|none] [--output text|json]</code> compiles the project, loads the reference as <code>--state</code> does elsewhere (PLX110 on a bad folder), and reports each changed model. Unchanged models are left out.</li>
+<li>Own category, from the parts that differ (the worst wins, breaking over non-breaking over metadata):</li>
+<li>Changed inputs: breaking. <code>upstream</code> alone gives no own category; parents decide.</li>
+<li><code>tests</code>: metadata.</li>
+<li><code>contract</code>: a dropped or retyped column, a nullability change, a contract added or removed, or an added column that is not nullable is breaking. An added nullable column, or only a new column order, is non-breaking.</li>
+<li><code>config</code>, by top-level key: <code>tags</code>, <code>meta</code>, <code>retries</code>, <code>retry_delay</code>, <code>retry_on</code> and <code>timeout</code> are metadata, because they change how a run goes and not what it writes. <code>cluster_by</code> is non-breaking, because it changes layout and not rows. <code>expectations</code> are non-breaking unless a changed expectation has <code>on_violation: drop</code>, which removes rows. Every other key is breaking, including <code>materialized</code>, <code>write</code>, <code>incremental</code>, <code>partition_by</code>, <code>quality</code>, <code>frame_api</code>, <code>schema</code>, <code>catalog</code>, <code>sql_dialect</code> and any key added later. A config digest that differs while the resolved config does not (an <code>${env:...}</code> text change) is breaking.</li>
+<li><code>code</code>: breaking unless both sides have a SQL record with the same shell and the same number of queries, and each query pair is the same or a pure addition. A pure addition counts as non-breaking only when both records are <code>returned</code>; a query that feeds more code (a DISTINCT over it, a join, <code>.unique()</code>) is breaking. sqlglot parses both with the call's dialect, else the model's <code>sql_dialect</code>, else the engine's. A pure addition is one SELECT statement on each side where the old projections appear in the new in the same order, the rest of the query is identical, the old query is not DISTINCT, grouped or aggregate, has no <code>*</code>, and each added column has a new name that no other part of the query reads (WHERE, ORDER BY, GROUP BY, HAVING, QUALIFY, JOIN ON, window specs or another projection) and no aggregate outside a window, subquery, table function, UNNEST, generate_series or unknown function. Queries are not qualified against a schema. Anything else, a parse error, more than one statement, or a missing sqlglot is breaking.</li>
+<li>A reference node without split checksums of this <code>checksum_version</code> falls back to the legacy key: any difference is breaking, with part <code>legacy</code>, and PLG309 counts those models once.</li>
+<li>Categories: <code>new</code>, <code>removed</code>, <code>breaking</code>, <code>indirect-breaking</code>, <code>non-breaking</code>, <code>indirect-non-breaking</code>, <code>metadata</code>. A model below a breaking model is indirect-breaking unless it is breaking or new itself. A model below a non-breaking model is indirect-non-breaking unless its own change ranks higher. The reason names the models above. Indirect categories follow the current graph, ephemeral models included.</li>
+<li><code>--select</code> and <code>--exclude</code> (state selectors included) narrow the report. Removed models appear only without them, since they cannot be selected.</li>
+<li>Exit codes: 0 when nothing reaches the <code>--fail-on</code> level, 1 otherwise or on errors, 2 on usage errors. <code>breaking</code> (the default) counts <code>breaking</code>, <code>indirect-breaking</code> and <code>removed</code>; <code>any</code> counts every change; <code>none</code> never fails.</li>
+<li>Output: text is one row per model (model, category, parts, reason) or <code>no changes</code>. JSON is <code>pipeloom.plan_diff/1</code> (<code>project</code>, <code>target</code>, <code>fail_on</code>, <code>failed</code>, <code>counts</code> per category, <code>changes[{unique_id, name, category, parts, reason}]</code>), published as <code>schema/v1/plan_diff.json</code>.</li>
+<li>Provenance: designed from the pipeloom code base, the sqlglot documentation and public descriptions of change categories in other tools. No code was copied from any other project.</li>
+</ul>
+<h3 id="consequences_1">Consequences<a class="headerlink" href="#consequences_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>SQL text now appears in the manifest. It was already in the project's source, and the manifest already names the module.</li>
+<li>A manifest compiled by 1.2 before this change has split checksums but no SQL record: its code changes are breaking until the reference is compiled again.</li>
+<li>A model function called by another function of its module keeps its SQL in the shell, so its SQL edits make every model of the module breaking. Inputs are the way to read another model.</li>
+<li>Positional readers of a table may still see a column added in the middle of a SELECT as a change. pipeloom writes by name, so this is non-breaking here.</li>
+</ul>
 <h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
-<p>Accepted. <code>plan --diff</code> and its categories will amend this ADR.</p>
+<p>Accepted. Amended in 1.2: <code>plan --diff</code> and change categories (see above).</p>
 <h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
 <p>2026-11-20</p>
 

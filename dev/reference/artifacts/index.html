@@ -2658,6 +2658,10 @@ config schemas (<a href="../../adr/0049-artifact-schemas-and-orchestrator-protoc
 <td><code>diff --output json</code> (<code>pipeloom.table_diff/1</code>)</td>
 <td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/table_diff.json">table_diff.json</a></td>
 </tr>
+<tr>
+<td><code>plan --diff --output json</code> (<code>pipeloom.plan_diff/1</code>)</td>
+<td><a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/plan_diff.json">plan_diff.json</a></td>
+</tr>
 </tbody>
 </table>
 <p>A field added after 1.0 is optional in the schema, so 1.0 documents keep validating; the 1.0 required sets are frozen, and CI validates frozen 1.0 documents against the current schemas and current output against the frozen 1.0 schemas.</p>

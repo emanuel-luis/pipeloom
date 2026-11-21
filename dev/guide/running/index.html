@@ -1029,6 +1029,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reviewing-a-change-plan-diff" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reviewing a change: plan --diff
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#intermediates" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2488,6 +2499,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reviewing-a-change-plan-diff" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reviewing a change: plan --diff
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#intermediates" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2713,6 +2735,69 @@ another catalog kind. With a filesystem catalog the reference's <code>root</code
 <p>The dev loop:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pipeloom<span class="w"> </span>run<span class="w"> </span>--target<span class="w"> </span>dev<span class="w"> </span>--state<span class="w"> </span>state<span class="w"> </span>-s<span class="w"> </span><span class="s2">"state:modified+"</span><span class="w"> </span>--defer
 </code></pre></div>
+<h2 id="reviewing-a-change-plan-diff">Reviewing a change: plan --diff<a class="headerlink" href="#reviewing-a-change-plan-diff" title="Permanent link">&para;</a></h2>
+<p><code>pipeloom plan --diff --state state</code> compiles the project and sorts each model that differs from
+the reference into one category
+(<a href="../../adr/0052-split-checksums-and-change-categories/">ADR-0052</a>):</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>new</code></td>
+<td>The reference does not have the model.</td>
+</tr>
+<tr>
+<td><code>removed</code></td>
+<td>The project no longer has the model.</td>
+</tr>
+<tr>
+<td><code>breaking</code></td>
+<td>The data the model writes may change for its readers.</td>
+</tr>
+<tr>
+<td><code>non-breaking</code></td>
+<td>Readers keep what they had: a projected column added to a SQL query, a nullable contract column added, <code>cluster_by</code>, or expectations that drop no rows.</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>Nothing the model writes changes: data tests, <code>tags</code>, <code>meta</code>, retries or <code>timeout</code>.</td>
+</tr>
+<tr>
+<td><code>indirect-breaking</code></td>
+<td>A model above it is breaking.</td>
+</tr>
+<tr>
+<td><code>indirect-non-breaking</code></td>
+<td>A model above it is non-breaking, and nothing above is breaking.</td>
+</tr>
+</tbody>
+</table>
+<p>An unknown result never counts as safe. A code change is non-breaking only when the model's
+function has one string literal query and returns it as it is (<code>return ctx.sql("...")</code>),
+nothing else in its module changed, and sqlglot reads the new query as the old one plus
+projected columns, with no change to the existing columns, filters, joins or grouping. An added
+column that may change the row count (an aggregate, a subquery, a table function or an unknown
+function), or whose name the query already reads elsewhere, is breaking. Python frame code, SQL that
+sqlglot cannot parse, a missing sqlglot, and a reference compiled before 1.2 (PLG309) all count
+as breaking. In the contract, dropping or retyping a column, or changing its nullability, is
+breaking. In the config, everything not listed above is breaking, for example
+<code>materialized</code>, <code>write</code>, <code>incremental</code>, <code>partition_by</code>, <code>schema</code> and <code>catalog</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>$ pipeloom plan --diff --state state
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>model   category               parts     reason
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>orders  non-breaking           code      added discount
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>report  indirect-non-breaking  upstream  downstream of orders
+</code></pre></div>
+<p><code>--fail-on breaking</code> (the default) exits 1 when a change is <code>breaking</code>, <code>indirect-breaking</code> or
+<code>removed</code>, so the command works as a gate in CI. <code>--fail-on any</code> exits 1 on any change and
+<code>--fail-on none</code> always exits 0. <code>--select</code> and <code>--exclude</code> narrow the report, and removed models
+show only without them. <code>--output json</code> prints a <code>pipeloom.plan_diff/1</code> object
+(<a href="https://emanuel-luis.github.io/pipeloom/latest/schema/v1/plan_diff.json">schema</a>). <code>--diff</code> is
+the only mode of <code>plan</code> for now and is required.</p>
 <h2 id="intermediates">Intermediates<a class="headerlink" href="#intermediates" title="Permanent link">&para;</a></h2>
 <p>A model with <code>materialized: intermediate</code> is persisted for the length of the run, so units in
 other processes (<code>boundary: task</code>) can read it. The result goes to
