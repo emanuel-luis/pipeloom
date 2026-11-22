@@ -276,7 +276,15 @@ class DeltaStateStore:
             "data": codec.dumps(codec.watermark_to_json(new)),
             "expected_key": None if expected is None else codec.value_key(expected),
         }
-        return self._merge(CAS, row) > 0
+        try:
+            return self._merge(CAS, row) > 0
+        except Exception as exc:
+            # A conflict that outlived the retries means other writers kept committing first and
+            # this MERGE never committed: for a compare-and-set that is a lost race, so the
+            # caller reads again instead of failing (the interval ledger's CAS loop relies on it).
+            if errors.is_conflict(exc):
+                return False
+            raise
 
     def record_run(self, record: RunRecord) -> None:
         self._merge(
